@@ -37,7 +37,9 @@ end
      0.0 0.2]
 z = # Dataset, Read csv into DataFrame
 
-simulate(θ,ω,z)
+ϵ = # ?
+
+simulate(θ,ω,z,ϵ)
 
 ##########################################
 # Internal Functions
@@ -48,16 +50,20 @@ function generate_η(ω)
   # Generate size(ω,1) x N matrix from ω, the varcovar matrix
 end
 
+function
+
 function generate_individual_sol(θ,η,z,i)
  set_parameters!(p,θ,η,z,i) # from the user
  set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
  sol = solve(prob,Tsit5()) # solve the diffeq, return the solution
 end
 
-function simulate(θ,ω,z)
+function simulate(θ,ω,z,ϵ)
   η = generate_η(ω)
   N = maximum(z[:id])
   for i in N
     sols[i] = generate_individual_sol(θ,η[:,i],z,i)
   end
+  add_noise!(sols,ϵ)
+  sols
 end
