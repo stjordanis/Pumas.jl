@@ -35,7 +35,7 @@ end
 θ = [2.0,3.0,10.0,1.0]
 ω = [0.05 0.0
      0.0 0.2]
-z = # Dataset
+z = # Dataset, Read csv into DataFrame
 
 simulate(θ,ω,z)
 
@@ -54,15 +54,10 @@ function generate_individual_sol(θ,η,z,i)
  sol = solve(prob,Tsit5()) # solve the diffeq, return the solution
 end
 
-function generate_population_sol(θ,η,z)
- for i in N # Population size should be known from z?
-   sols[i] = generate_individual_sol(θ,η,z,i)
- end
-end
-
 function simulate(θ,ω,z)
   η = generate_η(ω)
-  for i in N # Population size should be known from z?
+  N = maximum(z[:id])
+  for i in N
     sols[i] = generate_individual_sol(θ,η[:,i],z,i)
   end
 end
