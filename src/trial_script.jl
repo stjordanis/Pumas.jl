@@ -2,6 +2,7 @@ using DifferentialEquations
 using DataFrames
 using Distributions
 cd(Pkg.dir("PKPDSimulator"))
+using Plots; pyplot()
 
 ##########################################
 # Internal Functions
@@ -18,12 +19,18 @@ function generate_individual_sol(prob,θ,η,z,i)
  sol = solve(prob,Tsit5()) # solve the diffeq, return the solution
 end
 
-function simulate(prob,θ,ω,z,ϵ=nothing)
+function simulate(prob,θ,ω,z,ϵ=nothing;kwargs...)
   N = maximum(z[:id])
   η = generate_η(ω,N)
-  sols = [generate_individual_sol(prob,θ,η[i],z,i) for i in 1:N]
-  ϵ != nothing && add_noise!(sols,ϵ)
-  sols
+  prob_func = function (prob,i)
+    set_parameters!(p,prob.u0,θ,η[i],z,i) # from the user
+    set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
+    prob
+  end
+  monte_prob = MonteCarloProblem(prob,prob_func=prob_func)
+  sol = solve(monte_prob,Tsit5();num_monte=N,kwargs...)
+  ϵ != nothing && add_noise!(sol,ϵ)
+  sol
 end
 
 #########################################
@@ -72,9 +79,7 @@ z = readtable("examples/data1.csv")
 #############################################
 # Call simulate
 
-sols = simulate(prob,θ,ω,z)
-
-using Plots; plotly()
-plot(sols[1])
-for i in 2:length(sols); plot!(sols[i]); end
-plot!(sols[40])
+sol = simulate(prob,θ,ω,z)
+plot(sol,title="Plot of all trajectories",xlabel="time")
+summ = MonteCarloSummary(sol,0:0.1:19)
+plot(summ,title="Summary plot",xlabel="time")
