@@ -19,7 +19,7 @@ function generate_individual_sol(prob,θ,η,z,i)
  sol = solve(prob,Tsit5()) # solve the diffeq, return the solution
 end
 
-function simulate(prob,θ,ω,z,ϵ=nothing;kwargs...)
+function simulate(prob,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
   N = maximum(z[:id])
   η = generate_η(ω,N)
   prob_func = function (prob,i)
@@ -28,7 +28,7 @@ function simulate(prob,θ,ω,z,ϵ=nothing;kwargs...)
     prob
   end
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func)
-  sol = solve(monte_prob,Tsit5();num_monte=N,kwargs...)
+  sol = solve(monte_prob,alg;num_monte=N,kwargs...)
   ϵ != nothing && add_noise!(sol,ϵ)
   sol
 end
