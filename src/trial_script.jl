@@ -22,13 +22,13 @@ end
 function simulate(prob,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
   N = maximum(z[:id])
   η = generate_η(ω,N)
-  prob_func = function (prob,i)
+  prob_func = function (prob,i,repeat)
     set_parameters!(p,prob.u0,θ,η[i],z,i) # from the user
     set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
     prob
   end
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func)
-  sol = solve(monte_prob,alg;num_monte=N,kwargs...)
+  sol = solve(monte_prob,alg;parallel_type=:none,num_monte=N,kwargs...)
   ϵ != nothing && add_noise!(sol,ϵ)
   sol
 end
@@ -52,6 +52,9 @@ function depot_model(t,u,p,du)
  du[2] =  Ka*Depot - (CL/V)*Central
 end
 f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
+
+## Finish the ODE Definition
+
 tspan = (0.0,19.0)
 u0 = zeros(2)
 prob = ODEProblem(f,u0,tspan)
