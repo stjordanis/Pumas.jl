@@ -63,12 +63,22 @@ prob = ODEProblem(f,u0,tspan)
 # User definition of the set_parameters! function
 
 function set_parameters!(p,u0,θ,η,z,i)
-  wt,sex = first(z[1+(i-1)*20,:][:wt]),first(z[1+(i-1)*20,:][:sex])
+  patient = nth_patient(z,i)
+  wt,sex  = first(patient[:wt]),first(patient[:sex])
   Ka = θ[1]
   CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1])
   V  = θ[3]*exp(η[2])
   p[1] = Ka; p[2] = CL; p[3] = V
   u0[1] = float(first(z[1+(i-1)*20,:][:amt]))
+end
+
+############################################
+# Get N-th patient's data
+
+function nth_patient(p_data,n)
+  n_start = findlast(x -> x==n-1, z[:id])+1
+  n_end   = findlast(x -> x==n,   z[:id])
+  p_data[n_start:n_end, :]
 end
 
 ############################################
