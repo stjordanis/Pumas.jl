@@ -76,8 +76,8 @@ end
 # Get N-th patient's data
 
 function nth_patient(p_data,n)
-  n_start = findlast(x -> x==n-1, z[:id])+1
-  n_end   = findlast(x -> x==n,   z[:id])
+  n_start = findfirst(x -> x==n, z[:id])
+  n_end   = findlast(x ->  x==n, z[:id])
   p_data[n_start:n_end, :]
 end
 
