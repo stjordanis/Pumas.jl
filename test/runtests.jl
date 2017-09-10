@@ -1,5 +1,7 @@
 using PKPDSimulator
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+tic()
+@time @testset "Single Dosage Tests" begin include("single_dosage_tests.jl") end
+@time @testset "Multiple Dosage Tests" begin include("multiple_dosage_tests.jl") end
+toc()
