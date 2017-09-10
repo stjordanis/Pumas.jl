@@ -24,7 +24,7 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 θ = [2.268,74.17,468.6,0.5876] # [2.0,3.0,10.0,1.0] # Unfitted
 ω = [0.05 0.0
      0.0 0.2]
-z = readtable(joinpath(Pkg.dir("PKPDSimulator")),"examples/data1.csv")
+z = readtable(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"))
 
 ## Finish the ODE Definition
 
