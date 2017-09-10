@@ -128,5 +128,5 @@ ts = get_tstops(z)
 
 sol = simulate(prob,ω,z;tstops=ts)
 plot(sol,title="Plot of all trajectories",xlabel="time")
-summ = MonteCarloSummary(sol,0:0.1:19)
+summ = MonteCarloSummary(sol,0:0.2:300)
 plot(summ,title="Summary plot",xlabel="time")
