@@ -1,6 +1,6 @@
 # PKPDSimulator.jl
 
-[![Build Status](https://travis-ci.org/ChrisRackauckas/PKPDSimulator.jl.svg?branch=master)](https://travis-ci.org/ChrisRackauckas/PKPDSimulator.jl)
+[![Build Status](https://travis-ci.org/ChrisRackauckas/PKPDSimulator.jl.svg?branch=master)](https://travis-ci.org/osmosisfoundation/PKPDSimulator.jl)
 
 [![Coverage Status](https://coveralls.io/repos/ChrisRackauckas/PKPDSimulator.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/ChrisRackauckas/PKPDSimulator.jl?branch=master)
 
