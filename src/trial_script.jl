@@ -7,7 +7,7 @@ using Plots; pyplot()
 ##########################################
 # Load data
 
-z = readtable("examples/oral1_1cpt_KAVCL_SD_data.txt", separator=' ')
+z = readtable("examples/oral1_1cpt_KAVCL_MD_data.txt", separator=' ')
 
 ##########################################
 # Internal Functions
@@ -81,9 +81,15 @@ end
 #############################################
 # The DiscreteCallback
 
+function get_tstops(z)
+    d_1 = nth_patient(z,1)
+    cols = find(x->x==1, d_1[:evid])
+    target_time = d_1[:time][cols]
+end
+
 function nth_patient_cb(n)
     d_n = nth_patient(z,n)
-    cols = find(x->x!=0, d_n[:amt])
+    cols = find(x->x==1, d_n[:evid])
     target_time = d_n[:time][cols]
     condition = (t,u,integrator) -> t ∈ target_time
     counter = 1
@@ -105,21 +111,22 @@ end
 
 ## Finish the ODE Definition
 
-tspan = (0.0,19.0)
+tspan = (0.0,300.0)
 u0 = zeros(2)
 prob = ODEProblem(f,u0,tspan,callback=nth_patient_cb(1))
+ts = get_tstops(z)
 
 ############################################
 # Population setup
 
-θ = [2.268,74.17,468.6,0.5876] # [2.0,3.0,10.0,1.0] # Unfitted
+# θ = [2.268,74.17,468.6,0.5876] # [2.0,3.0,10.0,1.0] # Unfitted
 ω = [0.05 0.0
      0.0 0.2]
 
 #############################################
 # Call simulate
 
-sol = simulate(prob,ω,z)
+sol = simulate(prob,ω,z;tstops=ts)
 plot(sol,title="Plot of all trajectories",xlabel="time")
 summ = MonteCarloSummary(sol,0:0.1:19)
 plot(summ,title="Summary plot",xlabel="time")
