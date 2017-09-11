@@ -2,11 +2,12 @@ function generate_η(ω,N)
   [rand(MvNormal(zeros(size(ω,1)),ω)) for i in 1:N]
 end
 
-function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
+function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,
+                  output_func=(sol,i)-> (sol,false),alg=Tsit5(),
+                  ϵ=nothing;kwargs...)
   u0 = zeros(num_dependent)
   tstops = [tspan[1];get_all_event_times(z)] # uses tstops on all, could be by individual
   tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
-  @show tstops
   prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(z,1))
   N = length(z)
   η = generate_η(ω,N)
@@ -17,7 +18,7 @@ function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=n
     prob.callback = ith_patient_cb(z,i)
     prob
   end
-  monte_prob = MonteCarloProblem(prob,prob_func=prob_func)
+  monte_prob = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
   sol = solve(monte_prob,alg;parallel_type=:none,num_monte=N,
               save_start=false,tstops=tstops,kwargs...)
   ϵ != nothing && add_noise!(sol,ϵ)
