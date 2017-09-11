@@ -2,13 +2,11 @@ function generate_η(ω,N)
   [rand(MvNormal(zeros(size(ω,1)),ω)) for i in 1:N]
 end
 
-function generate_individual_sol(prob,η,z,i)
- set_parameters!(p,prob.u0,η,z[i]) # from the user
- set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
- sol = solve(prob,Tsit5()) # solve the diffeq, return the solution
-end
-
-function simulate(prob,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
+function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
+  u0 = zeros(num_dependent)
+  tstops = [tspan[1];z[1].event_times] # assumes all of the event times are the same!
+  tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
+  prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(z,1))
   N = length(z)
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
@@ -19,7 +17,8 @@ function simulate(prob,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
     prob
   end
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func)
-  sol = solve(monte_prob,alg;parallel_type=:none,num_monte=N,kwargs...)
+  sol = solve(monte_prob,alg;parallel_type=:none,num_monte=N,
+              save_start=false,tstops=tstops,kwargs...)
   ϵ != nothing && add_noise!(sol,ϵ)
   sol
 end

@@ -23,27 +23,18 @@ function set_parameters!(p,u0,θ,η,zi)
   p[1] = zi.covariates[:ka]
   p[2] = zi.covariates[:cl]*exp(η[1])
   p[3] = zi.covariates[:v]*exp(η[2])
-  u0[1] = float(zi.events[1,:amt])
 end
 
-## Finish the ODE Definition
-
-tspan = (0.0,300.0)
-u0 = zeros(2)
-prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(z,1))
-ts = z[1].event_times
-
-############################################
 # Population setup
 
-θ = [2.268,74.17,468.6,0.5876] # Not used in this case
+θ = zeros(1) # Not used in this case
 ω = [0.05 0.0
      0.0 0.2]
 
-#############################################
 # Call simulate
-
-sol = simulate(prob,set_parameters!,θ,ω,z;tstops=ts)
+tspan = (0.0,300.0)
+num_dependent = 2
+sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 #=
 using Plots; pyplot()
