@@ -4,14 +4,15 @@ end
 
 function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,alg=Tsit5(),ϵ=nothing;kwargs...)
   u0 = zeros(num_dependent)
-  tstops = [tspan[1];z[1].event_times] # assumes all of the event times are the same!
+  tstops = [tspan[1];get_all_event_times(z)] # uses tstops on all, could be by individual
   tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
+  @show tstops
   prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(z,1))
   N = length(z)
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
     p = zeros(num_params(prob.f))
-    set_parameters!(p,prob.u0,θ,η[i],z[i]) # from the user
+    set_parameters!(p,prob.u0,θ,η[i],z[i])
     set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
     prob.callback = ith_patient_cb(z,i)
     prob
@@ -29,8 +30,18 @@ function ith_patient_cb(z,i)
     condition = (t,u,integrator) -> t ∈ target_time
     counter = 1
     function affect!(integrator)
-        integrator.u[1] = z[i].events[counter,:amt]
+        integrator.u[1] = z[i].events[counter,:amt] # how are we supposed to know it's 1?
         counter += 1
     end
     DiscreteCallback(condition, affect!)
+end
+
+function get_all_event_times(z)
+  total_times = copy(z[1].event_times)
+  for i in 2:length(z)
+    for t in z[i].event_times
+      t ∉ total_times && push!(total_times,t)
+    end
+  end
+  total_times
 end
