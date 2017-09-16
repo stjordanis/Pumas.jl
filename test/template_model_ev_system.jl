@@ -31,7 +31,7 @@ function getsol(model,tstart=0,tend=72,num_dv=1)
     # by dividing the sol by the volume V
 end
 
-#ev1 - gut dose
+# ev1 - gut dose - use ev1.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg dose into gut compartment
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
 # addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
@@ -51,9 +51,11 @@ end
      1     #BIOAV
 ]
 
+# corresponding mrgsolve and NONMEM solution in data1.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=2) # get both gut and central amounts and concentrations amt/V
 
-# ev2 - infusion into the central compartment
+
+# ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
 
 # new
 # amt=100: 100 mg infusion into central compartment
@@ -81,10 +83,11 @@ sol = getsol(model=f,num_dv=2) # get both gut and central amounts and concentrat
     1     #BIOAV
 ]
 
+# corresponding mrgsolve and NONMEM solution in data2.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 
 
-# ev3 - infusion into the central compartment with lag time
+# ev3 - infusion into the central compartment with lag time - use ev3.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr
@@ -112,10 +115,11 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
     1     #BIOAV
 ]
 
+# corresponding mrgsolve and NONMEM solution in data3.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 
 
-# ev4 - infusion into the central compartment with lag time
+# ev4 - infusion into the central compartment with lag time - use ev4.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr
@@ -146,4 +150,5 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
     0.412     #BIOAV
 ]
 
+# corresponding mrgsolve and NONMEM solution in data4.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
