@@ -32,6 +32,8 @@ function getsol(model,tstart=0,tend=72,num_dv=1)
     # by dividing the sol by the volume V
 end
 
+ω = zeros(1)
+
 # ev1 - gut dose - use ev1.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg dose into gut compartment
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
@@ -53,7 +55,7 @@ end
 ]
 
 # corresponding mrgsolve and NONMEM solution in data1.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=2) # get both gut and central amounts and concentrations amt/V
+sol = getsol(model=f,num_dv=2) # get both gut and central amounts and concentrations in central u_central/V
 
 
 # ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
@@ -84,7 +86,7 @@ sol = getsol(model=f,num_dv=2) # get both gut and central amounts and concentrat
 ]
 
 # corresponding mrgsolve and NONMEM solution in data2.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 
 # ev3 - infusion into the central compartment with lag time 
@@ -118,7 +120,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data3.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 
 # ev4 - infusion into the central compartment with lag time and bioavailability 
@@ -155,7 +157,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data4.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 
 # ev5 - infusion into the central compartment at steady state (ss) 
@@ -193,7 +195,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data5.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 # ev6 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less 
 # than the infusion duration (DUR)
@@ -234,7 +236,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data6.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 
 # ev7 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less 
@@ -276,7 +278,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data7.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 # ev8 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is a 
 # multiple of infusion duration (DUR)
@@ -319,7 +321,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data8.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 
 # ev9 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is  
@@ -363,7 +365,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data9.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
 # ev10 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is  
 # exactly equal to infusion duration (DUR)
@@ -402,4 +404,80 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
 ]
 
 # corresponding mrgsolve and NONMEM solution in data10.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations amt/V
+sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+
+# ev11 - gut dose at steady state with lower bioavailability
+# - use ev11.csv in PKPDSimulator/examples/event_data/
+# amt=100: 100 mg infusion into central compartment
+
+#new
+# cmt=1: in the system of diffeq's, central compartment is the second compartment
+
+#new
+# BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case, 
+# only 41.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+
+#ss=1:  indicates that the dose is a steady state dose, and that the compartment amounts are to be reset 
+#to the steady-state amounts resulting from the given dose. Compartment amounts resulting from prior 
+#dose event records are "zeroed out," and infusions in progress or pending additional doses are cancelled
+# addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
+
+#new 
+# ii=12: each additional dose is given with a frequency of ii=10 hours
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+
+θ = [ 
+    1.5,  #Ka
+    1.0,  #CL
+    30.0, #V
+    0,    #LAGT
+    0,    #MODE
+    2,    #DUR2
+    10,   #RAT2
+    0.412,#BIOAV
+    1     #ss
+]
+
+# corresponding mrgsolve and NONMEM solution in data11.csv in PKPDSimulator/examples/event_data/
+sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
+
+
+# ev12 - gut dose at with lower bioavailability and a 5 hour lag time
+# - use ev12.csv in PKPDSimulator/examples/event_data/
+# amt=100: 100 mg infusion into central compartment
+# cmt=1: in the system of diffeq's, central compartment is the second compartment
+# BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case, 
+# only 41.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+# addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
+
+#new 
+# LAGT=5: there is a lag of 5 hours after dose administration when amounts from the event
+# are populated into the central compartment. Requires developing a new internal variable called 
+# ALAG_<comp name> or ALAG_<comp_num> that takes a value that delays the entry of dose into that compartment
+
+# ii=12: each additional dose is given with a frequency of ii=10 hours
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+
+θ = [ 
+    1.5,  #Ka
+    1.0,  #CL
+    30.0, #V
+    5,    #LAGT
+    0,    #MODE
+    2,    #DUR2
+    10,   #RAT2
+    0.412 #BIOAV
+]
+
+# corresponding mrgsolve and NONMEM solution in data12.csv in PKPDSimulator/examples/event_data/
+sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
