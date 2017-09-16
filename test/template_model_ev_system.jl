@@ -9,30 +9,34 @@ f = @ode_def_nohes GutDose begin
 end Ka=>1.5 CL=>1.0 V=>30.0 #LAGT=>0, MODE=>0, DUR2=>2, RAT2=>10, BIOAV=>1
 
 
+
 function set_parameters!(p,u0,θ,η,zi)
-  F_CENT =  θ[8]
+  Ka = θ[1]
+  CL = θ[2]*exp(η[1])
+  V  = θ[3]*exp(η[2])
+
   ALAG_CENT = θ[4]
+  MODE = θ[5]
   if MODE==1
     R_CENT = θ[7]
   elseif MODE==2
     D_CENT = θ[6]
   end
-  Ka = θ[1]
-  CL = θ[2]
-  V  = θ[3]
+  F_CENT =  θ[8]
   p[1] = Ka; p[2] = CL; p[3] = V; p[4] = ALAG_CENT; p[5] = MODE; p[6] = D_CENT; p[7]=R_CENT; p[8]=F_CENT
 end
 
 
-function getsol(model;num_dv=1)
+function getsol!(f;num_dv=1,kwargs...) # this does not work
     tspan = (0,72)
     num_dependent = num_dv
-    sol  = simulate(f=model,tspan,num_dependent,set_parameters!,θ,ω,z)
+    sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
     # todo: implement output function to derive concentrations at everytime point
     # by dividing the sol by the volume V
 end
 
-ω = zeros(1)
+ω = [0.05 0.0
+     0.0 0.05]
 
 # ev1 - gut dose - use ev1.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg dose into gut compartment
@@ -54,9 +58,18 @@ end
      1     #BIOAV
 ]
 
-# corresponding mrgsolve and NONMEM solution in data1.csv in PKPDSimulator/examples/event_data/
-sol = getsol(f,num_dv=2) # get both gut and central amounts and concentrations in central u_central/V
+# Load data
+covariates = [1]
+dvs = [1]
+z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/ev1.csv"), covariates,dvs,
+              separator=',')
 
+# corresponding mrgsolve and NONMEM solution in data1.csv in PKPDSimulator/examples/event_data/
+#sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
+tspan = (0,72)
+num_dependent = 2
+sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 # ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
