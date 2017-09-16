@@ -14,8 +14,9 @@ function set_parameters!(p,u0,θ,η,zi)
   ALAG_CENT = LAGT
   if MODE==1
     R_CENT = RAT2
-  if MODE==2
+  elseif MODE==2
     D_CENT = DUR2
+  end
   Ka = θ[1]
   CL = θ[2]
   V  = θ[3]
