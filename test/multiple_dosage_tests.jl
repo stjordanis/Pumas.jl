@@ -21,15 +21,14 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 function set_parameters!(p,u0,θ,η,zi)
   p[1] = zi.covariates[:ka]
-  p[2] = zi.covariates[:cl]*exp(η[1])
-  p[3] = zi.covariates[:v]*exp(η[2])
+  p[2] = zi.covariates[:cl]
+  p[3] = zi.covariates[:v]
 end
 
 # Population setup
 
 θ = zeros(1) # Not used in this case
-ω = [0.05 0.0
-     0.0 0.2]
+ω = zeros(2)
 
 # Call simulate
 tspan = (0.0,300.0)
