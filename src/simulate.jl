@@ -31,8 +31,9 @@ function ith_patient_cb(z,i)
     condition = (t,u,integrator) -> t ∈ target_time
     counter = 1
     function affect!(integrator)
-        integrator.u[1] = z[i].events[counter,:amt] # how are we supposed to know it's 1?
-        counter += 1
+      cur_ev = z[i].events[counter]
+      integrator.u[cur_ev.cmt] = cur_ev.amt
+      counter += 1
     end
     DiscreteCallback(condition, affect!)
 end

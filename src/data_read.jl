@@ -33,6 +33,12 @@ end
 Base.indices(A::Population) = indices(A.patients)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
+struct Event{T}
+  amt::T
+  evid::Int
+  cmt::Int
+end
+
 ## Parsing Functions
 
 function generate_person(id,covariates,dvs,raw_data)
@@ -44,8 +50,35 @@ function generate_person(id,covariates,dvs,raw_data)
   obs = person_data[obs_idxs,dvs]
   obs_times = person_data[obs_idxs,:time]
   event_idxs = find(x ->  x!=0, person_data[:evid])
-  event_times = person_data[event_idxs,:time]
-  events = person_data[event_idxs,[:amt,:evid]]
+  if !haskey(person_data,:addl)
+    event_times = person_data[event_idxs,:time]
+    if haskey(person_data,:cmt)
+      events = Event.(person_data[event_idxs,:amt],person_data[event_idxs,:evid],
+               person_data[event_idxs,:cmt])
+    else # assume :cmt == 1
+      events = Event.(person_data[event_idxs,:amt],person_data[event_idxs,:evid],
+               ones(Int,length(event_idxs)))
+    end
+  else
+    events = Event{Float64}[]
+    event_times = Float64[]
+    for i in event_idxs
+      addl = person_data[i,:addl]
+      curtime = person_data[i,:time]
+      for j in 0:addl # 0 means just once
+        push!(event_times,curtime)
+        curtime += person_data[i,:ii]
+
+        if haskey(person_data,:cmt)
+          push!(events,Event(person_data[i,:amt],person_data[i,:evid],
+                   person_data[i,:cmt]))
+        else # assume :cmt == 1
+          push!(events,Event(person_data[i,:amt],person_data[i,:evid],1))
+        end
+
+      end
+    end
+  end
   Person(id,obs,obs_times,covs,event_times,events)
 end
 
