@@ -10,23 +10,6 @@ end Ka=>1.5 CL=>1.0 V=>30.0 #LAGT=>0, MODE=>0, DUR2=>2, RAT2=>10, BIOAV=>1
 
 
 
-function set_parameters!(p,u0,θ,η,zi)
-  Ka = θ[1]
-  CL = θ[2]*exp(η[1])
-  V  = θ[3]*exp(η[2])
-
-  ALAG_CENT = θ[4]
-  MODE = θ[5]
-  if MODE==1
-    R_CENT = θ[7]
-  elseif MODE==2
-    D_CENT = θ[6]
-  end
-  F_CENT =  θ[8]
-  p[1] = Ka; p[2] = CL; p[3] = V; p[4] = ALAG_CENT; p[5] = MODE; p[6] = D_CENT; p[7]=R_CENT; p[8]=F_CENT
-end
-
-
 function getsol!(f;num_dv=1,kwargs...) # this does not work
     tspan = (0,72)
     num_dependent = num_dv
@@ -35,8 +18,7 @@ function getsol!(f;num_dv=1,kwargs...) # this does not work
     # by dividing the sol by the volume V
 end
 
-ω = [0.05 0.0
-     0.0 0.05]
+
 
 # ev1 - gut dose - use ev1.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg dose into gut compartment
@@ -46,16 +28,20 @@ end
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+function set_parameters!(p,u0,θ,η,zi)
+    Ka = θ[1]
+    CL = θ[2]*exp(η[1])
+    V  = θ[3]*exp(η[2])
+    p[1] = Ka; p[2] = CL; p[3] = V
+end
+
+ω = [0.05 0.0
+0.0 0.05]
 
 θ = [
      1.5,  #Ka
      1.0,  #CL
-     30.0, #V
-     0,    #LAGT
-     0,    #MODE
-     2,    #DUR2
-     10,   #RAT2
-     1     #BIOAV
+     30.0 #V
 ]
 
 # Load data
@@ -70,6 +56,8 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 tspan = (0,72)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
+
+
 
 # ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
@@ -86,20 +74,36 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+function set_parameters!(p,u0,θ,η,zi)
+    Ka = θ[1]
+    CL = θ[2]*exp(η[1])
+    V  = θ[3]*exp(η[2])
+    p[1] = Ka; p[2] = CL; p[3] = V
+end
+
 
 θ = [
     1.5,  #Ka
     1.0,  #CL
-    30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
-    10,   #RAT2
-    1     #BIOAV
+    30.0 #V
 ]
 
+ω = [0.05 0.0
+0.0 0.05]
+
+# Load data
+covariates = [1]
+dvs = [1]
+z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/ev2.csv"), covariates,dvs,
+              separator=',')
+
 # corresponding mrgsolve and NONMEM solution in data2.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+#sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
+tspan = (0,72)
+num_dependent = 2
+sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
+
 
 
 # ev3 - infusion into the central compartment with lag time
@@ -120,20 +124,37 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+function set_parameters!(p,u0,θ,η,zi)
+    Ka = θ[1]
+    CL = θ[2]*exp(η[1])
+    V  = θ[3]*exp(η[2])
+    ALAG_CENT = LAGT
+    p[1] = Ka; p[2] = CL; p[3] = V; p[4] = LAGT
+end
+
 
 θ = [
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    5,    #LAGT
-    0,    #MODE
-    2,    #DUR2
-    10,   #RAT2
-    1     #BIOAV
+    5.0   #LAGT
 ]
 
+ω = [0.05 0.0
+0.0 0.05]
+
+# Load data
+covariates = [1]
+dvs = [1]
+z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/ev3.csv"), covariates,dvs,
+              separator=',')
+
 # corresponding mrgsolve and NONMEM solution in data3.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+#sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
+tspan = (0,72)
+num_dependent = 2
+sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 
 # ev4 - infusion into the central compartment with lag time and bioavailability
@@ -157,20 +178,39 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+function set_parameters!(p,u0,θ,η,zi)
+    Ka = θ[1]
+    CL = θ[2]*exp(η[1])
+    V  = θ[3]*exp(η[2])
+    ALAG_CENT = LAGT
+    F_CENT = BIOAV
+    p[1] = Ka; p[2] = CL; p[3] = V; p[4] = LAGT; p[5] = BIOAV
+end
+
 
 θ = [
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    5,    #LAGT
-    0,    #MODE
-    2,    #DUR2
-    10,   #RAT2
-    0.412 #BIOAV
+    5.0,  #LAGT
+    0.412,#BIOAV
 ]
 
+ω = [0.05 0.0
+0.0 0.05]
+
+# Load data
+covariates = [1]
+dvs = [1]
+z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/ev4.csv"), covariates,dvs,
+              separator=',')
+
 # corresponding mrgsolve and NONMEM solution in data4.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+#sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
+tspan = (0,72)
+num_dependent = 2
+sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 
 # ev5 - infusion into the central compartment at steady state (ss)
