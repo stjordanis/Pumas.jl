@@ -36,7 +36,7 @@ num_dependent = 2
 sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 #=
-using Plots; pyplot()
+using Plots; plotly()
 plot(sol,title="Plot of all trajectories",xlabel="time")
 summ = MonteCarloSummary(sol,0:0.2:300)
 plot(summ,title="Summary plot",xlabel="time")
