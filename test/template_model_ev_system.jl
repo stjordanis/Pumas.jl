@@ -1,6 +1,5 @@
 using PKPDSimulator, DataFrames
 
-
 # Gut dosing model:
 using ParameterizedFunctions
 f = @ode_def_nohes GutDose begin
@@ -13,6 +12,14 @@ function set_parameters!(p,θ,η,zi)
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
     p[1] = Ka; p[2] = CL; p[3] = V
+end
+
+function get_sol!(θ,z,obs,obs_times;
+                       num_dv=2,cmt=2,kwargs...)
+    tspan = (0.0,72.0)
+    ω = zeros(2)
+    num_dependent = num_dv
+    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,z;kwargs...)
 end
 
 function get_residual!(θ,z,obs,obs_times;
@@ -77,8 +84,8 @@ norm(resid) < 1
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
 # new
-# rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
-# is given over a duration (DUR) of 10 hours
+# rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr.
+# In this example the 100mg amount is given over a duration (DUR) of 10 hours
 
 # addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
 # ii=12: each additional dose is given with a frequency of ii=12 hours
@@ -92,6 +99,9 @@ z,obs,obs_times = get_nonem_data(2)
     1.0,  #CL
     30.0 #V
     ]
+
+sol  = get_sol!(θ,z,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 
 resid  = get_residual!(θ,z,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
