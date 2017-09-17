@@ -21,10 +21,8 @@ function get_residual!(θ,z,obs,obs_times;
     ω = zeros(2)
     num_dependent = num_dv
     sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,z;kwargs...)
-    # todo: implement output function to derive concentrations at everytime point
-    # by dividing the sol by the volume V
     cps = sol[1](obs_times;idxs=cmt)./(θ[3]/1000)
-    resid = cps - obs # Why the scaling difference?
+    resid = cps - obs
 end
 
 function get_nonem_data(i)
