@@ -28,7 +28,7 @@ end
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
@@ -36,13 +36,13 @@ function set_parameters!(p,u0,θ,η,zi)
 end
 
 ω = [0.05 0.0
-0.0 0.05]
+     0.0 0.05]
 
 θ = [
      1.5,  #Ka
      1.0,  #CL
      30.0 #V
-]
+     ]
 
 # Load data
 covariates = [1]
@@ -53,7 +53,7 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 
 # corresponding mrgsolve and NONMEM solution in data1.csv in PKPDSimulator/examples/event_data/
 #sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
-tspan = (0,72)
+tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
@@ -74,7 +74,7 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
@@ -86,10 +86,10 @@ end
     1.5,  #Ka
     1.0,  #CL
     30.0 #V
-]
+    ]
 
 ω = [0.05 0.0
-0.0 0.05]
+    0.0 0.05]
 
 # Load data
 covariates = [1]
@@ -100,7 +100,7 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 
 # corresponding mrgsolve and NONMEM solution in data2.csv in PKPDSimulator/examples/event_data/
 #sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
-tspan = (0,72)
+tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
@@ -124,7 +124,7 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
@@ -138,10 +138,10 @@ end
     1.0,  #CL
     30.0, #V
     5.0   #LAGT
-]
+    ]
 
 ω = [0.05 0.0
-0.0 0.05]
+     0.0 0.05]
 
 # Load data
 covariates = [1]
@@ -152,7 +152,7 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 
 # corresponding mrgsolve and NONMEM solution in data3.csv in PKPDSimulator/examples/event_data/
 #sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
-tspan = (0,72)
+tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
@@ -178,7 +178,7 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
@@ -194,10 +194,10 @@ end
     30.0, #V
     5.0,  #LAGT
     0.412,#BIOAV
-]
+    ]
 
 ω = [0.05 0.0
-0.0 0.05]
+     0.0 0.05]
 
 # Load data
 covariates = [1]
@@ -208,7 +208,7 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 
 # corresponding mrgsolve and NONMEM solution in data4.csv in PKPDSimulator/examples/event_data/
 #sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
-tspan = (0,72)
+tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
@@ -245,7 +245,7 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
     10,   #RAT2
     0.412,#BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data5.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -286,7 +286,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     0.812,#BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data6.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -328,7 +328,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     1,    #BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data7.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -371,7 +371,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     1,    #BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data8.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -415,7 +415,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     0.412,#BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data9.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -454,7 +454,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     1,    #BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data10.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
@@ -494,7 +494,7 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
     10,   #RAT2
     0.412,#BIOAV
     1     #ss
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data11.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
@@ -530,7 +530,7 @@ sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentra
     2,    #DUR2
     10,   #RAT2
     0.412 #BIOAV
-]
+    ]
 
 # corresponding mrgsolve and NONMEM solution in data12.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
