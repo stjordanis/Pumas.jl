@@ -60,7 +60,9 @@ function generate_person(id,covariates,dvs,raw_data)
                ones(Int,length(event_idxs)))
     end
   else
-    events = Event{Float64}[]
+    # Type is determined by `:amt`, it's unnecessary and can be made Float64
+    # If the right conversions are added
+    events = Event{typeof(person_data[first(event_idxs),:amt])}[]
     event_times = Float64[]
     for i in event_idxs
       addl = person_data[i,:addl]
