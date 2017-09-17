@@ -32,7 +32,7 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
   wt,sex = zi.covariates[:wt],zi.covariates[:sex]
   Ka = θ[1]
   CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1])
@@ -46,7 +46,7 @@ num_dependent = 2
 sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 #=
-using Plots; pyplot()
+using Plots; plotly()
 plot(sol,title="Plot of all trajectories",xlabel="time")
 summ = MonteCarloSummary(sol,0:0.1:19)
 plot(summ,title="Summary plot",xlabel="time")
@@ -55,7 +55,4 @@ plot(summ,title="Summary plot",xlabel="time")
 output_func = function (sol,i)
   sol(z[i].obs_times;idxs=2)./sol.prob.f.params[3],false
 end
-sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,output_func;saveat=z[1].obs_times)
-
-# Notice the issue at events is that sol(0.0) is not well-defined and it takes
-# the left-endpoint. Need a toggle for the right endpoint
+sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,output_func)

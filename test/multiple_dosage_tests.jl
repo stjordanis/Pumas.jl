@@ -19,17 +19,16 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
   p[1] = zi.covariates[:ka]
-  p[2] = zi.covariates[:cl]*exp(η[1])
-  p[3] = zi.covariates[:v]*exp(η[2])
+  p[2] = zi.covariates[:cl]
+  p[3] = zi.covariates[:v]
 end
 
 # Population setup
 
 θ = zeros(1) # Not used in this case
-ω = [0.05 0.0
-     0.0 0.2]
+ω = zeros(2)
 
 # Call simulate
 tspan = (0.0,300.0)
@@ -37,7 +36,7 @@ num_dependent = 2
 sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 #=
-using Plots; pyplot()
+using Plots; plotly()
 plot(sol,title="Plot of all trajectories",xlabel="time")
 summ = MonteCarloSummary(sol,0:0.2:300)
 plot(summ,title="Summary plot",xlabel="time")
