@@ -35,8 +35,7 @@ function set_parameters!(p,θ,η,zi)
     p[1] = Ka; p[2] = CL; p[3] = V
 end
 
-ω = [0.05 0.0
-     0.0 0.05]
+ω = zeros(2)
 
 θ = [
      1.5,  #Ka
@@ -55,9 +54,21 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 #sol = getsol!(f,num_dv=2,θ,ω,z) # get both gut and central amounts and concentrations in central u_central/V
 tspan = (0.0,72.0)
 num_dependent = 2
-sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
+sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z,
+                abstol=1e-12,reltol=1e-12)
 
+using DataFrames
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data1.csv"),
+              separator=',')
 
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
@@ -88,8 +99,7 @@ end
     30.0 #V
     ]
 
-ω = [0.05 0.0
-    0.0 0.05]
+ω = zeros(2)
 
 # Load data
 covariates = [1]
@@ -104,6 +114,17 @@ tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data2.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 
 # ev3 - infusion into the central compartment with lag time
@@ -140,8 +161,8 @@ end
     5.0   #LAGT
     ]
 
-ω = [0.05 0.0
-     0.0 0.05]
+ω = [0.00 0.0
+     0.0 0.00]
 
 # Load data
 covariates = [1]
@@ -155,6 +176,18 @@ z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
 tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
+
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data3.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 
 # ev4 - infusion into the central compartment with lag time and bioavailability
@@ -212,6 +245,18 @@ tspan = (0.0,72.0)
 num_dependent = 2
 sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data4.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
+
 
 # ev5 - infusion into the central compartment at steady state (ss)
 # - use ev5.csv in PKPDSimulator/examples/event_data/
@@ -249,6 +294,18 @@ sol  = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
 
 # corresponding mrgsolve and NONMEM solution in data5.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data5.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev6 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
@@ -291,6 +348,17 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # corresponding mrgsolve and NONMEM solution in data6.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data6.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev7 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
@@ -332,6 +400,18 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 
 # corresponding mrgsolve and NONMEM solution in data7.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data7.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev8 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is a
 # multiple of infusion duration (DUR)
@@ -376,6 +456,17 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # corresponding mrgsolve and NONMEM solution in data8.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data8.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev9 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
@@ -420,6 +511,18 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # corresponding mrgsolve and NONMEM solution in data9.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data9.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
+
 # ev10 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
 # - use ev10.csv in PKPDSimulator/examples/event_data/
@@ -458,6 +561,18 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 
 # corresponding mrgsolve and NONMEM solution in data10.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data10.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev11 - gut dose at steady state with lower bioavailability
 # - use ev11.csv in PKPDSimulator/examples/event_data/
@@ -499,6 +614,17 @@ sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in cent
 # corresponding mrgsolve and NONMEM solution in data11.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
 
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data11.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
 
 # ev12 - gut dose at with lower bioavailability and a 5 hour lag time
 # - use ev12.csv in PKPDSimulator/examples/event_data/
@@ -534,3 +660,15 @@ sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentra
 
 # corresponding mrgsolve and NONMEM solution in data12.csv in PKPDSimulator/examples/event_data/
 sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
+
+raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
+              "examples/event_data/data12.csv"),
+              separator=',')
+
+obs_idxs = find(x ->  x==0, raw_data[:evid])
+obs = raw_data[obs_idxs,:CP]
+obs_times = raw_data[obs_idxs,:time]
+cps = sol[1](obs_times;idxs=2)./θ[3]
+
+resid = 1000cps - obs # Why the scaling difference?
+norm(resid) < 1
