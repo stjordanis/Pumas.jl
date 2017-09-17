@@ -19,7 +19,7 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
   p[1] = zi.covariates[:ka]
   p[2] = zi.covariates[:cl]
   p[3] = zi.covariates[:v]

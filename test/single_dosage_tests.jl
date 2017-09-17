@@ -32,7 +32,7 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,u0,θ,η,zi)
+function set_parameters!(p,θ,η,zi)
   wt,sex = zi.covariates[:wt],zi.covariates[:sex]
   Ka = θ[1]
   CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1])
