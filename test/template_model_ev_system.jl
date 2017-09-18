@@ -1,4 +1,4 @@
-using PKPDSimulator, DataFrames
+using PKPDSimulator, Base.Test, DataFrames
 
 # Gut dosing model:
 using ParameterizedFunctions
@@ -71,7 +71,7 @@ z,obs,obs_times = get_nonem_data(1)
 
 resid  = get_residual!(θ,z,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
-norm(resid) < 1
+@test norm(resid) < 1e-3
 
 ###############################
 # Test 2
