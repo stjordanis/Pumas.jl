@@ -52,6 +52,10 @@ function reduction(sol,p,datai)
   sol(datai.obs_times;idxs=2)./p.V,false
 end
 
+# Simulate individual 1 with reduction
+sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1],reduction)
+
+# Simulate population with reduction
 sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction)
 
 function error_model(sol,ϵ)
@@ -59,4 +63,9 @@ function error_model(sol,ϵ)
 end
 
 σ = 0.025
+
+# Simulate individual 1 with reduction and error model
+sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,σ,error_model)
+
+# Simulate population with reduction and error model
 sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,σ,error_model)
