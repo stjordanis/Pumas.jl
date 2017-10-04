@@ -48,7 +48,7 @@ end
 sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction)
 
 function error_model(sol,ϵ)
-  sol.*exp(ϵ)
+  sol.*exp.(ϵ)
 end
 
 σ = 0.025

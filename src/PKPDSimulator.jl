@@ -1,3 +1,5 @@
+__precompile__()
+
 module PKPDSimulator
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames

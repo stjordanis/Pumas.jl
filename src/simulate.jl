@@ -9,7 +9,7 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
   u0 = zeros(num_dependent)
   tstops = [tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
   tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
-  prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(data,1))
+  prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(data[1]))
   N = length(data)
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
@@ -18,7 +18,7 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
     uEltype = eltype(θ)
     u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
     tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
-    ODEProblem(f,u0,tspan,callback=ith_patient_cb(data,i))
+    ODEProblem(f,u0,tspan,callback=ith_patient_cb(data[i]))
   end
   output_func = function (sol,i)
     output_reduction(sol,sol.prob.f.params,data[i])
@@ -34,13 +34,13 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
   err_sol
 end
 
-function ith_patient_cb(data,i)
-    d_n = data[i].events
-    target_time = data[i].event_times
+function ith_patient_cb(datai)
+    d_n = datai.events
+    target_time = datai.event_times
     condition = (t,u,integrator) -> t ∈ target_time
     counter = 1
     function affect!(integrator)
-      cur_ev = data[i].events[counter]
+      cur_ev = datai.events[counter]
       integrator.u[cur_ev.cmt] = cur_ev.amt
       counter += 1
     end
