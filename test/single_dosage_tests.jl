@@ -1,4 +1,4 @@
-using PKPDSimulator
+using PKPDSimulator, NamedTuples
 
 # Read the data
 covariates = [:sex,:wt,:etn]
@@ -10,11 +10,9 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
 
 function depot_model(t,u,p,du)
  Depot,Central = u
- Ka,CL,V = p
- du[1] = -Ka*Depot
- du[2] =  Ka*Depot - (CL/V)*Central
+ du[1] = -p.Ka*Depot
+ du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
 end
-f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # Population parameters
 
@@ -24,18 +22,17 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,θ,η,z)
+function set_parameters(θ,η,z)
   wt,sex = z[:wt],z[:sex]
-  Ka = θ[1]
-  CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1])
-  V  = θ[3]*exp(η[2])
-  p[1] = Ka; p[2] = CL; p[3] = V
+  @NT(Ka = θ[1],
+      CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1]),
+      V  = θ[3]*exp(η[2]))
 end
 
 # Call simulate
 tspan = (0.0,19.0)
 num_dependent = 2
-sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data)
+sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data)
 
 #=
 using Plots; plotly()
@@ -45,6 +42,6 @@ plot(summ,title="Summary plot",xlabel="time")
 =#
 
 output_func = function (sol,i)
-  sol(data[i].obs_times;idxs=2)./sol.prob.f.params[3],false
+  sol(data[i].obs_times;idxs=2)./sol.prob.f.params.V,false
 end
-sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data,output_func)
+sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,output_func)

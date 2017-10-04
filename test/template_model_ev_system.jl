@@ -1,17 +1,16 @@
 using PKPDSimulator, Base.Test, DataFrames
 
-# Gut dosing model:
-using ParameterizedFunctions
-f = @ode_def_nohes GutDose begin
-  dGut = -Ka*Gut
-  dCent = Ka*Gut - (CL/V)*Cent
-end Ka=>1.5 CL=>1.0 V=>30.0 #LAGT=>0, MODE=>0, DUR2=>2, RAT2=>10, BIOAV=>1
+# Gut dosing model
+function f(t,u,p,du)
+ Depot,Central = u
+ du[1] = -p.Ka*Depot
+ du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
+end
 
-function set_parameters!(p,θ,η,z)
-    Ka = θ[1]
-    CL = θ[2]*exp(η[1])
-    V  = θ[3]*exp(η[2])
-    p[1] = Ka; p[2] = CL; p[3] = V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]))
 end
 
 function get_sol!(θ,data,obs,obs_times;
@@ -19,7 +18,7 @@ function get_sol!(θ,data,obs,obs_times;
     tspan = (0.0,72.0)
     ω = zeros(2)
     num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,data;kwargs...)
+    sol  = simulate(f,tspan,num_dv,set_parameters,θ,ω,data;kwargs...)
 end
 
 function get_residual!(θ,data,obs,obs_times;
@@ -27,7 +26,7 @@ function get_residual!(θ,data,obs,obs_times;
     tspan = (0.0,72.0)
     ω = zeros(2)
     num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,data;kwargs...)
+    sol  = simulate(f,tspan,num_dv,set_parameters,θ,ω,data;kwargs...)
     cps = sol[1](obs_times;idxs=cmt)./(θ[3]/1000)
     resid = cps - obs
 end

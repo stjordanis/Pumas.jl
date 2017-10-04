@@ -2,7 +2,7 @@ function generate_η(ω,N)
   [rand(MvNormal(zeros(size(ω,1)),ω)) for i in 1:N]
 end
 
-function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data,
+function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
                   output_func=(sol,i)-> (sol,false),alg=Tsit5(),
                   ϵ=nothing;parallel_type=:threads,kwargs...)
   u0 = zeros(num_dependent)
@@ -12,12 +12,9 @@ function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data,
   N = length(data)
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
-    p = zeros(num_params(prob.f))
-    set_parameters!(p,θ,η[i],data[i].z)
-
     # From problem_new_parameters but no callbacks
-    f = ParameterizedFunction(prob.f,p)
-    uEltype = eltype(p)
+    f = ParameterizedFunction(prob.f,set_parameters(θ,η[i],data[i].z))
+    uEltype = eltype(θ)
     u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
     tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
     ODEProblem(f,u0,tspan,callback=ith_patient_cb(data,i))
