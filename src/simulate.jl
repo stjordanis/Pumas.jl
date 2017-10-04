@@ -14,9 +14,13 @@ function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data,
   prob_func = function (prob,i,repeat)
     p = zeros(num_params(prob.f))
     set_parameters!(p,θ,η[i],data[i].z)
-    set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
-    prob.callback = ith_patient_cb(data,i)
-    prob
+
+    # From problem_new_parameters but no callbacks
+    f = ParameterizedFunction(prob.f,p)
+    uEltype = eltype(p)
+    u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
+    tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
+    ODEProblem(f,u0,tspan,callback=ith_patient_cb(data,i))
   end
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
   sol = solve(monte_prob,alg;num_monte=N,save_start=false,
