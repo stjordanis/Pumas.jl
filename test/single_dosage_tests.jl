@@ -1,4 +1,4 @@
-using PKPDSimulator, NamedTuples
+using PKPDSimulator, NamedTuples, Distributions
 
 # Read the data
 covariates = [:sex,:wt,:etn]
@@ -58,14 +58,14 @@ sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1],re
 # Simulate population with reduction
 sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction)
 
-function error_model(sol,ϵ)
+function error_model(sol,η,ϵ)
   sol.*exp.(ϵ)
 end
 
-σ = 0.025
+ϵ = Normal(0,0.025)
 
 # Simulate individual 1 with reduction and error model
-sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,σ,error_model)
+sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
 
 # Simulate population with reduction and error model
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,σ,error_model)
+sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,ϵ,error_model)

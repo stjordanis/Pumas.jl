@@ -4,7 +4,7 @@ end
 
 function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data::Population,
                   output_reduction = (sol,p,datai) -> (sol,false),
-                  σ = nothing, error_model = nothing,
+                  ϵ = nothing, error_model = nothing,
                   alg = Tsit5();parallel_type=:threads,kwargs...)
   u0 = zeros(num_dependent)
   tstops = [tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
@@ -27,7 +27,7 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data::Population,
   sol = solve(monte_prob,alg;num_monte=N,save_start=false,
               tstops=tstops,kwargs...)
   if error_model != nothing
-    err_sol = [error_model(soli,σ*randn(length(soli))) for soli in sol]
+    err_sol = [error_model(soli,rand(ϵ,length(soli))) for soli in sol]
   else
     err_sol = sol
   end
@@ -36,7 +36,7 @@ end
 
 function simulate(f,tspan,num_dependent,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> (sol,false),
-                  σ = nothing, error_model = nothing,
+                  ϵ = nothing, error_model = nothing,
                   alg = Tsit5();parallel_type=:threads,kwargs...)
   tstops = [tspan[1];datai.obs_times]
   # From problem_new_parameters but no callbacks
@@ -47,8 +47,9 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ηi,datai::Person,
   prob = ODEProblem(true_f,u0,tspan,callback=ith_patient_cb(datai))
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
   soli = first(output_reduction(sol,sol.prob.f.params,datai))
+  _ϵ = rand(ϵ,length(soli))
   if error_model != nothing
-    err_sol = error_model(soli,σ*randn(length(soli)))
+    err_sol = error_model(soli,_ϵ)
   else
     err_sol = soli
   end
