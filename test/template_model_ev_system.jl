@@ -7,33 +7,33 @@ f = @ode_def_nohes GutDose begin
   dCent = Ka*Gut - (CL/V)*Cent
 end Ka=>1.5 CL=>1.0 V=>30.0 #LAGT=>0, MODE=>0, DUR2=>2, RAT2=>10, BIOAV=>1
 
-function set_parameters!(p,θ,η,zi)
+function set_parameters!(p,θ,η,datai)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
     p[1] = Ka; p[2] = CL; p[3] = V
 end
 
-function get_sol!(θ,z,obs,obs_times;
+function get_sol!(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
     tspan = (0.0,72.0)
     ω = zeros(2)
     num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,z;kwargs...)
+    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,data;kwargs...)
 end
 
-function get_residual!(θ,z,obs,obs_times;
+function get_residual!(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
     tspan = (0.0,72.0)
     ω = zeros(2)
     num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,z;kwargs...)
+    sol  = simulate(f,tspan,num_dv,set_parameters!,θ,ω,data;kwargs...)
     cps = sol[1](obs_times;idxs=cmt)./(θ[3]/1000)
     resid = cps - obs
 end
 
 function get_nonem_data(i)
-    z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+    data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
                   "examples/event_data/ev$i.csv"), covariates,dvs,
                   separator=',')
     raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
@@ -42,7 +42,7 @@ function get_nonem_data(i)
     obs_idxs = find(x ->  x==0, raw_data[:evid])
     obs = raw_data[obs_idxs,:CP]
     obs_times = raw_data[obs_idxs,:time]
-    z,obs,obs_times
+    data,obs,obs_times
 end
 
 # Fake dvs and covariates for testing
@@ -61,7 +61,7 @@ dvs = [1]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-z,obs,obs_times = get_nonem_data(1)
+data,obs,obs_times = get_nonem_data(1)
 
 θ = [
      1.5,  #Ka
@@ -69,7 +69,7 @@ z,obs,obs_times = get_nonem_data(1)
      30.0 #V
      ]
 
-resid  = get_residual!(θ,z,obs,obs_times,
+resid  = get_residual!(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-3
 
@@ -92,7 +92,7 @@ resid  = get_residual!(θ,z,obs,obs_times,
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-z,obs,obs_times = get_nonem_data(2)
+data,obs,obs_times = get_nonem_data(2)
 
 θ = [
     1.5,  #Ka
@@ -100,10 +100,10 @@ z,obs,obs_times = get_nonem_data(2)
     30.0 #V
     ]
 
-sol  = get_sol!(θ,z,obs,obs_times,
+sol  = get_sol!(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 
-resid  = get_residual!(θ,z,obs,obs_times,
+resid  = get_residual!(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
@@ -128,7 +128,7 @@ norm(resid) < 1
 # ii=12: each additional dose is given with a frequency of ii=12 hours
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
-z,obs,obs_times = get_nonem_data(3)
+data,obs,obs_times = get_nonem_data(3)
 
 θ = [
     1.5,  #Ka
@@ -137,7 +137,7 @@ z,obs,obs_times = get_nonem_data(3)
     5.0   #LAGT
     ]
 
-resid  = get_residual!(θ,z,obs,obs_times,
+resid  = get_residual!(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
@@ -165,7 +165,7 @@ norm(resid) < 1
 # ii=12: each additional dose is given with a frequency of ii=12 hours
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
-z,obs,obs_times = get_nonem_data(4)
+data,obs,obs_times = get_nonem_data(4)
 
 θ = [
     1.5,  #Ka
@@ -174,7 +174,7 @@ z,obs,obs_times = get_nonem_data(4)
     5.0   #LAGT
     ]
 
-function set_parameters!(p,θ,η,zi)
+function set_parameters!(p,θ,η,datai)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])
@@ -191,7 +191,7 @@ end
     0.412,#BIOAV
     ]
 
-resid  = get_residual!(θ,z,obs,obs_times,
+resid  = get_residual!(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 

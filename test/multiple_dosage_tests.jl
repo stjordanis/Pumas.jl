@@ -3,7 +3,7 @@ using PKPDSimulator
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-z = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
               "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs,
               separator=' ')
 
@@ -19,10 +19,10 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,θ,η,zi)
-  p[1] = zi.covariates[:ka]
-  p[2] = zi.covariates[:cl]
-  p[3] = zi.covariates[:v]
+function set_parameters!(p,θ,η,datai)
+  p[1] = datai.covariates[:ka]
+  p[2] = datai.covariates[:cl]
+  p[3] = datai.covariates[:v]
 end
 
 # Population setup
@@ -33,7 +33,7 @@ end
 # Call simulate
 tspan = (0.0,300.0)
 num_dependent = 2
-sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,z)
+sol = simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data)
 
 #=
 using Plots; plotly()
