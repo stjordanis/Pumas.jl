@@ -3,8 +3,9 @@ function generate_η(ω,N)
 end
 
 function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
-                  output_reduction=(sol,p,datai)-> (sol,false),alg=Tsit5(),
-                  ϵ=nothing;parallel_type=:threads,kwargs...)
+                  output_reduction = (sol,p,datai) -> (sol,false),
+                  σ = nothing, error_model = nothing,
+                  alg = Tsit5();parallel_type=:threads,kwargs...)
   u0 = zeros(num_dependent)
   tstops = [tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
   tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
@@ -25,8 +26,12 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
   sol = solve(monte_prob,alg;num_monte=N,save_start=false,
               tstops=tstops,kwargs...)
-  ϵ != nothing && add_noise!(sol,ϵ)
-  sol
+  if error_model != nothing
+    err_sol = [error_model(soli,σ*randn(length(soli))) for soli in sol]
+  else
+    err_sol = sol
+  end
+  err_sol
 end
 
 function ith_patient_cb(data,i)
