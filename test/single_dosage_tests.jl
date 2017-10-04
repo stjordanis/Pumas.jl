@@ -32,7 +32,14 @@ end
 # Call simulate
 tspan = (0.0,19.0)
 num_dependent = 2
+
+# Simulate individual 1
+η1 = zeros(2)
+sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1])
+
+# Simulate Population
 sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data)
+
 
 #=
 using Plots; plotly()
