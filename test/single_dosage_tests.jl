@@ -41,7 +41,8 @@ summ = MonteCarloSummary(sol,0:0.1:19)
 plot(summ,title="Summary plot",xlabel="time")
 =#
 
-output_func = function (sol,i)
-  sol(data[i].obs_times;idxs=2)./sol.prob.f.params.V,false
+function output_reduction(sol,p,datai)
+  sol(datai.obs_times;idxs=2)./p.V,false
 end
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,output_func)
+
+sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,output_reduction)

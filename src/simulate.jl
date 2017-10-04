@@ -3,7 +3,7 @@ function generate_η(ω,N)
 end
 
 function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
-                  output_func=(sol,i)-> (sol,false),alg=Tsit5(),
+                  output_reduction=(sol,p,datai)-> (sol,false),alg=Tsit5(),
                   ϵ=nothing;parallel_type=:threads,kwargs...)
   u0 = zeros(num_dependent)
   tstops = [tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
@@ -18,6 +18,9 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data,
     u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
     tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
     ODEProblem(f,u0,tspan,callback=ith_patient_cb(data,i))
+  end
+  output_func = function (sol,i)
+    output_reduction(sol,sol.prob.f.params,data[i])
   end
   monte_prob = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
   sol = solve(monte_prob,alg;num_monte=N,save_start=false,
