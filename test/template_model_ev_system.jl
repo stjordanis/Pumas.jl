@@ -7,7 +7,7 @@ f = @ode_def_nohes GutDose begin
   dCent = Ka*Gut - (CL/V)*Cent
 end Ka=>1.5 CL=>1.0 V=>30.0 #LAGT=>0, MODE=>0, DUR2=>2, RAT2=>10, BIOAV=>1
 
-function set_parameters!(p,θ,η,datai)
+function set_parameters!(p,θ,η,z)
     Ka = θ[1]
     CL = θ[2]*exp(η[1])
     V  = θ[3]*exp(η[2])

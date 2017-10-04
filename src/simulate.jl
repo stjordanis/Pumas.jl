@@ -13,7 +13,7 @@ function simulate(f,tspan,num_dependent,set_parameters!,θ,ω,data,
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
     p = zeros(num_params(prob.f))
-    set_parameters!(p,θ,η[i],data[i])
+    set_parameters!(p,θ,η[i],data[i].z)
     set_param_values!(prob.f,p) # this is in DiffEqBase: sets values in f
     prob.callback = ith_patient_cb(data,i)
     prob

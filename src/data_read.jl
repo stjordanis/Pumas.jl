@@ -4,7 +4,7 @@ struct Person{T1,T2,T3,T4,T5}
   id::Int
   obs::T1
   obs_times::T2
-  covariates::T3
+  z::T3
   event_times::T4
   events::T5
 end
@@ -45,7 +45,7 @@ function generate_person(id,covariates,dvs,raw_data)
   id_start = findfirst(x -> x==id, raw_data[:id])
   id_end   = findlast(x ->  x==id, raw_data[:id])
   person_data = raw_data[id_start:id_end, :]
-  covs = Dict([sym => person_data[1,sym] for sym in covariates])
+  z = Dict([sym => person_data[1,sym] for sym in covariates])
   obs_idxs = find(x ->  x==0, person_data[:mdv])
   obs = person_data[obs_idxs,dvs]
   obs_times = person_data[obs_idxs,:time]
@@ -81,7 +81,7 @@ function generate_person(id,covariates,dvs,raw_data)
       end
     end
   end
-  Person(id,obs,obs_times,covs,event_times,events)
+  Person(id,obs,obs_times,z,event_times,events)
 end
 
 function process_data(path,covariates,dvs;kwargs...)

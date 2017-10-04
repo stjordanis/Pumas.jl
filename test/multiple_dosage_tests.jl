@@ -8,7 +8,6 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
               separator=' ')
 
 # Define the ODE
-
 function depot_model(t,u,p,du)
  Depot,Central = u
  Ka,CL,V = p
@@ -18,11 +17,10 @@ end
 f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
-
-function set_parameters!(p,θ,η,datai)
-  p[1] = datai.covariates[:ka]
-  p[2] = datai.covariates[:cl]
-  p[3] = datai.covariates[:v]
+function set_parameters!(p,θ,η,z)
+  p[1] = z[:ka]
+  p[2] = z[:cl]
+  p[3] = z[:v]
 end
 
 # Population setup

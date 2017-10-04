@@ -8,14 +8,6 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
 
 # Define the ODE
 
-# Option 1: The macro
-using ParameterizedFunctions
-f = @ode_def_nohes DepotModel begin
-  dDepot = -Ka*Depot
-  dCentral = Ka*Depot - (CL/V)*Central
-end Ka=>2.0 CL=>20.0 V=>100.0
-
-# Option 2: The function
 function depot_model(t,u,p,du)
  Depot,Central = u
  Ka,CL,V = p
@@ -32,8 +24,8 @@ f = ParameterizedFunction(depot_model,[2.0,20.0,100.0])
 
 # User definition of the set_parameters! function
 
-function set_parameters!(p,θ,η,datai)
-  wt,sex = datai.covariates[:wt],datai.covariates[:sex]
+function set_parameters!(p,θ,η,z)
+  wt,sex = z[:wt],z[:sex]
   Ka = θ[1]
   CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1])
   V  = θ[3]*exp(η[2])
