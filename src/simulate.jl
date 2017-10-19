@@ -42,13 +42,13 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ηi,datai::Person,
   # From problem_new_parameters but no callbacks
   uEltype = eltype(θ)
   u0 = zeros(uEltype,num_dependent)
-  tspan = (uEltype(tspan[1]-1e-12),uEltype(tspan[2])) # for initial condition hack, see #7
+  tspan = (uEltype(tspan[1]),uEltype(tspan[2])) # for initial condition hack, see #7
   true_f = ParameterizedFunction(f,set_parameters(θ,ηi,datai.z))
   prob = ODEProblem(true_f,u0,tspan,callback=ith_patient_cb(datai))
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
   soli = first(output_reduction(sol,sol.prob.f.params,datai))
-  _ϵ = rand(ϵ,length(soli))
   if error_model != nothing
+    _ϵ = rand(ϵ,length(soli))
     err_sol = error_model(soli,_ϵ)
   else
     err_sol = soli
@@ -66,7 +66,13 @@ function ith_patient_cb(datai)
       integrator.u[cur_ev.cmt] = cur_ev.amt
       counter += 1
     end
-    DiscreteCallback(condition, affect!)
+    DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!)
+end
+
+function patient_cb_initialize!(cb,t,u,integrator)
+  if cb.condition(t,u,integrator)
+    cb.affect!(integrator)
+  end
 end
 
 function get_all_event_times(data)
