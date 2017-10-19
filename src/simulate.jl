@@ -2,14 +2,12 @@ function generate_η(ω,N)
   [rand(MvNormal(zeros(size(ω,1)),ω)) for i in 1:N]
 end
 
-function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data::Population,
+function simulate(_prob,set_parameters,θ,ω,data::Population,
                   output_reduction = (sol,p,datai) -> (sol,false),
                   ϵ = nothing, error_model = nothing,
                   alg = Tsit5();parallel_type=:threads,kwargs...)
-  u0 = zeros(num_dependent)
-  tstops = [tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
-  tspan = (tspan[1]-1e-12,tspan[2]) # for initial condition hack, see #7
-  prob = ODEProblem(f,u0,tspan,callback=ith_patient_cb(data[1]))
+  prob = ODEProblem(_prob.f,_prob.u0,_prob.tspan,callback=ith_patient_cb(data[1]))
+  tstops = [prob.tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
   N = length(data)
   η = generate_η(ω,N)
   prob_func = function (prob,i,repeat)
@@ -27,29 +25,26 @@ function simulate(f,tspan,num_dependent,set_parameters,θ,ω,data::Population,
   sol = solve(monte_prob,alg;num_monte=N,save_start=false,
               tstops=tstops,kwargs...)
   if error_model != nothing
-    err_sol = [error_model(soli,rand(ϵ,length(soli))) for soli in sol]
+    err_sol = [error_model(soli,η,rand(ϵ,length(soli))) for soli in sol]
   else
     err_sol = sol
   end
   err_sol
 end
 
-function simulate(f,tspan,num_dependent,set_parameters,θ,ηi,datai::Person,
+function simulate(_prob,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> (sol,false),
                   ϵ = nothing, error_model = nothing,
                   alg = Tsit5();parallel_type=:threads,kwargs...)
-  tstops = [tspan[1];datai.obs_times]
+  tstops = [_prob.tspan[1];datai.obs_times]
   # From problem_new_parameters but no callbacks
-  uEltype = eltype(θ)
-  u0 = zeros(uEltype,num_dependent)
-  tspan = (uEltype(tspan[1]),uEltype(tspan[2])) # for initial condition hack, see #7
-  true_f = ParameterizedFunction(f,set_parameters(θ,ηi,datai.z))
-  prob = ODEProblem(true_f,u0,tspan,callback=ith_patient_cb(datai))
+  true_f = ParameterizedFunction(_prob.f,set_parameters(θ,ηi,datai.z))
+  prob = ODEProblem(true_f,_prob.u0,_prob.tspan,callback=ith_patient_cb(datai))
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
   soli = first(output_reduction(sol,sol.prob.f.params,datai))
   if error_model != nothing
     _ϵ = rand(ϵ,length(soli))
-    err_sol = error_model(soli,_ϵ)
+    err_sol = error_model(soli,ηi,_ϵ)
   else
     err_sol = soli
   end

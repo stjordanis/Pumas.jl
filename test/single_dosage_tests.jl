@@ -30,15 +30,14 @@ function set_parameters(θ,η,z)
 end
 
 # Call simulate
-tspan = (0.0,19.0)
-num_dependent = 2
+prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
 
 # Simulate individual 1
 η1 = zeros(2)
-sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1])
+sol1 = simulate(prob,set_parameters,θ,η1,data[1])
 
 # Simulate Population
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data)
+sol = simulate(prob,set_parameters,θ,ω,data)
 
 
 #=
@@ -53,10 +52,10 @@ function reduction(sol,p,datai)
 end
 
 # Simulate individual 1 with reduction
-sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1],reduction)
+sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
 
 # Simulate population with reduction
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction)
+sol = simulate(prob,set_parameters,θ,ω,data,reduction)
 
 function error_model(sol,η,ϵ)
   sol.*exp.(ϵ)
@@ -65,7 +64,7 @@ end
 ϵ = Normal(0,0.025)
 
 # Simulate individual 1 with reduction and error model
-sol1 = simulate(depot_model,tspan,num_dependent,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
+sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
 
 # Simulate population with reduction and error model
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data,reduction,ϵ,error_model)
+sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)

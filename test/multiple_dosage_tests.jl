@@ -25,9 +25,8 @@ end
 ω = zeros(2)
 
 # Call simulate
-tspan = (0.0,300.0)
-num_dependent = 2
-sol = simulate(depot_model,tspan,num_dependent,set_parameters,θ,ω,data)
+prob = ODEProblem(depot_model,zeros(2),(0.0,300.0))
+sol = simulate(prob,set_parameters,θ,ω,data)
 
 #=
 using Plots; plotly()

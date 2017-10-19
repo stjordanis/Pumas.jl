@@ -15,18 +15,16 @@ end
 
 function get_sol!(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
-    tspan = (0.0,72.0)
+    prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
     ω = zeros(2)
-    num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters,θ,ω,data;kwargs...)
+    sol  = simulate(prob,set_parameters,θ,ω,data;kwargs...)
 end
 
 function get_residual!(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
-    tspan = (0.0,72.0)
+    prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
     ω = zeros(2)
-    num_dependent = num_dv
-    sol  = simulate(f,tspan,num_dv,set_parameters,θ,ω,data;kwargs...)
+    sol  = simulate(prob,set_parameters,θ,ω,data;kwargs...)
     cps = sol[1](obs_times;idxs=cmt)./(θ[3]/1000)
     resid = cps - obs
 end
