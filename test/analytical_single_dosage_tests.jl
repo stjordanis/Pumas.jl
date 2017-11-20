@@ -35,5 +35,17 @@ prob = AnalyticalProblem(depot_model,0.0,(0.0,19.0))
 η1 = zeros(2)
 sol1 = simulate(prob,set_parameters,θ,η1,data[1])
 
-using Plots; plotly()
-plot(sol1,ylims=(0.0,3e4))
+function reduction(sol,p,datai)
+  sol(datai.obs_times)./p.V,false
+end
+
+# Simulate individual 1 with reduction
+sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
+
+function error_model(sol,η,ϵ)
+  sol.*exp.(ϵ)
+end
+ϵ = Normal(0,0.025)
+
+# Simulate individual 1 with reduction and error model
+sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)

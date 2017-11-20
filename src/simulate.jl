@@ -101,8 +101,16 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
     u[i] = u0
     t0 = t
   end
-  PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u),typeof(tstops),
+  _soli = PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u),typeof(tstops),
                      typeof(p),
                      typeof(prob),typeof(datai.events)}(
                      u,tstops,p,prob,datai.events,true,0,:Success)
+  soli,_ = output_reduction(_soli,p,datai)
+  if error_model != nothing
+    _ϵ = rand(ϵ,length(soli))
+    err_sol = error_model(soli,ηi,_ϵ)
+  else
+    err_sol = soli
+  end
+  err_sol
 end
