@@ -8,7 +8,9 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames
 
 include("data_read.jl")
 include("analytical_solution_type.jl")
-include("simulate.jl")
+include("simulate_methods/utils.jl")
+include("simulate_methods/diffeqs.jl")
+include("simulate_methods/analytical.jl")
 
 export Person, Population, process_data
 

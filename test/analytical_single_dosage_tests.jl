@@ -35,12 +35,18 @@ prob = AnalyticalProblem(depot_model,0.0,(0.0,19.0))
 η1 = zeros(2)
 sol1 = simulate(prob,set_parameters,θ,η1,data[1])
 
+# Simulate Population
+sol = simulate(prob,set_parameters,θ,ω,data)
+
 function reduction(sol,p,datai)
   sol(datai.obs_times)./p.V,false
 end
 
 # Simulate individual 1 with reduction
 sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
+
+# Simulate population with reduction
+sol = simulate(prob,set_parameters,θ,ω,data,reduction)
 
 function error_model(sol,η,ϵ)
   sol.*exp.(ϵ)
@@ -49,3 +55,6 @@ end
 
 # Simulate individual 1 with reduction and error model
 sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
+
+# Simulate population with reduction and error model
+sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
