@@ -16,8 +16,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
-        _t = t-t0
-        return sol.prob.f(_t,t0,u0,sol.events[i].amt,sol.p)
+        return sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)
     end
 end
 
@@ -31,8 +30,7 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
         else
             t0 = sol.t[i]
             u0 = sol.u[i]
-            _t = t-t0
-            _u = sol.prob.f(_t,t0,u0,sol.events[i].amt,sol.p)
+            _u = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)
             u[j] = _u
         end
     end

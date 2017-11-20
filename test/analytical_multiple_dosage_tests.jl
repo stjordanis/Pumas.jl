@@ -25,5 +25,12 @@ end
 ω = zeros(2)
 
 # Call simulate
-prob = ODEProblem(depot_model,zeros(2),(0.0,300.0))
+prob = AnalyticalProblem(depot_model,0.0,(0.0,300.0))
 sol = simulate(prob,set_parameters,θ,ω,data)
+
+# Simulate individual 1
+η1 = zeros(2)
+sol1 = simulate(prob,set_parameters,θ,η1,data[1])
+
+using Plots; plotly()
+plot(sol1,plotdensity=10000)

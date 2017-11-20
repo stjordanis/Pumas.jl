@@ -4,7 +4,7 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
                   parallel_type=:threads,kwargs...)
   u0 = prob.u0
   f = prob.f
-  t0 = prob.tspan[1]
+  t0 = datai.event_times[1]
   tspan = prob.tspan
   tdir = sign(prob.tspan[end] - prob.tspan[1])
   tstops = vec(collect(typeof(t0),Iterators.filter(
@@ -41,5 +41,8 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ω,data::Population,
                   parallel_type=:threads,kwargs...)
     N = length(data)
     η = generate_η(ω,N)
-    [simulate(prob,set_parameters,θ,η[i],data[i],output_reduction,ϵ,error_model) for i in 1:length(data)]
+    t = @elapsed u =
+    [simulate(prob,set_parameters,θ,η[i],data[i],output_reduction,ϵ,error_model)
+    for i in 1:length(data)]
+    MonteCarloSolution(u,t,true)
 end
