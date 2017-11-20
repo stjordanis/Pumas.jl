@@ -7,6 +7,7 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames
 @reexport using OrdinaryDiffEq
 
 include("data_read.jl")
+include("analytical_solution_type.jl")
 include("simulate.jl")
 
 export Person, Population, process_data
