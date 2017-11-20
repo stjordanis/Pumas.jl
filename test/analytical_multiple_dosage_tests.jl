@@ -31,6 +31,3 @@ sol = simulate(prob,set_parameters,θ,ω,data)
 # Simulate individual 1
 η1 = zeros(2)
 sol1 = simulate(prob,set_parameters,θ,η1,data[1])
-
-using Plots; plotly()
-plot(sol1,plotdensity=10000)
