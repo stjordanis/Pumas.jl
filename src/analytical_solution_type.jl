@@ -1,5 +1,6 @@
-struct PKPDAnalyticalSolution{T,N,uType,tType,pType,P,E} <: AbstractAnalyticalSolution{T,N}
+struct PKPDAnalyticalSolution{T,N,uType,AType,tType,pType,P,E} <: AbstractAnalyticalSolution{T,N}
     u::uType
+    aux::AType
     t::tType
     p::pType
     prob::P
@@ -16,7 +17,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
-        return sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)
+        return first(sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p))
     end
 end
 
@@ -30,7 +31,7 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
         else
             t0 = sol.t[i]
             u0 = sol.u[i]
-            _u = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)
+            _u,_ = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p,sol.aux[i])
             u[j] = _u
         end
     end

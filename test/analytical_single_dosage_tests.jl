@@ -8,9 +8,12 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
 
 # Define the Analytical Solution
 
-function depot_model(t,t0,u0,D,p)
-  exp(-t*(p.Ka+p.CL/p.V))*(D*exp(p.Ka*t0+p.CL*t/p.V)*p.Ka*p.V +
+function depot_model(t,t0,u0,dose,p,aux)
+  D = dose+aux
+  next_aux = exp(-(t-t0)*p.Ka)*D
+  next_u = exp(-t*(p.Ka+p.CL/p.V))*(D*exp(p.Ka*t0+p.CL*t/p.V)*p.Ka*p.V +
   exp(t*p.Ka+p.CL*t0/p.V)*(u0*p.CL - (u0 + D)*p.Ka*p.V))/(p.CL-p.Ka*p.V)
+  next_u,next_aux
 end
 
 # Population parameters
@@ -29,7 +32,7 @@ function set_parameters(θ,η,z)
 end
 
 # Call simulate
-prob = AnalyticalProblem(depot_model,0.0,(0.0,19.0))
+prob = AnalyticalProblem(depot_model,0.0,0.0,(0.0,19.0))
 
 # Simulate individual 1
 η1 = zeros(2)

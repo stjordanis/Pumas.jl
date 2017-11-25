@@ -25,7 +25,7 @@ end
 ω = zeros(2)
 
 # Call simulate
-prob = AnalyticalProblem(depot_model,0.0,(0.0,300.0))
+prob = AnalyticalProblem(depot_model,0.0,0.0,(0.0,300.0))
 sol = simulate(prob,set_parameters,θ,ω,data)
 
 # Simulate individual 1
