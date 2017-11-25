@@ -59,16 +59,24 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
 end
 
 function ith_patient_cb(p,datai)
+
+    if haskey(p,:bioav)
+      bioav = p.bioav
+    else
+      bioav = 1
+    end
+
     if !haskey(p,:lags)
       target_time = datai.event_times
+      change_duration_by_bioav!(target_time,bioav)
       events = datai.events
+      if bioav != 1
+        order = sortperm(target_time)
+        permute!(target_time,order)
+        permute!(events,order)
+      end
     else
-      target_time,events = remove_lags(datai.events,datai.event_times,p.lags)
-    end
-    if !haskey(p,:bioav)
-      bioav = 1
-    else
-      bioav = p.bioav
+      target_time,events = remove_lags(datai.events,datai.event_times,p.lags,bioav)
     end
     # searchsorted is empty iff t ∉ target_time
     # this is a fast way since target_time is sorted
@@ -85,11 +93,7 @@ function ith_patient_cb(p,datai)
           end
         else
           integrator.f.rates_on[] += cur_ev.evid > 0
-          if typeof(bioav) <: Number
-            integrator.f.rates[cur_ev.cmt] += bioav*cur_ev.rate
-          else
-            integrator.f.rates[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.rate
-          end
+          integrator.f.rates[cur_ev.cmt] += cur_ev.rate
         end
       end
       counter += 1

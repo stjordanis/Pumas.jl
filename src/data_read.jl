@@ -61,16 +61,17 @@ function generate_person(id,covariates,dvs,raw_data)
       curtime = person_data[i,:time]
       for j in 0:addl # 0 means just once
         haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
-        push!(event_times,TimeCompartment(float(curtime),cmt))
+        push!(event_times,TimeCompartment(float(curtime),cmt,zero(float(curtime))))
         amt = person_data[i,:amt]
         evid = person_data[i,:evid]
         haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
         push!(events,Event(amt,evid,cmt,rate))
         if rate != 0
           # Add a turn off event
-          rate_off = curtime + amt/rate
+          duration = amt/rate
+          rate_off = curtime + duration
           push!(events,Event(-amt,-1,cmt,-rate))
-          push!(event_times,TimeCompartment(rate_off,cmt))
+          push!(event_times,TimeCompartment(rate_off,cmt,duration))
         end
         curtime += person_data[i,:ii]
       end
