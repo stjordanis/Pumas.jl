@@ -8,7 +8,7 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ω,data::Population,
 
   p1 = set_parameters(θ,η[1],data[1].z)
   wrapped_f = DiffEqWrapper(_prob,p1)
-  _,cb = ith_patient_cb(data[1])
+  blank,cb = ith_patient_cb(p1,data[1])
   prob = ODEProblem(wrapped_f,_prob.u0,_prob.tspan,callback=cb)
   tstops = [prob.tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
 
@@ -19,8 +19,8 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ω,data::Population,
     uEltype = eltype(θ)
     u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
     tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
-    _,cb = ith_patient_cb(p,data[i])
-    ODEProblem(f,u0,tspan,callback=ith_patient_cb(p,data[i]))
+    blank,cb = ith_patient_cb(p,data[i])
+    ODEProblem(f,u0,tspan,callback=cb)
   end
   output_func = function (sol,i)
     output_reduction(sol,sol.prob.f.params,data[i])
@@ -86,9 +86,7 @@ function ith_patient_cb(p,datai)
         else
           integrator.f.rates_on[] += cur_ev.evid > 0
           if typeof(bioav) <: Number
-            @show bioav
             integrator.f.rates[cur_ev.cmt] += bioav*cur_ev.rate
-            @show integrator.f.rates[cur_ev.cmt]
           else
             integrator.f.rates[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.rate
           end
