@@ -272,6 +272,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
 
+###############################
+# Test 6
+###############################
+
 # ev6 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
 # - use ev6.csv in PKPDSimulator/examples/event_data/
@@ -325,6 +329,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
 
+###############################
+# Test 7
+###############################
+
 # ev7 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
 # - use ev7.csv in PKPDSimulator/examples/event_data/
@@ -377,6 +385,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
+
+###############################
+# Test 8
+###############################
 
 # ev8 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is a
 # multiple of infusion duration (DUR)
@@ -433,6 +445,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
 
+###############################
+# Test 9
+###############################
+
 # ev9 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
 # - use ev9.csv in PKPDSimulator/examples/event_data/
@@ -488,6 +504,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
 
+###############################
+# Test 10
+###############################
+
 # ev10 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
 # - use ev10.csv in PKPDSimulator/examples/event_data/
@@ -538,6 +558,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
+
+###############################
+# Test 11
+###############################
 
 # ev11 - gut dose at steady state with lower bioavailability
 # - use ev11.csv in PKPDSimulator/examples/event_data/
@@ -591,6 +615,10 @@ cps = sol[1](obs_times;idxs=2)./θ[3]
 resid = 1000cps - obs # Why the scaling difference?
 norm(resid) < 1
 
+###############################
+# Test 12
+###############################
+
 # ev12 - gut dose at with lower bioavailability and a 5 hour lag time
 # - use ev12.csv in PKPDSimulator/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
@@ -610,30 +638,30 @@ norm(resid) < 1
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
-
+data,obs,obs_times = get_nonem_data(12)
 
 θ = [
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
     5,    #LAGT
+    0.412, #BIOAV
     0,    #MODE
     2,    #DUR2
     10,   #RAT2
-    0.412 #BIOAV
     ]
 
-# corresponding mrgsolve and NONMEM solution in data12.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data12.csv"),
-              separator=',')
+sol2 =      get_sol(θ,data,obs,obs_times,
+              abstol=1e-12,reltol=1e-12)
 
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
