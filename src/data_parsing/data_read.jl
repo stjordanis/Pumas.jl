@@ -44,28 +44,29 @@ function generate_person(id,covariates,dvs,raw_data)
   obs = person_data[obs_idxs,dvs]
   obs_times = person_data[obs_idxs,:time]
   event_idxs = find(x ->  x!=0, person_data[:evid])
+  tType = float(eltype(person_data[first(event_idxs),:time]))
   if !haskey(person_data,:addl)
     haskey(person_data,:cmt) ? cmt = person_data[event_idxs,:cmt] : cmt = 1
-    event_times = TimeCompartment.(float.(person_data[event_idxs,:time]),cmt)
+    event_times = TimeCompartment.(float.(person_data[event_idxs,:time]),cmt,zero(tType))
     evid = person_data[event_idxs,:evid]
-    amt = person_data[event_idxs,:amt]
+    amt = float.(person_data[event_idxs,:amt])
     haskey(person_data,:rate) ? rate = person_data[event_idxs,:rate] : rate = zero(amt)
     haskey(person_data,:ss) ? ss = person_data[event_idxs,:ss] : ss = 0
     events = Event.(amt,evid,cmt,rate,ss)
   else
     # Type is determined by `:amt`, it's unnecessary and can be made Float64
     # If the right conversions are added
-    events = Event{typeof(person_data[first(event_idxs),:amt])}[]
-    event_times = TimeCompartment{typeof(float(person_data[first(event_idxs),:time]))}[]
+    events = Event{typeof(float(person_data[first(event_idxs),:amt]))}[]
+    event_times = TimeCompartment{tType}[]
     for i in event_idxs
       addl = person_data[i,:addl]
       curtime = person_data[i,:time]
       for j in 0:addl # 0 means just once
         haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
         push!(event_times,TimeCompartment(float(curtime),cmt,zero(float(curtime))))
-        amt = person_data[i,:amt]
+        amt = float(person_data[i,:amt])
         evid = person_data[i,:evid]
-        haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
+        haskey(person_data,:rate) ? rate = float(person_data[i,:rate]) : rate = zero(amt)
         haskey(person_data,:ss) ? ss = person_data[i,:ss] : ss = 0
         push!(events,Event(amt,evid,cmt,rate,ss))
         if rate != 0

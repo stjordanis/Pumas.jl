@@ -9,4 +9,6 @@ tic()
 @time @testset "Multiple Dosage Tests" begin include("multiple_dosage_tests.jl") end
 @time @testset "Analytical Multiple Dosage Tests" begin
                 include("analytical_multiple_dosage_tests.jl") end
+@time @testset "Template Model EV System" begin
+                include("template_model_ev_system.jl") end
 toc()

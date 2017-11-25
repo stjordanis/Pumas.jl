@@ -70,3 +70,15 @@ function Base.vcat(a::Number,event_times::AbstractArray{<:TimeCompartment})
   end
   out
 end
+
+function sorted_approx_unique(event_times)
+  tType = typeof(first(event_times).time)
+  out = Vector{typeof(first(event_times).time)}(1)
+  out[1] = event_times[1].time
+  for i in 2:length(event_times)
+    if abs(out[end] - event_times[i].time) > 10eps(tType)
+      push!(out,event_times[i].time)
+    end
+  end
+  out
+end
