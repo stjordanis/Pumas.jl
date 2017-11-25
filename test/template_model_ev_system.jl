@@ -640,24 +640,14 @@ data,obs,obs_times = get_nonem_data(12)
 θ = [
     1.5,  #Ka
     1.0,  #CL
-    30.0, #V
-    5,    #LAGT
-    0.412, #BIOAV
-    0,    #MODE
-    2,    #DUR2
-    10,   #RAT2
+    30.0  #V
     ]
 
 function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        V  = θ[3]*exp(η[2]))
 end
-
-sol2 =      get_sol(θ,data,obs,obs_times,
-              abstol=1e-12,reltol=1e-12)
 
 resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
