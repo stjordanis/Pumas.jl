@@ -11,6 +11,7 @@ include("analytical_solution_type.jl")
 include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
+include("standard_models.jl")
 
 export Person, Population, process_data
 

@@ -8,11 +8,7 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
               separator=' ')
 
 # Define the ODE
-function depot_model(t,t0,u0,D,p)
-  exp(-t*(p.Ka+p.CL/p.V))*(D*exp(p.Ka*t0+p.CL*t/p.V)*p.Ka*p.V +
-  exp(t*p.Ka+p.CL*t0/p.V)*(u0*p.CL - (u0 + D)*p.Ka*p.V))/(p.CL-p.Ka*p.V)
-end
-
+prob = OneCompartmentModel(19.0)
 
 # User definition of the set_parameters! function
 function set_parameters(θ,η,z)
@@ -25,7 +21,6 @@ end
 ω = zeros(2)
 
 # Call simulate
-prob = AnalyticalProblem(depot_model,0.0,0.0,(0.0,300.0))
 sol = simulate(prob,set_parameters,θ,ω,data)
 
 # Simulate individual 1
