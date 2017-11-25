@@ -6,6 +6,7 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames
 
 @reexport using OrdinaryDiffEq
 
+include("event_types.jl")
 include("data_read.jl")
 include("analytical_solution_type.jl")
 include("simulate_methods/utils.jl")

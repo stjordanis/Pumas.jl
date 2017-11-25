@@ -5,13 +5,10 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   u0 = prob.u0
   aux = prob.aux
   f = prob.f
-  t0 = datai.event_times[1]
+  t0 = datai.event_times[1].time
   tspan = prob.tspan
   tdir = sign(prob.tspan[end] - prob.tspan[1])
-  tstops = vec(collect(typeof(t0),Iterators.filter(
-            x->tdir*tspan[1]<=tdir*x<=tdir*tspan[end],
-            Iterators.flatten((datai.event_times,tspan[end])))))
-
+  tstops = [tspan[1];datai.event_times] # Doesn't make sure it stops at tspan[end]!
   p = set_parameters(θ,ηi,datai.z)
   u_save = Vector{typeof(u0)}(length(tstops))
   aux_save = Vector{typeof(aux)}(length(tstops))

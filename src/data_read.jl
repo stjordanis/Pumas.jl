@@ -33,13 +33,6 @@ end
 Base.indices(A::Population) = indices(A.patients)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
-struct Event{T}
-  amt::T
-  evid::Int
-  cmt::Int
-  rate::T
-end
-
 ## Parsing Functions
 
 function generate_person(id,covariates,dvs,raw_data)
@@ -52,32 +45,32 @@ function generate_person(id,covariates,dvs,raw_data)
   obs_times = person_data[obs_idxs,:time]
   event_idxs = find(x ->  x!=0, person_data[:evid])
   if !haskey(person_data,:addl)
-    event_times = person_data[event_idxs,:time]
+    haskey(person_data,:cmt) ? cmt = person_data[event_idxs,:cmt] : cmt = 1
+    event_times = TimeCompartment.(float.(person_data[event_idxs,:time]),cmt)
     evid = person_data[event_idxs,:evid]
     amt = person_data[event_idxs,:amt]
-    haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
-    haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
+    haskey(person_data,:rate) ? rate = person_data[event_idxs,:rate] : rate = zero(amt)
     events = Event.(amt,evid,cmt,rate)
   else
     # Type is determined by `:amt`, it's unnecessary and can be made Float64
     # If the right conversions are added
     events = Event{typeof(person_data[first(event_idxs),:amt])}[]
-    event_times = Float64[]
+    event_times = TimeCompartment{typeof(float(person_data[first(event_idxs),:time]))}[]
     for i in event_idxs
       addl = person_data[i,:addl]
       curtime = person_data[i,:time]
       for j in 0:addl # 0 means just once
-        push!(event_times,curtime)
+        haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
+        push!(event_times,TimeCompartment(float(curtime),cmt))
         amt = person_data[i,:amt]
         evid = person_data[i,:evid]
-        haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
         haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
         push!(events,Event(amt,evid,cmt,rate))
         if rate != 0
           # Add a turn off event
           rate_off = curtime + amt/rate
           push!(events,Event(-amt,-1,cmt,-rate))
-          push!(event_times,rate_off)
+          push!(event_times,TimeCompartment(rate_off,cmt))
         end
         curtime += person_data[i,:ii]
       end

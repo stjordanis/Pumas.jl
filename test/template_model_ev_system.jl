@@ -154,12 +154,21 @@ data,obs,obs_times = get_nonem_data(3)
     5.0   #LAGT
     ]
 
-sol =      get_sol(θ,data,obs,obs_times,
-                     abstol=1e-12,reltol=1e-12)
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4])
+end
 
 resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
-norm(resid) < 1
+@test norm(resid) < 1e-6
+
+a_resid  = get_analytical_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
+
+@test_broken norm(a_resid) < 1e-6
 
 ###############################
 # Test 4
@@ -191,25 +200,20 @@ data,obs,obs_times = get_nonem_data(4)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    5.0   #LAGT
-    ]
-
-function set_parameters!(p,θ,η,datai)
-    Ka = θ[1]
-    CL = θ[2]*exp(η[1])
-    V  = θ[3]*exp(η[2])
-    ALAG_CENT = LAGT
-    F_CENT = BIOAV
-    p[1] = Ka; p[2] = CL; p[3] = V; p[4] = LAGT; p[5] = BIOAV
-end
-
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
     5.0,  #LAGT
     0.412,#BIOAV
     ]
+
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
+
+sol2 =      get_sol(θ,data,obs,obs_times,
+              abstol=1e-12,reltol=1e-12)
 
 resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
