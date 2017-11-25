@@ -50,7 +50,8 @@ function generate_person(id,covariates,dvs,raw_data)
     evid = person_data[event_idxs,:evid]
     amt = person_data[event_idxs,:amt]
     haskey(person_data,:rate) ? rate = person_data[event_idxs,:rate] : rate = zero(amt)
-    events = Event.(amt,evid,cmt,rate)
+    haskey(person_data,:ss) ? ss = person_data[event_idxs,:ss] : ss = 0
+    events = Event.(amt,evid,cmt,rate,ss)
   else
     # Type is determined by `:amt`, it's unnecessary and can be made Float64
     # If the right conversions are added
@@ -65,12 +66,13 @@ function generate_person(id,covariates,dvs,raw_data)
         amt = person_data[i,:amt]
         evid = person_data[i,:evid]
         haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
-        push!(events,Event(amt,evid,cmt,rate))
+        haskey(person_data,:ss) ? ss = person_data[i,:ss] : ss = 0
+        push!(events,Event(amt,evid,cmt,rate,ss))
         if rate != 0
           # Add a turn off event
           duration = amt/rate
           rate_off = curtime + duration
-          push!(events,Event(-amt,-1,cmt,-rate))
+          push!(events,Event(-amt,-1,cmt,-rate,ss))
           push!(event_times,TimeCompartment(rate_off,cmt,duration))
         end
         curtime += person_data[i,:ii]

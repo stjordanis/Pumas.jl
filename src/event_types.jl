@@ -3,6 +3,7 @@ struct Event{T}
   evid::Int
   cmt::Int
   rate::T
+  ss::Int
 end
 
 struct TimeCompartment{T}
@@ -13,7 +14,7 @@ end
 
 Base.isless(a::TimeCompartment,b::TimeCompartment) = isless(a.time,b.time)
 Base.isless(a::TimeCompartment,b::Number) = isless(a.time,b)
-Base.isless(a::Number,b::TimeCompartment) = isless(a,b.time,b)
+Base.isless(a::Number,b::TimeCompartment) = isless(a,b.time)
 Base.:+(a::TimeCompartment,b::Number) = TimeCompartment(a.time+b,a.compartment,a.duration)
 function remove_lags(events,event_times,lags::Number,bioav)
   new_event_times = event_times +  lags

@@ -216,6 +216,11 @@ resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
+a_resid  = get_analytical_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
+
+@test_broken norm(a_resid) < 1e-6
+
 ###############################
 # Test 5
 ###############################
@@ -241,33 +246,34 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(5)
 
 θ = [
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
+    0.412,#BIOAV
     0,    #MODE
     2,    #DUR2
     10,   #RAT2
-    0.412,#BIOAV
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data5.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        bioav = θ[4])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data5.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
+
+a_resid  = get_analytical_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
+
+@test_broken norm(a_resid) < 1e-6
 
 ###############################
 # Test 6
@@ -298,6 +304,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(6)
 
 θ = [
     1.5,  #Ka
@@ -311,19 +318,16 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data6.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data6.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
 ###############################
@@ -355,6 +359,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(7)
 
 θ = [
     1.5,  #Ka
@@ -368,20 +373,18 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data7.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data7.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
+
 
 ###############################
 # Test 8
@@ -414,6 +417,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(8)
 
 θ = [
     1.5,  #Ka
@@ -427,20 +431,18 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data8.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data8.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
+
 
 ###############################
 # Test 9
@@ -473,6 +475,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(9)
 
 θ = [
     1.5,  #Ka
@@ -486,20 +489,18 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data9.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data9.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
+
 
 ###############################
 # Test 10
@@ -528,6 +529,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(10)
 
 θ = [
     1.5,  #Ka
@@ -541,20 +543,18 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data10.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=1) # get central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data10.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
+
 
 ###############################
 # Test 11
@@ -584,6 +584,7 @@ norm(resid) < 1
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+data,obs,obs_times = get_nonem_data(11)
 
 θ = [
     1.5,  #Ka
@@ -597,19 +598,16 @@ norm(resid) < 1
     1     #ss
     ]
 
-# corresponding mrgsolve and NONMEM solution in data11.csv in PKPDSimulator/examples/event_data/
-sol = getsol(model=f,num_dv=2) # get both gut and central amounts  and concentrations in central u_central/V
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        lags = θ[4],
+        bioav = θ[5])
+end
 
-raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/data11.csv"),
-              separator=',')
-
-obs_idxs = find(x ->  x==0, raw_data[:evid])
-obs = raw_data[obs_idxs,:CP]
-obs_times = raw_data[obs_idxs,:time]
-cps = sol[1](obs_times;idxs=2)./θ[3]
-
-resid = 1000cps - obs # Why the scaling difference?
+resid  = get_residual(θ,data,obs,obs_times,
+                abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
 ###############################
@@ -635,6 +633,7 @@ norm(resid) < 1
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
+
 data,obs,obs_times = get_nonem_data(12)
 
 θ = [
