@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test, DataFrames
+using PKPDSimulator, Base.Test, DataFrames, NamedTuples
 
 # Gut dosing model
 function f(t,u,p,du)
@@ -13,19 +13,30 @@ function set_parameters(θ,η,z)
         V  = θ[3]*exp(η[2]))
 end
 
-function get_sol!(θ,data,obs,obs_times;
-                       num_dv=2,cmt=2,kwargs...)
+function get_sol(θ,data,obs,obs_times;
+                       num_dv=2,kwargs...)
     prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
-    ω = zeros(2)
-    sol  = simulate(prob,set_parameters,θ,ω,data;kwargs...)
+    η = zeros(2)
+    sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
 end
 
-function get_residual!(θ,data,obs,obs_times;
+function get_a_sol(θ,data,obs,obs_times;kwargs...)
+   prob = OneCompartmentModel(72.0)
+   η = zeros(2)
+   sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
+end
+
+function get_residual(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
-    prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
-    ω = zeros(2)
-    sol  = simulate(prob,set_parameters,θ,ω,data;kwargs...)
-    cps = sol[1](obs_times;idxs=cmt)./(θ[3]/1000)
+    sol = get_sol(θ,data,obs,obs_times;num_dv=2,kwargs...)
+    cps = sol(obs_times;idxs=cmt)./(θ[3]/1000)
+    resid = cps - obs
+end
+
+function get_analytical_residual(θ,data,obs,obs_times;
+                       kwargs...)
+    sol = get_a_sol(θ,data,obs,obs_times;kwargs...)
+    cps = sol(obs_times)./(θ[3]/1000)
     resid = cps - obs
 end
 
@@ -66,9 +77,12 @@ data,obs,obs_times = get_nonem_data(1)
      30.0 #V
      ]
 
-resid  = get_residual!(θ,data,obs,obs_times,
+resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-3
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test norm(a_resid) < 1e-3
 
 ###############################
 # Test 2
@@ -97,12 +111,18 @@ data,obs,obs_times = get_nonem_data(2)
     30.0 #V
     ]
 
-sol  = get_sol!(θ,data,obs,obs_times,
+asol =      get_a_sol(θ,data,obs,obs_times,
+              abstol=1e-12,reltol=1e-12)
+
+resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 
-resid  = get_residual!(θ,data,obs,obs_times,
+@test norm(resid) < 1e-6
+
+a_resid  = get_analytical_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
-norm(resid) < 1
+
+@test_broken norm(a_resid) < 1e-6
 
 ###############################
 # Test 3
@@ -134,7 +154,10 @@ data,obs,obs_times = get_nonem_data(3)
     5.0   #LAGT
     ]
 
-resid  = get_residual!(θ,data,obs,obs_times,
+sol =      get_sol(θ,data,obs,obs_times,
+                     abstol=1e-12,reltol=1e-12)
+
+resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 
@@ -188,7 +211,7 @@ end
     0.412,#BIOAV
     ]
 
-resid  = get_residual!(θ,data,obs,obs_times,
+resid  = get_residual(θ,data,obs,obs_times,
                 abstol=1e-12,reltol=1e-12)
 norm(resid) < 1
 

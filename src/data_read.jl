@@ -37,6 +37,7 @@ struct Event{T}
   amt::T
   evid::Int
   cmt::Int
+  rate::T
 end
 
 ## Parsing Functions
@@ -52,13 +53,11 @@ function generate_person(id,covariates,dvs,raw_data)
   event_idxs = find(x ->  x!=0, person_data[:evid])
   if !haskey(person_data,:addl)
     event_times = person_data[event_idxs,:time]
-    if haskey(person_data,:cmt)
-      events = Event.(person_data[event_idxs,:amt],person_data[event_idxs,:evid],
-               person_data[event_idxs,:cmt])
-    else # assume :cmt == 1
-      events = Event.(person_data[event_idxs,:amt],person_data[event_idxs,:evid],
-               ones(Int,length(event_idxs)))
-    end
+    evid = person_data[event_idxs,:evid]
+    amt = person_data[event_idxs,:amt]
+    haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
+    haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
+    events = Event.(amt,evid,cmt,rate)
   else
     # Type is determined by `:amt`, it's unnecessary and can be made Float64
     # If the right conversions are added
@@ -69,18 +68,24 @@ function generate_person(id,covariates,dvs,raw_data)
       curtime = person_data[i,:time]
       for j in 0:addl # 0 means just once
         push!(event_times,curtime)
-        curtime += person_data[i,:ii]
-
-        if haskey(person_data,:cmt)
-          push!(events,Event(person_data[i,:amt],person_data[i,:evid],
-                   person_data[i,:cmt]))
-        else # assume :cmt == 1
-          push!(events,Event(person_data[i,:amt],person_data[i,:evid],1))
+        amt = person_data[i,:amt]
+        evid = person_data[i,:evid]
+        haskey(person_data,:cmt) ? cmt = person_data[i,:cmt] : cmt = 1
+        haskey(person_data,:rate) ? rate = person_data[i,:rate] : rate = zero(amt)
+        push!(events,Event(amt,evid,cmt,rate))
+        if rate != 0
+          # Add a turn off event
+          rate_off = curtime + amt/rate
+          push!(events,Event(-amt,-1,cmt,-rate))
+          push!(event_times,rate_off)
         end
-
+        curtime += person_data[i,:ii]
       end
     end
   end
+  order = sortperm(event_times)
+  permute!(event_times,order)
+  permute!(events,order)
   Person(id,obs,obs_times,z,event_times,events)
 end
 

@@ -37,7 +37,9 @@ prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
 sol1 = simulate(prob,set_parameters,θ,η1,data[1])
 
 # Simulate Population
-sol = simulate(prob,set_parameters,θ,ω,data)
+# testing turning off parallelism
+sol = simulate(prob,set_parameters,θ,ω,data;parallel_type=:none)
+
 
 
 #=

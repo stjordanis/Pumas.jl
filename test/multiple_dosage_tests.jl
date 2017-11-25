@@ -1,4 +1,4 @@
-using PKPDSimulator, NamedTuples
+using PKPDSimulator, NamedTuples, Base.Test
 
 # Load data
 covariates = [:ka, :cl, :v]
@@ -26,7 +26,9 @@ end
 
 # Call simulate
 prob = ODEProblem(depot_model,zeros(2),(0.0,300.0))
-sol = simulate(prob,set_parameters,θ,ω,data)
+sol1 = simulate(prob,set_parameters,θ,ω,data[1],abstol=1e-14,reltol=1e-14)
+sol = simulate(prob,set_parameters,θ,ω,data,abstol=1e-14,reltol=1e-14)
+@test maximum(sol[1](0:0.1:300) - sol1(0:0.1:300)) < 1e-10
 
 #=
 using Plots; plotly()
