@@ -4,7 +4,7 @@ using PKPDSimulator, NamedTuples, Distributions
 covariates = [:sex,:wt,:etn]
 dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
-                 covariates,dvs)
+                 covariates,dvs,separator=',')
 
 # Define the ODE
 
@@ -23,9 +23,8 @@ end
 # User definition of the set_parameters! function
 
 function set_parameters(θ,η,z)
-  wt,sex = z[:wt],z[:sex]
   @NT(Ka = θ[1],
-      CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1]),
+      CL = θ[2]*((z.wt/70)^0.75)*(θ[4]^z.sex)*exp(η[1]),
       V  = θ[3]*exp(η[2]))
 end
 
