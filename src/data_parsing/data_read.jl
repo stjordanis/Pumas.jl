@@ -118,7 +118,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; header=true,
                 ii   = parse(Float64, cols[:ii][i])
                 cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
                 rate = haskey(cols,:rate) ? parse(Float64, cols[:rate][i]) : 0.0
-                ss   = haskey(cols,:ss)   ? parse(Int, cols[:ss][i])   : 1
+                ss   = haskey(cols,:ss)   ? parse(Int, cols[:ss][i])   : 0
 
                 for j = 0:addl  # addl==0 means just once
                     push!(event_times, TimeCompartment(t,cmt,0.0))
