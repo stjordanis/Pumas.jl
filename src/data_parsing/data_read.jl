@@ -85,7 +85,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; header=true,
 
     subjects = map(uids) do id
         ## Observations
-        @show idx_obs = filter(i -> ids[i] == id && evids[id] == 0, 1:m)
+        idx_obs = filter(i -> ids[i] == id && evids[i] == 0, 1:m)
         obs_times = times[idx_obs]
         obs = Tdv.([misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
 
