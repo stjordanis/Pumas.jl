@@ -30,10 +30,11 @@ end
 
 # Call simulate
 prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
+model = PKPDModel(prob,set_parameters)
 
 # Simulate individual 1
 η1 = zeros(2)
-sol1 = simulate(prob,set_parameters,θ,η1,data[1])
+sol1 = simulate(model,θ,η1,data[1])
 
 # Simulate Population
 # testing turning off parallelism
