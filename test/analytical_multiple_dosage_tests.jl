@@ -4,8 +4,7 @@ using PKPDSimulator, NamedTuples
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs,
-              separator=' ')
+              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs)
 
 # Define the ODE
 prob = OneCompartmentModel(19.0)

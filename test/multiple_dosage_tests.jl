@@ -4,8 +4,7 @@ using PKPDSimulator, NamedTuples, Base.Test
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs,
-              separator=' ')
+              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs)
 
 # Define the ODE
 function depot_model(t,u,p,du)

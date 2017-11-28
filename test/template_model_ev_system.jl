@@ -44,12 +44,11 @@ function get_nonem_data(i)
     data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
                   "examples/event_data/ev$i.csv"), covariates,dvs,
                   separator=',')
-    raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-                "examples/event_data","data$i.csv"),
+    obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+                "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
                 separator=',')
-    obs_idxs = find(x ->  x==0, raw_data[:evid])
-    obs = raw_data[obs_idxs,:CP]
-    obs_times = raw_data[obs_idxs,:time]
+    obs = map(x -> x.cp, obsdata.patients[1].obs)
+    obs_times = obsdata.patients[1].obs_times
     data,obs,obs_times
 end
 
