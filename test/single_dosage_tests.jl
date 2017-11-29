@@ -4,7 +4,7 @@ using PKPDSimulator, NamedTuples, Distributions
 covariates = [:sex,:wt,:etn]
 dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
-                 covariates,dvs)
+                 covariates,dvs,separator=',')
 
 # Define the ODE
 
@@ -23,24 +23,22 @@ end
 # User definition of the set_parameters! function
 
 function set_parameters(θ,η,z)
-  wt,sex = z[:wt],z[:sex]
   @NT(Ka = θ[1],
-      CL = θ[2]*((wt/70)^0.75)*(θ[4]^sex)*exp(η[1]),
+      CL = θ[2]*((z.wt/70)^0.75)*(θ[4]^z.sex)*exp(η[1]),
       V  = θ[3]*exp(η[2]))
 end
 
 # Call simulate
 prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
+pkpd = PKPDModel(prob,set_parameters)
 
 # Simulate individual 1
 η1 = zeros(2)
-sol1 = simulate(prob,set_parameters,θ,η1,data[1])
+sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate Population
 # testing turning off parallelism
-sol = simulate(prob,set_parameters,θ,ω,data;parallel_type=:none)
-
-
+sol = simulate(pkpd,θ,ω,data)
 
 #=
 using Plots; plotly()
@@ -52,21 +50,21 @@ plot(summ,title="Summary plot",xlabel="time")
 function reduction(sol,p,datai)
   sol(datai.obs_times;idxs=2)./p.V,false
 end
+pkpd = PKPDModel(prob,set_parameters,reduction)
 
 # Simulate individual 1 with reduction
-sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
+sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate population with reduction
-sol = simulate(prob,set_parameters,θ,ω,data,reduction)
+sol = simulate(pkpd,θ,ω,data)
 
-function error_model(sol,η,ϵ)
-  sol.*exp.(ϵ)
-end
-
-ϵ = Normal(0,0.025)
+adderr(uij, θ) = Normal(uij, θ[end])
+full = FullModel(pkpd, Independent(adderr))
 
 # Simulate individual 1 with reduction and error model
-sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
+sol1 = simulate(full,θ,η1,data[1])
 
 # Simulate population with reduction and error model
-sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
+#sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
+
+sol1 = simulate(full,θ,ω,data)
