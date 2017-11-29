@@ -30,11 +30,11 @@ end
 
 # Call simulate
 prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
-model = PKPDModel(prob,set_parameters)
+pkpd = PKPDModel(prob,set_parameters)
 
 # Simulate individual 1
 η1 = zeros(2)
-sol1 = simulate(model,θ,η1,data[1])
+sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate Population
 # testing turning off parallelism
@@ -53,20 +53,25 @@ function reduction(sol,p,datai)
   sol(datai.obs_times;idxs=2)./p.V,false
 end
 
+pkpd = PKPDModel(prob,set_parameters,reduction)
+sol1 = simulate(pkpd,θ,η1,data[1])
+
 # Simulate individual 1 with reduction
 sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
 
 # Simulate population with reduction
 sol = simulate(prob,set_parameters,θ,ω,data,reduction)
 
-function error_model(sol,η,ϵ)
-  sol.*exp.(ϵ)
-end
+properr(uij, σ) = Normal(uij, σ[1]*uij)
 
-ϵ = Normal(0,0.025)
+full = FullModel(pkpd, Independent(properr))
+
+σ = (0.025,)
 
 # Simulate individual 1 with reduction and error model
-sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction,ϵ,error_model)
+sol1 = simulate(full,θ,σ,η1,data[1])
 
 # Simulate population with reduction and error model
 sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
+
+# sol1 = simulate(full,θ,σ,ω,data)

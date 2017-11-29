@@ -18,5 +18,6 @@ include("simulate_methods/analytical.jl")
 export Person, Population, process_data
 
 export simulate, ith_patient_cb
+export PKPDModel, FullModel, ErrorModel, Independent
 
 end # module
