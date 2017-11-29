@@ -4,3 +4,4 @@ DiffEqMonteCarlo
 OrdinaryDiffEq
 Distributions
 Reexport
+NamedTuples

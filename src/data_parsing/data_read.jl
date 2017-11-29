@@ -36,14 +36,27 @@ Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 ## Parsing Functions
 misparse(T,x) = x == "." ? zero(T) : parse(T,x)
 
-using NamedTuples
 
-function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; header=true, names=nothing, separator="")
+
+"""
+    process_data(filename, covariates=Symbol[], dvs=[:dv];
+        header=true, names=nothing, separator=nothing)
+
+Import NONMEM-formatted data from `filename`.
+
+- `covariates` and `dvs` are the list of columns which are considered covariates and dependent variables.
+- `header`: whether or not there is a header row (default=`true`)
+- `names`: a list names of colums. If `nothing` (default) then these are taken as the first row (`header` must be `true`)
+- `separator`: the delimiter. Should be either a character (e.g. `','`) or `nothing` (default) in which case it is taken to be whitespace-delimited with repeated whitespaces treated as one delimiter.
+
+"""
+function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; 
+    header=true, names=nothing, separator=nothing)
     io = open(filename)
     if header == true
         l = readline(io)
-        if names == nothing
-            if separator == ""
+        if names === nothing
+            if separator === nothing
                 names = lowercase.(split(l))
             else
                 names = lowercase.(split(l,separator))
@@ -54,7 +67,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; header=true,
             names = Symbol.(names)
         end
     end
-    if separator == ""
+    if separator === nothing
         str_mat = readdlm(io,String)
     else
         str_mat = readdlm(io,separator,String)
