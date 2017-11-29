@@ -16,14 +16,16 @@ end
 function get_sol(θ,data,obs,obs_times;
                        num_dv=2,kwargs...)
     prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
+    pkpd = PKPDModel(prob,set_parameters)
     η = zeros(2)
-    sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
+    sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
 function get_a_sol(θ,data,obs,obs_times;kwargs...)
    prob = OneCompartmentModel(72.0)
+   pkpd = PKPDModel(prob,set_parameters)
    η = zeros(2)
-   sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
+   sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
 function get_residual(θ,data,obs,obs_times;
@@ -44,12 +46,11 @@ function get_nonem_data(i)
     data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
                   "examples/event_data/ev$i.csv"), covariates,dvs,
                   separator=',')
-    raw_data = readtable(joinpath(Pkg.dir("PKPDSimulator"),
-                "examples/event_data","data$i.csv"),
+    obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+                "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
                 separator=',')
-    obs_idxs = find(x ->  x==0, raw_data[:evid])
-    obs = raw_data[obs_idxs,:CP]
-    obs_times = raw_data[obs_idxs,:time]
+    obs = map(x -> x.cp, obsdata.patients[1].obs)
+    obs_times = obsdata.patients[1].obs_times
     data,obs,obs_times
 end
 

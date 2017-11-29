@@ -4,8 +4,7 @@ using PKPDSimulator, NamedTuples, Base.Test
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs,
-              separator=' ')
+              "examples/oral1_1cpt_KAVCL_MD_data.txt"), covariates,dvs)
 
 # Define the ODE
 function depot_model(t,u,p,du)
@@ -18,6 +17,8 @@ end
 function set_parameters(θ,η,z)
   @NT(Ka = z[:ka], CL = z[:cl], V = z[:v])
 end
+prob = ODEProblem(depot_model,zeros(2),(0.0,300.0))
+pkpd = PKPDModel(prob,set_parameters)
 
 # Population setup
 
@@ -25,9 +26,9 @@ end
 ω = zeros(2)
 
 # Call simulate
-prob = ODEProblem(depot_model,zeros(2),(0.0,300.0))
-sol1 = simulate(prob,set_parameters,θ,ω,data[1],abstol=1e-14,reltol=1e-14)
-sol = simulate(prob,set_parameters,θ,ω,data,abstol=1e-14,reltol=1e-14)
+
+sol1 = simulate(pkpd,θ,ω,data[1],abstol=1e-14,reltol=1e-14)
+sol = simulate(pkpd,θ,ω,data,abstol=1e-14,reltol=1e-14)
 @test maximum(sol[1](0:0.1:300) - sol1(0:0.1:300)) < 1e-10
 
 #=
