@@ -13,6 +13,7 @@ prob = OneCompartmentModel(19.0)
 function set_parameters(θ,η,z)
   @NT(Ka = z[:ka], CL = z[:cl], V = z[:v])
 end
+pkpd = PKPDModel(prob,set_parameters)
 
 # Population setup
 
@@ -20,8 +21,8 @@ end
 ω = zeros(2)
 
 # Call simulate
-sol = simulate(prob,set_parameters,θ,ω,data)
+sol = simulate(pkpd,θ,ω,data)
 
 # Simulate individual 1
 η1 = zeros(2)
-sol1 = simulate(prob,set_parameters,θ,η1,data[1])
+sol1 = simulate(pkpd,θ,η1,data[1])

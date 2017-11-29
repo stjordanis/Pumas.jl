@@ -57,3 +57,10 @@ function simulate(m::FullModel, θ, η, data::Person, args...; kwargs...)
     simulate(m.err, θ, ui)
 end
 
+function simulate(m::Union{PKPDModel,FullModel},θ,ω,data::Population,args...;
+                  parallel_type=:threads,kwargs...)
+    N = length(data)
+    η = generate_η(ω,N)
+    t = @elapsed u = [simulate(m,θ,η[i],data[i],args...;kwargs...) for i in 1:N]
+    MonteCarloSolution(u,t,true)
+end

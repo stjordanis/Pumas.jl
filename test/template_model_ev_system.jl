@@ -16,14 +16,16 @@ end
 function get_sol(θ,data,obs,obs_times;
                        num_dv=2,kwargs...)
     prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
+    pkpd = PKPDModel(prob,set_parameters)
     η = zeros(2)
-    sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
+    sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
 function get_a_sol(θ,data,obs,obs_times;kwargs...)
    prob = OneCompartmentModel(72.0)
+   pkpd = PKPDModel(prob,set_parameters)
    η = zeros(2)
-   sol  = simulate(prob,set_parameters,θ,η,data[1];kwargs...)
+   sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
 function get_residual(θ,data,obs,obs_times;

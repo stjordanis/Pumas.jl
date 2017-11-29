@@ -38,9 +38,7 @@ sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate Population
 # testing turning off parallelism
-sol = simulate(prob,set_parameters,θ,ω,data;parallel_type=:none)
-
-
+sol = simulate(pkpd,θ,ω,data)
 
 #=
 using Plots; plotly()
@@ -52,21 +50,16 @@ plot(summ,title="Summary plot",xlabel="time")
 function reduction(sol,p,datai)
   sol(datai.obs_times;idxs=2)./p.V,false
 end
-
 pkpd = PKPDModel(prob,set_parameters,reduction)
-sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate individual 1 with reduction
-sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
+sol1 = simulate(pkpd,θ,η1,data[1])
 
 # Simulate population with reduction
-sol = simulate(prob,set_parameters,θ,ω,data,reduction)
+sol = simulate(pkpd,θ,ω,data)
 
 adderr(uij, θ) = Normal(uij, θ[end])
-
 full = FullModel(pkpd, Independent(adderr))
-
-σ = (0.025,)
 
 # Simulate individual 1 with reduction and error model
 sol1 = simulate(full,θ,η1,data[1])
