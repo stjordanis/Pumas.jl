@@ -1,3 +1,15 @@
+function immediate_absorption_f(t,t0,u0,dose,p,aux)
+  D = dose+u0
+  next_aux = exp(-(t-t0)*p.Ka)*D
+  next_u,nothing
+end
+
+function ImmediateAbsorptionModel(tf)
+  AnalyticalProblem(immediate_absorption_f,0.0,nothing,(0.0,tf))
+end
+
+export ImmediateAbsorptionModel
+
 function one_compartment_f(t,t0,u0,dose,p,aux)
   D = dose+aux
   next_aux = exp(-(t-t0)*p.Ka)*D
