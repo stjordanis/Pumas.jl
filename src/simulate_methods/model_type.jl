@@ -4,41 +4,20 @@ struct PKPDModel{P,SP,R}
     reduction::R
 end
 
-
-
 abstract type ErrorModel end
-
-"""
-    Independent(errfn) <: ErrorModel
-
-Assumes the error terms are independent.
-
-`errfn` should be function which takes 2 arguments:
- - `uij`: the value at a particular timepoint of the reduced simulation
- - `θ`  : the population-level parameter vector
-
-Example: proportional error:
-```julia
-properr(uij, θ) = Normal(uij, uij*θ[end])
-```
-"""
-struct Independent{F} <: ErrorModel
-    inderr::F
-end
-
 
 struct FullModel{P<:PKPDModel,E<:ErrorModel}
     pkpd::P
     err::E
 end
 
+### High level simulate functions for persons
 
-
-function PKPDModel(prob,set_parameters=nothing,reduction=(sol,p,datai) -> (sol,false))
+function PKPDModel(prob,set_parameters=nothing)
+    reduction=(sol,p,datai) -> (sol,false)
     PKPDModel{typeof(prob),typeof(set_parameters),typeof(reduction)}(
                                                 prob,set_parameters,reduction)
 end
-
 
 function simulate(m::PKPDModel,θ,η,data::Person,
                   args...;kwargs...)
@@ -48,13 +27,15 @@ function simulate(m::PKPDModel,θ,η,data::Person,
                 args...;kwargs...)
 end
 
-function simulate(m::Independent, θ, ui)
-    [rand(m.inderr(uij,θ)) for uij in ui]
-end
-
 function simulate(m::FullModel, θ, η, data::Person, args...; kwargs...)
     ui = simulate(m.pkpd, θ,η, data,args...; kwargs...)
     simulate(m.err, θ, ui)
+end
+
+#### Simulate populations
+
+function generate_η(ω,N)
+  [rand(MvNormal(zeros(size(ω,1)),ω)) for i in 1:N]
 end
 
 function simulate(m::Union{PKPDModel,FullModel},θ,ω,data::Population,args...;

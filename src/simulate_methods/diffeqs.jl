@@ -1,44 +1,5 @@
-function simulate(_prob::ODEProblem,set_parameters,θ,ω,data::Population,
-                  output_reduction = (sol,p,datai) -> (sol,false),
-                  ϵ = nothing, error_model = nothing,
-                  alg = Tsit5();parallel_type=:threads,kwargs...)
-
-  N = length(data)
-  η = generate_η(ω,N)
-
-  p1 = set_parameters(θ,η[1],data[1].z)
-  wrapped_f = DiffEqWrapper(_prob,p1)
-  blank,cb = ith_patient_cb(p1,data[1])
-  prob = ODEProblem(wrapped_f,_prob.u0,_prob.tspan,callback=cb)
-  tstops = [prob.tspan[1];get_all_event_times(data)] # uses tstops on all, could be by individual
-
-  prob_func = function (prob,i,repeat)
-    # From problem_new_parameters but no callbacks
-    p = set_parameters(θ,η[i],data[i].z)
-    f = DiffEqWrapper(prob.f,p)
-    uEltype = eltype(θ)
-    u0 = [uEltype(prob.u0[i]) for i in 1:length(prob.u0)]
-    tspan = (uEltype(prob.tspan[1]),uEltype(prob.tspan[2]))
-    blank,cb = ith_patient_cb(p,data[i])
-    ODEProblem(f,u0,tspan,callback=cb)
-  end
-  output_func = function (sol,i)
-    output_reduction(sol,sol.prob.f.params,data[i])
-  end
-  monte_prob = MonteCarloProblem(prob,prob_func=prob_func,output_func=output_func)
-  sol = solve(monte_prob,alg;num_monte=N,save_start=false,
-              tstops=tstops,parallel_type=parallel_type,kwargs...)
-  if error_model != nothing
-    err_sol = [error_model(soli,η,rand(ϵ,length(soli))) for soli in sol]
-  else
-    err_sol = sol
-  end
-  err_sol
-end
-
 function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> (sol,false),
-                  ϵ = nothing, error_model = nothing,
                   alg = Tsit5();kwargs...)
   p = set_parameters(θ,ηi,datai.z)
   target_time,cb = ith_patient_cb(p,datai)
@@ -49,13 +10,6 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
   prob = ODEProblem(true_f,_prob.u0,_prob.tspan,callback=cb)
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
   soli = first(output_reduction(sol,sol.prob.f.params,datai))
-  if error_model != nothing
-    _ϵ = rand(ϵ,length(soli))
-    err_sol = error_model(soli,ηi,_ϵ)
-  else
-    err_sol = soli
-  end
-  err_sol
 end
 
 function ith_patient_cb(p,datai)
