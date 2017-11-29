@@ -62,16 +62,16 @@ sol1 = simulate(prob,set_parameters,θ,η1,data[1],reduction)
 # Simulate population with reduction
 sol = simulate(prob,set_parameters,θ,ω,data,reduction)
 
-properr(uij, σ) = Normal(uij, σ[1]*uij)
+adderr(uij, θ) = Normal(uij, θ[end])
 
-full = FullModel(pkpd, Independent(properr))
+full = FullModel(pkpd, Independent(adderr))
 
 σ = (0.025,)
 
 # Simulate individual 1 with reduction and error model
-sol1 = simulate(full,θ,σ,η1,data[1])
+sol1 = simulate(full,θ,η1,data[1])
 
 # Simulate population with reduction and error model
-sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
+#sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
 
-# sol1 = simulate(full,θ,σ,ω,data)
+sol1 = simulate(full,θ,ω,data)
