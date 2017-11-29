@@ -39,7 +39,6 @@ function PKPDModel(prob,set_parameters=nothing,reduction=(sol,p,datai) -> (sol,f
                                                 prob,set_parameters,reduction)
 end
 
-export PKPDModel
 
 function simulate(m::PKPDModel,θ,η,data::Person,
                   args...;kwargs...)
