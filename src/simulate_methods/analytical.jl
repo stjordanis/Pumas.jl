@@ -1,11 +1,12 @@
 function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> (sol,false);
                   parallel_type=:threads,kwargs...)
-  u0 = prob.u0
-  aux = prob.aux
+  VarType = promote_type(eltype(ηi),eltype(θ))
+  u0 = VarType.(prob.u0)
+  aux = VarType.(prob.aux)
   f = prob.f
   t0 = datai.event_times[1].time
-  tspan = prob.tspan
+  tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
   tstops = [tspan[1];datai.event_times] # Doesn't make sure it stops at tspan[end]!
   p = set_parameters(θ,ηi,datai.z)

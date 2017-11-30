@@ -6,7 +6,7 @@ function immediate_absorption_f(t,t0,C0,dose,p,aux)
 end
 
 function ImmediateAbsorptionModel(tf)
-  AnalyticalProblem(immediate_absorption_f,0.0,nothing,(0.0,tf))
+  AnalyticalProblem(immediate_absorption_f,0.0,0.0,(0.0,tf))
 end
 
 export ImmediateAbsorptionModel
