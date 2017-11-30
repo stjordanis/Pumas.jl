@@ -1,13 +1,15 @@
 function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> (sol,false),
                   alg = Tsit5();kwargs...)
+  VarType = promote_type(eltype(ηi),eltype(θ))
   p = set_parameters(θ,ηi,datai.z)
   target_time,cb = ith_patient_cb(p,datai)
   tstops = [_prob.tspan[1];target_time]
   # From problem_new_parameters but no callbacks
 
   true_f = DiffEqWrapper(_prob,p)
-  prob = ODEProblem(true_f,_prob.u0,_prob.tspan,callback=cb)
+  # Match the type of ηi for duality in estimator
+  prob = ODEProblem(true_f,VarType.(_prob.u0),VarType.(_prob.tspan),callback=cb)
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
   output_reduction(sol,sol.prob.f.params,datai)
 end

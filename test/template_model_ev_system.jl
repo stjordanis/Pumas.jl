@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test, DataFrames, NamedTuples
+using PKPDSimulator, Base.Test, NamedTuples
 
 # Gut dosing model
 function f(t,u,p,du)

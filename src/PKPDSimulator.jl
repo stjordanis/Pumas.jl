@@ -2,7 +2,7 @@ __precompile__()
 
 module PKPDSimulator
 
-using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames
+using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples
 
 @reexport using OrdinaryDiffEq
 
