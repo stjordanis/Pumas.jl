@@ -32,6 +32,5 @@ function create_dose_vector(cur_ev,u0)
 end
 
 function increment_value(A::SVector{L,T},x,k) where {L,T}
-    _A = [i == k ? x : zero(x) for i in 1:L]
-    A+_A
+    [ifelse(i == k, A[i]+x, A[i]) for i in 1:L]
 end
