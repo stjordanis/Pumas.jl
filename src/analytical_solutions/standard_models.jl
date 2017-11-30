@@ -1,7 +1,8 @@
-function immediate_absorption_f(t,t0,u0,dose,p,aux)
-  D = dose+u0
-  next_aux = exp(-(t-t0)*p.Ka)*D
-  next_u,nothing
+function immediate_absorption_f(t,t0,C0,dose,p,aux)
+    Ke = p.CL/p.V
+    C0 += dose
+    C = C0 * exp(-(t-t0)*Ke)
+    C, aux
 end
 
 function ImmediateAbsorptionModel(tf)
