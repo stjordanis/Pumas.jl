@@ -17,7 +17,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
-        return first(sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p))
+        return first(sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p,sol.aux[i]))
     end
 end
 
