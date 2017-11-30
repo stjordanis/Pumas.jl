@@ -16,7 +16,8 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
-        return sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)[idxs]
+        dose = create_dose_vector(sol.events[i],u0)
+        return sol.prob.f(t,t0,u0,dose,sol.p)[idxs]
     end
 end
 
@@ -34,7 +35,8 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
         else
             t0 = sol.t[i]
             u0 = sol.u[i]
-            _u = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)[idxs]
+            dose = create_dose_vector(sol.events[i],u0)
+            _u = sol.prob.f(t,t0,u0,dose,sol.p)[idxs]
             u[j] = _u
         end
     end

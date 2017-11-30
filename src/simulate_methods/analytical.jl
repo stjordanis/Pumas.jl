@@ -14,6 +14,7 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   for i in 2:length(tstops)
     t = tstops[i]
     cur_ev = datai.events[i-1]
+    dose = create_dose_vector(cur_ev,u0)
     u0 = f(t,t0,u0,cur_ev.amt,p)
     u_save[i] = u0
     t0 = t
@@ -24,4 +25,8 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
                      typeof(prob),typeof(datai.events)}(
                      u_save,tstops,p,prob,datai.events,true,0,:Success)
   output_reduction(_soli,p,datai)
+end
+
+function create_dose_vector(cur_v,u0)
+  zero(u0)
 end
