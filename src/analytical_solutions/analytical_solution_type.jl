@@ -12,12 +12,13 @@ end
 function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     i = searchsortedfirst(sol.t,t) - 1
     if i == 0
-        return sol.prob.u0[idxs]
+        return idxs==nothing ? sol.prob.u0 : sol.prob.u0[idxs]
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
         dose = create_dose_vector(sol.events[i],u0)
-        return sol.prob.f(t,t0,u0,dose,sol.p)[idxs]
+        res = sol.prob.f(t,t0,u0,dose,sol.p)
+        return idxs==nothing ? res : res[idxs]
     end
 end
 
@@ -31,13 +32,14 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
         t = ts[j]
         i = searchsortedfirst(sol.t,t) - 1
         if i == 0
-            u[j] = sol.prob.u0[idxs]
+            res = sol.prob.u0
+            u[j] = idxs==nothing ? res : res[idxs]
         else
             t0 = sol.t[i]
             u0 = sol.u[i]
             dose = create_dose_vector(sol.events[i],u0)
-            _u = sol.prob.f(t,t0,u0,dose,sol.p)[idxs]
-            u[j] = _u
+            res = sol.prob.f(t,t0,u0,dose,sol.p)
+            u[j] = idxs==nothing ? res : res[idxs]
         end
     end
     u

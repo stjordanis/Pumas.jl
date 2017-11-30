@@ -25,6 +25,8 @@ pkpd = PKPDModel(OneCompartmentModel(19.0),set_parameters)
 η1 = zeros(2)
 sol1 = simulate(pkpd,θ,η1,data[1])
 
+sol1(1.0)
+
 # Simulate Population
 sol = simulate(pkpd,θ,ω,data)
 
