@@ -12,7 +12,7 @@ end
 function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     i = searchsortedfirst(sol.t,t) - 1
     if i == 0
-        return sol.prob.u0
+        return sol.prob.u0[idxs]
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
