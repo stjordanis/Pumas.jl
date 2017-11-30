@@ -34,3 +34,7 @@ end
 function increment_value(A::SVector{L,T},x,k) where {L,T}
     [ifelse(i == k, A[i]+x, A[i]) for i in 1:L]
 end
+
+function increment_value(A::Number,x,k)
+  A+x
+end
