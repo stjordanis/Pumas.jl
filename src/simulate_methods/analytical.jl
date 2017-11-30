@@ -28,6 +28,5 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
                      typeof(p),
                      typeof(prob),typeof(datai.events)}(
                      u_save,aux_save,tstops,p,prob,datai.events,true,0,:Success)
-  soli,_ = output_reduction(_soli,p,datai)
-  soli
+  output_reduction(_soli,p,datai)
 end
