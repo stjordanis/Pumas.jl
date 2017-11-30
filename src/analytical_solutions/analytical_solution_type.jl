@@ -1,6 +1,5 @@
-struct PKPDAnalyticalSolution{T,N,uType,AType,tType,pType,P,E} <: AbstractAnalyticalSolution{T,N}
+struct PKPDAnalyticalSolution{T,N,uType,tType,pType,P,E} <: AbstractAnalyticalSolution{T,N}
     u::uType
-    aux::AType
     t::tType
     p::pType
     prob::P
@@ -17,21 +16,25 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     else
         t0 = sol.t[i]
         u0 = sol.u[i]
-        return first(sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p,sol.aux[i]))
+        return sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)[idxs]
     end
 end
 
 function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs=nothing)
-    u = Vector{eltype(sol.u)}(length(ts))
+    if idxs != nothing
+        u = Vector{eltype(sol.u[1][idxs])}(length(ts))
+    else
+        u = Vector{eltype(sol.u)}(length(ts))
+    end
     for j in 1:length(ts)
         t = ts[j]
         i = searchsortedfirst(sol.t,t) - 1
         if i == 0
-            u[j] = sol.prob.u0
+            u[j] = sol.prob.u0[idxs]
         else
             t0 = sol.t[i]
             u0 = sol.u[i]
-            _u,_ = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p,sol.aux[i])
+            _u = sol.prob.f(t,t0,u0,sol.events[i].amt,sol.p)[idxs]
             u[j] = _u
         end
     end

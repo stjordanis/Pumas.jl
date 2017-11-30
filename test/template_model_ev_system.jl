@@ -38,7 +38,7 @@ end
 function get_analytical_residual(θ,data,obs,obs_times;
                        kwargs...)
     sol = get_a_sol(θ,data,obs,obs_times;kwargs...)
-    cps = sol(obs_times)./(θ[3]/1000)
+    cps = sol(obs_times;idxs=2)./(θ[3]/1000)
     resid = cps - obs
 end
 
@@ -83,7 +83,7 @@ resid  = get_residual(θ,data,obs,obs_times,
 @test norm(resid) < 1e-3
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-3
+@test norm(a_resid) < 1e-7
 
 ###############################
 # Test 2

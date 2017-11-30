@@ -11,7 +11,8 @@ end
 
 export ImmediateAbsorptionModel
 
-function one_compartment_f(t,t0,C0,dose,p,D0)
+function one_compartment_f(t,t0,u0,dose,p)
+  D0,C0 = u0
   Ka = p.Ka              # absorption rate
   Ke = p.CL / p.V        # elimination rate
   D0 += dose             # initial depot value
@@ -19,11 +20,11 @@ function one_compartment_f(t,t0,C0,dose,p,D0)
   Se = exp(-(t-t0)*Ke)
   D  = D0 * Sa           # next depot
   C =  Ka / (Ka - Ke) * D0 * (Se - Sa) + C0 * Se # next central
-  C,D
+  @SVector [D,C]
 end
 
 function OneCompartmentModel(tf)
-  AnalyticalProblem(one_compartment_f,0.0,0.0,(0.0,tf))
+  AnalyticalProblem(one_compartment_f,@SVector([0.0,0.0]),(0.0,tf))
 end
 
 export OneCompartmentModel
