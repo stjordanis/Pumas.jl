@@ -48,7 +48,7 @@ plot(summ,title="Summary plot",xlabel="time")
 =#
 
 function reduction(sol,p,datai)
-  sol(datai.obs_times;idxs=2)./p.V,false
+  sol(datai.obs_times;idxs=2)./p.V
 end
 pkpd = PKPDModel(prob,set_parameters,reduction)
 

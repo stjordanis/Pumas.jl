@@ -29,7 +29,7 @@ sol1 = simulate(pkpd,θ,η1,data[1])
 sol = simulate(pkpd,θ,ω,data)
 
 function reduction(sol,p,datai)
-  sol(datai.obs_times)./p.V,false
+  sol(datai.obs_times)./p.V
 end
 pkpd = PKPDModel(OneCompartmentModel(19.0),set_parameters,reduction)
 

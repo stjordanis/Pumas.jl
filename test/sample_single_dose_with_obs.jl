@@ -31,9 +31,8 @@ end
 
 # Call simulate
 prob = ODEProblem(depot_model,zeros(2),(0.0,72.0))
-
 function reduction(sol,p,datai)
-  sol(datai.obs_times;idxs=2)./p.V,false
+  sol(datai.obs_times;idxs=2)./p.V
 end
-
-sol = simulate(prob,set_parameters,θ,ω,data,reduction,abstol=1e-12,reltol=1e-12)
+pkpd = PKPDModel(prob,set_parameters,reduction)
+sol = simulate(pkpd,θ,ω,data,abstol=1e-12,reltol=1e-12)

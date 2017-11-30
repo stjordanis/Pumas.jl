@@ -9,7 +9,7 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
   true_f = DiffEqWrapper(_prob,p)
   prob = ODEProblem(true_f,_prob.u0,_prob.tspan,callback=cb)
   sol = solve(prob,alg;save_start=false,tstops=tstops,kwargs...)
-  soli = first(output_reduction(sol,sol.prob.f.params,datai))
+  output_reduction(sol,sol.prob.f.params,datai)
 end
 
 function ith_patient_cb(p,datai)

@@ -14,7 +14,7 @@ end
 ### High level simulate functions for persons
 
 function PKPDModel(prob,set_parameters=nothing)
-    reduction=(sol,p,datai) -> (sol,false)
+    reduction=(sol,p,datai) -> sol
     PKPDModel{typeof(prob),typeof(set_parameters),typeof(reduction)}(
                                                 prob,set_parameters,reduction)
 end
