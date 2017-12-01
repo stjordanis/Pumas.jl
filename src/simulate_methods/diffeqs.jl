@@ -16,57 +16,43 @@ end
 
 function ith_patient_cb(p,datai)
 
-    if haskey(p,:bioav)
-      bioav = p.bioav
-    else
-      bioav = 1
-    end
+  if haskey(p,:bioav)
+    bioav = p.bioav
+  else
+    bioav = 1
+  end
 
-    if !haskey(p,:lags)
-      target_time = datai.event_times
-      change_duration_by_bioav!(target_time,bioav)
-      events = datai.events
-      if bioav != 1
-        order = sortperm(target_time)
-        permute!(target_time,order)
-        permute!(events,order)
-      end
-    else
-      target_time,events = remove_lags(datai.events,datai.event_times,p.lags,bioav)
-    end
+  target_time,events,tstop_times = adjust_event_timings(datai,p,bioav)
 
-    tstop_times = sorted_approx_unique(target_time)
-
-    # searchsorted is empty iff t ∉ target_time
-    # this is a fast way since target_time is sorted
-    condition = function (t,u,integrator)
-      !isempty(searchsorted(tstop_times,t))
-    end
-    counter = 1
-    function affect!(integrator)
-      while counter <= length(target_time) && target_time[counter].time <= integrator.t
-        cur_ev = events[counter]
-        @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
-          if cur_ev.rate == 0
-            if typeof(bioav) <: Number
-              integrator.u[cur_ev.cmt] = bioav*cur_ev.amt
-            else
-              integrator.u[cur_ev.cmt] = bioav[cur_ev.cmt]*cur_ev.amt
-            end
+  # searchsorted is empty iff t ∉ target_time
+  # this is a fast way since target_time is sorted
+  condition = function (t,u,integrator)
+    !isempty(searchsorted(tstop_times,t))
+  end
+  counter = 1
+  function affect!(integrator)
+    while counter <= length(target_time) && target_time[counter].time <= integrator.t
+      cur_ev = events[counter]
+      @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
+        if cur_ev.rate == 0
+          if typeof(bioav) <: Number
+            integrator.u[cur_ev.cmt] = bioav*cur_ev.amt
           else
-            integrator.f.rates_on[] += cur_ev.evid > 0
-            integrator.f.rates[cur_ev.cmt] += cur_ev.rate
+            integrator.u[cur_ev.cmt] = bioav[cur_ev.cmt]*cur_ev.amt
           end
-        elseif cur_ev.ss == 1
-          #@show "here"
+        else
+          integrator.f.rates_on[] += cur_ev.evid > 0
+          integrator.f.rates[cur_ev.cmt] += cur_ev.rate
         end
-        counter += 1
+      elseif cur_ev.ss == 1
+        #@show "here"
       end
+      counter += 1
     end
+  end
 
-    tstop_times,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!)
+  tstop_times,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!)
 end
-
 
 function patient_cb_initialize!(cb,t,u,integrator)
   if cb.condition(t,u,integrator)
