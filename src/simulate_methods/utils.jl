@@ -15,12 +15,12 @@ function adjust_event_timings(datai,p,bioav)
   target_time,events,tstop_times
 end
 
-@generated function set_value(A::SVector{L,T},k,x) where {L,T}
-    Expr(:call, :(SVector{L,T}), (:(ifelse($i==k, x, A[$i])) for i=1:L)...)
+function set_value(A :: SVector{L,T}, x,k) where {T,L}
+    SVector(ntuple(i->ifelse(i == k, x, A[i]), Val{L}))
 end
 
-@generated function increment_value(A::SVector{L,T},x,k) where {L,T}
-  Expr(:call, :(SVector{L,T}), (:(ifelse($i==k, A[$i]+x, A[$i])) for i=1:L)...)
+function increment_value(A :: SVector{L,T}, x,k) where {T,L}
+    SVector(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val{L}))
 end
 
 function increment_value(A::Number,x,k)
