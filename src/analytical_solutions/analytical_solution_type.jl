@@ -15,7 +15,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     if i == 0
         return idxs==nothing ? sol.prob.u0 : sol.prob.u0[idxs]
     else
-        t0 = sol.t[i].time
+        t0 = sol.t[i]
         u0 = sol.u[i]
         dose = sol.doses[i]
         rate = sol.rates[i]
@@ -37,7 +37,7 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
             res = sol.prob.u0
             u[j] = idxs==nothing ? res : res[idxs]
         else
-            t0 = sol.t[i].time
+            t0 = sol.t[i]
             u0 = sol.u[i]
             dose = sol.doses[i]
             rate = sol.rates[i]

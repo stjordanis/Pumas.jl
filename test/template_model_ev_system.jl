@@ -111,8 +111,6 @@ data,obs,obs_times = get_nonem_data(2)
     30.0 #V
     ]
 
-asol = get_a_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 
 @test norm(resid) < 1e-6

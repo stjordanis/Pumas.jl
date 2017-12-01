@@ -6,26 +6,27 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   f = prob.f
   tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
-  times = datai.event_times
+  times = [t.time for t in datai.event_times]
   p = set_parameters(θ,ηi,datai.z)
   u = Vector{typeof(u0)}(length(times))
   doses = Vector{typeof(u0)}(length(times))
   rates = Vector{typeof(u0)}(length(times))
 
   # Iteration 1
-  t0 = times[1].time
+  t0 = times[1]
   cur_ev = datai.events[1]
   u[1] = u0
-  dose,rate = create_dose_rate_vector(cur_ev,u0,zeros(u0))
+  dose,rate = create_dose_rate_vector(cur_ev,u0,zero(u0))
   doses[1] = dose
   rates[1] = rate
 
   # Now loop through the rest
   for i in 2:length(times)
-    t = times[i].time
+    t = times[i]
     cur_ev = datai.events[i]
-    dose,rate = create_dose_rate_vector(cur_ev,u0,rate)
+    dose,_rate = create_dose_rate_vector(cur_ev,u0,rate)
     u0 = f(t,t0,u0,dose,p,rate)
+    rate = _rate
     u[i] = u0
     doses[i] = dose
     rates[i] = rate
