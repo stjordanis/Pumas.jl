@@ -1,9 +1,10 @@
-struct PKPDAnalyticalSolution{T,N,uType,tType,pType,P,E} <: AbstractAnalyticalSolution{T,N}
+struct PKPDAnalyticalSolution{T,N,uType,tType,dType,rType,pType,P} <: AbstractAnalyticalSolution{T,N}
     u::uType
     t::tType
+    doses::dType
+    rates::rType
     p::pType
     prob::P
-    events::E
     dense::Bool
     tslocation::Int
     retcode::Symbol
@@ -14,10 +15,11 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     if i == 0
         return idxs==nothing ? sol.prob.u0 : sol.prob.u0[idxs]
     else
-        t0 = sol.t[i]
+        t0 = sol.t[i].time
         u0 = sol.u[i]
-        dose = create_dose_vector(sol.events[i],u0)
-        res = sol.prob.f(t,t0,u0,dose,sol.p)
+        dose = sol.doses[i]
+        rate = sol.rates[i]
+        res = sol.prob.f(t,t0,u0,dose,sol.p,rate)
         return idxs==nothing ? res : res[idxs]
     end
 end
@@ -35,10 +37,11 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
             res = sol.prob.u0
             u[j] = idxs==nothing ? res : res[idxs]
         else
-            t0 = sol.t[i]
+            t0 = sol.t[i].time
             u0 = sol.u[i]
-            dose = create_dose_vector(sol.events[i],u0)
-            res = sol.prob.f(t,t0,u0,dose,sol.p)
+            dose = sol.doses[i]
+            rate = sol.rates[i]
+            res = sol.prob.f(t,t0,u0,dose,sol.p,rate)
             u[j] = idxs==nothing ? res : res[idxs]
         end
     end

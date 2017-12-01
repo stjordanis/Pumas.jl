@@ -4,35 +4,53 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   VarType = promote_type(eltype(ηi),eltype(θ))
   u0 = VarType.(prob.u0)
   f = prob.f
-  t0 = datai.event_times[1].time
   tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
-  tstops = [tspan[1];datai.event_times] # Doesn't make sure it stops at tspan[end]!
+  times = datai.event_times
   p = set_parameters(θ,ηi,datai.z)
-  u_save = Vector{typeof(u0)}(length(tstops))
-  u_save[1] = u0
-  for i in 2:length(tstops)
-    t = tstops[i]
-    cur_ev = datai.events[i-1]
-    dose = create_dose_vector(cur_ev,u0)
-    u0 = f(t,t0,u0,dose,p)
-    u_save[i] = u0
+  u = Vector{typeof(u0)}(length(times))
+  doses = Vector{typeof(u0)}(length(times))
+  rates = Vector{typeof(u0)}(length(times))
+
+  # Iteration 1
+  t0 = times[1].time
+  cur_ev = datai.events[1]
+  u[1] = u0
+  dose,rate = create_dose_rate_vector(cur_ev,u0,zeros(u0))
+  doses[1] = dose
+  rates[1] = rate
+
+  # Now loop through the rest
+  for i in 2:length(times)
+    t = times[i].time
+    cur_ev = datai.events[i]
+    dose,rate = create_dose_rate_vector(cur_ev,u0,rate)
+    u0 = f(t,t0,u0,dose,p,rate)
+    u[i] = u0
+    doses[i] = dose
+    rates[i] = rate
     t0 = t
   end
-  _soli = PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u_save),
-                     typeof(tstops),
+  _soli = PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u),
+                     typeof(times),
+                     typeof(doses),typeof(rates),
                      typeof(p),
-                     typeof(prob),typeof(datai.events)}(
-                     u_save,tstops,p,prob,datai.events,true,0,:Success)
+                     typeof(prob)}(
+                     u,times,doses,rates,p,prob,true,0,:Success)
   output_reduction(_soli,p,datai)
 end
 
-function create_dose_vector(cur_ev,u0)
-  increment_value(zero(u0),cur_ev.amt,cur_ev.cmt)
+function create_dose_rate_vector(cur_ev,u0,rate)
+  if cur_ev.rate == 0
+    return increment_value(zero(u0),cur_ev.amt,cur_ev.cmt),rate
+  else
+    return zero(u0),increment_value(rate,cur_ev.rate,cur_ev.cmt)
+  end
 end
 
 function increment_value(A::SVector{L,T},x,k) where {L,T}
-    [ifelse(i == k, A[i]+x, A[i]) for i in 1:L]
+    _A = [i == k ? x : zero(x) for i in 1:L]
+    A+_A
 end
 
 function increment_value(A::Number,x,k)
