@@ -23,19 +23,6 @@ function one_compartment_f(t,t0,amounts,doses,p,rates)
   @SVector [Depot,Central]
 end
 
-#=
-function one_compartment_f(t,t0,u0,dose,p,rate)
-  D0,C0 = u0 + dose
-  Ka = p.Ka              # absorption rate
-  Ke = p.CL / p.V        # elimination rate
-  Sa = exp(-(t-t0)*Ka)
-  Se = exp(-(t-t0)*Ke)
-  D  = D0 * Sa           # next depot
-  C =  Ka / (Ka - Ke) * D0 * (Se - Sa) + C0 * Se # next central
-  @SVector [D,C]
-end
-=#
-
 function OneCompartmentModel(tf)
   AnalyticalProblem(one_compartment_f,@SVector([0.0,0.0]),(0.0,tf))
 end
