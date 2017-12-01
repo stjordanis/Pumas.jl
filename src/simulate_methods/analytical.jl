@@ -24,7 +24,7 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   t0 = times[1]
   cur_ev = events[1]
   u[1] = u0
-  dose,rate = create_dose_rate_vector(cur_ev,u0,zero(u0))
+  dose,rate = create_dose_rate_vector(cur_ev,u0,zero(u0),bioav)
   doses[1] = dose
   rates[1] = rate
 
@@ -32,7 +32,7 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   for i in 2:length(times)
     t = times[i]
     cur_ev = events[i]
-    dose,_rate = create_dose_rate_vector(cur_ev,u0,rate)
+    dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
     u0 = f(t,t0,u0,dose,p,rate)
     rate = _rate
     u[i] = u0
@@ -49,9 +49,13 @@ function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
   output_reduction(_soli,p,datai)
 end
 
-function create_dose_rate_vector(cur_ev,u0,rate)
+function create_dose_rate_vector(cur_ev,u0,rate,bioav)
   if cur_ev.rate == 0
-    return increment_value(zero(u0),cur_ev.amt,cur_ev.cmt),rate
+    if typeof(bioav) <: Number
+      return increment_value(zero(u0),bioav*cur_ev.amt,cur_ev.cmt),rate
+    else
+      return increment_value(zero(u0),bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt),rate
+    end
   else
     return zero(u0),increment_value(rate,cur_ev.rate,cur_ev.cmt)
   end
