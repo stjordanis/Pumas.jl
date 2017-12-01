@@ -17,9 +17,9 @@ function one_compartment_f(t,t0,amounts,doses,p,rates)
   amt = amounts + doses             # initial values for cmt's + new doses
   Sa = exp(-(t-t0)*Ka)
   Se = exp(-(t-t0)*Ke)
-  Depot  = (amt[1] * Sa + rates[1])/(Ka*(1-Sa))          # next depot (cmt==1)
-  Central =  Ka / (Ka - Ke) * (amt[1] * (Se - Sa) + rates[1]*((1-Se)/Ke - (1-Sa)/Ka))
-            + amt[2] * Se + rates[2]/Ke*(1-Se) # next central (cmt==2)
+  Depot  = (amt[1] * Sa) + rates[1]/(Ka*(1-Sa))          # next depot (cmt==1)
+  Central =  Ka / (Ka - Ke) * (amt[1] * (Se - Sa) + rates[1]*((1-Se)/Ke - (1-Sa)/Ka)) +
+            amt[2] * Se + rates[2]/Ke*(1-Se) # next central (cmt==2)
   @SVector [Depot,Central]
 end
 
