@@ -36,9 +36,9 @@ function ith_patient_cb(p,datai)
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
         if cur_ev.rate == 0
           if typeof(bioav) <: Number
-            integrator.u[cur_ev.cmt] = bioav*cur_ev.amt
+            integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
           else
-            integrator.u[cur_ev.cmt] = bioav[cur_ev.cmt]*cur_ev.amt
+            integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
           end
         else
           integrator.f.rates_on[] += cur_ev.evid > 0
