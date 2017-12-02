@@ -243,8 +243,6 @@ data,obs,obs_times = get_nonem_data(5)
     1.0,  #CL
     30.0, #V
     0.412,#BIOAV
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     1     #ss
     ]
@@ -297,9 +295,6 @@ data,obs,obs_times = get_nonem_data(6)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     0.812,#BIOAV
     1     #ss
@@ -309,8 +304,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -334,7 +328,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 #new
 # BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
 # where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
-# only 81.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# 100 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
 # F_<comp> is one of the most commonly estimated parameters in NLME
 
 #ss=1:  indicates that the dose is a steady state dose, and that the compartment amounts are to be reset
@@ -354,9 +348,6 @@ data,obs,obs_times = get_nonem_data(7)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     1,    #BIOAV
     1     #ss
@@ -366,8 +357,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -394,7 +384,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 
 # BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
 # where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
-# only 81.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# 100 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
 # F_<comp> is one of the most commonly estimated parameters in NLME
 
 #ss=1:  indicates that the dose is a steady state dose, and that the compartment amounts are to be reset
@@ -402,7 +392,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 #dose event records are "zeroed out," and infusions in progress or pending additional doses are cancelled
 # addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
 
-#new
+
 # ii=6: each additional dose is given with a frequency of ii=6 hours
 
 # evid = 1: indicates a dosing event
@@ -414,9 +404,6 @@ data,obs,obs_times = get_nonem_data(8)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     1,    #BIOAV
     1     #ss
@@ -426,8 +413,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -454,7 +440,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 #new
 # BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
 # where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
-# only 81.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# only 41.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
 # F_<comp> is one of the most commonly estimated parameters in NLME
 
 #ss=1:  indicates that the dose is a steady state dose, and that the compartment amounts are to be reset
@@ -474,9 +460,6 @@ data,obs,obs_times = get_nonem_data(9)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     0.412,#BIOAV
     1     #ss
@@ -486,7 +469,6 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
         bioav = θ[5])
 end
 
@@ -512,7 +494,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 #new
 # BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
 # where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
-# only 81.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# 100 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
 # F_<comp> is one of the most commonly estimated parameters in NLME
 
 #ss=1:  indicates that the dose is a steady state dose, and that the compartment amounts are to be reset
@@ -530,9 +512,6 @@ data,obs,obs_times = get_nonem_data(10)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
     1,    #BIOAV
     1     #ss
@@ -542,8 +521,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -559,10 +537,10 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 
 # ev11 - gut dose at steady state with lower bioavailability
 # - use ev11.csv in PKPDSimulator/examples/event_data/
-# amt=100: 100 mg infusion into central compartment
+# amt=100: 100 mg bolus into depot compartment
 
 #new
-# cmt=1: in the system of diffeq's, central compartment is the second compartment
+# cmt=1: in the system of diffeq's, gut compartment is the first compartment
 
 #new
 # BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
@@ -576,7 +554,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
 
 #new
-# ii=12: each additional dose is given with a frequency of ii=10 hours
+# ii=12: each additional dose is given with a frequency of ii=12 hours
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
@@ -587,11 +565,7 @@ data,obs,obs_times = get_nonem_data(11)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0,    #LAGT
-    0,    #MODE
-    2,    #DUR2
     10,   #RAT2
-    0.412,#BIOAV
     1     #ss
     ]
 
@@ -599,8 +573,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -615,8 +588,8 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 
 # ev12 - gut dose at with lower bioavailability and a 5 hour lag time
 # - use ev12.csv in PKPDSimulator/examples/event_data/
-# amt=100: 100 mg infusion into central compartment
-# cmt=1: in the system of diffeq's, central compartment is the second compartment
+# amt=100: 100 mg bolus into gut compartment
+# cmt=1: in the system of diffeq's, gut compartment is the first compartment
 # BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
 # where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
 # only 41.2 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
@@ -628,7 +601,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # are populated into the central compartment. Requires developing a new internal variable called
 # ALAG_<comp name> or ALAG_<comp_num> that takes a value that delays the entry of dose into that compartment
 
-# ii=12: each additional dose is given with a frequency of ii=10 hours
+# ii=12: each additional dose is given with a frequency of ii=12 hours
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
@@ -638,13 +611,17 @@ data,obs,obs_times = get_nonem_data(12)
 θ = [
     1.5,  #Ka
     1.0,  #CL
-    30.0  #V
+    30.0,  #V
+    5.0,  #LAGT
+    0.412 #BIOAV
     ]
 
 function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]))
+        V  = θ[3]*exp(η[2])),
+        lag = θ[4],
+        bioav = θ[5]
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
