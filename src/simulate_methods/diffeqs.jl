@@ -10,7 +10,7 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
   true_f = DiffEqWrapper(_prob,p)
   # Match the type of ηi for duality in estimator
   prob = ODEProblem(true_f,VarType.(_prob.u0),VarType.(_prob.tspan),callback=cb)
-  sol = solve(prob,alg;save_start=datai.events[1].rate != 0,tstops=tstops,kwargs...)
+  sol = solve(prob,alg;save_start=(datai.events[1].rate != 0 || datai.events[1].ss == 1),tstops=tstops,kwargs...)
   output_reduction(sol,sol.prob.f.params,datai)
 end
 
