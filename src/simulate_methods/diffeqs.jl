@@ -78,25 +78,29 @@ function ith_patient_cb(p,datai,prob)
           steady_state_cache .= integrator.u
           steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
           add_tstop!(integrator,steady_state_end[])
+          cur_ev.rate != 0 && add_tstop!(integrator,steady_state_rate_end[])
         elseif integrator.t == steady_state_end[]
-          # TODO: Make non-allocating
           integrator.t = integrator.sol.t[end]
-          if ss_counter[] == ss_max_iters || integrator.opts.internalnorm(integrator.u - steady_state_cache) < ss_tol
+          steady_state_cache .-= integrator.u
+          if ss_counter[] == ss_max_iters || integrator.opts.internalnorm(steady_state_cache) < ss_tol
             # Steady state complete
             steady_state_mode[] = false
             # TODO: Make compatible with save_everystep = false
             integrator.f.rates .= 0
             integrator.opts.save_everystep = true
             steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
+            cur_ev.rate !=0 && add_tstop!(integrator,steady_state_rate_end[])
             counter += 1
             post_steady_state[] = true
           else
             steady_state_cache .= integrator.u
             ss_counter[] += 1
             steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
+            steady_state_rate_end[] < steady_state_end[] && add_tstop!(integrator,steady_state_rate_end[])
             add_tstop!(integrator,steady_state_end[])
           end
         elseif integrator.t == steady_state_rate_end[]
+          integrator.f.rates_on[] = false
           integrator.f.rates .= 0
         end
         break
@@ -115,8 +119,7 @@ end
 function steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
   if cur_ev.rate != 0
     integrator.f.rates_on[] = true
-    integrator.f.rates[cur_ev.cmt] += cur_ev.rate
-    add_tstop!(integrator,steady_state_rate_end[])
+    integrator.f.rates[cur_ev.cmt] = cur_ev.rate
   else
     if typeof(bioav) <: Number
       integrator.u[cur_ev.cmt] += bioav*cur_ev.amt

@@ -255,9 +255,22 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
+function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
+    rate_on_duration = duration*bioav
+    rate_off_duration = ii-rate_on_duration
+    ee = exp(deg*rate_on_duration)
+    u_rate_off = inv(ee)*(-rate + ee*rate + deg*u0)/deg
+    u = exp(-deg*rate_off_duration)*u_rate_off
+    u
+end
 
-sol(obs_times;idxs=2)./(θ[3]/1000)
+u0 = 0.0
+for i in 1:200
+    u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],12)
+end
+
+sol  = get_sol(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
+@test sol[3][2] - u0 < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
 @test norm(resid) < 1e-2
@@ -310,6 +323,12 @@ function set_parameters(θ,η,z)
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
         bioav = θ[4])
+end
+
+sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+u0 = 0.0
+for i in 1:200
+    u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
