@@ -670,9 +670,9 @@ data,obs,obs_times = get_nonem_data(12)
 function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2])),
-        lag = θ[4],
-        bioav = θ[5]
+        V  = θ[3]*exp(η[2]))
+        #lag = θ[4],
+        #bioav = θ[5]
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)

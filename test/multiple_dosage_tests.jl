@@ -26,7 +26,7 @@ pkpd = PKPDModel(prob,set_parameters)
 ω = zeros(2)
 
 # Call simulate
-
+sol1 = simulate(pkpd,θ,ω,data[2],abstol=1e-14,reltol=1e-14) # evid2
 sol1 = simulate(pkpd,θ,ω,data[1],abstol=1e-14,reltol=1e-14)
 sol = simulate(pkpd,θ,ω,data,abstol=1e-14,reltol=1e-14)
 @test maximum(sol[1](0:0.1:300) - sol1(0:0.1:300)) < 1e-10

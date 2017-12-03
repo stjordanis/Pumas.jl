@@ -1,4 +1,4 @@
-function simulate(prob::AnalyticalProblem,set_parameters,θ,ηi,datai::Person,
+function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> sol;
                   kwargs...)
   VarType = promote_type(eltype(ηi),eltype(θ))

@@ -10,7 +10,8 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
   true_f = DiffEqWrapper(_prob,p)
   # Match the type of ηi for duality in estimator
   prob = ODEProblem(true_f,VarType.(_prob.u0),VarType.(_prob.tspan),callback=cb)
-  sol = solve(prob,alg;save_start=(datai.events[1].rate != 0 || datai.events[1].ss == 1),tstops=tstops,kwargs...)
+  save_start = true#datai.events[1].ss == 1
+  sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
   output_reduction(sol,sol.prob.f.params,datai)
 end
 
@@ -104,9 +105,13 @@ function ith_patient_cb(p,datai,prob)
           integrator.f.rates .= 0
         end
         break
+      elseif cur_ev.evid == 2
+        #ignore for now
+        counter += 1
       end
     end
     if post_steady_state[] && integrator.t == steady_state_rate_end[]
+      @show integrator.t,integrator.u,integrator.f.rates
       ss_event = events[counter-1]
       integrator.f.rates[ss_event.cmt] -= ss_event.rate
       post_steady_state[] = false

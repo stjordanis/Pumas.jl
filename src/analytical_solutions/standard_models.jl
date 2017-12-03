@@ -6,7 +6,7 @@ function immediate_absorption_f(t,t0,C0,dose,p,rate)
 end
 
 function ImmediateAbsorptionModel(tf)
-  AnalyticalProblem(immediate_absorption_f,0.0,(0.0,tf))
+  PKPDAnalyticalProblem{false}(immediate_absorption_f,0.0,(0.0,tf))
 end
 
 export ImmediateAbsorptionModel
@@ -24,7 +24,7 @@ function one_compartment_f(t,t0,amounts,doses,p,rates)
 end
 
 function OneCompartmentModel(tf)
-  AnalyticalProblem(one_compartment_f,@SVector([0.0,0.0]),(0.0,tf))
+  PKPDAnalyticalProblem{false}(one_compartment_f,@SVector([0.0,0.0]),(0.0,tf))
 end
 
 export OneCompartmentModel

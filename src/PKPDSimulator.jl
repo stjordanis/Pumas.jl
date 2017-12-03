@@ -9,6 +9,7 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples,
 
 include("data_parsing/event_types.jl")
 include("data_parsing/data_read.jl")
+include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
 include("analytical_solutions/standard_models.jl")
 include("simulate_methods/utils.jl")
