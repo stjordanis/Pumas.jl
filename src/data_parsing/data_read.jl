@@ -136,7 +136,8 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
                 for j = 0:addl  # addl==0 means just once
                     push!(event_times, TimeCompartment(t,cmt,0.0))
                     push!(events,      Event(amt,evid,cmt,rate,ss,ii))
-                    if rate != 0 && ss == 0
+                    if rate != 0 && ss == 0 && amt != 0
+                        # amt == 0 implies never turns off, so no off event
                         duration = amt/rate
                         push!(event_times, TimeCompartment(t + duration,cmt,duration))
                         push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
