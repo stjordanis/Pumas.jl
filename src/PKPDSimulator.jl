@@ -18,7 +18,7 @@ include("simulate_methods/error_models.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
 
-export Person, Population, process_data
+export Person, Population, process_data, build_dataset
 
 export simulate, ith_patient_cb
 export PKPDModel, FullModel, ErrorModel, Independent

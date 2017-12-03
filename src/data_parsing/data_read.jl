@@ -74,10 +74,44 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
     end
     close(io)
 
-    m, n = size(str_mat)
-
     @assert length(names) == size(str_mat,2)
     cols = Dict(name => str_mat[:,i] for (i,name) in enumerate(names))
+    build_dataset(cols,covariates,dvs)
+end
+
+function build_dataset(;kwargs...)
+    if typeof(kwargs[1][2]) <: Number
+        _kwargs = [(kw[1],[string(kw[2])]) for kw in kwargs]
+    else
+        _kwargs = kwargs
+    end
+    cols = Dict(_kwargs)
+    m = length(_kwargs[1][2])
+    for k in keys(cols)
+        @assert length(cols[k]) == m
+    end
+
+    if !haskey(cols,:id)
+        cols[:id] = ["1" for i in 1:m]
+    end
+    if !haskey(cols,:time)
+        cols[:time] = ["0.0" for i in 1:m]
+    end
+    if !haskey(cols,:evid)
+        cols[:evid] = ["1" for i in 1:m]
+    end
+    data = build_dataset(cols)
+    if length(data.patients)==1
+        return data[1]
+    else
+        return data
+    end
+end
+
+function build_dataset(cols,covariates=(),dvs=())
+
+    names = collect(keys(cols))
+    m = length(cols[:id])
 
     if covariates isa Vector{Int}
         covariates = names[covariates]
@@ -87,25 +121,24 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
     end
 
     ## Common fields
-    ids   = parse.(Int, cols[:id])
+    eltype(cols[:id]) <: AbstractString ? ids = parse.(Int, cols[:id]) : ids = cols[:id]
+    eltype(cols[:time]) <: AbstractString ? times = parse.(Float64, cols[:time]) : times = cols[:time]
+    eltype(cols[:evid]) <: AbstractString ? evids = parse.(Int, cols[:evid]) : evids = cols[:evid]
+
     uids  = unique(ids)
-
-    times = parse.(Float64, cols[:time])
-    evids = parse.(Int,  cols[:evid])
-
-    Tdv = NamedTuples.create_namedtuple_type(dvs)
-    Tcv = NamedTuples.create_namedtuple_type(covariates)
+    !isempty(dvs) && (Tdv = NamedTuples.create_namedtuple_type(dvs))
+    !isempty(covariates) && (Tcv = NamedTuples.create_namedtuple_type(covariates))
 
     subjects = map(uids) do id
         ## Observations
         idx_obs = filter(i -> ids[i] == id && evids[i] == 0, 1:m)
         obs_times = times[idx_obs]
-        obs = Tdv.([misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
+        isempty(dvs) ? obs = nothing : obs = Tdv.([misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
 
         ## Covariates
         #  TODO: allow non-constant covariates
         i_z = findfirst(x -> x ==id, ids)
-        z = Tcv([parse(Float64, cols[cv][i_z]) for cv in covariates]...)
+        isempty(covariates) ? z = nothing : z = Tcv([parse(Float64, cols[cv][i_z]) for cv in covariates]...)
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)
