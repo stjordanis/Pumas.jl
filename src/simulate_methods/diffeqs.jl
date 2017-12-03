@@ -59,7 +59,7 @@ function ith_patient_cb(p,datai,prob)
           integrator.f.rates[cur_ev.cmt] += cur_ev.rate
         end
         counter += 1
-      elseif cur_ev.ss == 1
+      elseif cur_ev.ss > 0
         if !steady_state_mode[]
           savevalues!(integrator)
           # This is triggered at the start of a steady-state event
@@ -89,6 +89,7 @@ function ith_patient_cb(p,datai,prob)
             # TODO: Make compatible with save_everystep = false
             integrator.f.rates .= 0
             integrator.opts.save_everystep = true
+            cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
             steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
             cur_ev.rate !=0 && add_tstop!(integrator,steady_state_rate_end[])
             counter += 1
