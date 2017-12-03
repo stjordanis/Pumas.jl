@@ -625,7 +625,7 @@ for i in 1:200
 end
 u0[1] += θ[4]*100.0
 
-@test norm(sol[2] - u0) < 1e-9
+@test norm(sol[3] - u0) < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-2
