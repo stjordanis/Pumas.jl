@@ -325,11 +325,19 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
+function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
+    rate_on_duration = ii
+    ee = exp(deg*rate_on_duration)
+    u_rate_off = inv(ee)*(-rate + ee*rate + deg*u0)/deg
+end
+
 sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 u0 = 0.0
 for i in 1:200
     u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
 end
+
+@test sol[3][2] - u0 < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
@@ -440,6 +448,8 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
+sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
 
@@ -497,7 +507,7 @@ function set_parameters(θ,η,z)
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+@test norm(resid) < 1e-2
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-6
@@ -548,6 +558,8 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
+sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
 
@@ -589,6 +601,7 @@ data,obs,obs_times = get_nonem_data(11)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
+    0.412, #BIOAV
     10,   #RAT2
     1     #ss
     ]
@@ -599,6 +612,18 @@ function set_parameters(θ,η,z)
         V  = θ[3]*exp(η[2]),
         bioav = θ[4])
 end
+
+sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+
+analytical_f = OneCompartmentModel(0.0).f
+p = @NT(Ka = θ[1],
+        CL = θ[2],
+        V  = θ[3])
+u0 = zeros(2)
+for i in 1:200
+    u0 = convert(Array,analytical_f(12,0.0,u0,θ[4]*[100.0,0.0],p,zeros(2)))
+end
+u0[1] += θ[4]*100.0
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
