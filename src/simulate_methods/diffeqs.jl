@@ -140,7 +140,6 @@ function ith_patient_cb(p,datai,prob)
       ss_event.amt != 0 && (integrator.f.rates[ss_event.cmt] -= ss_event.rate)
       # TODO: Optimize by setting integrator.f.rates_on[] = false
     end
-    flush(STDOUT)
   end
   tstop_times,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!,
                                save_positions=(false,false))
