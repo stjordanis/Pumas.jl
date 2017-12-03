@@ -601,7 +601,7 @@ data,obs,obs_times = get_nonem_data(11)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    0.412, #BIOAV
+    1.0, #BIOAV
     10,   #RAT2
     1     #ss
     ]
@@ -624,6 +624,8 @@ for i in 1:200
     u0 = convert(Array,analytical_f(12,0.0,u0,θ[4]*[100.0,0.0],p,zeros(2)))
 end
 u0[1] += θ[4]*100.0
+
+@test norm(sol[2] - u0) < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
