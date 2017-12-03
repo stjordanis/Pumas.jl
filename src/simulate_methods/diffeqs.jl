@@ -23,22 +23,29 @@ function ith_patient_cb(p,datai,prob)
   if haskey(p,:bioav)
     bioav = p.bioav
   else
-    bioav = 1
+    bioav = one(eltype(prob.u0))
   end
 
   target_time,events,tstop_times = adjust_event_timings(datai,p,bioav)
 
   counter = 1
   steady_state_mode = Ref(false)
+  steady_state_time = Ref(-one(eltype(tstop_times)))
   steady_state_end = Ref(-one(eltype(tstop_times)))
   steady_state_rate_end = Ref(-one(eltype(tstop_times)))
   steady_state_cache = similar(prob.u0)
+  steady_state_ii = Ref(-one(eltype(tstop_times)))
+  steady_state_overlap_duration = Ref(-one(eltype(tstop_times)))
   post_steady_state = Ref(false)
   ss_counter = Ref(0)
+  ss_event_counter = Ref(0)
+  ss_rate_multiplier = Ref(0)
+  ss_dropoff_counter = Ref(0)
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
-  condition = function (t,u,integrator)
+  function condition(t,u,integrator)
+    (post_steady_state[] && t == (steady_state_time[] + steady_state_overlap_duration[] + ss_dropoff_counter[]*steady_state_ii[])) ||
     t == steady_state_rate_end[] || (steady_state_mode[] ? t == steady_state_end[] : !isempty(searchsorted(tstop_times,t)))
   end
 
@@ -68,42 +75,55 @@ function ith_patient_cb(p,datai,prob)
           ss_counter[] = 0
           integrator.opts.save_everystep = false
           post_steady_state[] = false
+          steady_state_time[] = integrator.t
           # TODO: Handle saveat in this range
           # TODO: Make compatible with save_everystep = false
           if typeof(bioav) <: Number
-            steady_state_rate_end[] = integrator.t + (bioav*cur_ev.amt)/cur_ev.rate
+            duration = (bioav*cur_ev.amt)/cur_ev.rate
           else
-            steady_state_rate_end[] = integrator.t + (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
+            duration = (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
           end
+          steady_state_overlap_duration[] = mod(duration,cur_ev.ii)
+          steady_state_ii[] = cur_ev.ii
           steady_state_end[] = integrator.t + cur_ev.ii
+          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (duration ÷ cur_ev.ii))
+          steady_state_rate_end[] = integrator.t + steady_state_overlap_duration[]
           steady_state_cache .= integrator.u
-          steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
+          steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
           add_tstop!(integrator,steady_state_end[])
           cur_ev.rate != 0 && add_tstop!(integrator,steady_state_rate_end[])
         elseif integrator.t == steady_state_end[]
-          integrator.t = integrator.sol.t[end]
+          integrator.t = steady_state_time[]
           steady_state_cache .-= integrator.u
           if ss_counter[] == ss_max_iters || integrator.opts.internalnorm(steady_state_cache) < ss_tol
             # Steady state complete
             steady_state_mode[] = false
             # TODO: Make compatible with save_everystep = false
+            post_steady_state[] = true
             integrator.f.rates .= 0
             integrator.opts.save_everystep = true
             cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
-            steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
-            cur_ev.rate !=0 && add_tstop!(integrator,steady_state_rate_end[])
+            steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
+            if cur_ev.rate != 0
+              for k in 0:ss_rate_multiplier[]-1
+                println(integrator.t + steady_state_overlap_duration[] + k*steady_state_ii[])
+                add_tstop!(integrator,integrator.t + steady_state_overlap_duration[] + k*steady_state_ii[])
+              end
+              ss_dropoff_counter[] = 0
+            end
+            ss_event_counter[] = counter
             counter += 1
             post_steady_state[] = true
           else
             steady_state_cache .= integrator.u
             ss_counter[] += 1
-            steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
+            steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
             steady_state_rate_end[] < steady_state_end[] && add_tstop!(integrator,steady_state_rate_end[])
-            add_tstop!(integrator,steady_state_end[])
+            #add_tstop!(integrator,steady_state_end[])
           end
         elseif integrator.t == steady_state_rate_end[]
-          integrator.f.rates_on[] = false
-          integrator.f.rates .= 0
+          integrator.f.rates[cur_ev.cmt] -= cur_ev.rate
+          integrator.f.rates_on[] = (ss_rate_multiplier[] > 1)
         end
         break
       elseif cur_ev.evid == 2
@@ -111,20 +131,24 @@ function ith_patient_cb(p,datai,prob)
         counter += 1
       end
     end
-    if post_steady_state[] && integrator.t == steady_state_rate_end[]
-      ss_event = events[counter-1]
+    if post_steady_state[] && integrator.t == steady_state_time[] + steady_state_overlap_duration[] + ss_dropoff_counter[]*steady_state_ii[]
+      ss_dropoff_counter[] += 1
+      ss_dropoff_counter[] == ss_rate_multiplier[]+1 && (post_steady_state[] = false)
+      ss_event = events[ss_event_counter[]]
       integrator.f.rates[ss_event.cmt] -= ss_event.rate
-      post_steady_state[] = false
+      println(steady_state_time[] + steady_state_overlap_duration[] + ss_dropoff_counter[]*steady_state_ii[])
+      # TODO: Optimize by setting integrator.f.rates_on[] = false
     end
+    flush(STDOUT)
   end
   tstop_times,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!,
                                save_positions=(false,false))
 end
 
-function steady_state_dose(integrator,cur_ev,bioav,steady_state_rate_end)
+function steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
   if cur_ev.rate != 0
     integrator.f.rates_on[] = true
-    integrator.f.rates[cur_ev.cmt] = cur_ev.rate
+    integrator.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate
   else
     if typeof(bioav) <: Number
       integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
