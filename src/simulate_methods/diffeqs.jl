@@ -112,7 +112,6 @@ function ith_patient_cb(p,datai,prob)
       end
     end
     if post_steady_state[] && integrator.t == steady_state_rate_end[]
-      @show integrator.t,integrator.u,integrator.f.rates
       ss_event = events[counter-1]
       integrator.f.rates[ss_event.cmt] -= ss_event.rate
       post_steady_state[] = false
