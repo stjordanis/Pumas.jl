@@ -106,7 +106,6 @@ function ith_patient_cb(p,datai,prob)
             steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
             if cur_ev.rate != 0
               for k in 0:ss_rate_multiplier[]-1
-                println(integrator.t + steady_state_overlap_duration[] + k*steady_state_ii[])
                 add_tstop!(integrator,integrator.t + steady_state_overlap_duration[] + k*steady_state_ii[])
               end
               ss_dropoff_counter[] = 0
@@ -136,7 +135,6 @@ function ith_patient_cb(p,datai,prob)
       ss_dropoff_counter[] == ss_rate_multiplier[]+1 && (post_steady_state[] = false)
       ss_event = events[ss_event_counter[]]
       integrator.f.rates[ss_event.cmt] -= ss_event.rate
-      println(steady_state_time[] + steady_state_overlap_duration[] + ss_dropoff_counter[]*steady_state_ii[])
       # TODO: Optimize by setting integrator.f.rates_on[] = false
     end
     flush(STDOUT)

@@ -397,7 +397,7 @@ function set_parameters(θ,η,z)
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+@test norm(resid) < 1e-2
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-6
@@ -452,10 +452,8 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+@test norm(resid) < 1e-2
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-6
