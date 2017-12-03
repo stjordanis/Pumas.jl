@@ -313,8 +313,8 @@ data,obs,obs_times = get_nonem_data(6)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    10,   #RAT2
     0.812,#BIOAV
+    10,   #RAT2
     1     #ss
     ]
 
@@ -380,8 +380,8 @@ data,obs,obs_times = get_nonem_data(7)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    10,   #RAT2
     1,    #BIOAV
+    10,   #RAT2
     1     #ss
     ]
 
@@ -436,8 +436,8 @@ data,obs,obs_times = get_nonem_data(8)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    10,   #RAT2
     1,    #BIOAV
+    10,   #RAT2
     1     #ss
     ]
 
@@ -494,8 +494,8 @@ data,obs,obs_times = get_nonem_data(9)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    10,   #RAT2
     0.412,#BIOAV
+    10,   #RAT2
     1     #ss
     ]
 
@@ -503,7 +503,7 @@ function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        bioav = θ[5])
+        bioav = θ[4])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -546,8 +546,8 @@ data,obs,obs_times = get_nonem_data(10)
     1.5,  #Ka
     1.0,  #CL
     30.0, #V
-    10,   #RAT2
     1,    #BIOAV
+    10,   #RAT2
     1     #ss
     ]
 
