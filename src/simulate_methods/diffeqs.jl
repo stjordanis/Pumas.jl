@@ -35,6 +35,7 @@ function ith_patient_cb(p,datai,prob)
   steady_state_rate_end = Ref(-one(eltype(tstop_times)))
   steady_state_cache = similar(prob.u0)
   steady_state_ii = Ref(-one(eltype(tstop_times)))
+  steady_state_duration = Ref(-one(eltype(tstop_times)))
   steady_state_overlap_duration = Ref(-one(eltype(tstop_times)))
   post_steady_state = Ref(false)
   ss_counter = Ref(0)
@@ -83,10 +84,11 @@ function ith_patient_cb(p,datai,prob)
           else
             duration = (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
           end
+          steady_state_duration[] = duration
           steady_state_overlap_duration[] = mod(duration,cur_ev.ii)
           steady_state_ii[] = cur_ev.ii
           steady_state_end[] = integrator.t + cur_ev.ii
-          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (duration ÷ cur_ev.ii))
+          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (duration>cur_ev.ii)*(duration ÷ cur_ev.ii))
           steady_state_rate_end[] = integrator.t + steady_state_overlap_duration[]
           steady_state_cache .= integrator.u
           steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
@@ -105,10 +107,11 @@ function ith_patient_cb(p,datai,prob)
             cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
             steady_state_dose(integrator,cur_ev,bioav,ss_rate_multiplier,steady_state_rate_end)
             if cur_ev.rate != 0
-              for k in 0:ss_rate_multiplier[]-1
+              steady_state_duration[] == cur_ev.ii ? start_k = 1 : start_k = 0
+              for k in start_k:ss_rate_multiplier[]-1
                 add_tstop!(integrator,integrator.t + steady_state_overlap_duration[] + k*steady_state_ii[])
               end
-              ss_dropoff_counter[] = 0
+              ss_dropoff_counter[] = start_k
             end
             ss_event_counter[] = counter
             counter += 1
