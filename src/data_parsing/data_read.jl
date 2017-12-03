@@ -50,7 +50,7 @@ Import NONMEM-formatted data from `filename`.
 - `separator`: the delimiter. Should be either a character (e.g. `','`) or `nothing` (default) in which case it is taken to be whitespace-delimited with repeated whitespaces treated as one delimiter.
 
 """
-function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv]; 
+function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
     header=true, names=nothing, separator=nothing)
     io = open(filename)
     if header == true
@@ -116,7 +116,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
             rate = haskey(cols,:rate) ? misparse.(Float64, cols[:cmt][idx_evt]) : 0.0
             ss   = haskey(cols,:ss)   ? misparse.(Int, cols[:ss][idx_evt])  : 0
 
-            events = Event.(amt, evids[idx_evt], cmt, rate, ss)
+            events = Event.(amt, evids[idx_evt], cmt, rate, ss, 0.0)
             event_times = TimeCompartment.(times[idx_evt], cmt, 0.0)
         else
             # allow for repeated events
@@ -126,7 +126,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
             for i in idx_evt
                 t    = times[i]
                 evid = evids[i]
-                addl = parse(Int, cols[:addl][i])
+                addl = parse(Float64, cols[:addl][i])
                 amt  = parse(Float64, cols[:amt][i])
                 ii   = parse(Float64, cols[:ii][i])
                 cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
@@ -135,11 +135,11 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
 
                 for j = 0:addl  # addl==0 means just once
                     push!(event_times, TimeCompartment(t,cmt,0.0))
-                    push!(events,      Event(amt,evid,cmt,rate,ss))
-                    if rate != 0
+                    push!(events,      Event(amt,evid,cmt,rate,ss,ii))
+                    if rate != 0 && ss == 0
                         duration = amt/rate
                         push!(event_times, TimeCompartment(t + duration,cmt,duration))
-                        push!(events,      Event(-amt,-1,cmt,-rate,ss))
+                        push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
                     end
 
                     t += ii

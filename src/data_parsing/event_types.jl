@@ -1,9 +1,10 @@
-struct Event{T}
+struct Event{T,T2}
   amt::T
   evid::Int
   cmt::Int
   rate::T
   ss::Int
+  ii::T2
 end
 
 struct TimeCompartment{T}
