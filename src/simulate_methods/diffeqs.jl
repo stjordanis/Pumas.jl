@@ -16,7 +16,7 @@ end
 
 function ith_patient_cb(p,datai,prob)
 
-  ss_tol = 1e-16 # TODO: Make an option
+  ss_tol = 1e-12 # TODO: Make an option
   ss_max_iters = Inf
 
   if haskey(p,:bioav)
