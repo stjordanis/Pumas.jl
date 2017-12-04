@@ -1,12 +1,11 @@
 ## Types
 
-struct Person{T1,T2,T3,T4,T5}
+struct Person{T1,T2,T3,T4}
   id::Int
   obs::T1
   obs_times::T2
   z::T3
-  event_times::T4
-  events::T5
+  events::T4
 end
 
 struct Population{T} <: AbstractVector{T}
@@ -142,38 +141,31 @@ function build_dataset(cols,covariates=(),dvs=())
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)
-
-        event_times = TimeCompartment{Float64}[]
         events = Event{Float64}[]
 
         for i in idx_evt
             t    = times[i]
             evid = evids[i]
-            addl = haskey(cols, :addl) ? parse(Int, cols[:addl][i]) : 0
             amt  = misparse(Float64, cols[:amt][i]) # can be missing if evid=2
-            ii   = haskey(cols, :ii) ? parse(Float64, cols[:ii][i]) : 0.0
-            cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
-            rate = haskey(cols,:rate) ? misparse(Float64, cols[:rate][i]) : 0.0
-            ss   = haskey(cols,:ss)   ? misparse(Int, cols[:ss][i])   : 0
+            addl = haskey(cols, :addl) ? parse(Int, cols[:addl][i]) : 0
+            ii   = haskey(cols, :ii)   ? parse(Float64, cols[:ii][i]) : 0.0
+            cmt  = haskey(cols,:cmt)   ? parse(Int, cols[:cmt][i])  : 1
+            rate = haskey(cols,:rate)  ? misparse(Float64, cols[:rate][i]) : 0.0
+            ss   = haskey(cols,:ss)    ? misparse(Int, cols[:ss][i])   : 0
 
             for j = 0:addl  # addl==0 means just once
-                push!(event_times, TimeCompartment(t,cmt,0.0,rate))
-                push!(events,      Event(amt,evid,cmt,rate,ss,ii))
+                push!(events,Event(amt,t,evid,cmt,rate,ss,ii,t,false))
                 if rate != 0 && ss == 0 && amt != 0
                     # amt == 0 implies never turns off, so no off event
                     duration = amt/rate
-                    push!(event_times, TimeCompartment(t + duration,cmt,duration,rate))
-                    push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
+                    push!(events,Event(-amt,t + duration,-1,cmt,-rate,ss,ii,t,true))
                 end
-
                 t += ii
             end
         end
 
-        order = sortperm(event_times)
-        permute!(event_times,order)
-        permute!(events,order)
-        Person(id, obs, obs_times, z, event_times, events)
+        sort!(events)
+        Person(id, obs, obs_times, z, events)
     end
     Population(subjects)
 end

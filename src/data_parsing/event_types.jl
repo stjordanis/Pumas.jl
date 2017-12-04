@@ -1,85 +1,60 @@
 struct Event{T,T2}
   amt::T
+  time::T2
   evid::Int
   cmt::Int
   rate::T
   ss::Int
   ii::T2
+  base_time::T2 # So that this is kept after modifications to duration and rate
+  off_event::Bool
 end
 
-struct TimeCompartment{T}
-  time::T
-  compartment::Int
-  duration::T
-  rate::T
-end
+Base.isless(a::Event,b::Event) = isless(a.time,b.time)
+Base.isless(a::Event,b::Number) = isless(a.time,b)
+Base.isless(a::Number,b::Event) = isless(a,b.time)
 
-Base.isless(a::TimeCompartment,b::TimeCompartment) = isless(a.time,b.time)
-Base.isless(a::TimeCompartment,b::Number) = isless(a.time,b)
-Base.isless(a::Number,b::TimeCompartment) = isless(a,b.time)
-Base.:+(a::TimeCompartment,b::Number) = TimeCompartment(a.time+b,a.compartment,a.duration,a.rate)
-function remove_lags(events,event_times,lags::Number,bioav,rate,duration)
-  new_event_times = event_times +  lags
-  change_duration_by_bioav!(new_event_times,bioav,rate,duration)
-  if bioav != 1
-    order = sortperm(new_event_times)
-    permute!(new_event_times,order)
-    permute!(events,order)
-  end
-  new_event_times,events
-end
-function remove_lags(events,event_times,lags::AbstractArray,bioav,rate,duration)
-  new_event_times = Vector{eltype(event_times)}(length(event_times))
-  for i in event_times
-    tci = event_times[i]
-    new_event_times[i] = tci.time + lags[tci.compartment]
-  end
-  change_duration_by_bioav!(new_event_times,bioav,rate,duration)
-  order = sortperm(new_event_times)
-  permute!(new_event_times,order)
-  permute!(events,order)
-  new_event_times,permute(events,order)
-end
-
-function change_duration_by_bioav!(event_times,bioav,rate,duration)
-  if bioav != 1
-    for i in eachindex(event_times)
-      ev = event_times[i]
-      if typeof(bioav) <: Number
-        event_times[i] = TimeCompartment(ev.time - (1-bioav)*ev.duration,
-                                         ev.compartment,ev.duration,ev.rate)
-      else
-        event_times[i] = TimeCompartment(ev.time - (1-bioav[ev.compartment])*ev.duration,
-                                         ev.compartment,ev.duration,ev.rate)
-      end
+function change_times!(events,lags,bioav,rate,duration)
+  @show lags
+  for i in eachindex(events)
+    ev = events[i]
+    ev.rate != 0 ? duration = ev.amt/ev.rate : duration = zero(ev.amt)
+    if ev.off_event
+      typeof(bioav) <: Number ? time = ev.base_time + bioav*duration :
+                                time = ev.base_time + bioav[ev.cmt]*duration
+    else
+      time = ev.base_time
     end
+    typeof(lags) <: Number ? (time+=lags) : (time+=lags[ev.cmt])
+    events[i] = Event(ev.amt,time,ev.evid, ev.cmt, ev.rate,
+                      ev.ss, ev.ii, ev.base_time, ev.off_event)
   end
-  event_times
+  events
 end
 
-function Base.vcat(a::Number,event_times::AbstractArray{<:TimeCompartment})
-  if a == event_times[1].time
-    out = Vector{typeof(a)}(length(event_times))
-    for i in 1:length(event_times)
-      out[i] = event_times[i].time
+function Base.vcat(a::Number,event::AbstractArray{<:Event})
+  if a == event[1].time
+    out = Vector{typeof(a)}(length(event))
+    for i in 1:length(event)
+      out[i] = event[i].time
     end
   else
-    out = Vector{typeof(a)}(length(event_times)+1)
+    out = Vector{typeof(a)}(length(event)+1)
     out[1] = a
-    for i in 1:length(event_times)
-      out[i+1] = event_times[i].time
+    for i in 1:length(event)
+      out[i+1] = event[i].time
     end
   end
   out
 end
 
-function sorted_approx_unique(event_times)
-  tType = typeof(first(event_times).time)
-  out = Vector{typeof(first(event_times).time)}(1)
-  out[1] = event_times[1].time
-  for i in 2:length(event_times)
-    if abs(out[end] - event_times[i].time) > 10eps(tType)
-      push!(out,event_times[i].time)
+function sorted_approx_unique(event)
+  tType = typeof(first(event).time)
+  out = Vector{typeof(first(event).time)}(1)
+  out[1] = event[1].time
+  for i in 2:length(event)
+    if abs(out[end] - event[i].time) > 10eps(tType)
+      push!(out,event[i].time)
     end
   end
   out

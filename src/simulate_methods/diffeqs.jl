@@ -38,8 +38,15 @@ function ith_patient_cb(p,datai,prob)
     duration = one(eltype(prob.u0))
   end
 
-  target_time,events,tstop_times = adjust_event_timings(datai,p,bioav,rate,duration)
+  if haskey(p,:lags)
+    lags = p.lags
+  else
+    lags = zero(eltype(prob.tspan[1]))
+  end
 
+  events,tstop_times = adjust_event_timings(datai,lags,bioav,rate,duration)
+  display(events)
+  display(tstop_times)
   counter = 1
   ss_mode = Ref(false)
   ss_time = Ref(-one(eltype(tstop_times)))
@@ -64,7 +71,7 @@ function ith_patient_cb(p,datai,prob)
   end
 
   function affect!(integrator)
-    while counter <= length(target_time) && target_time[counter].time <= integrator.t
+    while counter <= length(events) && events[counter].time <= integrator.t
       cur_ev = events[counter]
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
         savevalues!(integrator)

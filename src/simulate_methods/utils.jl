@@ -1,18 +1,9 @@
-function adjust_event_timings(datai,p,bioav,rate,duration)
-  if !haskey(p,:lags)
-    target_time = datai.event_times
-    change_duration_by_bioav!(target_time,bioav,rate,duration)
-    events = datai.events
-    if bioav != 1
-      order = sortperm(target_time)
-      permute!(target_time,order)
-      permute!(events,order)
-    end
-  else
-    target_time,events = remove_lags(datai.events,datai.event_times,p.lags,bioav,rate,duration)
-  end
-  tstop_times = sorted_approx_unique(target_time)
-  target_time,events,tstop_times
+function adjust_event_timings(datai,lags,bioav,rate,duration)
+  events = datai.events
+  change_times!(events,lags,bioav,rate,duration)
+  sort!(events)
+  tstop_times = sorted_approx_unique(events)
+  events,tstop_times
 end
 
 function set_value(A :: SVector{L,T}, x,k) where {T,L}
