@@ -901,7 +901,7 @@ end
 ###############################
 
 # ev19 - Two parallel first order absorption models
-# gut dose - use ev19.csv in PKPDSimulator/examples/event_data/
+# use ev19.csv in PKPDSimulator/examples/event_data/
 # In some cases, after oral administration, the plasma concentrations exhibit a double
 # peak or shouldering-type absorption.
 # gut compartment is split into two compartments Depot1 and Depot2
@@ -937,6 +937,57 @@ function f(t,u,p,du)
 θ = [
      0.8,  #Ka1
      0.6,  #Ka2
+     1.0,  #CL
+     30.0, #V
+     0.5,  #bioav1
+     5     #lag2
+     ]
+
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+     
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]     
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test norm(a_resid) < 1e-7
+
+
+###############################
+# Test 20
+###############################
+
+# ev20 - Mixed zero and first order absorption
+# use ev20.csv in PKPDSimulator/examples/event_data/
+# For the current example, the first-order process starts immediately after dosing into the Depot (gut)
+# and is followed, with a lag time (lag2), by a zero-order process in the central compartment. 
+# a 10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 0.5 (bioav1)
+# Also at time zero a zero order dose with a 4 hour duration is given into the central compartment with a bioav2 of 1-bioav1 = 0.5
+# Depot2Lag = 5; a 5 hour lag before which the drug shows up from the zero order process into the central compartment with the specified bioav2
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+data,obs,obs_times = get_nonem_data(19)
+
+# Parallel first order absorption dosing model
+function f(t,u,p,du)
+    Depot, Central = u
+    du[1] = -p.Ka*Depot
+    du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
+   end
+   
+   function set_parameters(θ,η,z)
+       @NT(Ka1 = θ[1],
+           CL = θ[2]*exp(η[1]),
+           V  = θ[3]*exp(η[2])),
+           bioav1 = θ[5],
+           bioav2 = 1 - bioav1,
+           lag2 = θ[4]
+   end
+
+θ = [
+     0.5,  #Ka1
      1.0,  #CL
      30.0, #V
      0.5,  #bioav1
