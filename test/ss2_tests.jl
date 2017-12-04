@@ -20,8 +20,7 @@ function get_sol(θ,data;num_dv=2,kwargs...)
     sol  = simulate(pkpd,θ,η,data;kwargs...)
 end
 
-
-data = build_dataset(amt=[10,20], ii=[24,24], addl=[99,99], ss=[1,2], time=[0,12],  cmt=[2,2])
+data = build_dataset(amt=[10,20], ii=[24,24], addl=[1,1], ss=[1,2], time=[0,12],  cmt=[2,2])
 
 θ = [
      1.5,  #Ka
@@ -32,4 +31,4 @@ data = build_dataset(amt=[10,20], ii=[24,24], addl=[99,99], ss=[1,2], time=[0,12
 sol = get_sol(θ,data)
 
 obs_times = [i*12 for i in 0:5]
-sol(10obs_times;idxs=2)/θ[3]
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
