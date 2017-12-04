@@ -12,7 +12,6 @@ for ev in data[1].events
   @test ev.cmt == 1
 end
 
-using DataFrames
 gen_data = build_dataset(amt=100, addl=3, cmt=1, ii=12, ss=0)
 @test data[1].id == gen_data.id
 @test data[1].obs == gen_data.obs

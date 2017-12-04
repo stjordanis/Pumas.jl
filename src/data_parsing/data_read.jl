@@ -81,9 +81,9 @@ end
 
 function build_dataset(;kwargs...)
     if typeof(kwargs[1][2]) <: Number
-        _kwargs = [(kw[1],[string(kw[2])]) for kw in kwargs]
+        _kwargs = [(kw[1],[string.(kw[2])]) for kw in kwargs]
     else
-        _kwargs = kwargs
+        _kwargs = [(kw[1],string.(kw[2])) for kw in kwargs]
     end
     cols = Dict(_kwargs)
     m = length(_kwargs[1][2])
