@@ -13,15 +13,14 @@ function set_parameters(θ,η,z)
         V  = θ[3]*exp(η[2]))
 end
 
-function get_sol(θ,data,obs,obs_times;
-                       num_dv=2,kwargs...)
+function get_sol(θ,data;num_dv=2,kwargs...)
     prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
     pkpd = PKPDModel(prob,set_parameters)
     η = zeros(2)
     sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
-function get_a_sol(θ,data,obs,obs_times;kwargs...)
+function get_a_sol(θ,data;kwargs...)
    prob = OneCompartmentModel(72.0)
    pkpd = PKPDModel(prob,set_parameters)
    η = zeros(2)
@@ -30,14 +29,13 @@ end
 
 function get_residual(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
-    sol = get_sol(θ,data,obs,obs_times;num_dv=2,kwargs...)
+    sol = get_sol(θ,data;num_dv=2,kwargs...)
     cps = sol(obs_times;idxs=cmt)./(θ[3]/1000)
     resid = cps - obs
 end
 
-function get_analytical_residual(θ,data,obs,obs_times;
-                       kwargs...)
-    sol = get_a_sol(θ,data,obs,obs_times;kwargs...)
+function get_analytical_residual(θ,data,obs,obs_times;kwargs...)
+    sol = get_a_sol(θ,data;kwargs...)
     cps = sol(obs_times;idxs=2)./(θ[3]/1000)
     resid = cps - obs
 end
@@ -156,7 +154,7 @@ function set_parameters(θ,η,z)
         lags = θ[4])
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
@@ -273,7 +271,7 @@ for i in 1:200
     u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],12)
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
+sol  = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
 @test sol[3][2] - u0 < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
@@ -339,7 +337,7 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     u
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 u0 = 0.0
 for i in 1:200
     u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
@@ -564,7 +562,7 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
 1000sol(1e-12;idxs=2)/30
 
@@ -621,7 +619,7 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
-sol  = get_sol(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
 analytical_f = OneCompartmentModel(0.0).f
 p = @NT(Ka = θ[1],
@@ -731,3 +729,77 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-6
+
+###############################
+# Test 14
+###############################
+
+# Needs description
+
+data,obs,obs_times = get_nonem_data(14)
+
+θ = [
+    1.5,  #Ka
+    1.0,  #CL
+    30.0,  #V
+    1 #BIOAV
+    ]
+
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        bioav = θ[4])
+end
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
+
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-6
+
+###############################
+# Test 15
+###############################
+
+## SS=2 and next dose overlapping into the SS interval
+
+data = [build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])]
+
+θ = [
+     1.5,  #Ka
+     1.0,  #CL
+     30.0 #V
+     ]
+
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+     CL = θ[2]*exp(η[1]),
+     V  = θ[3]*exp(η[2]))
+end
+
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+
+obs_times = [i*12 for i in 0:5]
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
+@test norm(res - repeat([605.3220736386598;1616.4036675452326],outer=3)) < 1e-8
+
+###############################
+# Test 16
+###############################
+
+## SS=2 with a no-reset afterwards
+
+data = [build_dataset(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])]
+
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
+
+true_res = [605.3220736386598
+            1616.4036675452326
+            605.3220736387212
+            405.75952026789673
+            271.98874030537564
+            182.31950492267478]
+
+@test norm(res - true_res) < 1e-9

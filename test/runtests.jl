@@ -11,6 +11,4 @@ tic()
                 include("analytical_multiple_dosage_tests.jl") end
 @time @testset "Template Model EV System" begin
                 include("template_model_ev_system.jl") end
-@time @testset "SS=2 and Overlapping into SS Interval Tests" begin
-                include("ss2_tests.jl") end
 toc()
