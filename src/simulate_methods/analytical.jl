@@ -8,8 +8,9 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   tdir = sign(prob.tspan[end] - prob.tspan[1])
   p = set_parameters(θ,ηi,datai.z)
   lags,bioav,rate,duration = get_magic_args(p,u0,tspan[1])
-  events,times = adjust_event_timings(datai.events,lags,bioav,rate,duration)
-
+  events = datai.events
+  adjust_event_timings!(events,lags,bioav,rate,duration)
+  times = sorted_approx_unique(events)
   u = Vector{typeof(u0)}(length(times))
   doses = Vector{typeof(u0)}(length(times))
   rates = Vector{typeof(u0)}(length(times))
@@ -23,6 +24,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   rates[1] = rate
 
   # Now loop through the rest
+  # TODO: Handle multiple events at the same time
   for i in 2:length(times)
     t = times[i]
     cur_ev = events[i]

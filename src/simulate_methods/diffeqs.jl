@@ -5,8 +5,7 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
   p = set_parameters(θ,ηi,datai.z)
   u0 = VarType.(_prob.u0)
   tspan = VarType.(_prob.tspan)
-  target_time,cb = ith_patient_cb(p,datai,u0,tspan[1])
-  tstops = [_prob.tspan[1];target_time]
+  tstops,cb = ith_patient_cb(p,datai,u0,tspan[1])
   # From problem_new_parameters but no callbacks
 
   true_f = DiffEqWrapper(_prob,p)
@@ -18,34 +17,34 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
 end
 
 function ith_patient_cb(p,datai,u0,t0)
-
+  events = datai.events
   ss_tol = 1e-12 # TODO: Make an option
   ss_max_iters = Inf
 
   lags,bioav,rate,duration = get_magic_args(p,u0,t0)
-  events,tstop_times = adjust_event_timings(datai.events,lags,bioav,rate,duration)
-
+  adjust_event_timings!(events,lags,bioav,rate,duration)
+  tstops = sorted_approx_unique(events)
   counter = 1
   ss_mode = Ref(false)
-  ss_time = Ref(-one(eltype(tstop_times)))
-  ss_end = Ref(-one(eltype(tstop_times)))
-  ss_rate_end = Ref(-one(eltype(tstop_times)))
+  ss_time = Ref(-one(eltype(tstops)))
+  ss_end = Ref(-one(eltype(tstops)))
+  ss_rate_end = Ref(-one(eltype(tstops)))
   ss_cache = similar(u0)
-  ss_ii = Ref(-one(eltype(tstop_times)))
-  ss_duration = Ref(-one(eltype(tstop_times)))
-  ss_overlap_duration = Ref(-one(eltype(tstop_times)))
+  ss_ii = Ref(-one(eltype(tstops)))
+  ss_duration = Ref(-one(eltype(tstops)))
+  ss_overlap_duration = Ref(-one(eltype(tstops)))
   post_steady_state = Ref(false)
   ss_counter = Ref(0)
   ss_event_counter = Ref(0)
   ss_rate_multiplier = Ref(0)
   ss_dropoff_counter = Ref(0)
-  ss_tstop_cache = Vector{eltype(tstop_times)}(0)
+  ss_tstop_cache = Vector{eltype(tstops)}(0)
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
   function condition(t,u,integrator)
     (post_steady_state[] && t == (ss_time[] + ss_overlap_duration[] + ss_dropoff_counter[]*ss_ii[])) ||
-    t == ss_rate_end[] || (ss_mode[] && t == ss_end[] || !isempty(searchsorted(tstop_times,t)))
+    t == ss_rate_end[] || (ss_mode[] && t == ss_end[] || !isempty(searchsorted(tstops,t)))
   end
 
   function affect!(integrator)
@@ -150,7 +149,7 @@ function ith_patient_cb(p,datai,u0,t0)
       # TODO: Optimize by setting integrator.f.rates_on[] = false
     end
   end
-  tstop_times,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!,
+  tstops,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!,
                                save_positions=(false,false))
 end
 
