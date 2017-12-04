@@ -58,7 +58,7 @@ function get_magic_args(p,u0,t0)
   if haskey(p,:lags)
     lags = p.lags
   else
-    lags = zero(eltype(t0))
+    lags = 0.0#zero(eltype(t0))
   end
 
   if haskey(p,:bioav)
@@ -70,13 +70,13 @@ function get_magic_args(p,u0,t0)
   if haskey(p,:rate)
     rate = p.rate
   else
-    rate = zero(eltype(u0))
+    rate = 0.0#zero(eltype(u0))
   end
 
   if haskey(p,:duration)
     duration = p.duration
   else
-    duration = zero(eltype(u0))
+    duration = 0.0#zero(eltype(u0))
   end
 
   lags,bioav,rate,duration
