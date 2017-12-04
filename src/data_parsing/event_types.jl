@@ -4,6 +4,7 @@ struct Event{T,T2}
   evid::Int
   cmt::Int
   rate::T
+  duration::T
   ss::Int
   ii::T2
   base_time::T2 # So that this is kept after modifications to duration and rate

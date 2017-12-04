@@ -39,6 +39,7 @@ function ith_patient_cb(p,datai,u0,t0)
   ss_rate_multiplier = Ref(0)
   ss_dropoff_counter = Ref(0)
   ss_tstop_cache = Vector{eltype(tstops)}(0)
+  last_restart = Ref(-one(eltype(tstops)))
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
@@ -52,17 +53,15 @@ function ith_patient_cb(p,datai,u0,t0)
       cur_ev = events[counter]
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
         savevalues!(integrator)
-        if cur_ev.rate == 0
-          if typeof(bioav) <: Number
-            integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
-          else
-            integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
-          end
-          savevalues!(integrator)
-        else
-          integrator.f.rates_on[] += cur_ev.evid > 0
-          integrator.f.rates[cur_ev.cmt] += cur_ev.rate
-        end
+        dose!(integrator,cur_ev,bioav,last_restart)
+        counter += 1
+      elseif cur_ev.evid >= 3
+        savevalues!(integrator)
+        integrator.u .= 0
+        last_restart[] = integrator.t
+        integrator.f.rates_on[] = false
+        integrator.f.rates .= 0
+        cur_ev.evid == 4 && dose!(integrator,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.ss > 0
         if !ss_mode[]
@@ -88,7 +87,7 @@ function ith_patient_cb(p,datai,u0,t0)
           cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_cache .= integrator.u
-          ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+          ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
           cur_ev.rate != 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
@@ -102,7 +101,7 @@ function ith_patient_cb(p,datai,u0,t0)
             integrator.f.rates .= 0
             integrator.opts.save_everystep = true
             cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
-            ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+            ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
             if cur_ev.rate != 0 && cur_ev.amt != 0
               ss_duration[] == cur_ev.ii ? start_k = 1 : start_k = 0
               for k in start_k:ss_rate_multiplier[]-1
@@ -123,7 +122,7 @@ function ith_patient_cb(p,datai,u0,t0)
           else #Failure to converge, go again
             ss_cache .= integrator.u
             ss_counter[] += 1
-            ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+            ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
             ss_rate_end[] < ss_end[] && add_tstop!(integrator,ss_rate_end[])
             #add_tstop!(integrator,ss_end[])
           end
@@ -153,7 +152,23 @@ function ith_patient_cb(p,datai,u0,t0)
                                save_positions=(false,false))
 end
 
-function ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+function dose!(integrator,cur_ev,bioav,last_restart)
+  if cur_ev.rate == 0
+    if typeof(bioav) <: Number
+      integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
+    else
+      integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
+    end
+    savevalues!(integrator)
+  else
+    if !cur_ev.off_event || integrator.t - cur_ev.duration > last_restart[]
+      integrator.f.rates_on[] += cur_ev.evid > 0
+      integrator.f.rates[cur_ev.cmt] += cur_ev.rate
+    end
+  end
+end
+
+function ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
   if cur_ev.rate != 0
     integrator.f.rates_on[] = true
     integrator.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate

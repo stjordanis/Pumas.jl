@@ -24,7 +24,7 @@ function adjust_event_timings!(events,lags,bioav,rate,duration)
     end
 
     typeof(lags) <: Number ? (time+=lags) : (time+=lags[ev.cmt])
-    events[i] = Event(ev.amt,time,ev.evid, ev.cmt, _rate,
+    events[i] = Event(ev.amt,time,ev.evid, ev.cmt, _rate, _duration,
                       ev.ss, ev.ii, ev.base_time, ev.off_event)
   end
   sort!(events)

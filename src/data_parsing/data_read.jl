@@ -154,11 +154,11 @@ function build_dataset(cols,covariates=(),dvs=())
             ss   = haskey(cols,:ss)    ? misparse(Int, cols[:ss][i])   : 0
 
             for j = 0:addl  # addl==0 means just once
-                push!(events,Event(amt,t,evid,cmt,rate,ss,ii,t,false))
+                duration = amt/rate
+                push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,false))
                 if rate != 0 && ss == 0 && amt != 0
                     # amt == 0 implies never turns off, so no off event
-                    duration = amt/rate
-                    push!(events,Event(-amt,t + duration,-1,cmt,-rate,ss,ii,t,true))
+                    push!(events,Event(-amt,t + duration,-1,cmt,-rate,duration,ss,ii,t,true))
                 end
                 t += ii
             end
