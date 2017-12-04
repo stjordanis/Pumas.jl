@@ -48,7 +48,7 @@ function ith_patient_cb(p,datai,prob)
   # this is a fast way since target_time is sorted
   function condition(t,u,integrator)
     (post_steady_state[] && t == (ss_time[] + ss_overlap_duration[] + ss_dropoff_counter[]*ss_ii[])) ||
-    t == ss_rate_end[] || (ss_mode[] ? t == ss_end[] : !isempty(searchsorted(tstop_times,t)))
+    t == ss_rate_end[] || (ss_mode[] && t == ss_end[] || !isempty(searchsorted(tstop_times,t)))
   end
 
   function affect!(integrator)
@@ -94,7 +94,6 @@ function ith_patient_cb(p,datai,prob)
           ss_cache .= integrator.u
           ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
-          @show ss_tstop_cache
           cur_ev.rate != 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
           integrator.t = ss_time[]
@@ -106,7 +105,6 @@ function ith_patient_cb(p,datai,prob)
             post_steady_state[] = true
             integrator.f.rates .= 0
             integrator.opts.save_everystep = true
-            @show cur_ev.ss, integrator.sol.u[end]
             cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
             ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
             if cur_ev.rate != 0 && cur_ev.amt != 0
@@ -115,6 +113,13 @@ function ith_patient_cb(p,datai,prob)
                 add_tstop!(integrator,integrator.t + ss_overlap_duration[] + k*ss_ii[])
               end
               ss_dropoff_counter[] = start_k
+            end
+            if !isempty(ss_tstop_cache)
+              # Put these tstops back in since they were erased in the ss interval
+              for t in ss_tstop_cache
+                add_tstop!(integrator,t)
+              end
+              resize!(ss_tstop_cache,0)
             end
             ss_event_counter[] = counter
             counter += 1
