@@ -150,19 +150,19 @@ function build_dataset(cols,covariates=(),dvs=())
             t    = times[i]
             evid = evids[i]
             addl = haskey(cols, :addl) ? parse(Int, cols[:addl][i]) : 0
-            amt  = parse(Float64, cols[:amt][i])
+            amt  = misparse(Float64, cols[:amt][i]) # can be missing if evid=2
             ii   = haskey(cols, :ii) ? parse(Float64, cols[:ii][i]) : 0.0
             cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
-            rate = haskey(cols,:rate) ? parse(Float64, cols[:rate][i]) : 0.0
-            ss   = haskey(cols,:ss)   ? parse(Int, cols[:ss][i])   : 0
+            rate = haskey(cols,:rate) ? misparse(Float64, cols[:rate][i]) : 0.0
+            ss   = haskey(cols,:ss)   ? misparse(Int, cols[:ss][i])   : 0
 
             for j = 0:addl  # addl==0 means just once
-                push!(event_times, TimeCompartment(t,cmt,0.0))
+                push!(event_times, TimeCompartment(t,cmt,0.0,rate))
                 push!(events,      Event(amt,evid,cmt,rate,ss,ii))
                 if rate != 0 && ss == 0 && amt != 0
                     # amt == 0 implies never turns off, so no off event
                     duration = amt/rate
-                    push!(event_times, TimeCompartment(t + duration,cmt,duration))
+                    push!(event_times, TimeCompartment(t + duration,cmt,duration,rate))
                     push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
                 end
 

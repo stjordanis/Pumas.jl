@@ -1,7 +1,7 @@
-function adjust_event_timings(datai,p,bioav)
+function adjust_event_timings(datai,p,bioav,rate,duration)
   if !haskey(p,:lags)
     target_time = datai.event_times
-    change_duration_by_bioav!(target_time,bioav)
+    change_duration_by_bioav!(target_time,bioav,rate,duration)
     events = datai.events
     if bioav != 1
       order = sortperm(target_time)
@@ -9,7 +9,7 @@ function adjust_event_timings(datai,p,bioav)
       permute!(events,order)
     end
   else
-    target_time,events = remove_lags(datai.events,datai.event_times,p.lags,bioav)
+    target_time,events = remove_lags(datai.events,datai.event_times,p.lags,bioav,rate,duration)
   end
   tstop_times = sorted_approx_unique(target_time)
   target_time,events,tstop_times

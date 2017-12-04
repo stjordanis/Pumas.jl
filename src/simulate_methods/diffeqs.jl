@@ -26,7 +26,19 @@ function ith_patient_cb(p,datai,prob)
     bioav = one(eltype(prob.u0))
   end
 
-  target_time,events,tstop_times = adjust_event_timings(datai,p,bioav)
+  if haskey(p,:rate)
+    rate = p.rate
+  else
+    rate = one(eltype(prob.u0))
+  end
+
+  if haskey(p,:duration)
+    duration = p.duration
+  else
+    duration = one(eltype(prob.u0))
+  end
+
+  target_time,events,tstop_times = adjust_event_timings(datai,p,bioav,rate,duration)
 
   counter = 1
   ss_mode = Ref(false)
@@ -81,15 +93,15 @@ function ith_patient_cb(p,datai,prob)
           # TODO: Handle saveat in this range
           # TODO: Make compatible with save_everystep = false
           if typeof(bioav) <: Number
-            duration = (bioav*cur_ev.amt)/cur_ev.rate
+            _duration = (bioav*cur_ev.amt)/cur_ev.rate
           else
-            duration = (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
+            _duration = (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
           end
-          ss_duration[] = duration
-          ss_overlap_duration[] = mod(duration,cur_ev.ii)
+          ss_duration[] = _duration
+          ss_overlap_duration[] = mod(_duration,cur_ev.ii)
           ss_ii[] = cur_ev.ii
           ss_end[] = integrator.t + cur_ev.ii
-          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (duration>cur_ev.ii)*(duration ÷ cur_ev.ii))
+          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_cache .= integrator.u
           ss_dose(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)

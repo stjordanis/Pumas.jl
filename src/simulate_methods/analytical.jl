@@ -14,7 +14,19 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
     bioav = one(eltype(u0))
   end
 
-  _,events,times = adjust_event_timings(datai,p,bioav)
+  if haskey(p,:rate)
+    rate = p.rate
+  else
+    rate = one(eltype(u0))
+  end
+
+  if haskey(p,:duration)
+    duration = p.duration
+  else
+    duration = one(eltype(u0))
+  end
+
+  _,events,times = adjust_event_timings(datai,p,bioav,rate,duration)
 
   u = Vector{typeof(u0)}(length(times))
   doses = Vector{typeof(u0)}(length(times))
