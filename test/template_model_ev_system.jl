@@ -734,7 +734,29 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # Test 14
 ###############################
 
-# Needs description
+# ev14 - zero order infusion into central compartment specified by duration parameter
+# - use ev14.csv in PKPDSimulator/examples/event_data/
+# amt=100: 100 mg infusion into central compartment at time zero
+
+#new
+# cmt=2: in the system of diffeq's, central compartment is the second compartment
+
+
+# rate= - 2 : when a dataset specifies rate = -2 in an event row, then infusions are modeled via the duration parameter
+
+# DUR2 = drug is adminstered over a 9 hour duration into the central compartment
+
+# LAGT=5: there is a lag of 5 hours after dose administration when amounts from the event
+# are populated into the central compartment. Requires developing a new internal variable called
+# ALAG_<comp name> or ALAG_<comp_num> that takes a value that delays the entry of dose into that compartment
+
+# BIOAV=0.61: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
+# 61 % of the 100 mg dose is administered over 9 hours duration.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
 
 data,obs,obs_times = get_nonem_data(14)
 
@@ -742,14 +764,18 @@ data,obs,obs_times = get_nonem_data(14)
     1.5,  #Ka
     1.0,  #CL
     30.0,  #V
-    1 #BIOAV
+    0.61, #BIOAV
+    5.0, #LAGT
+    9.0  #duration
     ]
 
 function set_parameters(θ,η,z)
     @NT(Ka = θ[1],
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
+        bioav = θ[4],
+        lag = θ[5,
+        duration = θ[6]])
 end
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
@@ -763,8 +789,22 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 ###############################
 
 ## SS=2 and next dose overlapping into the SS interval
+# ev15 - first order bolus into central compartment at ss followed by an ss=2 (superposition ss) dose at 12 hours 
+# - use ev15.csv in PKPDSimulator/examples/event_data/
+# amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by a 20 mg ss=2 dose at time 12
+# cmt=2: in the system of diffeq's, central compartment is the second compartment
 
-data = [build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])]
+#new
+# BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
+# 100 % of the 100 mg dose is administered over 9 hours duration.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+
+#data = [build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])]
 
 θ = [
      1.5,  #Ka
@@ -789,10 +829,38 @@ res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
 ###############################
 
 ## SS=2 with a no-reset afterwards
+# ev16 - first order bolus into central compartment at ss followed by 
+# an ss=2 (superposition ss) dose at 12 hours followed by reset ss=1 dose at 24 hours
+# - use ev16.csv in PKPDSimulator/examples/event_data/
+# amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by 20 mg ss=2 dose at time 12 followed
+# 10 mg ss = 1 reset dose at time 24
+# cmt=2: in the system of diffeq's, central compartment is the second compartment
 
-data = [build_dataset(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])]
+#new
+# BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
+# 100 % of the 100 mg dose is administered over 9 hours duration.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+#data = [build_dataset(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])]
+
+θ = [
+    1.5,  #Ka
+    1.0,  #CL
+    30.0 #V
+    ]
+
+function set_parameters(θ,η,z)
+   @NT(Ka = θ[1],
+    CL = θ[2]*exp(η[1]),
+    V  = θ[3]*exp(η[2]))
+end
 
 sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+
 res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
 
 true_res = [605.3220736386598
@@ -803,3 +871,51 @@ true_res = [605.3220736386598
             182.31950492267478]
 
 @test norm(res - true_res) < 1e-9
+
+
+###############################
+# Test 17
+###############################
+
+# ev2_const_infusion.csv - zero order constant infusion at time=10 followed by infusion at time 15
+# - use ev17.csv in PKPDSimulator/examples/event_data/
+# several observations predose (time<10) even though time=10 is a constant infusion as steady state (SS=1)
+# amt=0: constant infusion with rate=10 at time 10
+# amt=200; 200 dose units infusion with rate=20 starting at time 15
+# cmt=2: doses in the central compartment in a first order absorption model
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+θ = [
+    1.0,  #Ka
+    1.0,  #CL
+    30.0 #V
+    ]
+
+function set_parameters(θ,η,z)
+   @NT(Ka = θ[1],
+    CL = θ[2]*exp(η[1]),
+    V  = θ[3]*exp(η[2]))
+end
+
+###############################
+# Test 18
+###############################
+
+# ev2_const_infusion2.csv - zero order constant infusion at all observations
+# - use ev18.csv in PKPDSimulator/examples/event_data/
+# several constant infusion dose rows (SS=1, amt=0, rate=10) are added previous to each observation
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+θ = [
+    1.0,  #Ka
+    1.0,  #CL
+    30.0 #V
+    ]
+
+function set_parameters(θ,η,z)
+   @NT(Ka = θ[1],
+    CL = θ[2]*exp(η[1]),
+    V  = θ[3]*exp(η[2]))
+end
