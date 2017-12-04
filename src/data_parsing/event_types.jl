@@ -1,4 +1,4 @@
-struct Event{T,T2}
+struct Event{T,T2,T3} # Split parameters for dual numbers
   amt::T
   time::T2
   evid::Int
@@ -6,8 +6,8 @@ struct Event{T,T2}
   rate::T
   duration::T
   ss::Int
-  ii::T2
-  base_time::T2 # So that this is kept after modifications to duration and rate
+  ii::T3
+  base_time::T3 # So that this is kept after modifications to duration and rate
   off_event::Bool
 end
 

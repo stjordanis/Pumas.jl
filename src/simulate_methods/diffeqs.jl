@@ -134,12 +134,14 @@ function ith_patient_cb(p,datai,u0,t0)
           # Just re-add so it's not missed after the SS
           integrator.t ∉ ss_tstop_cache && push!(ss_tstop_cache,integrator.t)
         end
-        break
+        break # break when in SS because the counter doesn't increase
       elseif cur_ev.evid == 2
         #ignore for now
         counter += 1
       end
     end
+
+    # Not at an event but still a tstop, turn off rates from last ss event
     if post_steady_state[] && integrator.t == ss_time[] + ss_overlap_duration[] + ss_dropoff_counter[]*ss_ii[]
       ss_dropoff_counter[] += 1
       ss_dropoff_counter[] == ss_rate_multiplier[]+1 && (post_steady_state[] = false)

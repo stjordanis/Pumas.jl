@@ -64,7 +64,7 @@ function get_magic_args(p,u0,t0)
   if haskey(p,:bioav)
     bioav = p.bioav
   else
-    bioav = one(eltype(u0))
+    bioav = 1.0#one(eltype(u0))
   end
 
   if haskey(p,:rate)
