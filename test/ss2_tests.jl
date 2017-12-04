@@ -20,7 +20,7 @@ function get_sol(θ,data;num_dv=2,kwargs...)
     sol  = simulate(pkpd,θ,η,data;kwargs...)
 end
 
-data = build_dataset(amt=[10,20], ii=[24,24], addl=[1,1], ss=[1,2], time=[0,12],  cmt=[2,2])
+data = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])
 
 θ = [
      1.5,  #Ka
@@ -28,7 +28,22 @@ data = build_dataset(amt=[10,20], ii=[24,24], addl=[1,1], ss=[1,2], time=[0,12],
      30.0 #V
      ]
 
-sol = get_sol(θ,data)
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
 
 obs_times = [i*12 for i in 0:5]
 res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
+@test norm(res - repeat([605.3220736386598;1616.4036675452326],outer=3)) < 1e-8
+
+data = build_dataset(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])
+
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
+
+true_res = [605.3220736386598
+            1616.4036675452326
+            605.3220736387212
+            405.75952026789673
+            271.98874030537564
+            182.31950492267478]
+
+@test norm(res - true_res) < 1e-9
