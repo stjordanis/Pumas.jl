@@ -684,3 +684,46 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test norm(a_resid) < 1e-6
+
+###############################
+# Test 13
+###############################
+
+# ev13 - zero order infusion followed by first order absorption into gut
+# - use ev13.csv in PKPDSimulator/examples/event_data/
+# amt=100: 100 mg infusion into gut compartment at time zero
+# amt=50; 50 mg bolus into gut compartment at time = 12 hours
+# cmt=1: in the system of diffeq's, gut compartment is the first compartment
+
+#new
+# rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
+# is given over a duration (DUR) of 10 hours
+# BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
+# where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
+# 100 % of the 100 mg dose is administered at the 10mg/hr rate will enter the system.
+# F_<comp> is one of the most commonly estimated parameters in NLME
+
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+data,obs,obs_times = get_nonem_data(13)
+
+θ = [
+    1.5,  #Ka
+    1.0,  #CL
+    30.0,  #V
+    1 #BIOAV
+    ]
+
+function set_parameters(θ,η,z)
+    @NT(Ka = θ[1],
+        CL = θ[2]*exp(η[1]),
+        V  = θ[3]*exp(η[2]),
+        bioav = θ[4])
+end
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test norm(resid) < 1e-6
+
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-6

@@ -142,42 +142,31 @@ function build_dataset(cols,covariates=(),dvs=())
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)
-        if !haskey(cols, :addl)
-            # each row corresponds to 1 event
-            amt  = misparse.(Float64, cols[:amt][idx_evt]) # can be missing if evid=2
-            cmt  = haskey(cols,:cmt)  ? parse.(Int, cols[:cmt][idx_evt]) : 1
-            rate = haskey(cols,:rate) ? misparse.(Float64, cols[:cmt][idx_evt]) : 0.0
-            ss   = haskey(cols,:ss)   ? misparse.(Int, cols[:ss][idx_evt])  : 0
 
-            events = Event.(amt, evids[idx_evt], cmt, rate, ss, 0.0)
-            event_times = TimeCompartment.(times[idx_evt], cmt, 0.0)
-        else
-            # allow for repeated events
-            event_times = TimeCompartment{Float64}[]
-            events = Event{Float64}[]
+        event_times = TimeCompartment{Float64}[]
+        events = Event{Float64}[]
 
-            for i in idx_evt
-                t    = times[i]
-                evid = evids[i]
-                addl = parse(Float64, cols[:addl][i])
-                amt  = parse(Float64, cols[:amt][i])
-                ii   = parse(Float64, cols[:ii][i])
-                cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
-                rate = haskey(cols,:rate) ? parse(Float64, cols[:rate][i]) : 0.0
-                ss   = haskey(cols,:ss)   ? parse(Int, cols[:ss][i])   : 0
+        for i in idx_evt
+            t    = times[i]
+            evid = evids[i]
+            addl = haskey(cols, :addl) ? parse(Int, cols[:addl][i]) : 0
+            amt  = parse(Float64, cols[:amt][i])
+            ii   = haskey(cols, :ii) ? parse(Float64, cols[:ii][i]) : 0.0
+            cmt  = haskey(cols,:cmt)  ? parse(Int, cols[:cmt][i])  : 1
+            rate = haskey(cols,:rate) ? parse(Float64, cols[:rate][i]) : 0.0
+            ss   = haskey(cols,:ss)   ? parse(Int, cols[:ss][i])   : 0
 
-                for j = 0:addl  # addl==0 means just once
-                    push!(event_times, TimeCompartment(t,cmt,0.0))
-                    push!(events,      Event(amt,evid,cmt,rate,ss,ii))
-                    if rate != 0 && ss == 0 && amt != 0
-                        # amt == 0 implies never turns off, so no off event
-                        duration = amt/rate
-                        push!(event_times, TimeCompartment(t + duration,cmt,duration))
-                        push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
-                    end
-
-                    t += ii
+            for j = 0:addl  # addl==0 means just once
+                push!(event_times, TimeCompartment(t,cmt,0.0))
+                push!(events,      Event(amt,evid,cmt,rate,ss,ii))
+                if rate != 0 && ss == 0 && amt != 0
+                    # amt == 0 implies never turns off, so no off event
+                    duration = amt/rate
+                    push!(event_times, TimeCompartment(t + duration,cmt,duration))
+                    push!(events,      Event(-amt,-1,cmt,-rate,ss,ii))
                 end
+
+                t += ii
             end
         end
 
