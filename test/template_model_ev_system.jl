@@ -56,31 +56,7 @@ end
 covariates = [1]
 dvs = [1]
 
-###############################
-# Test 1
-###############################
-
-# ev1 - gut dose - use ev1.csv in PKPDSimulator/examples/event_data/
-# amt=100: 100 mg dose into gut compartment
-# cmt=1: in the system of diffeq's, gut compartment is the first compartment
-# addl=3: 4 doses total, 1 dose at time zero + 3 additional doses (addl=3)
-# ii=12: each additional dose is given with a frequency of ii=12 hours
-# evid = 1: indicates a dosing event
-# mdv = 1: indicates that observations are not avaialable at this dosing record
-
-data,obs,obs_times = get_nonem_data(1)
-
-θ = [
-     1.5,  #Ka
-     1.0,  #CL
-     30.0 #V
-     ]
-
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
-
-a_resid = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-7
+c
 
 ###############################
 # Test 2
@@ -919,3 +895,60 @@ function set_parameters(θ,η,z)
     CL = θ[2]*exp(η[1]),
     V  = θ[3]*exp(η[2]))
 end
+
+###############################
+# Test 19
+###############################
+
+# ev19 - Two parallel first order absorption models
+# gut dose - use ev19.csv in PKPDSimulator/examples/event_data/
+# In some cases, after oral administration, the plasma concentrations exhibit a double
+# peak or shouldering-type absorption.
+# gut compartment is split into two compartments Depot1 and Depot2
+# a 10 mg dose is given into each of the gut compartments
+# Depot1 has a bioav of 0.5 (50 %) and Depot2 has a bioav of 1 - 0.5 = 0.5 (note bioav should add up to 1)
+# cmt=1: in the system of diffeq's, Depot1 compartment is the first compartment
+# cmt=2: in the system of diffeq's, Depot2 compartment is the second compartment
+# cmt=3: in the system of diffeq's, central compartment is the third compartment
+# Depot2Lag = 5; a 5 hour lag before which the drug shows up from the depot2 compartment with a specified bioav
+# evid = 1: indicates a dosing event
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+data,obs,obs_times = get_nonem_data(19)
+
+# Parallel first order absorption dosing model
+function f(t,u,p,du)
+    Depot1, Depot2, Central = u
+    du[1] = -p.Ka1*Depot1
+    du[2] = -p.Ka2*Depot2
+    du[3] =  p.Ka1*Depot1 + p.Ka2*Depot2 - (p.CL/p.V)*Central
+   end
+   
+   function set_parameters(θ,η,z)
+       @NT(Ka1 = θ[1],
+           Ka2 = θ[2],
+           CL = θ[3]*exp(η[1]),
+           V  = θ[4]*exp(η[2])),
+           bioav1 = θ[5],
+           bioav2 = 1 - bioav1,
+           lag2 = θ[6]
+   end
+
+θ = [
+     0.8,  #Ka1
+     0.6,  #Ka2
+     1.0,  #CL
+     30.0, #V
+     0.5,  #bioav1
+     5     #lag2
+     ]
+
+sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+     
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]     
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test norm(a_resid) < 1e-7
