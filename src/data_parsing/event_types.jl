@@ -14,24 +14,6 @@ Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
-function change_times!(events,lags,bioav,rate,duration)
-  @show lags
-  for i in eachindex(events)
-    ev = events[i]
-    ev.rate != 0 ? duration = ev.amt/ev.rate : duration = zero(ev.amt)
-    if ev.off_event
-      typeof(bioav) <: Number ? time = ev.base_time + bioav*duration :
-                                time = ev.base_time + bioav[ev.cmt]*duration
-    else
-      time = ev.base_time
-    end
-    typeof(lags) <: Number ? (time+=lags) : (time+=lags[ev.cmt])
-    events[i] = Event(ev.amt,time,ev.evid, ev.cmt, ev.rate,
-                      ev.ss, ev.ii, ev.base_time, ev.off_event)
-  end
-  events
-end
-
 function Base.vcat(a::Number,event::AbstractArray{<:Event})
   if a == event[1].time
     out = Vector{typeof(a)}(length(event))

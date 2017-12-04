@@ -3,56 +3,34 @@ function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
                   alg = Tsit5();kwargs...)
   VarType = promote_type(eltype(ηi),eltype(θ))
   p = set_parameters(θ,ηi,datai.z)
-  target_time,cb = ith_patient_cb(p,datai,_prob)
+  u0 = VarType.(_prob.u0)
+  tspan = VarType.(_prob.tspan)
+  target_time,cb = ith_patient_cb(p,datai,u0,tspan[1])
   tstops = [_prob.tspan[1];target_time]
   # From problem_new_parameters but no callbacks
 
   true_f = DiffEqWrapper(_prob,p)
   # Match the type of ηi for duality in estimator
-  prob = ODEProblem(true_f,VarType.(_prob.u0),VarType.(_prob.tspan),callback=cb)
+  prob = ODEProblem(true_f,u0,tspan,callback=cb)
   save_start = true#datai.events[1].ss == 1
   sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
   output_reduction(sol,sol.prob.f.params,datai)
 end
 
-function ith_patient_cb(p,datai,prob)
+function ith_patient_cb(p,datai,u0,t0)
 
   ss_tol = 1e-12 # TODO: Make an option
   ss_max_iters = Inf
 
-  if haskey(p,:bioav)
-    bioav = p.bioav
-  else
-    bioav = one(eltype(prob.u0))
-  end
+  lags,bioav,rate,duration = get_magic_args(p,u0,t0)
+  events,tstop_times = adjust_event_timings(datai.events,lags,bioav,rate,duration)
 
-  if haskey(p,:rate)
-    rate = p.rate
-  else
-    rate = one(eltype(prob.u0))
-  end
-
-  if haskey(p,:duration)
-    duration = p.duration
-  else
-    duration = one(eltype(prob.u0))
-  end
-
-  if haskey(p,:lags)
-    lags = p.lags
-  else
-    lags = zero(eltype(prob.tspan[1]))
-  end
-
-  events,tstop_times = adjust_event_timings(datai,lags,bioav,rate,duration)
-  display(events)
-  display(tstop_times)
   counter = 1
   ss_mode = Ref(false)
   ss_time = Ref(-one(eltype(tstop_times)))
   ss_end = Ref(-one(eltype(tstop_times)))
   ss_rate_end = Ref(-one(eltype(tstop_times)))
-  ss_cache = similar(prob.u0)
+  ss_cache = similar(u0)
   ss_ii = Ref(-one(eltype(tstop_times)))
   ss_duration = Ref(-one(eltype(tstop_times)))
   ss_overlap_duration = Ref(-one(eltype(tstop_times)))

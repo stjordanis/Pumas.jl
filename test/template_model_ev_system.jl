@@ -209,6 +209,10 @@ end
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 
+# Make sure modifications are handled correctly with base_time by repeating
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test norm(resid) < 1e-6
+
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 @test norm(a_resid) < 1e-6
 

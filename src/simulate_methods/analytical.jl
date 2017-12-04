@@ -7,32 +7,8 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
   p = set_parameters(θ,ηi,datai.z)
-
-  if haskey(p,:bioav)
-    bioav = p.bioav
-  else
-    bioav = one(eltype(u0))
-  end
-
-  if haskey(p,:rate)
-    rate = p.rate
-  else
-    rate = one(eltype(u0))
-  end
-
-  if haskey(p,:duration)
-    duration = p.duration
-  else
-    duration = one(eltype(u0))
-  end
-
-  if haskey(p,:lags)
-    lags = p.lags
-  else
-    lags = zero(eltype(tspan[1]))
-  end
-
-  events,times = adjust_event_timings(datai,lags,bioav,rate,duration)
+  lags,bioav,rate,duration = get_magic_args(p,u0,tspan[1])
+  events,times = adjust_event_timings(datai.events,lags,bioav,rate,duration)
 
   u = Vector{typeof(u0)}(length(times))
   doses = Vector{typeof(u0)}(length(times))
