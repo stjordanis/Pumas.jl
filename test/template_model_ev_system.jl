@@ -781,6 +781,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 
 
 #data = [build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])]
+data,obs,obs_times = get_nonem_data(15)
 
 θ = [
      1.5,  #Ka
