@@ -23,6 +23,7 @@ function ith_patient_cb(p,datai,u0,t0)
 
   lags,bioav,rate,duration = get_magic_args(p,u0,t0)
   adjust_event_timings!(events,lags,bioav,rate,duration)
+
   tstops = sorted_approx_unique(events)
   counter = 1
   ss_mode = Ref(false)
@@ -84,12 +85,12 @@ function ith_patient_cb(p,datai,u0,t0)
           ss_overlap_duration[] = mod(_duration,cur_ev.ii)
           ss_ii[] = cur_ev.ii
           ss_end[] = integrator.t + cur_ev.ii
-          cur_ev.rate != 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
+          cur_ev.rate > 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_cache .= integrator.u
           ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
-          cur_ev.rate != 0 && add_tstop!(integrator,ss_rate_end[])
+          cur_ev.rate > 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
           integrator.t = ss_time[]
           ss_cache .-= integrator.u
@@ -102,7 +103,7 @@ function ith_patient_cb(p,datai,u0,t0)
             integrator.opts.save_everystep = true
             cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
             ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
-            if cur_ev.rate != 0 && cur_ev.amt != 0
+            if cur_ev.rate > 0 && cur_ev.amt != 0 # amt = 0 means it never turns off
               ss_duration[] == cur_ev.ii ? start_k = 1 : start_k = 0
               for k in start_k:ss_rate_multiplier[]-1
                 add_tstop!(integrator,integrator.t + ss_overlap_duration[] + k*ss_ii[])
@@ -171,7 +172,7 @@ function dose!(integrator,cur_ev,bioav,last_restart)
 end
 
 function ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
-  if cur_ev.rate != 0
+  if cur_ev.rate > 0
     integrator.f.rates_on[] = true
     integrator.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
   else

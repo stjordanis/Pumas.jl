@@ -1,6 +1,8 @@
-function adjust_event_timings!(events,lags,bioav,rate,duration)
+function adjust_event_timings!(events,lags,bioav,rate_input,duration_input)
   for i in eachindex(events)
     ev = events[i]
+    typeof(rate_input) <: Number ? rate = rate_input : rate = rate_input[ev.cmt]
+    typeof(duration_input) <: Number ? duration = duration_input : duration = duration_input[ev.cmt]
     @assert rate == 0 || duration == 0
 
     if rate != 0
@@ -10,8 +12,8 @@ function adjust_event_timings!(events,lags,bioav,rate,duration)
       typeof(bioav) <: Number ? (_duration *= bioav) : (_duration *= bioav[ev.cmt])
     elseif duration != 0
       typeof(duration) <: Number ? (_duration = duration) : (_duration = duration[ev.cmt])
-      #_rate = ev.rate
-      typeof(bioav) <: Number ? (_rate = bioav*duration) : (_rate = bioav[ev.cmt]*duration)
+      _rate = ev.amt/_duration
+      typeof(bioav) <: Number ? (_rate *= bioav) : (_rate *= bioav[ev.cmt])
     else # both are zero
       _rate = ev.rate
       _duration = ev.amt/ev.rate

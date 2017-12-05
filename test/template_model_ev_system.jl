@@ -29,7 +29,7 @@ end
 
 function get_residual(θ,data,obs,obs_times;
                        num_dv=2,cmt=2,kwargs...)
-    sol = get_sol(θ,data;num_dv=2,kwargs...)
+    sol = get_sol(θ,data;num_dv=num_dv,kwargs...)
     cps = sol(obs_times;idxs=cmt)./(θ[3]/1000)
     resid = cps - obs
 end
@@ -748,11 +748,15 @@ function set_parameters(θ,η,z)
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
         bioav = θ[4],
-        lag = θ[5],
+        lags = θ[5],
         duration = θ[6])
 end
 
+test_ev = PKPDSimulator.adjust_event_timings!(data[1].events,θ[5],θ[4],0.0,θ[6])
+
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+
+res = 1000sol(obs_times;idxs=2)/θ[3]
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
@@ -770,17 +774,9 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by a 20 mg ss=2 dose at time 12
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
-#new
-# BIOAV=1: required developing a new internal variable called F_<comp name> or F_<comp num>,
-# where F is the fraction of amount that is delivered into the compartment. e.g. in this case,
-# 100 % of the 100 mg dose is administered over 9 hours duration.
-# F_<comp> is one of the most commonly estimated parameters in NLME
-
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-
-#data = [build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])]
 data,obs,obs_times = get_nonem_data(15)
 
 θ = [
@@ -795,11 +791,14 @@ function set_parameters(θ,η,z)
      V  = θ[3]*exp(η[2]))
 end
 
-sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+res = 1000sol(obs_times;idxs=2)/θ[3]
 
-obs_times = [i*12 for i in 0:5]
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
-@test norm(res - repeat([605.3220736386598;1616.4036675452326],outer=3)) < 1e-8
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-7
 
 ###############################
 # Test 16
@@ -822,7 +821,7 @@ res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-#data = [build_dataset(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])]
+data,obs,obs_times = get_nonem_data(16)
 
 θ = [
     1.5,  #Ka
@@ -836,18 +835,13 @@ function set_parameters(θ,η,z)
     V  = θ[3]*exp(η[2]))
 end
 
-sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
 
-true_res = [605.3220736386598
-            1616.4036675452326
-            605.3220736387212
-            405.75952026789673
-            271.98874030537564
-            182.31950492267478]
-
-@test norm(res - true_res) < 1e-9
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-7
 
 
 ###############################
@@ -863,6 +857,8 @@ true_res = [605.3220736386598
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+@test_broken data,obs,obs_times = get_nonem_data(17)
+
 θ = [
     1.0,  #Ka
     1.0,  #CL
@@ -874,6 +870,12 @@ function set_parameters(θ,η,z)
     CL = θ[2]*exp(η[1]),
     V  = θ[3]*exp(η[2]))
 end
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-7
 
 ###############################
 # Test 18
@@ -885,6 +887,8 @@ end
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
+@test_broken data,obs,obs_times = get_nonem_data(18)
+
 θ = [
     1.0,  #Ka
     1.0,  #CL
@@ -896,6 +900,12 @@ function set_parameters(θ,η,z)
     CL = θ[2]*exp(η[1]),
     V  = θ[3]*exp(η[2]))
 end
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-7
 
 ###############################
 # Test 19
@@ -929,10 +939,9 @@ function set_parameters(θ,η,z)
    @NT(Ka1 = θ[1],
        Ka2 = θ[2],
        CL = θ[3]*exp(η[1]),
-       V  = θ[4]*exp(η[2])),
-       bioav1 = θ[5],
-       bioav2 = 1 - bioav1,
-       lag2 = θ[6]
+       V  = θ[4]*exp(η[2]),
+       bioav = (θ[5],1 - θ[5],1),
+       lags = (0,θ[6],0))
 end
 
 θ = [
@@ -944,15 +953,14 @@ end
      5     #lag2
      ]
 
-sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
+sol = get_sol(θ,data,num_dv=3,abstol=1e-14,reltol=1e-14)
+res = 1000sol(obs_times;idxs=3)/θ[4]
 
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]
+resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=2,abstol=1e-12,reltol=1e-12)
+@test_broken norm(resid) < 1e-6
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
-
-a_resid = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-7
+@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken norm(a_resid) < 1e-7
 
 
 ###############################
@@ -969,7 +977,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(19)
+data,obs,obs_times = get_nonem_data(20)
 
 # Parallel first order absorption dosing model
 function f(t,u,p,du)
@@ -979,28 +987,27 @@ function f(t,u,p,du)
    end
 
 function set_parameters(θ,η,z)
-   @NT(Ka1 = θ[1],
+   @NT(Ka = θ[1],
        CL = θ[2]*exp(η[1]),
-       V  = θ[3]*exp(η[2])),
-       bioav1 = θ[5],
-       bioav2 = 1 - bioav1,
-       lag2 = θ[4]
+       V  = θ[3]*exp(η[2]),
+       bioav = (θ[5],1 - θ[5]),
+       duration = (0.0,4.0),
+       lags = (0.0,θ[4]))
 end
 
 θ = [
      0.5,  #Ka1
      1.0,  #CL
      30.0, #V
-     0.5,  #bioav1
-     5     #lag2
+     5,    #lag2
+     0.5   #bioav1
      ]
 
 sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]
+res = 0.5sol(obs_times;idxs=2)/θ[3]
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
+@test_broken norm(resid) < 1e-6
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-7
+@test_broken norm(a_resid) < 1e-7
