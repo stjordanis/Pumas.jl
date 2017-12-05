@@ -56,8 +56,6 @@ end
 covariates = [1]
 dvs = [1]
 
-c
-
 ###############################
 # Test 2
 ###############################
@@ -750,9 +748,11 @@ function set_parameters(θ,η,z)
         CL = θ[2]*exp(η[1]),
         V  = θ[3]*exp(η[2]),
         bioav = θ[4],
-        lag = θ[5,
-        duration = θ[6]])
+        lag = θ[5],
+        duration = θ[6])
 end
+
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
@@ -765,7 +765,7 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 ###############################
 
 ## SS=2 and next dose overlapping into the SS interval
-# ev15 - first order bolus into central compartment at ss followed by an ss=2 (superposition ss) dose at 12 hours 
+# ev15 - first order bolus into central compartment at ss followed by an ss=2 (superposition ss) dose at 12 hours
 # - use ev15.csv in PKPDSimulator/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by a 20 mg ss=2 dose at time 12
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
@@ -805,7 +805,7 @@ res = 1000sol(obs_times+1e-14;idxs=2)/θ[3]
 ###############################
 
 ## SS=2 with a no-reset afterwards
-# ev16 - first order bolus into central compartment at ss followed by 
+# ev16 - first order bolus into central compartment at ss followed by
 # an ss=2 (superposition ss) dose at 12 hours followed by reset ss=1 dose at 24 hours
 # - use ev16.csv in PKPDSimulator/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by 20 mg ss=2 dose at time 12 followed
@@ -923,16 +923,16 @@ function f(t,u,p,du)
     du[2] = -p.Ka2*Depot2
     du[3] =  p.Ka1*Depot1 + p.Ka2*Depot2 - (p.CL/p.V)*Central
    end
-   
-   function set_parameters(θ,η,z)
-       @NT(Ka1 = θ[1],
-           Ka2 = θ[2],
-           CL = θ[3]*exp(η[1]),
-           V  = θ[4]*exp(η[2])),
-           bioav1 = θ[5],
-           bioav2 = 1 - bioav1,
-           lag2 = θ[6]
-   end
+
+function set_parameters(θ,η,z)
+   @NT(Ka1 = θ[1],
+       Ka2 = θ[2],
+       CL = θ[3]*exp(η[1]),
+       V  = θ[4]*exp(η[2])),
+       bioav1 = θ[5],
+       bioav2 = 1 - bioav1,
+       lag2 = θ[6]
+end
 
 θ = [
      0.8,  #Ka1
@@ -944,8 +944,8 @@ function f(t,u,p,du)
      ]
 
 sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-     
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]     
+
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
@@ -961,7 +961,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times)
 # ev20 - Mixed zero and first order absorption
 # use ev20.csv in PKPDSimulator/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
-# and is followed, with a lag time (lag2), by a zero-order process in the central compartment. 
+# and is followed, with a lag time (lag2), by a zero-order process in the central compartment.
 # a 10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 0.5 (bioav1)
 # Also at time zero a zero order dose with a 4 hour duration is given into the central compartment with a bioav2 of 1-bioav1 = 0.5
 # Depot2Lag = 5; a 5 hour lag before which the drug shows up from the zero order process into the central compartment with the specified bioav2
@@ -976,15 +976,15 @@ function f(t,u,p,du)
     du[1] = -p.Ka*Depot
     du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
    end
-   
-   function set_parameters(θ,η,z)
-       @NT(Ka1 = θ[1],
-           CL = θ[2]*exp(η[1]),
-           V  = θ[3]*exp(η[2])),
-           bioav1 = θ[5],
-           bioav2 = 1 - bioav1,
-           lag2 = θ[4]
-   end
+
+function set_parameters(θ,η,z)
+   @NT(Ka1 = θ[1],
+       CL = θ[2]*exp(η[1]),
+       V  = θ[3]*exp(η[2])),
+       bioav1 = θ[5],
+       bioav2 = 1 - bioav1,
+       lag2 = θ[4]
+end
 
 θ = [
      0.5,  #Ka1
@@ -995,8 +995,8 @@ function f(t,u,p,du)
      ]
 
 sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-     
-res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]     
+
+res = 1000sol(obs_times+1e-14;idxs=2)/θ[4]
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6

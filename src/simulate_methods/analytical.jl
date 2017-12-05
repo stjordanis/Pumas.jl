@@ -53,6 +53,6 @@ function create_dose_rate_vector(cur_ev,u0,rate,bioav)
       return increment_value(zero(u0),bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt),rate
     end
   else
-    return zero(u0),increment_value(rate,cur_ev.rate,cur_ev.cmt)
+    return zero(u0),increment_value(rate,cur_ev.rate_dir*cur_ev.rate,cur_ev.cmt)
   end
 end

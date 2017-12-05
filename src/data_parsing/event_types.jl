@@ -8,7 +8,7 @@ struct Event{T,T2,T3} # Split parameters for dual numbers
   ss::Int
   ii::T3
   base_time::T3 # So that this is kept after modifications to duration and rate
-  off_event::Bool
+  rate_dir::Int
 end
 
 Base.isless(a::Event,b::Event) = isless(a.time,b.time)

@@ -163,9 +163,9 @@ function dose!(integrator,cur_ev,bioav,last_restart)
     end
     savevalues!(integrator)
   else
-    if !cur_ev.off_event || integrator.t - cur_ev.duration > last_restart[]
+    if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       integrator.f.rates_on[] += cur_ev.evid > 0
-      integrator.f.rates[cur_ev.cmt] += cur_ev.rate
+      integrator.f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
     end
   end
 end
@@ -173,7 +173,7 @@ end
 function ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
   if cur_ev.rate != 0
     integrator.f.rates_on[] = true
-    integrator.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate
+    integrator.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
   else
     if typeof(bioav) <: Number
       integrator.u[cur_ev.cmt] += bioav*cur_ev.amt

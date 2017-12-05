@@ -155,10 +155,10 @@ function build_dataset(cols,covariates=(),dvs=())
 
             for j = 0:addl  # addl==0 means just once
                 duration = amt/rate
-                push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,false))
+                push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,1))
                 if rate != 0 && ss == 0 && amt != 0
                     # amt == 0 implies never turns off, so no off event
-                    push!(events,Event(-amt,t + duration,-1,cmt,-rate,duration,ss,ii,t,true))
+                    push!(events,Event(amt,t + duration,-1,cmt,rate,duration,ss,ii,t,-1))
                 end
                 t += ii
             end

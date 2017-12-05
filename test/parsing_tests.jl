@@ -14,7 +14,7 @@ for ev in data[1].events
   @test ev.rate == data[1].events[1].rate
   @test ev.ss == data[1].events[1].ss
   @test ev.ii == data[1].events[1].ii
-  @test ev.off_event == data[1].events[1].off_event
+  @test ev.rate_dir == data[1].events[1].rate_dir
   @test ev.cmt == 1
 end
 
