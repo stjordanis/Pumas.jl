@@ -155,10 +155,26 @@ function build_dataset(cols,covariates=(),dvs=())
 
             for j = 0:addl  # addl==0 means just once
                 duration = amt/rate
-                push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,1))
-                if rate != 0 && ss == 0 && amt != 0
-                    # amt == 0 implies never turns off, so no off event
-                    push!(events,Event(amt,t + duration,-1,cmt,rate,duration,ss,ii,t,-1))
+                @assert amt != 0 || ss == 1 || evid == 2
+                if amt == 0 && evid != 2
+                    @assert rate > 0
+                    # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
+                    # Such an event consists of infusion with the stated rate,
+                    # starting at time −∞, and ending at the time on the dose
+                    # ev event record. Bioavailability fractions do not apply
+                    # to these doses.
+
+                    # Put in a fake ii=10.0 for the steady state interval length
+                    ii == 0.0 && (ii = 10.0)
+                    push!(events,Event(amt,0.0,evid,cmt,rate,ii,ss,ii,t,1))
+                    if rate != 0 && ss == 0
+                        push!(events,Event(amt,t,-1,cmt,rate,duration,0,ii,t,-1))
+                    end
+                else
+                    push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,1))
+                    if rate != 0 && ss == 0
+                        push!(events,Event(amt,t + duration,-1,cmt,rate,duration,ss,ii,t,-1))
+                    end
                 end
                 t += ii
             end
