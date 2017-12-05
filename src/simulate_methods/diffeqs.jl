@@ -18,7 +18,8 @@ end
 
 function ith_patient_cb(p,datai,u0,t0)
   events = datai.events
-  ss_tol = 1e-12 # TODO: Make an option
+  ss_abstol = 1e-12 # TODO: Make an option
+  ss_reltol = 1e-12 # TODO: Make an option
   ss_max_iters = Inf
 
   lags,bioav,rate,duration = get_magic_args(p,u0,t0)
@@ -94,7 +95,9 @@ function ith_patient_cb(p,datai,u0,t0)
         elseif integrator.t == ss_end[]
           integrator.t = ss_time[]
           ss_cache .-= integrator.u
-          if ss_counter[] == ss_max_iters || integrator.opts.internalnorm(ss_cache) < ss_tol
+          err = integrator.opts.internalnorm(ss_cache)
+          if ss_counter[] == ss_max_iters || (err < ss_abstol &&
+             err/integrator.opts.internalnorm(integrator.u) < ss_reltol)
             # Steady state complete
             ss_mode[] = false
             # TODO: Make compatible with save_everystep = false
