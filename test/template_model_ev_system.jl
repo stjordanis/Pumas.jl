@@ -28,15 +28,15 @@ function get_a_sol(θ,data;kwargs...)
 end
 
 function get_residual(θ,data,obs,obs_times;
-                       num_dv=2,cmt=2,kwargs...)
+                       num_dv=2,cmt=2,scaling_factor = 1000,kwargs...)
     sol = get_sol(θ,data;num_dv=num_dv,kwargs...)
-    cps = sol(obs_times;idxs=cmt)./(θ[3]/1000)
+    cps = sol(obs_times;idxs=cmt)./(θ[3]/scaling_factor)
     resid = cps - obs
 end
 
-function get_analytical_residual(θ,data,obs,obs_times;kwargs...)
+function get_analytical_residual(θ,data,obs,obs_times;scaling_factor = 1000,kwargs...)
     sol = get_a_sol(θ,data;kwargs...)
-    cps = sol(obs_times;idxs=2)./(θ[3]/1000)
+    cps = sol(obs_times;idxs=2)./(θ[3]/scaling_factor)
     resid = cps - obs
 end
 
@@ -863,6 +863,9 @@ function set_parameters(θ,η,z)
     V  = θ[3]*exp(η[2]))
 end
 
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+res = 1000sol(obs_times;idxs=2)/θ[3]
+
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
 
@@ -892,6 +895,9 @@ function set_parameters(θ,η,z)
     CL = θ[2]*exp(η[1]),
     V  = θ[3]*exp(η[2]))
 end
+
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+res = 1000sol(obs_times;idxs=2)/θ[3]
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test_broken norm(resid) < 1e-6
@@ -939,17 +945,14 @@ end
 θ = [
      0.8,  #Ka1
      0.6,  #Ka2
-     1.0,  #CL
-     30.0, #V
+     5.0,  #CL
+     50.0, #V
      0.5,  #bioav1
      5     #lag2
      ]
 
-sol = get_sol(θ,data,num_dv=3,abstol=1e-14,reltol=1e-14)
-res = 1000sol(obs_times;idxs=3)/θ[4]
-
-resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=2,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=2,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
 
 @test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-7
@@ -989,17 +992,14 @@ end
 
 θ = [
      0.5,  #Ka1
-     1.0,  #CL
-     30.0, #V
+     5.0,  #CL
+     50.0, #V
      5,    #lag2
      0.5   #bioav1
      ]
 
-sol = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-res = 0.5sol(obs_times;idxs=2)/θ[3]
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
-
-a_resid = get_analytical_residual(θ,data,obs,obs_times)
+a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
 @test_broken norm(a_resid) < 1e-7
