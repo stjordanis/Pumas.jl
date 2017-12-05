@@ -756,7 +756,7 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+@test norm(a_resid) < 1e-6
 
 ###############################
 # Test 15
