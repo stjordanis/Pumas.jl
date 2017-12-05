@@ -122,7 +122,7 @@ function build_dataset(cols,covariates=(),dvs=())
     ## Common fields
     eltype(cols[:id]) <: AbstractString ? ids = parse.(Int, cols[:id]) : ids = cols[:id]
     eltype(cols[:time]) <: AbstractString ? times = parse.(Float64, cols[:time]) : times = cols[:time]
-    eltype(cols[:evid]) <: AbstractString ? evids = parse.(Int, cols[:evid]) : evids = cols[:evid]
+    eltype(cols[:evid]) <: AbstractString ? evids = parse.(Int8, cols[:evid]) : evids = cols[:evid]
 
     uids  = unique(ids)
     !isempty(dvs) && (Tdv = NamedTuples.create_namedtuple_type(dvs))
@@ -151,7 +151,7 @@ function build_dataset(cols,covariates=(),dvs=())
             ii   = haskey(cols, :ii)   ? parse(Float64, cols[:ii][i]) : 0.0
             cmt  = haskey(cols,:cmt)   ? parse(Int, cols[:cmt][i])  : 1
             rate = haskey(cols,:rate)  ? misparse(Float64, cols[:rate][i]) : 0.0
-            ss   = haskey(cols,:ss)    ? misparse(Int, cols[:ss][i])   : 0
+            ss   = haskey(cols,:ss)    ? misparse(Int8, cols[:ss][i])   : Int8(0)
 
             for j = 0:addl  # addl==0 means just once
                 duration = amt/rate
@@ -166,14 +166,14 @@ function build_dataset(cols,covariates=(),dvs=())
 
                     # Put in a fake ii=10.0 for the steady state interval length
                     ii == 0.0 && (ii = 10.0)
-                    push!(events,Event(amt,0.0,evid,cmt,rate,ii,ss,ii,t,1))
+                    push!(events,Event(amt,0.0,evid,cmt,rate,ii,ss,ii,t,Int8(1)))
                     if rate != 0 && ss == 0
-                        push!(events,Event(amt,t,-1,cmt,rate,duration,0,ii,t,-1))
+                        push!(events,Event(amt,t,Int8(-1),cmt,rate,duration,Int8(0),ii,t,Int8(-1)))
                     end
                 else
-                    push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,1))
+                    push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,Int8(1)))
                     if rate != 0 && ss == 0
-                        push!(events,Event(amt,t + duration,-1,cmt,rate,duration,ss,ii,t,-1))
+                        push!(events,Event(amt,t + duration,Int8(-1),cmt,rate,duration,ss,ii,t,Int8(-1)))
                     end
                 end
                 t += ii
