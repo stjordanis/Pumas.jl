@@ -936,8 +936,8 @@ function f(t,u,p,du)
 function set_parameters(θ,η,z)
    @NT(Ka1 = θ[1],
        Ka2 = θ[2],
-       CL = θ[3]*exp(η[1]),
-       V  = θ[4]*exp(η[2]),
+       CL = θ[4]*exp(η[1]),
+       V  = θ[3]*exp(η[2]),
        bioav = (θ[5],1 - θ[5],1),
        lags = (0,θ[6],0))
 end
@@ -945,16 +945,16 @@ end
 θ = [
      0.8,  #Ka1
      0.6,  #Ka2
+     50.0, #V # V needs to be 3 for the test to scale the result properly
      5.0,  #CL
-     50.0, #V
      0.5,  #bioav1
      5     #lag2
      ]
 
-resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=2,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
-@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times)
+@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,scaling_factor=1)
 @test_broken norm(a_resid) < 1e-7
 
 
