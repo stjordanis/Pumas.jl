@@ -151,7 +151,12 @@ function ith_patient_cb(p,datai,u0,t0)
     # Not at an event but still a tstop, turn off rates from last ss event
     if post_steady_state[] && integrator.t == ss_time[] + ss_overlap_duration[] + ss_dropoff_counter[]*ss_ii[]
       ss_dropoff_counter[] += 1
-      ss_dropoff_counter[] == ss_rate_multiplier[]+1 && (post_steady_state[] = false)
+
+      # > is required if ss_overlap_duration[] == 0 since it starts at 1 to not
+      # trigger at ss_time, but still needs to turn off!
+      ss_dropoff_counter[] >= ss_rate_multiplier[] && (post_steady_state[] = false)
+
+
       ss_event = events[ss_event_counter[]]
       ss_event.amt != 0 && (integrator.f.rates[ss_event.cmt] -= ss_event.rate)
       # TODO: Optimize by setting integrator.f.rates_on[] = false

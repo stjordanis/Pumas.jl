@@ -154,8 +154,9 @@ function build_dataset(cols,covariates=(),dvs=())
             ss   = haskey(cols,:ss)    ? misparse(Int8, cols[:ss][i])   : Int8(0)
 
             for j = 0:addl  # addl==0 means just once
+                j == 0 ? _ss = ss : _ss = Int8(0)
                 duration = amt/rate
-                @assert amt != 0 || ss == 1 || evid == 2
+                @assert amt != 0 || _ss == 1 || evid == 2
                 if amt == 0 && evid != 2
                     @assert rate > 0
                     # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
@@ -166,11 +167,11 @@ function build_dataset(cols,covariates=(),dvs=())
 
                     # Put in a fake ii=10.0 for the steady state interval length
                     ii == 0.0 && (ii = 10.0)
-                    push!(events,Event(amt,t,evid,cmt,rate,ii,ss,ii,t,Int8(1)))
+                    push!(events,Event(amt,t,evid,cmt,rate,ii,_ss,ii,t,Int8(1)))
                 else
-                    push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,Int8(1)))
-                    if rate != 0 && ss == 0
-                        push!(events,Event(amt,t + duration,Int8(-1),cmt,rate,duration,ss,ii,t,Int8(-1)))
+                    push!(events,Event(amt,t,evid,cmt,rate,duration,_ss,ii,t,Int8(1)))
+                    if rate != 0 && _ss == 0
+                        push!(events,Event(amt,t + duration,Int8(-1),cmt,rate,duration,_ss,ii,t,Int8(-1)))
                     end
                 end
                 t += ii
