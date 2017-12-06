@@ -894,10 +894,9 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-res = sol(obs_times;idxs=2)/θ[3]
-
-# [2:end] because of observation at time zero
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+resid = sol(obs_times+1e-14;idxs=2)/θ[3] - obs
+# use post-dose observations
+#resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times)
