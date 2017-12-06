@@ -849,7 +849,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-@test_broken data,obs,obs_times = get_nonem_data(17)
+data,obs,obs_times = get_nonem_data(17)
 
 θ = [
     1.0,  #Ka
@@ -863,11 +863,8 @@ function set_parameters(θ,η,z)
     V  = θ[3]*exp(η[2]))
 end
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-res = 1000sol(obs_times;idxs=2)/θ[3]
-
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-7
@@ -882,7 +879,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-@test_broken data,obs,obs_times = get_nonem_data(18)
+data,obs,obs_times = get_nonem_data(18)
 
 θ = [
     1.0,  #Ka
@@ -897,10 +894,11 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-res = 1000sol(obs_times;idxs=2)/θ[3]
+res = sol(obs_times;idxs=2)/θ[3]
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test_broken norm(resid) < 1e-6
+# [2:end] because of observation at time zero
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times)
 @test_broken norm(a_resid) < 1e-7

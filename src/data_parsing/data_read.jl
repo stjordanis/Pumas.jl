@@ -166,10 +166,7 @@ function build_dataset(cols,covariates=(),dvs=())
 
                     # Put in a fake ii=10.0 for the steady state interval length
                     ii == 0.0 && (ii = 10.0)
-                    push!(events,Event(amt,0.0,evid,cmt,rate,ii,ss,ii,t,Int8(1)))
-                    if rate != 0 && ss == 0
-                        push!(events,Event(amt,t,Int8(-1),cmt,rate,duration,Int8(0),ii,t,Int8(-1)))
-                    end
+                    push!(events,Event(amt,t,evid,cmt,rate,ii,ss,ii,t,Int8(1)))
                 else
                     push!(events,Event(amt,t,evid,cmt,rate,duration,ss,ii,t,Int8(1)))
                     if rate != 0 && ss == 0

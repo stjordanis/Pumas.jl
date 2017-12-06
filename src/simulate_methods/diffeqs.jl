@@ -112,6 +112,9 @@ function ith_patient_cb(p,datai,u0,t0)
                 add_tstop!(integrator,integrator.t + ss_overlap_duration[] + k*ss_ii[])
               end
               ss_dropoff_counter[] = start_k
+            else # amt = 0, turn off rates
+              integrator.f.rates[cur_ev.cmt] .= 0
+              integrator.f.rates_on[] = false
             end
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
