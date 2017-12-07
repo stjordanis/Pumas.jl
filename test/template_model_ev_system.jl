@@ -87,6 +87,9 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 
 @test norm(resid) < 1e-6
 
+sol  = get_sol(θ,data)
+asol  = get_a_sol(θ,data)
+
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 
 @test norm(a_resid) < 1e-6
@@ -246,13 +249,16 @@ for i in 1:200
 end
 
 sol  = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-@test sol[3][2] - u0 < 1e-9
+@test norm(sol[3][2] - u0) < 1e-9
+
+asol  = get_a_sol(θ,data,abstol=1e-14,reltol=1e-14)
+@test norm(asol[1][2] - u0) < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
 @test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+@test norm(a_resid) < 1e-2
 
 ###############################
 # Test 6
@@ -310,20 +316,19 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
 u0 = 0.0
 for i in 1:200
     u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
 end
-
-@test sol[3][2] - u0 < 1e-9
-
-res = 1000sol(obs_times;idxs=2)/θ[3]
+@test norm(sol[3][2]  - u0) < 1e-9
+@test norm(asol[1][2] - u0) < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+@test norm(a_resid) < 1e-2
 
 ###############################
 # Test 7
@@ -375,8 +380,8 @@ end
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+@test norm(a_resid) < 1e-2
 
 
 ###############################
@@ -431,8 +436,8 @@ end
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+@test norm(a_resid) < 1e-2
 
 
 ###############################
@@ -487,8 +492,8 @@ end
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+@test norm(a_resid) < 1e-2
 
 
 ###############################
