@@ -704,6 +704,9 @@ function set_parameters(θ,η,z)
         bioav = θ[4])
 end
 
+sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 

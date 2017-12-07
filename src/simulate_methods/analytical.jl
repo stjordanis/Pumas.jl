@@ -16,19 +16,10 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   doses = Vector{typeof(u0)}(length(times))
   rates = Vector{typeof(u0)}(length(times))
 
-  # Iteration 1
   t0 = times[1]
-  cur_ev = events[1]
-  dose,rate = create_dose_rate_vector(cur_ev,u0,zero(u0),bioav)
-  if cur_ev.ss == 0
-    u[1] = u0
-    doses[1] = dose
-    rates[1] = rate
-    i = 2
-  else
-    i = 1
-  end
-
+  rate = zero(u0)
+  dose = zero(u0)
+  i = 1
   ss_time = -one(t0)
   ss_overlap_duration = -one(t0)
   ss_rate_multiplier = -1
@@ -44,7 +35,6 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
     t = times[i]
     ss_dropoff_event = post_ss_counter < ss_rate_multiplier + start_val &&
                        t == ss_time + ss_overlap_duration + post_ss_counter*cur_ev.ii
-
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
