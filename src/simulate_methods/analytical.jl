@@ -38,18 +38,15 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   ss_cmt = 0
   ss_dropoff_event = false
   start_val = 0
-  t = times[i]
 
   # Now loop through the rest
   while i <= length(times)
     t = times[i]
     ss_dropoff_event = post_ss_counter < ss_rate_multiplier + start_val &&
                        t == ss_time + ss_overlap_duration + post_ss_counter*cur_ev.ii
-    @show i,t0,t,rate
 
     if ss_dropoff_event
       # Do an off event from the ss
-      @show "dropoff"
       post_ss_counter += 1
       u0 = f(t,t0,u0,dose,p,rate)
       u[i] = u0
@@ -64,9 +61,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
-        @show u0,rate
         (t0 != t) && (u0 = f(t,t0,u0,dose,p,rate))
-        @show u0
         rate = _rate
         u[i] = u0
         doses[i] = dose
@@ -75,43 +70,67 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
         ss_time = t0
         # No steady state solution given, use a fallback
         dose,_rate = create_ss_dose_rate_vector(cur_ev,u0,rate,bioav)
-        ss_rate = _rate
-        _duration = (bioav*cur_ev.amt)/cur_ev.rate
-        ss_overlap_duration = mod(_duration,cur_ev.ii)
-        ss_rate_multiplier = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii)
-        ss_cmt = cur_ev.cmt
-        _rate *= ss_rate_multiplier
-        _t1 = t0 + ss_overlap_duration
-        _t2 = t0 + cur_ev.ii
-        _t1 == t0 && (_t1 = _t2)
+        if cur_ev.rate > 0
+          ss_rate = _rate
+          _duration = (bioav*cur_ev.amt)/cur_ev.rate
+          ss_overlap_duration = mod(_duration,cur_ev.ii)
+          ss_rate_multiplier = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii)
+          ss_cmt = cur_ev.cmt
+          _rate *= ss_rate_multiplier
+          _t1 = t0 + ss_overlap_duration
+          _t2 = t0 + cur_ev.ii
+          _t1 == t0 && (_t1 = _t2)
 
-        if ss == nothing
-          cur_norm = Inf
-          while cur_norm > 1e-12
-            u0prev = u0
-            u0 = f(_t1,t0,u0,dose,p,_rate)
-            _t2-_t1 > 0 && (u0 = f(_t2,_t1,u0,zero(u0),p,_rate-ss_rate))
-            cur_norm = norm(u0-u0prev)
+          u0_cache = u0
+
+          if ss == nothing
+            cur_norm = Inf
+            while cur_norm > 1e-12
+              u0prev = u0
+              u0 = f(_t1,t0,u0,dose,p,_rate)
+              _t2-_t1 > 0 && (u0 = f(_t2,_t1,u0,zero(u0),p,_rate-ss_rate))
+              cur_norm = norm(u0-u0prev)
+            end
           end
-        end
 
-        rate = _rate
-        cur_ev.ss == 2 && (u0 += u[i-1])
+          rate = _rate
+          cur_ev.ss == 2 && (u0 += u0_cache)
 
-        u[i] = u0
-        doses[i] = dose
-        rates[i] = rate
-        old_length = length(times)
-        ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
-        resize!(times,old_length+Int(ss_rate_multiplier))
-        resize!(u,    old_length+Int(ss_rate_multiplier))
-        resize!(doses,old_length+Int(ss_rate_multiplier))
-        resize!(rates,old_length+Int(ss_rate_multiplier))
-        for j in start_val:Int(ss_rate_multiplier)-1+start_val
-          times[old_length+j+1-start_val] = ss_time + ss_overlap_duration + j*cur_ev.ii
+          u[i] = u0
+          doses[i] = dose
+          rates[i] = rate
+          old_length = length(times)
+          ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
+          resize!(times,old_length+Int(ss_rate_multiplier))
+          resize!(u,    old_length+Int(ss_rate_multiplier))
+          resize!(doses,old_length+Int(ss_rate_multiplier))
+          resize!(rates,old_length+Int(ss_rate_multiplier))
+          for j in start_val:Int(ss_rate_multiplier)-1+start_val
+            times[old_length+j+1-start_val] = ss_time + ss_overlap_duration + j*cur_ev.ii
+          end
+          post_ss_counter = start_val
+          times = sort!(times)
+        else # Not a rate event, just a dose
+
+          _t1 = t0 + cur_ev.ii
+          u0_cache = u0
+
+          if ss == nothing
+            cur_norm = Inf
+            while cur_norm > 1e-12
+              u0prev = u0
+              u0 = f(_t1,t0,u0,dose,p,_rate)
+              cur_norm = norm(u0-u0prev)
+            end
+          end
+
+          rate = _rate
+          cur_ev.ss == 2 && (u0 += u0_cache)
+          u[i] = u0
+          doses[i] = dose
+          rates[i] = rate
+
         end
-        post_ss_counter = start_val
-        times = sort!(times)
       end
     end
     # Don't update i for duplicate events
