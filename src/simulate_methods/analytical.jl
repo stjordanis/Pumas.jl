@@ -31,41 +31,46 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
 
   ss_time = -one(t0)
   ss_overlap_duration = -one(t0)
-  ss_rate_multiplier = 0
-  post_ss_counter = 0
+  ss_rate_multiplier = -1
+  post_ss_counter = -1
   event_counter = i-1
   ss_rate = zero(rate)
   ss_cmt = 0
+  ss_dropoff_event = false
+  start_val = 0
+  t = times[i]
 
   # Now loop through the rest
-  # TODO: Handle multiple events at the same time
   while i <= length(times)
-    @show event_counter
     t = times[i]
-    @show t,rate
-    if post_ss_counter < ss_rate_multiplier && t == ss_time + ss_overlap_duration + post_ss_counter*cur_ev.ii
+    ss_dropoff_event = post_ss_counter < ss_rate_multiplier + start_val &&
+                       t == ss_time + ss_overlap_duration + post_ss_counter*cur_ev.ii
+    @show i,t0,t,rate
+
+    if ss_dropoff_event
       # Do an off event from the ss
+      @show "dropoff"
       post_ss_counter += 1
-      @show post_ss_counter
-      _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
       u0 = f(t,t0,u0,dose,p,rate)
-      rate = _rate
       u[i] = u0
       doses[i] = dose
+      _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
+      rate = _rate
       rates[i] = rate
-      t0 = t
     else # Not an SS off event
+      ss_dropoff_event = false
       event_counter += 1
       cur_ev = events[event_counter]
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
-        u0 = f(t,t0,u0,dose,p,rate)
+        @show u0,rate
+        (t0 != t) && (u0 = f(t,t0,u0,dose,p,rate))
+        @show u0
         rate = _rate
         u[i] = u0
         doses[i] = dose
         rates[i] = rate
-        t0 = t
       else # handle steady state
         ss_time = t0
         # No steady state solution given, use a fallback
@@ -78,13 +83,14 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
         _rate *= ss_rate_multiplier
         _t1 = t0 + ss_overlap_duration
         _t2 = t0 + cur_ev.ii
+        _t1 == t0 && (_t1 = _t2)
 
         if ss == nothing
           cur_norm = Inf
           while cur_norm > 1e-12
             u0prev = u0
-            _u0 = f(_t1,t0,u0,dose,p,_rate)
-            u0 = f(_t2,_t1,_u0,zero(u0),p,_rate-ss_rate)
+            u0 = f(_t1,t0,u0,dose,p,_rate)
+            _t2-_t1 > 0 && (u0 = f(_t2,_t1,u0,zero(u0),p,_rate-ss_rate))
             cur_norm = norm(u0-u0prev)
           end
         end
@@ -95,21 +101,26 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
         u[i] = u0
         doses[i] = dose
         rates[i] = rate
-        t0 = t
         old_length = length(times)
+        ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
         resize!(times,old_length+Int(ss_rate_multiplier))
         resize!(u,    old_length+Int(ss_rate_multiplier))
         resize!(doses,old_length+Int(ss_rate_multiplier))
         resize!(rates,old_length+Int(ss_rate_multiplier))
-        for j in 0:Int(ss_rate_multiplier)-1
-          times[old_length+j+1] = ss_time + ss_overlap_duration + j*cur_ev.ii
+        for j in start_val:Int(ss_rate_multiplier)-1+start_val
+          times[old_length+j+1-start_val] = ss_time + ss_overlap_duration + j*cur_ev.ii
         end
-        sort!(times)
-        @show times
+        post_ss_counter = start_val
+        times = sort!(times)
       end
     end
-    i += 1
+    # Don't update i for duplicate events
+    t0 = t
+    if ss_dropoff_event || (event_counter != length(events) && events[event_counter+1].time != t) || event_counter == length(events)
+      i += 1
+    end
   end
+
   _soli = PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u),
                      typeof(times),
                      typeof(doses),typeof(rates),
