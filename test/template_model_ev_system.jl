@@ -20,8 +20,8 @@ function get_sol(θ,data;num_dv=2,kwargs...)
     sol  = simulate(pkpd,θ,η,data[1];kwargs...)
 end
 
-function get_a_sol(θ,data;kwargs...)
-   prob = OneCompartmentModel(72.0)
+function get_a_sol(θ,data;model = OneCompartmentModel,kwargs...)
+   prob = model(72.0)
    pkpd = PKPDModel(prob,set_parameters)
    η = zeros(2)
    sol  = simulate(pkpd,θ,η,data[1])
@@ -34,9 +34,12 @@ function get_residual(θ,data,obs,obs_times;
     resid = cps - obs
 end
 
-function get_analytical_residual(θ,data,obs,obs_times;scaling_factor = 1000,kwargs...)
-    sol = get_a_sol(θ,data;kwargs...)
-    cps = sol(obs_times;idxs=2)./(θ[3]/scaling_factor)
+function get_analytical_residual(θ,data,obs,obs_times;
+                                 model = OneCompartmentModel,
+                                 cmt=2,
+                                 scaling_factor = 1000,kwargs...)
+    sol = get_a_sol(θ,data;model = model,kwargs...)
+    cps = sol(obs_times;idxs=cmt)./(θ[3]/scaling_factor)
     resid = cps - obs
 end
 
@@ -980,9 +983,8 @@ end
 resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
-# Don't have the analytical solution
-#@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,scaling_factor=1)
-#@test_broken norm(a_resid) < 1e-7
+a_resid = get_analytical_residual(θ,data,obs,obs_times,model=OneCompartmentParallelModel,cmt=3,scaling_factor=1)
+@test norm(a_resid) < 1e-7
 
 
 ###############################
