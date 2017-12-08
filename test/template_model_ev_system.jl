@@ -24,7 +24,7 @@ function get_a_sol(θ,data;kwargs...)
    prob = OneCompartmentModel(72.0)
    pkpd = PKPDModel(prob,set_parameters)
    η = zeros(2)
-   sol  = simulate(pkpd,θ,η,data[1];kwargs...)
+   sol  = simulate(pkpd,θ,η,data[1])
 end
 
 function get_residual(θ,data,obs,obs_times;
@@ -251,7 +251,7 @@ end
 sol  = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
 @test norm(sol[3][2] - u0) < 1e-9
 
-asol  = get_a_sol(θ,data,abstol=1e-14,reltol=1e-14)
+asol  = get_a_sol(θ,data)
 @test norm(asol[1][2] - u0) < 1e-9
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
@@ -316,7 +316,7 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 u0 = 0.0
 for i in 1:200
     u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
@@ -542,7 +542,7 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 res = 1000sol(obs_times;idxs=2)/30
 
@@ -600,7 +600,7 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 analytical_f = OneCompartmentModel(0.0).f
 p = @NT(Ka = θ[1],
@@ -706,7 +706,7 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
@@ -796,7 +796,7 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 # Use post-dose observations
 resid = sol(obs_times[1:end-19]+1e-12;idxs=2)/θ[3] - obs[1:end-19]
@@ -849,7 +849,7 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-4
 
 # Use pre-dose observations
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 @test norm(1000asol(obs_times-1e-12;idxs=2)/θ[3] - obs) < 1e-4
 
 #a_resid = get_analytical_residual(θ,data,obs,obs_times)[2:end]
@@ -887,7 +887,7 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_fa
 @test norm(resid) < 1e-6
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
 @test norm(a_resid) < 1e-5
@@ -922,7 +922,7 @@ resid = sol(obs_times+1e-14;idxs=2)/θ[3] - obs
 #resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data)
 
 # use post-dose obervations
 a_resid = asol(obs_times+1e-14;idxs=2)/θ[3] - obs
