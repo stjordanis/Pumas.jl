@@ -802,7 +802,7 @@ asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
 resid = sol(obs_times[1:end-19]+1e-12;idxs=2)/θ[3] - obs[1:end-19]
 @test norm(resid) < 1e-5
 resid = asol(obs_times[1:end-19]+1e-12;idxs=2)/θ[3] - obs[1:end-19]
-@test_broken norm(resid) < 1e-5
+@test norm(resid) < 1e-5
 
 #@test_broken resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 #@test_broken norm(resid) < 1e-6
@@ -845,14 +845,15 @@ function set_parameters(θ,η,z)
     V  = θ[3]*exp(η[2]))
 end
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
-
 resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-4
 
-a_resid = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test_broken norm(a_resid) < 1e-7
+# Use pre-dose observations
+asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+@test norm(1000asol(obs_times-1e-12;idxs=2)/θ[3] - obs) < 1e-4
+
+#a_resid = get_analytical_residual(θ,data,obs,obs_times)[2:end]
+#@test_broken norm(a_resid) < 1e-7
 
 
 ###############################

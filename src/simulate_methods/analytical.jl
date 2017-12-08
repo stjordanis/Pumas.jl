@@ -73,7 +73,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
           _t2 = t0 + cur_ev.ii
           _t1 == t0 && (_t1 = _t2)
 
-          u0_cache = u0
+          cur_ev.ss==2 && (u0_cache = f(t,t0,u0,last_dose,p,rate))
 
           if ss == nothing
             cur_norm = Inf
@@ -106,7 +106,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
         else # Not a rate event, just a dose
 
           _t1 = t0 + cur_ev.ii
-          u0_cache = u0
+          cur_ev.ss==2 && (u0_cache = f(t,t0,u0,last_dose,p,rate))
 
           if ss == nothing
             cur_norm = Inf
