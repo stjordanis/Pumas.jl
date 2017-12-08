@@ -18,7 +18,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
 
   t0 = times[1]
   rate = zero(u0)
-  dose = zero(u0)
+  last_dose = zero(u0)
   i = 1
   ss_time = -one(t0)
   ss_overlap_duration = -one(t0)
@@ -40,7 +40,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
       post_ss_counter += 1
       u0 = f(t,t0,u0,dose,p,rate)
       u[i] = u0
-      doses[i] = dose
+      doses[i] = zero(u0)
       _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
       rate = _rate
       rates[i] = rate
@@ -51,10 +51,12 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
-        (t0 != t) && (u0 = f(t,t0,u0,dose,p,rate))
+
+        (t0 != t) && (u0 = f(t,t0,u0,last_dose,p,rate))
         rate = _rate
         u[i] = u0
         doses[i] = dose
+        last_dose = dose
         rates[i] = rate
       else # handle steady state
         ss_time = t0
@@ -88,6 +90,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
 
           u[i] = u0
           doses[i] = dose
+          last_dose = dose
           rates[i] = rate
           old_length = length(times)
           ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
@@ -118,6 +121,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
           cur_ev.ss == 2 && (u0 += u0_cache)
           u[i] = u0
           doses[i] = dose
+          last_dose = dose
           rates[i] = rate
 
         end

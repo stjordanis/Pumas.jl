@@ -600,6 +600,7 @@ function set_parameters(θ,η,z)
 end
 
 sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
 
 analytical_f = OneCompartmentModel(0.0).f
 p = @NT(Ka = θ[1],
@@ -711,7 +712,7 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 
 a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test_broken norm(a_resid) < 1e-6
+@test norm(a_resid) < 1e-6
 
 ###############################
 # Test 14
@@ -1017,4 +1018,4 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_fa
 @test norm(resid) < 1e-6
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
-@test_broken norm(a_resid) < 1e-7
+@test norm(a_resid) < 1e-7

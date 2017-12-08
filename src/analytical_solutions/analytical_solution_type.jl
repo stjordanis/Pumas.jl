@@ -14,7 +14,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing)
     i = searchsortedfirst(sol.t,t) - 1
     if i < length(sol.t) && t == sol.t[i+1] # if at a dose time, then apply dose
         res = sol.u[i+1] + sol.doses[i+1]
-        u[j] = idxs==nothing ? res : res[idxs]
+        idxs==nothing ? res : res[idxs]
     elseif i == 0
         return idxs==nothing ? sol.prob.u0 : sol.prob.u0[idxs]
     else
