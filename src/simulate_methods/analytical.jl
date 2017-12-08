@@ -26,6 +26,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   post_ss_counter = -1
   event_counter = i-1
   ss_rate = zero(rate)
+  ss_ii = zero(t0)
   ss_cmt = 0
   ss_dropoff_event = false
   start_val = 0
@@ -34,7 +35,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   while i <= length(times)
     t = times[i]
     ss_dropoff_event = post_ss_counter < ss_rate_multiplier + start_val &&
-                       t == ss_time + ss_overlap_duration + post_ss_counter*cur_ev.ii
+                       t == ss_time + ss_overlap_duration + post_ss_counter*ss_ii
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
@@ -68,6 +69,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
           ss_overlap_duration = mod(_duration,cur_ev.ii)
           ss_rate_multiplier = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii)
           ss_cmt = cur_ev.cmt
+          ss_ii = cur_ev.ii
           _rate *= ss_rate_multiplier
           _t1 = t0 + ss_overlap_duration
           _t2 = t0 + cur_ev.ii
@@ -86,23 +88,26 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
           end
 
           rate = _rate
+          cur_ev.amt == 0 && (rate = zero(rate))
           cur_ev.ss == 2 && (u0 += u0_cache)
 
           u[i] = u0
           doses[i] = dose
           last_dose = dose
           rates[i] = rate
-          old_length = length(times)
-          ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
-          resize!(times,old_length+Int(ss_rate_multiplier))
-          resize!(u,    old_length+Int(ss_rate_multiplier))
-          resize!(doses,old_length+Int(ss_rate_multiplier))
-          resize!(rates,old_length+Int(ss_rate_multiplier))
-          for j in start_val:Int(ss_rate_multiplier)-1+start_val
-            times[old_length+j+1-start_val] = ss_time + ss_overlap_duration + j*cur_ev.ii
+          if cur_ev.amt != 0
+            old_length = length(times)
+            ss_overlap_duration == 0 ? start_val = 1 : start_val = 0
+            resize!(times,old_length+Int(ss_rate_multiplier))
+            resize!(u,    old_length+Int(ss_rate_multiplier))
+            resize!(doses,old_length+Int(ss_rate_multiplier))
+            resize!(rates,old_length+Int(ss_rate_multiplier))
+            for j in start_val:Int(ss_rate_multiplier)-1+start_val
+              times[old_length+j+1-start_val] = ss_time + ss_overlap_duration + j*cur_ev.ii
+            end
+            post_ss_counter = start_val
+            times = sort!(times)
           end
-          post_ss_counter = start_val
-          times = sort!(times)
         else # Not a rate event, just a dose
 
           _t1 = t0 + cur_ev.ii
