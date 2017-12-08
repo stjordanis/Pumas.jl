@@ -922,7 +922,13 @@ resid = sol(obs_times+1e-14;idxs=2)/θ[3] - obs
 #resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
-@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times)
+asol  = get_a_sol(θ,data,abstol=1e-12,reltol=1e-12)
+
+# use post-dose obervations
+a_resid = asol(obs_times+1e-14;idxs=2)/θ[3] - obs
+@test norm(a_resid) < 1e-6
+
+#a_resid = get_analytical_residual(θ,data,obs,obs_times)
 #@test_broken norm(a_resid) < 1e-7
 
 ###############################
@@ -974,8 +980,9 @@ end
 resid  = get_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,abstol=1e-12,reltol=1e-12,scaling_factor=1)
 @test norm(resid) < 1e-6
 
-@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,scaling_factor=1)
-@test_broken norm(a_resid) < 1e-7
+# Don't have the analytical solution
+#@test_broken a_resid = get_analytical_residual(θ,data,obs,obs_times,num_dv=3,cmt=3,scaling_factor=1)
+#@test_broken norm(a_resid) < 1e-7
 
 
 ###############################
