@@ -26,7 +26,7 @@ function ith_patient_cb(p,datai,u0,t0)
   adjust_event_timings!(events,lags,bioav,rate,duration)
 
   tstops = sorted_approx_unique(events)
-  counter = 1
+  counter::Int = 1
   ss_mode = Ref(false)
   ss_time = Ref(-one(eltype(tstops)))
   ss_end = Ref(-one(eltype(tstops)))
@@ -162,8 +162,9 @@ function ith_patient_cb(p,datai,u0,t0)
       # TODO: Optimize by setting integrator.f.rates_on[] = false
     end
   end
-  tstops,DiscreteCallback(condition, affect!, initialize = patient_cb_initialize!,
-                               save_positions=(false,false))
+  tstops,DiscreteCallback{typeof(condition),typeof(affect!),
+                          typeof(patient_cb_initialize!)}(condition,
+                          affect!,patient_cb_initialize!,(false,false))
 end
 
 function dose!(integrator,cur_ev,bioav,last_restart)
