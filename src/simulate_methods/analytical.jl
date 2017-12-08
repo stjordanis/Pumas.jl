@@ -7,9 +7,9 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
   p = set_parameters(θ,ηi,datai.z)
-  lags,bioav,rate,duration = get_magic_args(p,u0,tspan[1])
+  lags,bioav,time_adjust_rate,duration = get_magic_args(p,u0,tspan[1])
   events = datai.events
-  adjust_event_timings!(events,lags,bioav,rate,duration)
+  adjust_event_timings!(events,lags,bioav,time_adjust_rate,duration)
   times = sorted_approx_unique(events)
   u = Vector{typeof(u0)}(length(times))
   doses = Vector{typeof(u0)}(length(times))
@@ -21,7 +21,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   i = 1
   ss_time = -one(t0)
   ss_overlap_duration = -one(t0)
-  ss_rate_multiplier = -1
+  ss_rate_multiplier = -1.0
   post_ss_counter = -1
   event_counter = i-1
   ss_rate = zero(rate)
@@ -138,7 +138,8 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
     end
   end
 
-  _soli = PKPDAnalyticalSolution{typeof(u0),ndims(u0)+1,typeof(u),
+  # The two assumes that all equations are vector equations
+  _soli = PKPDAnalyticalSolution{typeof(u0),2,typeof(u),
                      typeof(times),
                      typeof(doses),typeof(rates),
                      typeof(p),

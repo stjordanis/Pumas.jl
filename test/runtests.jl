@@ -13,4 +13,6 @@ tic()
                 include("ss2_overlap_tests.jl") end
 @time @testset "Template Model EV System" begin
                 include("template_model_ev_system.jl") end
+@time @testset "Analytical Type-Stability Tests" begin
+                include("analytical_stability_tests.jl") end
 toc()

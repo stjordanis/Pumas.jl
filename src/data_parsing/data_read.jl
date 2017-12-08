@@ -141,7 +141,7 @@ function build_dataset(cols,covariates=(),dvs=())
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)
-        events = Event{Float64}[]
+        events = Event{Float64,Float64,Float64}[]
 
         for i in idx_evt
             t    = times[i]
