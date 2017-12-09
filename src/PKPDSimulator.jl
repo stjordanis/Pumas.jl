@@ -3,7 +3,7 @@ __precompile__()
 module PKPDSimulator
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples,
-      StaticArrays
+      StaticArrays, DiffEqJump
 
 @reexport using OrdinaryDiffEq
 
