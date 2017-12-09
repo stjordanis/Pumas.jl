@@ -1,19 +1,36 @@
-function simulate(_prob::ODEProblem,set_parameters,θ,ηi,datai::Person,
+function simulate(_prob::DEProblem,set_parameters,θ,ηi,datai::Person,
                   output_reduction = (sol,p,datai) -> sol,
                   alg = Tsit5();kwargs...)
+  prob,tstops = build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
+  save_start = true#datai.events[1].ss == 1
+  sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
+  output_reduction(sol,sol.prob.f.params,datai)
+end
+
+function build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
+  # From problem_new_parameters but no callbacks
   VarType = promote_type(eltype(ηi),eltype(θ))
   p = set_parameters(θ,ηi,datai.z)
   u0 = VarType.(_prob.u0)
   tspan = VarType.(_prob.tspan)
   tstops,cb = ith_patient_cb(p,datai,u0,tspan[1])
-  # From problem_new_parameters but no callbacks
-
   true_f = DiffEqWrapper(_prob,p)
-  # Match the type of ηi for duality in estimator
-  prob = ODEProblem(true_f,u0,tspan,callback=cb)
-  save_start = true#datai.events[1].ss == 1
-  sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
-  output_reduction(sol,sol.prob.f.params,datai)
+  problem_final_dispatch(_prob,true_f,u0,tspan,cb),tstops
+end
+
+# Have separate dispatches to pass along extra pieces of the problem
+function problem_final_dispatch(prob::ODEProblem,true_f,u0,tspan,cb)
+  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,callback=cb)
+end
+
+function problem_final_dispatch(prob::SDEProblem,true_f,u0,tspan,cb)
+  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,callback=cb)
+end
+
+function problem_final_dispatch(prob::DDEProblem,true_f,u0,tspan,cb)
+  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.constant_lags,
+                   prob.dependent_lags,
+                   callback=cb)
 end
 
 function ith_patient_cb(p,datai,u0,t0)
