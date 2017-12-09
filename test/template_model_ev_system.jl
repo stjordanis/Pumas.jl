@@ -1030,3 +1030,90 @@ resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_fa
 
 a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
 @test norm(a_resid) < 1e-7
+
+
+###############################
+# Test 21
+###############################
+
+# ev21 - Testing evid=4
+# use ev21.csv in PKPDSimulator/examples/event_data/
+# For the current example, the first-order process starts immediately after dosing into the Depot (gut)
+# at time=0 and evid=1 followed by a second dose into Depot at time=12 hours, but with evid=4 
+# A  10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 1 (bioav1)
+# A second dose at time 12 hours is given into the gut but with evid=4 which should clear anything remaining in all compartments
+# and give this dose.
+# evid = 1: indicates a dosing event
+# evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+data,obs,obs_times = get_nonem_data(21)
+
+# second evid=4 dose into gut
+function f(t,u,p,du)
+    Depot, Central = u
+    du[1] = -p.Ka*Depot
+    du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
+   end
+
+function set_parameters(θ,η,z)
+   @NT(Ka = θ[1],
+       CL = θ[2]*exp(η[1]),
+       V  = θ[3]*exp(η[2]))
+end
+
+θ = [
+     1.5,  #Ka1
+     1.0,  #CL
+     30.0 #V
+     ]
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
+@test norm(a_resid) < 1e-7
+
+
+###############################
+# Test 22
+###############################
+
+# ev22 - Testing evid=4
+# use ev22.csv in PKPDSimulator/examples/event_data/
+# For the current example, a bolus dose is given into the central compartment at time=0 followed by a
+# second dose into the gut compartment at time=12 with evid=4
+
+# A  10 mg dose is given into the central compartment (cmt=2) at time zero with a bioav of 1 (bioav1)
+# A second dose at time 12 hours is given into the gut but with evid=4 which should clear anything remaining in all compartments
+# and give this dose.
+# evid = 1: indicates a dosing event
+# evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
+# mdv = 1: indicates that observations are not avaialable at this dosing record
+
+data,obs,obs_times = get_nonem_data(22)
+
+# second evid=4 dose into gut
+function f(t,u,p,du)
+    Depot, Central = u
+    du[1] = -p.Ka*Depot
+    du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
+   end
+
+function set_parameters(θ,η,z)
+   @NT(Ka = θ[1],
+       CL = θ[2]*exp(η[1]),
+       V  = θ[3]*exp(η[2]))
+end
+
+θ = [
+     1.5,  #Ka1
+     1.0,  #CL
+     30.0 #V
+     ]
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+@test norm(resid) < 1e-6
+
+a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
+@test norm(a_resid) < 1e-7
