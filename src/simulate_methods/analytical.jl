@@ -48,11 +48,12 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
       ss_dropoff_event = false
       event_counter += 1
       cur_ev = events[event_counter]
+      cur_ev.evid >= 3 && (u0 = zero(u0))
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
 
-        (t0 != t) && (u0 = f(t,t0,u0,last_dose,p,rate))
+        (t0 != t) && cur_ev.evid < 3 && (u0 = f(t,t0,u0,last_dose,p,rate))
         rate = _rate
         u[i] = u0
         doses[i] = dose

@@ -1041,7 +1041,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
 # ev21 - Testing evid=4
 # use ev21.csv in PKPDSimulator/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
-# at time=0 and evid=1 followed by a second dose into Depot at time=12 hours, but with evid=4 
+# at time=0 and evid=1 followed by a second dose into Depot at time=12 hours, but with evid=4
 # A  10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 1 (bioav1)
 # A second dose at time 12 hours is given into the gut but with evid=4 which should clear anything remaining in all compartments
 # and give this dose.
@@ -1070,10 +1070,15 @@ end
      30.0 #V
      ]
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+sol = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+asol = get_a_sol(θ,data)
+
+
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 
-a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+a_resid = [a_resid[2:12];a_resid[14:end]] # because of post-dose
 @test norm(a_resid) < 1e-7
 
 
@@ -1114,8 +1119,9 @@ end
      30.0 #V
      ]
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12,scaling_factor=1)
+resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
 @test norm(resid) < 1e-6
 
-a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
+a_resid = get_analytical_residual(θ,data,obs,obs_times)
+a_resid = [a_resid[2:12];a_resid[14:end]] # because of post-dose
 @test norm(a_resid) < 1e-7
