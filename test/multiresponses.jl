@@ -53,7 +53,7 @@ function f(t,u,p,du)
  ev1,cent,periph,resp = u
  cp     = (cent/p.Vc)
  ct     = (periph/p.Vp)
- CLNL   = (p.Vmax/p.Km+cp)
+ CLNL   = p.Vmax/(p.Km+cp)
  INH    = (p.IMAX*cp^p.γ/(p.IC50^p.γ+cp^p.γ))
 
  du[1] = -p.Ka1*ev1
@@ -92,14 +92,31 @@ end
     2  # Km   Michaelis constant (mass/volume)
     ]
 
-prob = ODEProblem(f,zeros(4),(0.0,240.0))
+resp_0 = θ[6]/θ[7] # Kin/Kout
+prob = ODEProblem(f,[0.0,0.0,0.0,resp_0],(0.0,240.0))
 pkpd = PKPDModel(prob,set_parameters)
 η = zeros(11)
 sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
 
+obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+            "examples/event_data","data23.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
+            separator=',')
+obs_ev1s = map(x -> x.ev1, obsdata.patients[1].obs)
+obs_cps = map(x -> x.cp, obsdata.patients[1].obs)
+obs_periphs = map(x -> x.periph, obsdata.patients[1].obs)
+obs_resps = map(x -> x.resp, obsdata.patients[1].obs)
+
+ev1s = sol(obs_times;idxs=1).u
+@test maximum(ev1s - obs_ev1s) < 1e-6
+
 cps = sol(obs_times;idxs=2)./θ[3]
-resid = cps - obs
-@test_broken norm(resid) < 1e-6
+@test maximum(cps - obs) < 1e-6
+
+periphs = sol(obs_times;idxs=3).u
+@test maximum(periphs - obs_periphs) < 1e-6
+
+resps = sol(obs_times;idxs=4).u
+@test maximum(resps - obs_resps) < 1e-6
 
 # Indirect Response Model (irm2)
 
@@ -137,7 +154,7 @@ function f(t,u,p,du)
     ev1,cent,periph,resp = u
     cp     = (cent/p.Vc)
     ct     = (periph/p.Vp)
-    CLNL   = (p.Vmax/p.Km+cp)
+    CLNL   = p.Vmax/(p.Km+cp)
     INH    = (p.IMAX*cp^p.γ/(p.IC50^p.γ+cp^p.γ))
 
     du[1] = -p.Ka1*ev1
@@ -176,11 +193,28 @@ end
    2  # Km   Michaelis constant (mass/volume)
    ]
 
-prob = ODEProblem(f,zeros(4),(0.0,240.0))
+resp_0 = θ[6]/θ[7] # Kin/Kout
+prob = ODEProblem(f,[0.0,0.0,0.0,resp_0],(0.0,240.0))
 pkpd = PKPDModel(prob,set_parameters)
 η = zeros(11)
 sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
 
+obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
+           "examples/event_data","data24.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
+           separator=',')
+obs_ev1s = map(x -> x.ev1, obsdata.patients[1].obs)
+obs_cps = map(x -> x.cp, obsdata.patients[1].obs)
+obs_periphs = map(x -> x.periph, obsdata.patients[1].obs)
+obs_resps = map(x -> x.resp, obsdata.patients[1].obs)
+
+ev1s = sol(obs_times;idxs=1).u
+@test maximum(ev1s - obs_ev1s) < 1e-6
+
 cps = sol(obs_times;idxs=2)./θ[3]
-resid = cps - obs
-@test_broken norm(resid) < 1e-6
+@test maximum(cps - obs) < 1e-6
+
+periphs = sol(obs_times;idxs=3).u
+@test maximum(periphs - obs_periphs) < 1e-6
+
+resps = sol(obs_times;idxs=4).u
+@test maximum(resps - obs_resps) < 1e-6
