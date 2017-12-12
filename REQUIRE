@@ -6,3 +6,4 @@ Reexport
 NamedTuples
 StaticArrays
 DiffEqJump
+DiffEqMonteCarlo
