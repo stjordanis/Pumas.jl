@@ -36,6 +36,6 @@ save_start = true#datai.events[1].ss == 1
 sol = solve(prob,Tsit5();save_start=save_start,tstops=tstops)
 
 function reduction(sol,p,datai)
-  (sol(datai.obs_times;idxs=2)./p.V)::Vector{typeof(sol.u[1][2])}
+  (sol(datai.obs.times;idxs=2)./p.V)::Vector{typeof(sol.u[1][2])}
 end
 @inferred reduction(sol,sol.prob.f.params,data[1])

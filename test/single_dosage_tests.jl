@@ -2,9 +2,8 @@ using PKPDSimulator, NamedTuples, Distributions
 
 # Read the data
 covariates = [:sex,:wt,:etn]
-dvs = [:dv]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
-                 covariates,dvs,separator=',')
+                 covariates,separator=',')
 
 # Define the ODE
 
@@ -48,7 +47,7 @@ plot(summ,title="Summary plot",xlabel="time")
 =#
 
 function reduction(sol,p,datai)
-  sol(datai.obs_times;idxs=2)./p.V
+  sol(datai.obs.times;idxs=2)./p.V
 end
 pkpd = PKPDModel(prob,set_parameters,reduction)
 
