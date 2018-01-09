@@ -21,7 +21,7 @@ pkpd = PKPDModel(prob,set_parameters)
 
 sol = simulate(pkpd.prob,pkpd.set_parameters,θ,η1,data[1],pkpd.reduction)
 function reduction(sol,p,datai)
-  sol(datai.obs_times;idxs=2)./p.V
+  sol(datai.obs.times;idxs=2)./p.V
 end
 pkpd = PKPDModel(OneCompartmentModel(320.0),set_parameters,reduction)
 p = set_parameters(θ,η1,data[1].z)
@@ -31,7 +31,7 @@ p = set_parameters(θ,η1,data[1].z)
 @test_broken @inferred simulate(pkpd.prob,pkpd.set_parameters,θ,η1,data[1],pkpd.reduction)
 
 function reduction(sol,p,datai)
-  (sol(datai.obs_times;idxs=2)./p.V)::Vector{typeof(sol.u[1][2])}
+  (sol(datai.obs.times;idxs=2)./p.V)::Vector{typeof(sol.u[1][2])}
 end
 @inferred reduction(sol,p,data[1])
 @inferred simulate(pkpd.prob,pkpd.set_parameters,θ,η1,data[1],pkpd.reduction)

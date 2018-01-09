@@ -1,15 +1,29 @@
 ## Types
 
-struct Person{T1,T2,T3,T4}
+struct Person{T1,T2,T3}
   id::Int
   obs::T1
-  obs_times::T2
-  z::T3
-  events::T4
+  z::T2
+  events::T3
 end
 
 struct Population{T} <: AbstractVector{T}
   patients::T
+end
+
+struct Observations{T,T2,T3}
+    vals::T
+    times::T2
+    cmts::T3
+end
+
+function Observations(obs::Vector{Float64},obs_times::Vector{Float64},cmts::Vector{Int})
+    if isempty(obs)
+        return Observations(Vector{Float64}[],Vector{Float64}[],cmts)
+    else
+        N = maximum(cmts)
+        Observations([obs[cmts==i] for i in 1:N],[obs_times[cmts==i] for i in 1:N],cmts)
+    end
 end
 
 Base.start(A::Population) = start(A.patients)
@@ -132,7 +146,15 @@ function build_dataset(cols,covariates=(),dvs=())
         ## Observations
         idx_obs = filter(i -> ids[i] == id && evids[i] == 0, 1:m)
         obs_times = times[idx_obs]
-        isempty(dvs) ? obs = nothing : obs = Tdv.([misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
+        if length(dvs) == 1 && first(dvs) == :dv
+            obs = misparse.(Float64, cols[:dv][idx_obs])
+            haskey(cols,:cmt) ? cmts = misparse.(Int, cols[:cmt][idx_obs]) : cmts = nothing
+        else
+            isempty(dvs) ? obs = Float64[] : obs = [misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]
+            cmts = dvs
+        end
+        _observations = Observations(obs,obs_times,cmts)
+
 
         ## Covariates
         #  TODO: allow non-constant covariates
@@ -179,7 +201,7 @@ function build_dataset(cols,covariates=(),dvs=())
         end
 
         sort!(events)
-        Person(id, obs, obs_times, z, events)
+        Person(id, _observations, z, events)
     end
     Population(subjects)
 end
