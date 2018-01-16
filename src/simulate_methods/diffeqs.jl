@@ -58,7 +58,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
   ss_time = Ref(-one(eltype(tstops)))
   ss_end = Ref(-one(eltype(tstops)))
   ss_rate_end = Ref(-one(eltype(tstops)))
-  ss_cache = similar(u0)
+  ss_cache = similar(u0) # TODO: Make this handle static arrays better.
   ss_ii = Ref(-one(eltype(tstops)))
   ss_duration = Ref(-one(eltype(tstops)))
   ss_overlap_duration = Ref(-one(eltype(tstops)))
