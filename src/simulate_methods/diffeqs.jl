@@ -89,22 +89,40 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
       cur_ev = events[counter]
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
         savevalues!(integrator)
-        dose!(integrator,cur_ev,bioav,last_restart)
+        dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.evid >= 3
         savevalues!(integrator)
-        integrator.u .= 0
+
+        if typeof(integrator.u) <: Union{Number,SArray}
+          integrator.u = zero(integrator.u)
+        else
+          integrator.u .= 0
+        end
+
         last_restart[] = integrator.t
         f.rates_on[] = false
-        f.rates .= 0
-        cur_ev.evid == 4 && dose!(integrator,cur_ev,bioav,last_restart)
+
+        if typeof(f.rates) <: Union{Number,SArray}
+          f.rates = zero(f.rates)
+        else
+          f.rates .= 0
+        end
+
+        cur_ev.evid == 4 && dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.ss > 0
         if !ss_mode[]
           savevalues!(integrator)
           # This is triggered at the start of a steady-state event
           ss_mode[] = true
-          f.rates .= 0
+
+          if typeof(f.rates) <: Union{Number,SArray}
+            f.rates = zero(f.rates)
+          else
+            f.rates .= 0
+          end
+
           ss_counter[] = 0
           integrator.opts.save_everystep = false
           post_steady_state[] = false
@@ -125,7 +143,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           cur_ev.rate > 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_cache .= integrator.u
-          ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+          ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
           cur_ev.rate > 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
@@ -140,11 +158,25 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
             ss_mode[] = false
             # TODO: Make compatible with save_everystep = false
             post_steady_state[] = true
-            f.rates .= 0
+
+            if typeof(f.rates) <: Union{Number,SArray}
+              f.rates = zero(f.rates)
+            else
+              f.rates .= 0
+            end
+
             integrator.opts.save_everystep = true
             typeof(_prob) <: SDEProblem && (integrator.W.save_everystep=true)
-            cur_ev.ss == 2 && (integrator.u .+= integrator.sol.u[end])
-            ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+
+            if cur_ev.ss == 2
+              if typeof(integrator.u) <: Union{SArray,Number}
+                integrator.u += integrator.sol.u[end]
+              else
+                integrator.u .+= integrator.sol.u[end]
+              end
+            end
+
+            ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
             if cur_ev.rate > 0 && cur_ev.amt != 0 # amt = 0 means it never turns off
               ss_duration[] == cur_ev.ii ? start_k = 1 : start_k = 0
               for k in start_k:ss_rate_multiplier[]-1
@@ -152,7 +184,13 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
               end
               ss_dropoff_counter[] = start_k
             else # amt = 0, turn off rates
-              f.rates[cur_ev.cmt] .= 0
+
+              if typeof(f.rates) <: Union{Number,SArray}
+                f.rates = StaticArrays.setindex(f.rates,0.0,cur_ev.cmt)
+              else
+                f.rates[cur_ev.cmt] .= 0
+              end
+
               f.rates_on[] = false
             end
             if !isempty(ss_tstop_cache)
@@ -168,12 +206,16 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           else #Failure to converge, go again
             ss_cache .= integrator.u
             ss_counter[] += 1
-            ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+            ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
             ss_rate_end[] < ss_end[] && add_tstop!(integrator,ss_rate_end[])
             #add_tstop!(integrator,ss_end[])
           end
         elseif integrator.t == ss_rate_end[] && cur_ev.amt != 0 # amt==0 means constant
-          f.rates[cur_ev.cmt] -= cur_ev.rate
+          if typeof(f.rates) <: SArray
+            f.rates = StaticArrays.setindex(f.rates,f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
+          else
+            f.rates[cur_ev.cmt] -= cur_ev.rate
+          end
           f.rates_on[] = (ss_rate_multiplier[] > 1)
         else
           # This is a tstop that was accidentally picked up in the interval
@@ -197,7 +239,13 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
 
 
       ss_event = events[ss_event_counter[]]
-      ss_event.amt != 0 && (f.rates[ss_event.cmt] -= ss_event.rate)
+      if ss_event.amt != 0
+        if typeof(f.rates) <: SArray
+          f.rates = StaticArrays.setindex(f.rates,f.rates[ss_event.cmt]-ss_event.rate,ss_event.cmt)
+        else
+          f.rates[ss_event.cmt] -= ss_event.rate
+        end
+      end
       # TODO: Optimize by setting f.rates_on[] = false
     end
   end
@@ -206,7 +254,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
                           affect!,patient_cb_initialize!,(false,false))
 end
 
-function dose!(integrator,cur_ev,bioav,last_restart)
+function dose!(integrator,u,cur_ev,bioav,last_restart)
 
   if typeof(integrator.sol.prob) <: DDEProblem
     f = integrator.integrator.f
@@ -216,20 +264,43 @@ function dose!(integrator,cur_ev,bioav,last_restart)
 
   if cur_ev.rate == 0
     if typeof(bioav) <: Number
-      integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
+      @views @. integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
     else
-      integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
+      @views @. integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
     end
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.rates_on[] += cur_ev.evid > 0
-      f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
+      @views @. f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
     end
   end
 end
 
-function ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+function dose!(integrator,u::SArray,cur_ev,bioav,last_restart)
+
+  if typeof(integrator.sol.prob) <: DDEProblem
+    f = integrator.integrator.f
+  else
+    f = integrator.f
+  end
+
+  if cur_ev.rate == 0
+    if typeof(bioav) <: Number
+      integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt] + bioav*cur_ev.amt,cur_ev.cmt)
+    else
+      integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt] + bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt)
+    end
+    savevalues!(integrator)
+  else
+    if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
+      f.rates_on[] += cur_ev.evid > 0
+      f.rates = StaticArrays.setindex(f.rates,f.rates[cur_ev.cmt] + cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
+    end
+  end
+end
+
+function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
 
   if typeof(integrator.sol.prob) <: DDEProblem
     f = integrator.integrator.f
@@ -245,6 +316,26 @@ function ss_dose!(integrator,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
       integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
     else
       integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
+    end
+  end
+end
+
+function ss_dose!(integrator,u::SArray,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+
+  if typeof(integrator.sol.prob) <: DDEProblem
+    f = integrator.integrator.f
+  else
+    f = integrator.f
+  end
+
+  if cur_ev.rate > 0
+    f.rates_on[] = true
+    f.rates = StaticArrays.setindex(f.rates,ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
+  else
+    if typeof(bioav) <: Number
+      integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt]+bioav*cur_ev.amt,cur_ev.cmt)
+    else
+      integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt]+bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt)
     end
   end
 end
@@ -269,7 +360,7 @@ function get_all_event_times(data)
   total_times
 end
 
-struct DiffEqWrapper{F,P,rateType} <: Function
+mutable struct DiffEqWrapper{F,P,rateType} <: Function
   f::F
   params::P
   rates_on::Ref{Int}
@@ -283,11 +374,19 @@ function (f::DiffEqWrapper)(t,u)
     return out
   end
 end
-function (f::DiffEqWrapper)(t,u,du)
+function (f::DiffEqWrapper)(t,u::T,du::T) where T
   f.f(t,u,f.params,du)
   f.rates_on[] > 0 && (du .+= f.rates)
 end
-function (f::DiffEqWrapper)(t,u,h,du)
+function (f::DiffEqWrapper)(t,u::T,h) where T # h is DelayDiffEq.HistoryFunction
+  f.f(t,u,h,f.params,du)
+  if f.rates_on[] > 0
+    return out + rates
+  else
+    return out
+  end
+end
+function (f::DiffEqWrapper)(t,u::T,h,du::T) where T # h is DelayDiffEq.HistoryFunction
   f.f(t,u,h,f.params,du)
   f.rates_on[] > 0 && (du .+= f.rates)
 end
