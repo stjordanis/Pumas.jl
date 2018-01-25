@@ -101,7 +101,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
         end
 
         last_restart[] = integrator.t
-        f.rates_on[] = false
+        f.rates_on = false
 
         if typeof(f.rates) <: Union{Number,SArray}
           f.rates = zero(f.rates)
@@ -191,7 +191,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
                 f.rates[cur_ev.cmt] .= 0
               end
 
-              f.rates_on[] = false
+              f.rates_on = false
             end
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
@@ -216,7 +216,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           else
             f.rates[cur_ev.cmt] -= cur_ev.rate
           end
-          f.rates_on[] = (ss_rate_multiplier[] > 1)
+          f.rates_on = (ss_rate_multiplier[] > 1)
         else
           # This is a tstop that was accidentally picked up in the interval
           # Just re-add so it's not missed after the SS
@@ -246,7 +246,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           f.rates[ss_event.cmt] -= ss_event.rate
         end
       end
-      # TODO: Optimize by setting f.rates_on[] = false
+      # TODO: Optimize by setting f.rates_on = false
     end
   end
   tstops,DiscreteCallback{typeof(condition),typeof(affect!),
@@ -271,7 +271,7 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
-      f.rates_on[] += cur_ev.evid > 0
+      f.rates_on += cur_ev.evid > 0
       @views @. f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
     end
   end
@@ -294,7 +294,7 @@ function dose!(integrator,u::SArray,cur_ev,bioav,last_restart)
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
-      f.rates_on[] += cur_ev.evid > 0
+      f.rates_on += cur_ev.evid > 0
       f.rates = StaticArrays.setindex(f.rates,f.rates[cur_ev.cmt] + cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
     end
   end
@@ -309,7 +309,7 @@ function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
   end
 
   if cur_ev.rate > 0
-    f.rates_on[] = true
+    f.rates_on = true
     f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
   else
     if typeof(bioav) <: Number
@@ -329,7 +329,7 @@ function ss_dose!(integrator,u::SArray,cur_ev,bioav,ss_rate_multiplier,ss_rate_e
   end
 
   if cur_ev.rate > 0
-    f.rates_on[] = true
+    f.rates_on = true
     f.rates = StaticArrays.setindex(f.rates,ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
   else
     if typeof(bioav) <: Number
@@ -363,12 +363,12 @@ end
 mutable struct DiffEqWrapper{F,P,rateType} <: Function
   f::F
   params::P
-  rates_on::Ref{Int}
+  rates_on::Int
   rates::rateType
 end
 function (f::DiffEqWrapper)(t,u)
   out = f.f(t,u,f.params)
-  if f.rates_on[] > 0
+  if f.rates_on > 0
     return out + rates
   else
     return out
@@ -376,11 +376,11 @@ function (f::DiffEqWrapper)(t,u)
 end
 function (f::DiffEqWrapper)(t,u::T,du::T) where T
   f.f(t,u,f.params,du)
-  f.rates_on[] > 0 && (du .+= f.rates)
+  f.rates_on > 0 && (du .+= f.rates)
 end
 function (f::DiffEqWrapper)(t,u::T,h) where T # h is DelayDiffEq.HistoryFunction
   f.f(t,u,h,f.params,du)
-  if f.rates_on[] > 0
+  if f.rates_on > 0
     return out + rates
   else
     return out
@@ -388,7 +388,7 @@ function (f::DiffEqWrapper)(t,u::T,h) where T # h is DelayDiffEq.HistoryFunction
 end
 function (f::DiffEqWrapper)(t,u::T,h,du::T) where T # h is DelayDiffEq.HistoryFunction
   f.f(t,u,h,f.params,du)
-  f.rates_on[] > 0 && (du .+= f.rates)
+  f.rates_on > 0 && (du .+= f.rates)
 end
 DiffEqWrapper(prob,p) = DiffEqWrapper(prob.f,p,Ref(0),zeros(prob.u0))
 DiffEqWrapper(f::DiffEqWrapper,p) = DiffEqWrapper(f.f,p,Ref(0),f.rates)
