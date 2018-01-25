@@ -390,5 +390,5 @@ function (f::DiffEqWrapper)(t,u::T,h,du::T) where T # h is DelayDiffEq.HistoryFu
   f.f(t,u,h,f.params,du)
   f.rates_on > 0 && (du .+= f.rates)
 end
-DiffEqWrapper(prob,p) = DiffEqWrapper(prob.f,p,Ref(0),zeros(prob.u0))
-DiffEqWrapper(f::DiffEqWrapper,p) = DiffEqWrapper(f.f,p,Ref(0),f.rates)
+DiffEqWrapper(prob,p) = DiffEqWrapper(prob.f,p,0,zeros(prob.u0))
+DiffEqWrapper(f::DiffEqWrapper,p) = DiffEqWrapper(f.f,p,0,f.rates)
