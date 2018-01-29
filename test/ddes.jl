@@ -1,7 +1,7 @@
 using PKPDSimulator, Base.Test, NamedTuples, DelayDiffEq
 
 # Gut dosing model
-function f(t,u,h,p,du)
+function f(du,u,h,p,t)
  Depot,Central = u
  du[1] = -p.Ka*Depot
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central - 0.1h(t-1,Val{0},2)

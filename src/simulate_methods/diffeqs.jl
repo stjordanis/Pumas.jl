@@ -4,7 +4,7 @@ function simulate(_prob::DEProblem,set_parameters,θ,ηi,datai::Person,
   prob,tstops = build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
   save_start = true#datai.events[1].ss == 1
   sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
-  output_reduction(sol,sol.prob.f.params,datai)
+  output_reduction(sol,sol.prob.p,datai)
 end
 
 function build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
@@ -14,8 +14,8 @@ function build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
   u0 = VarType.(_prob.u0)
   tspan = VarType.(_prob.tspan)
   tstops,cb = ith_patient_cb(p,datai,u0,tspan[1],_prob)
-  true_f = DiffEqWrapper(_prob,p)
-  problem_final_dispatch(_prob,true_f,u0,tspan,cb),tstops
+  true_f = DiffEqWrapper(_prob)
+  problem_final_dispatch(_prob,true_f,u0,tspan,p,cb),tstops
 end
 
 function build_pkpd_problem(_prob::AbstractJumpProblem,set_parameters,θ,ηi,datai)
@@ -29,17 +29,18 @@ function build_pkpd_problem(_prob::AbstractJumpProblem,set_parameters,θ,ηi,dat
 end
 
 # Have separate dispatches to pass along extra pieces of the problem
-function problem_final_dispatch(prob::ODEProblem,true_f,u0,tspan,cb)
-  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,callback=cb)
+function problem_final_dispatch(prob::ODEProblem,true_f,u0,tspan,p,cb)
+  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
 end
 
-function problem_final_dispatch(prob::SDEProblem,true_f,u0,tspan,cb)
-  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,callback=cb)
+function problem_final_dispatch(prob::SDEProblem,true_f,u0,tspan,p,cb)
+  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
 end
 
-function problem_final_dispatch(prob::DDEProblem,true_f,u0,tspan,cb)
-  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.constant_lags,
-                   prob.dependent_lags,
+function problem_final_dispatch(prob::DDEProblem,true_f,u0,tspan,p,cb)
+  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
+                   constant_lags = prob.constant_lags,
+                   dependent_lags = prob.dependent_lags,
                    callback=cb)
 end
 
@@ -72,7 +73,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
-  function condition(t,u,integrator)
+  function condition(u,t,integrator)
     (post_steady_state[] && t == (ss_time[] + ss_overlap_duration[] + ss_dropoff_counter[]*ss_ii[])) ||
     t == ss_rate_end[] || (ss_mode[] && t == ss_end[] || !isempty(searchsorted(tstops,t)))
   end
@@ -360,35 +361,34 @@ function get_all_event_times(data)
   total_times
 end
 
-mutable struct DiffEqWrapper{F,P,rateType} <: Function
+mutable struct DiffEqWrapper{F,rateType} <: Function
   f::F
-  params::P
   rates_on::Int
   rates::rateType
 end
-function (f::DiffEqWrapper)(t,u)
-  out = f.f(t,u,f.params)
+function (f::DiffEqWrapper)(u,p,t)
+  out = f.f(u,p,t)
   if f.rates_on > 0
     return out + rates
   else
     return out
   end
 end
-function (f::DiffEqWrapper)(t,u::T,du::T) where T
-  f.f(t,u,f.params,du)
+function (f::DiffEqWrapper)(du::T,u::T,p,t) where T
+  f.f(du,u,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-function (f::DiffEqWrapper)(t,u::T,h) where T # h is DelayDiffEq.HistoryFunction
-  f.f(t,u,h,f.params,du)
+function (f::DiffEqWrapper)(u::T,h,p,t) where T # h is DelayDiffEq.HistoryFunction
+  f.f(du,u,h,p,t)
   if f.rates_on > 0
     return out + rates
   else
     return out
   end
 end
-function (f::DiffEqWrapper)(t,u::T,h,du::T) where T # h is DelayDiffEq.HistoryFunction
-  f.f(t,u,h,f.params,du)
+function (f::DiffEqWrapper)(du::T,u::T,h,p,t) where T # h is DelayDiffEq.HistoryFunction
+  f.f(du,u,h,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-DiffEqWrapper(prob,p) = DiffEqWrapper(prob.f,p,0,zeros(prob.u0))
-DiffEqWrapper(f::DiffEqWrapper,p) = DiffEqWrapper(f.f,p,0,f.rates)
+DiffEqWrapper(prob) = DiffEqWrapper(prob.f,0,zeros(prob.u0))
+DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)

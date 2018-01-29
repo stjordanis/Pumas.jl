@@ -28,7 +28,7 @@ sol = simulate(pkpd,θ,ω,data)
 sol1 = simulate(pkpd,θ,η1,data[1])
 
 
-function depot_model(t,u,p,du)
+function depot_model(du,u,p,t)
  Depot,Central = u
  du[1] = -p.Ka*Depot
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central

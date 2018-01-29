@@ -1,7 +1,7 @@
 using PKPDSimulator, Base.Test, NamedTuples, DiffEqJump
 
 # Gut dosing model
-function f(t,u,p,du)
+function f(du,u,p,t)
  Depot,Central = u
  du[2] =  - (p.CL/p.V)*Central
 end

@@ -1,7 +1,7 @@
 using PKPDSimulator, Base.Test, NamedTuples
 
 # Gut dosing model
-function f(t,u,p,du)
+function f(du,u,p,t)
  Depot,Central = u
  du[1] = -p.Ka*Depot
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
@@ -955,7 +955,7 @@ a_resid = asol(obs_times+1e-14;idxs=2)/θ[3] - obs
 data,obs,obs_times = get_nonem_data(19)
 
 # Parallel first order absorption dosing model
-function f(t,u,p,du)
+function f(du,u,p,t)
     Depot1, Depot2, Central = u
     du[1] = -p.Ka1*Depot1
     du[2] = -p.Ka2*Depot2
@@ -1004,7 +1004,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times,model=OneCompartmentPara
 data,obs,obs_times = get_nonem_data(20)
 
 # Parallel first order absorption dosing model
-function f(t,u,p,du)
+function f(du,u,p,t)
     Depot, Central = u
     du[1] = -p.Ka*Depot
     du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
@@ -1052,7 +1052,7 @@ a_resid = get_analytical_residual(θ,data,obs,obs_times,scaling_factor=1)
 data,obs,obs_times = get_nonem_data(21)
 
 # second evid=4 dose into gut
-function f(t,u,p,du)
+function f(du,u,p,t)
     Depot, Central = u
     du[1] = -p.Ka*Depot
     du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
@@ -1101,7 +1101,7 @@ a_resid = [a_resid[2:12];a_resid[14:end]] # because of post-dose
 data,obs,obs_times = get_nonem_data(22)
 
 # second evid=4 dose into gut
-function f(t,u,p,du)
+function f(du,u,p,t)
     Depot, Central = u
     du[1] = -p.Ka*Depot
     du[2] =  p.Ka*Depot - (p.CL/p.V)*Central

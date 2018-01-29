@@ -49,7 +49,7 @@ dvs = [1]
 
 data,obs,obs_times = get_nonem_data(23)
 
-function f(t,u,p,du)
+function f(du,u,p,t)
  ev1,cent,periph,resp = u
  cp     = (cent/p.Vc)
  ct     = (periph/p.Vp)
@@ -150,7 +150,7 @@ resps = sol(obs_times;idxs=4).u
 
 data,obs,obs_times = get_nonem_data(24)
 
-function f(t,u,p,du)
+function f(du,u,p,t)
     ev1,cent,periph,resp = u
     cp     = (cent/p.Vc)
     ct     = (periph/p.Vp)

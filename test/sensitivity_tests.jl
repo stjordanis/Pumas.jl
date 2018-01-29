@@ -8,7 +8,7 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
 
 # Define the ODE
 
-function depot_model(t,u,p,du)
+function depot_model(du,u,p,t)
  Depot,Central = u
  du[1] = -p.Ka*Depot
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central

@@ -1,7 +1,7 @@
 using PKPDSimulator, Base.Test, NamedTuples, StochasticDiffEq
 
 # Gut dosing model
-function f(t,u,p,du)
+function f(du,u,p,t)
  Depot,Central = u
  du[1] = -p.Ka*Depot
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central

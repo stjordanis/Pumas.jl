@@ -1,9 +1,9 @@
 julia 0.6
-DiffEqBase
-OrdinaryDiffEq
+DiffEqBase 3.0.0
+OrdinaryDiffEq 3.0.0
 Distributions
 Reexport
 NamedTuples
 StaticArrays
-DiffEqJump
+DiffEqJump 1.0.0
 DiffEqMonteCarlo
