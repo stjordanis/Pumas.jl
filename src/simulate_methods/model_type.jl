@@ -19,7 +19,7 @@ function PKPDModel(prob,set_parameters=nothing)
                                                 prob,set_parameters,reduction)
 end
 
-function simulate(m::PKPDModel,θ,η,data::Person,
+function simulate(m::PKPDModel,θ,η,data::Subject,
                   args...;kwargs...)
 
     simulate(m.prob,m.set_parameters,θ,η,data,
@@ -27,7 +27,7 @@ function simulate(m::PKPDModel,θ,η,data::Person,
                 args...;kwargs...)
 end
 
-function simulate(m::FullModel, θ, η, data::Person, args...; kwargs...)
+function simulate(m::FullModel, θ, η, data::Subject, args...; kwargs...)
     ui = simulate(m.pkpd, θ,η, data,args...; kwargs...)
     simulate(m.err, θ, ui)
 end

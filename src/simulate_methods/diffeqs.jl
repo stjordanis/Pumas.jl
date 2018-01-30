@@ -1,21 +1,46 @@
-function simulate(_prob::DEProblem,set_parameters,θ,ηi,datai::Person,
-                  output_reduction = (sol,p,datai) -> sol,
+export pkpd_solve, raw_pkpd_problem
+
+
+function pkpd_solve(rawprob::DEProblem,subject::Subject,p,
                   alg = Tsit5();kwargs...)
-  prob,tstops = build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
-  save_start = true#datai.events[1].ss == 1
-  sol = solve(prob,alg;save_start=save_start,tstops=tstops,kwargs...)
-  output_reduction(sol,sol.prob.p,datai)
+    # diffeq ODEProblem, event times
+    prob,tstops = modify_pkpd_problem(rawprob,subject,p)
+    # ODE solution
+    solve(prob,alg;
+          save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
+          tstops=tstops,   # extra times that the timestepping algorithm must step to
+          kwargs...)    
 end
 
-function build_pkpd_problem(_prob,set_parameters,θ,ηi,datai)
-  # From problem_new_parameters but no callbacks
-  VarType = promote_type(eltype(ηi),eltype(θ))
-  p = set_parameters(θ,ηi,datai.z)
-  u0 = VarType.(_prob.u0)
-  tspan = VarType.(_prob.tspan)
-  tstops,cb = ith_patient_cb(p,datai,u0,tspan[1],_prob)
-  true_f = DiffEqWrapper(_prob)
-  problem_final_dispatch(_prob,true_f,u0,tspan,p,cb),tstops
+# build a "raw" problem
+# this is a bit of a kludge, as it is not actually used
+# it is later modified to allow for parameters and events
+# fake interval will be replaced by data.
+raw_pkpd_problem(f, u0; kwargs...) = ODEProblem(f, u0, (nothing, nothing); kwargs...)
+
+# build a "modified" problem out of a "raw" problem to account for events
+# returns final problem and necessary stopping times for integrator
+function modify_pkpd_problem(rawprob::DEProblem,  # original diffeq problem
+                             subject::Subject,
+                             p)                 # ode parameters
+
+    _tspan = rawprob.tspan == (nothing, nothing) ? timespan(subject) : rawprob.tspan
+
+    # promote u0 and tspan to deal with duals, etc.
+    # TODO: make sure this works with tuples, named tuples, etc.  
+    T = promote_type(numtype(p),numtype(rawprob.u0),numtype(_tspan))
+    # if not in place, could use?:
+    #   u0 + zero(_tspan[1])*f(t,u,p)
+    u0 = T.(rawprob.u0) 
+    tspan = T.(_tspan)
+    f = DiffEqWrapper(rawprob)
+
+    # figure out callbacks and whatnot
+    tstops,cb = ith_subject_cb(p,subject,u0,tspan[1],typeof(rawprob))
+
+    # create problem of correct type
+    prob =  problem_final_dispatch(rawprob,f,u0,tspan,p,cb)
+    return prob, tstops
 end
 
 function build_pkpd_problem(_prob::AbstractJumpProblem,set_parameters,θ,ηi,datai)
@@ -44,7 +69,7 @@ function problem_final_dispatch(prob::DDEProblem,true_f,u0,tspan,p,cb)
                    callback=cb)
 end
 
-function ith_patient_cb(p,datai,u0,t0,_prob)
+function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   events = datai.events
   ss_abstol = 1e-12 # TODO: Make an option
   ss_reltol = 1e-12 # TODO: Make an option
@@ -80,7 +105,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
 
   function affect!(integrator)
 
-    if typeof(_prob) <: DDEProblem
+    if ProbType <: DDEProblem
       f = integrator.integrator.f
     else
       f = integrator.f
@@ -127,7 +152,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           ss_counter[] = 0
           integrator.opts.save_everystep = false
           post_steady_state[] = false
-          typeof(_prob) <: SDEProblem && (integrator.W.save_everystep=false)
+          ProbType <: SDEProblem && (integrator.W.save_everystep=false)
 
           ss_time[] = integrator.t
           # TODO: Handle saveat in this range
@@ -149,8 +174,8 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
           cur_ev.rate > 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
           integrator.t = ss_time[]
-          typeof(_prob) <: SDEProblem && (integrator.W.curt = integrator.t)
-          typeof(_prob) <: DDEProblem && (integrator.integrator.t = integrator.t)
+          ProbType <: SDEProblem && (integrator.W.curt = integrator.t)
+          ProbType <: DDEProblem && (integrator.integrator.t = integrator.t)
           ss_cache .-= integrator.u
           err = integrator.opts.internalnorm(ss_cache)
           if ss_counter[] == ss_max_iters || (err < ss_abstol &&
@@ -167,7 +192,7 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
             end
 
             integrator.opts.save_everystep = true
-            typeof(_prob) <: SDEProblem && (integrator.W.save_everystep=true)
+            ProbType <: SDEProblem && (integrator.W.save_everystep=true)
 
             if cur_ev.ss == 2
               if typeof(integrator.u) <: Union{SArray,Number}
@@ -251,8 +276,8 @@ function ith_patient_cb(p,datai,u0,t0,_prob)
     end
   end
   tstops,DiscreteCallback{typeof(condition),typeof(affect!),
-                          typeof(patient_cb_initialize!)}(condition,
-                          affect!,patient_cb_initialize!,(false,false))
+                          typeof(subject_cb_initialize!)}(condition,
+                          affect!,subject_cb_initialize!,(false,false))
 end
 
 function dose!(integrator,u,cur_ev,bioav,last_restart)
@@ -342,7 +367,7 @@ function ss_dose!(integrator,u::SArray,cur_ev,bioav,ss_rate_multiplier,ss_rate_e
 end
 
 
-function patient_cb_initialize!(cb,t,u,integrator)
+function subject_cb_initialize!(cb,t,u,integrator)
   if cb.condition(t,u,integrator)
     cb.affect!(integrator)
     u_modified!(integrator,true)
@@ -361,11 +386,23 @@ function get_all_event_times(data)
   total_times
 end
 
+"""
+    DiffEqWrapper
+
+Modifies the diffeq system `f` to add allow for modifying rates
+- `f`: original diffeq system
+- `params`: ODE parameters
+- `rates_on`: should rates be modified?
+- `rates`: amount to be added to rates
+"""
 mutable struct DiffEqWrapper{F,rateType} <: Function
   f::F
   rates_on::Int
   rates::rateType
 end
+DiffEqWrapper(rawprob::DEProblem) = DiffEqWrapper(rawprob.f,0,zeros(rawprob.u0))
+DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)
+
 function (f::DiffEqWrapper)(u,p,t)
   out = f.f(u,p,t)
   if f.rates_on > 0
@@ -390,5 +427,3 @@ function (f::DiffEqWrapper)(du::T,u::T,h,p,t) where T # h is DelayDiffEq.History
   f.f(du,u,h,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-DiffEqWrapper(prob) = DiffEqWrapper(prob.f,0,zeros(prob.u0))
-DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)

@@ -1,4 +1,4 @@
-function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Person,
+function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Subject,
                   output_reduction = (sol,p,datai) -> sol)
   VarType = promote_type(eltype(ηi),eltype(θ))
   u0 = VarType.(prob.u0)
@@ -6,7 +6,7 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Perso
   ss = prob.ss
   tspan = VarType.(prob.tspan)
   tdir = sign(prob.tspan[end] - prob.tspan[1])
-  p = set_parameters(θ,ηi,datai.z)
+  p = set_parameters(θ,ηi,datai.covariates)
   lags,bioav,time_adjust_rate,duration = get_magic_args(p,u0,tspan[1])
   events = datai.events
   adjust_event_timings!(events,lags,bioav,time_adjust_rate,duration)

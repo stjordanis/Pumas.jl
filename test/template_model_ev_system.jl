@@ -50,8 +50,8 @@ function get_nonem_data(i)
     obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
                 "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
                 separator=',')
-    obs = obsdata.patients[1].obs.vals[1]
-    obs_times = obsdata.patients[1].obs.times
+    obs = obsdata.subjects[1].obs.vals[1]
+    obs_times = obsdata.subjects[1].obs.times
     data,obs,obs_times
 end
 

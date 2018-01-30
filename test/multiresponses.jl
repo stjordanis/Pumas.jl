@@ -7,8 +7,8 @@ function get_nonem_data(i)
     obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
                 "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
                 separator=',')
-    obs = obsdata.patients[1].obs.vals[1]
-    obs_times = obsdata.patients[1].obs.times
+    obs = obsdata.subjects[1].obs.vals[1]
+    obs_times = obsdata.subjects[1].obs.times
     data,obs,obs_times
 end
 
@@ -101,10 +101,10 @@ sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
 obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
             "examples/event_data","data23.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
             separator=',')
-obs_ev1s = obsdata.patients[1].obs.vals[1]
-obs_cps = obsdata.patients[1].obs.vals[2]
-obs_periphs = obsdata.patients[1].obs.vals[3]
-obs_resps = obsdata.patients[1].obs.vals[4]
+obs_ev1s = obsdata.subjects[1].obs.vals[1]
+obs_cps = obsdata.subjects[1].obs.vals[2]
+obs_periphs = obsdata.subjects[1].obs.vals[3]
+obs_resps = obsdata.subjects[1].obs.vals[4]
 
 ev1s = sol(obs_times;idxs=1).u
 @test maximum(ev1s - obs_ev1s) < 1e-6
@@ -202,10 +202,10 @@ sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
 obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
            "examples/event_data","data24.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
            separator=',')
-obs_ev1s = obsdata.patients[1].obs.vals[1]
-obs_cps = obsdata.patients[1].obs.vals[2]
-obs_periphs = obsdata.patients[1].obs.vals[3]
-obs_resps = obsdata.patients[1].obs.vals[4]
+obs_ev1s = obsdata.subjects[1].obs.vals[1]
+obs_cps = obsdata.subjects[1].obs.vals[2]
+obs_periphs = obsdata.subjects[1].obs.vals[3]
+obs_resps = obsdata.subjects[1].obs.vals[4]
 
 ev1s = sol(obs_times;idxs=1).u
 @test maximum(ev1s - obs_ev1s) < 1e-6

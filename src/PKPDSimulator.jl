@@ -3,7 +3,7 @@ __precompile__()
 module PKPDSimulator
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples,
-      StaticArrays, DiffEqJump
+      StaticArrays, DiffEqJump, PDMats
 
 @reexport using OrdinaryDiffEq
 
@@ -18,9 +18,11 @@ include("simulate_methods/error_models.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
 
-export Person, Population, process_data, build_dataset
+include("lang/lang.jl")
 
-export simulate, ith_patient_cb
+export Subject, Population, process_data, build_dataset
+
+export simulate, ith_subject_cb
 export PKPDModel, FullModel, ErrorModel, Independent
 
 end # module

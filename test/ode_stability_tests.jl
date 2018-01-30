@@ -27,9 +27,9 @@ VarType = promote_type(eltype(η1),eltype(θ))
 p = set_parameters(θ,η1,data[1].z)
 u0 = VarType.(pkpd.prob.u0)
 tspan = VarType.(pkpd.prob.tspan)
-@inferred ith_patient_cb(p,data[1],u0,tspan[1],prob)
-tstops,cb = ith_patient_cb(p,data[1],u0,tspan[1],prob)
-true_f = PKPDSimulator.DiffEqWrapper(pkpd.prob)
+@inferred ith_subject_cb(p,data[1],u0,tspan[1],prob)
+tstops,cb = ith_subject_cb(p,data[1],u0,tspan[1],prob)
+true_f = PKPDSimulator.DiffEqWrapper(pkpd.prob,p)
 # Match the type of ηi for duality in estimator
 prob = ODEProblem(true_f,u0,tspan,p,callback=cb)
 save_start = true#datai.events[1].ss == 1

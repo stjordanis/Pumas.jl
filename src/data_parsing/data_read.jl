@@ -1,49 +1,53 @@
 ## Types
 
-struct Person{T1,T2,T3}
+struct Subject{T1,T2,T3}
   id::Int
-  obs::T1
-  z::T2
+  observations::T1
+  covariates::T2
   events::T3
 end
 
 struct Population{T} <: AbstractVector{T}
-  patients::T
+  subjects::T
 end
 
-struct Observations{T,T2,T3}
-    vals::T
-    times::T2
-    cmts::T3
+struct Observation{T,V,C}
+    time::T
+    val::V
+    cmt::C
 end
 
-function Observations(obs::Vector{Float64},obs_times::Vector{Float64},cmts::Vector{Int})
-    if isempty(obs)
-        return Observations(Vector{Float64}[],Vector{Float64}[],cmts)
-    else
-        N = maximum(cmts)
-        Observations([obs[cmts==i] for i in 1:N],[obs_times[cmts==i] for i in 1:N],cmts)
+
+function timespan(sub::Subject)
+    lo, hi = extrema(evt.time for evt in sub.events)
+    if !isempty(sub.observations)
+        obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
+        lo = min(lo, obs_lo)
+        hi = max(hi, obs_hi)
     end
+    lo, hi+sqrt(eps())
 end
 
-Base.start(A::Population) = start(A.patients)
-Base.next(A::Population, i) = next(A.patients, i)
-Base.done(A::Population, i) = done(A.patients, i)
+
+
+Base.start(A::Population) = start(A.subjects)
+Base.next(A::Population, i) = next(A.subjects, i)
+Base.done(A::Population, i) = done(A.subjects, i)
 
 # size
-Base.length(A::Population) = length(A.patients)
-Base.size(A::Population) = size(A.patients)
+Base.length(A::Population) = length(A.subjects)
+Base.size(A::Population) = size(A.subjects)
 
 # indexing
 @inline function Base.getindex(A::Population, I...)
-    @boundscheck checkbounds(A.patients, I...)
-    @inbounds return A.patients[I...]
+    @boundscheck checkbounds(A.subjects, I...)
+    @inbounds return A.subjects[I...]
 end
 @inline function Base.setindex!(A::Population, x, I...)
-    @boundscheck checkbounds(A.patients, I...)
-    @inbounds A.patients[I...] = x
+    @boundscheck checkbounds(A.subjects, I...)
+    @inbounds A.subjects[I...] = x
 end
-Base.indices(A::Population) = indices(A.patients)
+Base.indices(A::Population) = indices(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
 ## Parsing Functions
@@ -52,12 +56,12 @@ misparse(T,x) = x == "." ? zero(T) : parse(T,x)
 
 
 """
-    process_data(filename, covariates=Symbol[], dvs=[:dv];
+    process_data(filename, cvs=[], dvs=[:dv];
         header=true, names=nothing, separator=nothing)
 
 Import NONMEM-formatted data from `filename`.
 
-- `covariates` and `dvs` are the list of columns which are considered covariates and dependent variables.
+- `cvs` and `dvs` are the list of columns (either names or column numbers) which are considered covariates and dependent variables.
 - `header`: whether or not there is a header row (default=`true`)
 - `names`: a list names of colums. If `nothing` (default) then these are taken as the first row (`header` must be `true`)
 - `separator`: the delimiter. Should be either a character (e.g. `','`) or `nothing` (default) in which case it is taken to be whitespace-delimited with repeated whitespaces treated as one delimiter.
@@ -114,52 +118,47 @@ function build_dataset(;kwargs...)
         cols[:evid] = ["1" for i in 1:m]
     end
     data = build_dataset(cols)
-    if length(data.patients)==1
+    if length(data.subjects)==1
         return data[1]
     else
         return data
     end
 end
 
-function build_dataset(cols,covariates=(),dvs=())
+function build_dataset(cols,cvs=[],dvs=[:dv])
 
     names = collect(keys(cols))
     m = length(cols[:id])
 
-    if covariates isa Vector{Int}
-        covariates = names[covariates]
+    if cvs isa Vector{Int}
+        cvs = names[cvs]
     end
     if dvs isa Vector{Int}
         dvs = names[dvs]
     end
 
     ## Common fields
-    eltype(cols[:id]) <: AbstractString ? ids = parse.(Int, cols[:id]) : ids = cols[:id]
-    eltype(cols[:time]) <: AbstractString ? times = parse.(Float64, cols[:time]) : times = cols[:time]
-    eltype(cols[:evid]) <: AbstractString ? evids = parse.(Int8, cols[:evid]) : evids = cols[:evid]
+    ids   = eltype(cols[:id]) <: AbstractString ?   parse.(Int, cols[:id])       : cols[:id]
+    times = eltype(cols[:time]) <: AbstractString ? parse.(Float64, cols[:time]) : cols[:time]
+    evids = eltype(cols[:evid]) <: AbstractString ? parse.(Int8, cols[:evid])    : cols[:evid]
 
     uids  = unique(ids)
-    !isempty(dvs) && (Tdv = NamedTuples.create_namedtuple_type(dvs))
-    !isempty(covariates) && (Tcv = NamedTuples.create_namedtuple_type(covariates))
+    Tdv = isempty(dvs) ? Void : NamedTuples.create_namedtuple_type(dvs)
+    Tcv = isempty(cvs) ? Void : NamedTuples.create_namedtuple_type(cvs)
 
     subjects = map(uids) do id
         ## Observations
         idx_obs = filter(i -> ids[i] == id && evids[i] == 0, 1:m)
         obs_times = times[idx_obs]
-        if length(dvs) == 1 && first(dvs) == :dv
-            obs = misparse.(Float64, cols[:dv][idx_obs])
-            haskey(cols,:cmt) ? cmts = misparse.(Int, cols[:cmt][idx_obs]) : cmts = nothing
-        else
-            isempty(dvs) ? obs = Float64[] : obs = [misparse.(Float64, cols[dv][idx_obs]) for dv in dvs]
-            cmts = dvs
-        end
-        _observations = Observations(obs,obs_times,cmts)
 
+        obs_dvs = Tdv.([parse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
+        obs_cmts = haskey(cols,:cmt) ? misparse.(Int, cols[:cmt][idx_obs]) : nothing
+        observations = Observation.(obs_times, obs_dvs, obs_cmts)
 
         ## Covariates
         #  TODO: allow non-constant covariates
         i_z = findfirst(x -> x ==id, ids)
-        isempty(covariates) ? z = nothing : z = Tcv([parse(Float64, cols[cv][i_z]) for cv in covariates]...)
+        covariates = Tcv([parse(Float64, cols[cv][i_z]) for cv in cvs]...)
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)
@@ -201,7 +200,7 @@ function build_dataset(cols,covariates=(),dvs=())
         end
 
         sort!(events)
-        Person(id, _observations, z, events)
+        Subject(id, observations, covariates, events)
     end
     Population(subjects)
 end
