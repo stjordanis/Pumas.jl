@@ -9,11 +9,10 @@ data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
 ## parameters
 params = ParamSet(@NT(θ=VectorDomain(4, lower=zeros(4),init=ones(4)), Ω=PSDDomain(2), Σ=RealDomain(lower=0.0,init=1.0), a=ConstDomain(0.2)))
 x0 = init(params)
-# @test x0 == @NT(θ=zeros(3), Ω=PDMat(eye(2)), Σ=1.0, a=0.2)
 
 n = PKPDSimulator.packlen(params)
-
 v = zeros(n)
+
 PKPDSimulator.pack!(v, params, x0)
 v .+= 0.1
 x1 = PKPDSimulator.unpack(v, params)
