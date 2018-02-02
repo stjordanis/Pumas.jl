@@ -25,7 +25,7 @@ function timespan(sub::Subject)
         lo = min(lo, obs_lo)
         hi = max(hi, obs_hi)
     end
-    lo, hi+sqrt(eps())
+    lo, hi
 end
 
 

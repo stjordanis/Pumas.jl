@@ -6,6 +6,15 @@ covariates = [:sex,:wt,:etn]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
                  covariates,separator=',')
 
+# add a small epsilon to time 0 observations
+for subject in data.subjects
+    obs1 = subject.observations[1]
+    if obs1.time == 0
+        subject.observations[1] = PKPDSimulator.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+    end
+end
+
+
 ## parameters
 params = ParamSet(@NT(θ=VectorDomain(4, lower=zeros(4),init=ones(4)), Ω=PSDDomain(2), Σ=RealDomain(lower=0.0,init=1.0), a=ConstDomain(0.2)))
 x0 = init(params)
