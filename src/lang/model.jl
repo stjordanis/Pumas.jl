@@ -40,10 +40,11 @@ function pkpd_likelihood(m::NLModel,subject::Subject,param,rfx,alg=Tsit5();
                          kwargs...)
     ϵ = sqrt(eps())
     p = m.collate(param, rfx, subject.covariates)
-    sol = pkpd_solve(m.ode, subject, p, alg; kwargs...)
+    obstimes = [obs.time for obs in subject.observations]
+    sol = pkpd_solve(m.ode, subject, p, alg; saveat=obstimes, kwargs...)
     sum(subject.observations) do obs
         t = obs.time
-        dists = m.error(param,rfx,subject.covariates,p,sol(t+ϵ),t)
+        dists = m.error(param,rfx,subject.covariates,sol(t+ϵ),p,t)
         sum(map(logpdf,dists,obs.val))
     end
 end

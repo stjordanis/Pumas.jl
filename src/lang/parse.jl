@@ -1,6 +1,6 @@
 using DataStructures
 using MacroTools
-using DifferentialEquations
+using ParameterizedFunctions
 
 export @model
 
@@ -185,10 +185,10 @@ function extract_dynamics!(vars, odevars, expr)
     end
 end
 
-# here we just use the Differential Equations macro
+# here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(dynamics, collate)
     quote
-        DifferentialEquations.@ode_def($(esc(:FooBar)), $(esc(dynamics)), $(map(esc,keys(collate))...))
+        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(dynamics)), $(map(esc,keys(collate))...))
     end
 end
 
@@ -209,7 +209,7 @@ end
 
 function error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)
     quote
-        function (_param, _random, _data_cov, _collate, _odevars, t)
+        function (_param, _random, _data_cov, _odevars, _collate, t)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
             $(var_def(:_data_cov, data_cov))

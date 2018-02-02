@@ -55,7 +55,7 @@ odeprob = raw_pkpd_problem(f, u0)
 
 ## distributions
 # computed at each observation
-function err(params, randoms, covars, p, u, t)
+function err(params, randoms, covars, u,p, t)
     V = p.V
     Depot, Central = u    
     Σ = params.Σ
