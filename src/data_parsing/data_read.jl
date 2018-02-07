@@ -1,23 +1,3 @@
-## Types
-
-struct Subject{T1,T2,T3}
-  id::Int
-  observations::T1
-  covariates::T2
-  events::T3
-end
-
-struct Population{T} <: AbstractVector{T}
-  subjects::T
-end
-
-struct Observation{T,V,C}
-    time::T
-    val::V
-    cmt::C
-end
-
-
 function timespan(sub::Subject)
     lo, hi = extrema(evt.time for evt in sub.events)
     if !isempty(sub.observations)
@@ -96,7 +76,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
     build_dataset(cols,covariates,dvs)
 end
 
-function build_dataset(;kwargs...)
+function build_dataset(cvs=[],dvs=[];kwargs...)
     if typeof(kwargs[1][2]) <: Number
         _kwargs = [(kw[1],[string.(kw[2])]) for kw in kwargs]
     else
@@ -117,7 +97,7 @@ function build_dataset(;kwargs...)
     if !haskey(cols,:evid)
         cols[:evid] = ["1" for i in 1:m]
     end
-    data = build_dataset(cols)
+    data = build_dataset(cols,cvs,dvs)
     if length(data.subjects)==1
         return data[1]
     else
@@ -125,7 +105,7 @@ function build_dataset(;kwargs...)
     end
 end
 
-function build_dataset(cols,cvs=[],dvs=[:dv])
+function build_dataset(cols::Associative,cvs=[],dvs=[:dv])
 
     names = collect(keys(cols))
     m = length(cols[:id])

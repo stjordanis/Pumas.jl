@@ -1,8 +1,8 @@
-struct PKPDModel{P,SP,R}
-    prob::P
-    set_parameters::SP
-    reduction::R
-end
+# struct PKPDModel{P,SP,R}
+#     prob::P
+#     set_parameters::SP
+#     reduction::R
+# end
 
 abstract type ErrorModel end
 

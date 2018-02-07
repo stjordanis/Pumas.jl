@@ -164,8 +164,7 @@ function collate_obj(collate, params, randoms, data_cov)
 end
 
 
-function extract_dynamics!(vars, odevars, expr)
-    @assert expr isa Expr
+function extract_dynamics!(vars, odevars, expr::Expr)
     if expr.head == :block
         for ex in expr.args
             islinenum(ex) && continue
@@ -185,12 +184,36 @@ function extract_dynamics!(vars, odevars, expr)
     end
 end
 
-# here we just use the ParameterizedFunctions @ode_def
-function dynamics_obj(dynamics, collate)
-    quote
-        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(dynamics)), $(map(esc,keys(collate))...))
+# used for pre-defined analytical systems
+function extract_dynamics!(vars, odevars, sym::Symbol)
+    if sym == :ImmediateAbsorptionModel
+        pp = [:Central]
+    elseif sym == :OneCompartmentModel        
+        pp = [:Depot, :Central]
+    elseif sym == :OneCompartmentParallelModel
+        pp = [:Depot1, :Depot2, :Central]
+    end
+    for p in pp
+        p in vars && error("Variable $p already defined")
+        push!(vars,p)
+        push!(odevars, p)
     end
 end
+
+
+# here we just use the ParameterizedFunctions @ode_def
+function dynamics_obj(odeexpr::Expr, collate)
+    quote
+        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...))
+    end
+end
+function dynamics_obj(odename::Symbol, collate)
+    quote
+        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...))
+    end
+end
+
+
 
 function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
@@ -199,7 +222,7 @@ function extract_randvars!(vars, randvars, expr)
             p in vars && error("Variable $p already defined")
             push!(vars,p)
             push!(randvars,p)
-            :($p = $(ex.args[3]))                
+            :($p = $(ex.args[3]))
         else
             ex
         end
@@ -229,7 +252,7 @@ macro model(expr)
     randoms = OrderedDict{Symbol, Any}()
     data_cov = OrderedDict{Symbol, Any}()
     collate  = OrderedDict{Symbol, Any}()
-    odevars  = OrderedSet{Symbol}()    
+    odevars  = OrderedSet{Symbol}()
     errorvars  = OrderedSet{Symbol}()
     local vars, params, randoms, data_cov, collate, odeexpr, odevars, errorexpr, errorvars
 

@@ -1,7 +1,7 @@
-export NLModel, pkpd_simulate, pkpd_likelihood
+export PKPDModel, pkpd_simulate, pkpd_likelihood
 
 """
-    NLModel
+    PKPDModel
 
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
@@ -21,7 +21,7 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-struct NLModel{P,Q,R,S,T}
+struct PKPDModel{P,Q,R,S,T}
     param::P
     random::Q
     collate::R
@@ -29,21 +29,60 @@ struct NLModel{P,Q,R,S,T}
     error::T
 end
 
-function pkpd_simulate(m::NLModel,subject::Subject,param,rfx,alg=Tsit5();
-                       kwargs...)
-    p = m.collate(param, rfx, subject.covariates)
-    pkpd_solve(m.ode, subject, p, alg; kwargs...)
+"""
+    rfx_rand(m::PKPDModel, param)
+
+Generate a random set of random effects for model `m`, using parameters `param`.
+"""
+rfx_rand(m::PKPDModel, param) = map(rand, m.random(param))
+
+
+"""
+    (sol, col) = pkpd_solve(m::PKPDModel, subject::Subject, param, rfx[, alg=Tsit5()]; kwargs...)
+
+Compute the ODE for model `m`, with parameters `param` and random effects
+`rfx`. `alg` and `kwargs` are passed to the ODE solver.
+
+Returns a tuple containing the ODE solution `sol` and collation `col`.
+"""
+function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
+                       alg=Tsit5(); kwargs...)
+    col = m.collate(param, rfx, subject.covariates)
+    pkpd_solve(m.ode, subject, col, alg; kwargs...)
+    return sol, col
 end
 
 
-function pkpd_likelihood(m::NLModel,subject::Subject,param,rfx,alg=Tsit5();
-                         kwargs...)
-    p = m.collate(param, rfx, subject.covariates)
+"""
+    pkpd_simulate(m::PKPDModel, subject::Subject, param[, rfx[, alg=Tsit5()]]; kwargs...)
+
+Simulate random observations from model `m` for `subject` with parameters `param`. If no `rfx` is provided, then random ones are generated.
+"""
+function pkpd_simulate(m::PKPDModel, subject::Subject, param,
+                       rfx=rand_rfx(m, param), 
+                       alg=Tsit5();
+                       kwargs...)
     obstimes = [obs.time for obs in subject.observations]
-    sol = pkpd_solve(m.ode, subject, p, alg; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, alg; kwargs...)
+    map(obstimes) do t
+        errdist = m.error(param,rfx,subject.covariates,sol(t),col,t)
+        map(rand, errdist)
+    end        
+end
+
+
+"""
+    pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx[, alg=Tsit5()]; kwargs...)
+
+Compute the full log-likelihood of model `m` for `subject` with parameters `param` and random effects `rfx`. `alg` and `kwargs` are passed to ODE solver.
+"""
+function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
+                         alg=Tsit5(); kwargs...)
+    obstimes = [obs.time for obs in subject.observations]
+    sol, col = pkpd_solve(m, subject, param, rfx, alg; kwargs...)
     sum(subject.observations) do obs
         t = obs.time
-        dists = m.error(param,rfx,subject.covariates,sol(t),p,t)
-        sum(map(logpdf,dists,obs.val))
+        errdist = m.error(param,rfx,subject.covariates,sol(t),col,t)
+        sum(map(logpdf,errdist,obs.val))
     end
 end

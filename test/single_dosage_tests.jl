@@ -1,69 +1,60 @@
-using PKPDSimulator, NamedTuples, Distributions
+using Base.Test
+using PKPDSimulator, NamedTuples, Distributions, PDMats
 
 # Read the data
-covariates = [:sex,:wt,:etn]
 data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
-                 covariates,separator=',')
+                    [:sex,:wt,:etn],separator=',')
+# add a small epsilon to time 0 observations
+for subject in data.subjects
+    obs1 = subject.observations[1]
+    if obs1.time == 0
+        subject.observations[1] = PKPDSimulator.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+    end
+end
+
+
+m = @model begin
+    @param begin
+        θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+        Ω ∈ PSDDomain(2)
+        σ ∈ RealDomain(lower=0.0, init=1.0)
+    end
+    
+    @random begin
+        η ~ MvNormal(Ω)
+    end
+
+    @data_cov sex wt etn
+
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
+        V  = θ[3] * exp(η[2])
+    end
+
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
+
+    @error begin
+        conc = Central / V
+        dv ~ Normal(conc, conc*σ)
+    end
+end
 
 # Define the ODE
+x0 = @NT(θ = [2.268,74.17,468.6,0.5876],
+         ω = PDMat([0.05 0.0;
+                    0.0 0.2]),
+         σ = 0.1)
 
-function depot_model(du,u,p,t)
- Depot,Central = u
- du[1] = -p.Ka*Depot
- du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
-end
+y0 = @NT(η = [0.0,0.0])
 
-# Population parameters
+subject1 = data.subjects[1]
+sol1 = pkpd_simulate(m,subject1,x0,y0)
 
-θ = [2.268,74.17,468.6,0.5876] # [2.0,3.0,10.0,1.0] # Unfitted
-ω = [0.05 0.0
-     0.0 0.2]
+pkpd_likelihood(m,subject,x0,y0)
 
-# User definition of the set_parameters! function
 
-function set_parameters(θ,η,z)
-  @NT(Ka = θ[1],
-      CL = θ[2]*((z.wt/70)^0.75)*(θ[4]^z.sex)*exp(η[1]),
-      V  = θ[3]*exp(η[2]))
-end
 
-# Call simulate
-prob = ODEProblem(depot_model,zeros(2),(0.0,19.0))
-pkpd = PKPDModel(prob,set_parameters)
-
-# Simulate individual 1
-η1 = zeros(2)
-sol1 = simulate(pkpd,θ,η1,data[1])
-
-# Simulate Population
-# testing turning off parallelism
-sol = simulate(pkpd,θ,ω,data)
-
-#=
-using Plots; plotly()
-plot(sol,title="Plot of all trajectories",xlabel="time")
-summ = MonteCarloSummary(sol,0:0.1:19)
-plot(summ,title="Summary plot",xlabel="time")
-=#
-
-function reduction(sol,p,datai)
-  sol(datai.obs.times;idxs=2)./p.V
-end
-pkpd = PKPDModel(prob,set_parameters,reduction)
-
-# Simulate individual 1 with reduction
-sol1 = simulate(pkpd,θ,η1,data[1])
-
-# Simulate population with reduction
-sol = simulate(pkpd,θ,ω,data)
-
-adderr(uij, θ) = Normal(uij, θ[end])
-full = FullModel(pkpd, Independent(adderr))
-
-# Simulate individual 1 with reduction and error model
-sol1 = simulate(full,θ,η1,data[1])
-
-# Simulate population with reduction and error model
-#sol = simulate(prob,set_parameters,θ,ω,data,reduction,ϵ,error_model)
-
-sol1 = simulate(full,θ,ω,data)

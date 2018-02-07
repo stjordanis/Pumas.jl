@@ -1,3 +1,49 @@
+## Types
+
+"""
+    Subject
+
+The data corresponding to a single subject:
+
+Fields:
+- `id::Int`: numerical identifier
+- `obsverations`: a vector of `Observation`s
+- `covariates`: a named tuple containing the covariates, or `nothing`.
+- `events`: a vector of `Event`s.
+"""
+struct Subject{T1,T2,T3}
+  id::Int
+  observations::T1
+  covariates::T2
+  events::T3
+end
+
+"""
+    Population
+
+A set of `Subject`s.
+"""
+struct Population{T} <: AbstractVector{T}
+  subjects::T
+end
+
+"""
+    Observation
+
+A single measurement at a point in time.
+
+Fields
+- `time`: Time of measurement
+- `val`: value of measurement; this will typically be a named tuple.
+- `cmt`: Compartment from which measurement was taken
+"""
+struct Observation{T,V,C}
+    time::T
+    val::V
+    cmt::C
+end
+
+
 """
     Event
 
