@@ -1,5 +1,12 @@
 export RandomEffect, RandomEffectSet
 
+"""
+    RandomEffect([domain, ]dist)
+
+Represents a single random effect.
+
+`dist` is a distribution of a random effect (e.g. `MvNormal(Ω)`), and `domain` is its corresponding `Domain`.
+"""
 struct RandomEffect{S,T}
     domain::S
     dist::T
@@ -13,6 +20,11 @@ function RandomEffect(d::ContinuousUnivariateDistribution)
     RandomEffect(RealDomain(minimum(d), maximum(d), median(d)), d)
 end
 
+"""
+    RandomEffectSet
+
+Contains a named tuple of `RandomEffect`s.
+"""
 struct RandomEffectSet{T}
     effects::T
 end

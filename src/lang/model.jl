@@ -1,12 +1,12 @@
-export PKPDModel, pkpd_simulate, pkpd_likelihood
+export PKPDModel, init_param, init_random, rand_random, pkpd_simulate, pkpd_likelihood
 
 """
     PKPDModel
 
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
-- `data`: a `PKData` object
-- `random`: a mapping paramters to random effects
+- `data`: a `Population` object
+- `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
 - `collate`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
 - `error`: the error model mapping (param, rfx, data, ode vals) -> sampling dist
@@ -29,12 +29,16 @@ struct PKPDModel{P,Q,R,S,T}
     error::T
 end
 
+init_param(m::PKPDModel) = init(m.param)
+init_random(m::PKPDModel, param) = init(m.random(param))
+
+
 """
-    rfx_rand(m::PKPDModel, param)
+    rand_random(m::PKPDModel, param)
 
 Generate a random set of random effects for model `m`, using parameters `param`.
 """
-rfx_rand(m::PKPDModel, param) = map(rand, m.random(param))
+rand_random(m::PKPDModel, param) = rand(m.random(param))
 
 
 """
@@ -48,7 +52,7 @@ Returns a tuple containing the ODE solution `sol` and collation `col`.
 function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
                        alg=Tsit5(); kwargs...)
     col = m.collate(param, rfx, subject.covariates)
-    pkpd_solve(m.ode, subject, col, alg; kwargs...)
+    sol = pkpd_solve(m.ode, subject, col, alg; kwargs...)
     return sol, col
 end
 
@@ -59,7 +63,7 @@ end
 Simulate random observations from model `m` for `subject` with parameters `param`. If no `rfx` is provided, then random ones are generated.
 """
 function pkpd_simulate(m::PKPDModel, subject::Subject, param,
-                       rfx=rand_rfx(m, param), 
+                       rfx=rand_random(m, param), 
                        alg=Tsit5();
                        kwargs...)
     obstimes = [obs.time for obs in subject.observations]

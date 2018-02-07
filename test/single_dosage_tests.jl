@@ -49,12 +49,14 @@ x0 = @NT(θ = [2.268,74.17,468.6,0.5876],
                     0.0 0.2]),
          σ = 0.1)
 
-y0 = @NT(η = [0.0,0.0])
+y0 = init_random(m, x0)
 
 subject1 = data.subjects[1]
 sol1 = pkpd_simulate(m,subject1,x0,y0)
 
-pkpd_likelihood(m,subject,x0,y0)
+pkpd_likelihood(m,subject1,x0,y0)
+pkpd_simulate(m,subject1,x0,y0)
+pkpd_simulate(m,subject1,x0)
 
 
 

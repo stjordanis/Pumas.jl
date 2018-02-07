@@ -99,7 +99,7 @@ function extract_randoms!(vars, randoms, exprs...)
             p = expr.args[2]
             p in vars && error("Variable $p already defined")
             push!(vars,p)
-            randoms[p] = expr.args[3]
+            randoms[p] = :(RandomEffect($(expr.args[3])))
         # TODO support const expressions
         # elseif expr.head == :(=)
         #     p = expr.args[1]
@@ -116,7 +116,7 @@ function random_obj(randoms, params)
     quote
         function (_param)
             $(var_def(:_param, params))
-            $(esc(nt_expr(randoms)))
+            RandomEffectSet($(esc(nt_expr(randoms))))
         end
     end
 end
@@ -280,11 +280,11 @@ macro model(expr)
     end
 
     quote
-        NLModel($(param_obj(params)),
-              $(random_obj(randoms,params)),
-              $(collate_obj(collate,params,randoms,data_cov)),
-              raw_pkpd_problem($(dynamics_obj(odeexpr,collate)),zeros($(length(odevars)))),
-              $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)))
-
+        PKPDModel(
+            $(param_obj(params)),
+            $(random_obj(randoms,params)),
+            $(collate_obj(collate,params,randoms,data_cov)),
+            raw_pkpd_problem($(dynamics_obj(odeexpr,collate)),zeros($(length(odevars)))),
+            $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)))
     end
 end
