@@ -1,63 +1,6 @@
-using PKPDSimulator, Base.Test, NamedTuples
+using Base.Test
+using PKPDSimulator, NamedTuples, Distributions, PDMats
 
-# Gut dosing model
-function f(du,u,p,t)
- Depot,Central = u
- du[1] = -p.Ka*Depot
- du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
-end
-
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]))
-end
-
-function get_sol(θ,data;num_dv=2,kwargs...)
-    prob = ODEProblem(f,zeros(num_dv),(0.0,72.0))
-    pkpd = PKPDModel(prob,set_parameters)
-    η = zeros(2)
-    sol  = simulate(pkpd,θ,η,data[1];kwargs...)
-end
-
-function get_a_sol(θ,data;model = OneCompartmentModel,kwargs...)
-   prob = model(72.0)
-   pkpd = PKPDModel(prob,set_parameters)
-   η = zeros(2)
-   sol  = simulate(pkpd,θ,η,data[1])
-end
-
-function get_residual(θ,data,obs,obs_times;
-                       num_dv=2,cmt=2,scaling_factor = 1000,kwargs...)
-    sol = get_sol(θ,data;num_dv=num_dv,kwargs...)
-    cps = sol(obs_times;idxs=cmt)./(θ[3]/scaling_factor)
-    resid = cps - obs
-end
-
-function get_analytical_residual(θ,data,obs,obs_times;
-                                 model = OneCompartmentModel,
-                                 cmt=2,
-                                 scaling_factor = 1000,kwargs...)
-    sol = get_a_sol(θ,data;model = model,kwargs...)
-    cps = sol(obs_times;idxs=cmt)./(θ[3]/scaling_factor)
-    resid = cps - obs
-end
-
-function get_nonem_data(i)
-    data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-                  "examples/event_data/ev$i.csv"), covariates,dvs,
-                  separator=',')
-    obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-                "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
-                separator=',')
-    obs = obsdata.subjects[1].obs.vals[1]
-    obs_times = obsdata.subjects[1].obs.times
-    data,obs,obs_times
-end
-
-# Fake dvs and covariates for testing
-covariates = [1]
-dvs = [1]
 
 ###############################
 # Test 2
@@ -78,24 +21,60 @@ dvs = [1]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(2)
+# Gut dosing model
+m_diffeq = @model begin
+    @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+    @random  η ~ MvNormal(eye(2))
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0 #V
-    ]
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+    end
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
 
-@test norm(resid) < 1e-6
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
+end
 
-sol  = get_sol(θ,data)
-asol  = get_a_sol(θ,data)
+m_analytic = @model begin
+    @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+    @random  η ~ MvNormal(eye(2))
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+    end
 
-@test norm(a_resid) < 1e-6
+    @dynamics OneCompartmentModel
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
+end
+
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data2.csv"),
+                       [], [:cp],  separator=',')[1]
+
+x0 = @NT(θ = [1.5,  #Ka
+              1.0,  #CL
+              30.0 #V
+              ])
+y0 = init_random(m_diffeq, x0)
+
+sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+
+sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 ###############################
 # Test 3
@@ -118,29 +97,67 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # ii=12: each additional dose is given with a frequency of ii=12 hours
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
-data,obs,obs_times = get_nonem_data(3)
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    5.0   #LAGT
-    ]
+m_diffeq = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))    
+    @random   η ~ MvNormal(eye(2))
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        lags = θ[4])
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+    end
+
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
 end
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
+m_analytic = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))    
+    @random   η ~ MvNormal(eye(2))
+    
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+    end
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
+    @dynamics OneCompartmentModel
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-6
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
+end
+
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data3.csv"),
+                       [], [:cp],  separator=',')[1]
+
+
+x0 = @NT(θ = [1.5,  #Ka
+              1.0,  #CL
+              30.0, #V
+              5.0   #lags
+              ])
+y0 = init_random(m_diffeq, x0)
+
+sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+
+sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+
+
+#### TODO: fix below
 
 ###############################
 # Test 4

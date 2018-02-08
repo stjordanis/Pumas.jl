@@ -1,14 +1,13 @@
-function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Subject,
-                  output_reduction = (sol,p,datai) -> sol)
-  VarType = promote_type(eltype(ηi),eltype(θ))
+function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.tspan,kwargs...)
+  VarType = promote_type(numtype(p),numtype(prob.u0))
   u0 = VarType.(prob.u0)
   f = prob.f
   ss = prob.ss
-  tspan = VarType.(prob.tspan)
-  tdir = sign(prob.tspan[end] - prob.tspan[1])
-  p = set_parameters(θ,ηi,datai.covariates)
-  lags,bioav,time_adjust_rate,duration = get_magic_args(p,u0,tspan[1])
-  events = datai.events
+  _tspan = tspan == (nothing, nothing) ? timespan(subject) : tspan
+  ntspan = VarType.(_tspan)
+  tdir = sign(_tspan[end] - _tspan[1])
+  lags,bioav,time_adjust_rate,duration = get_magic_args(p,u0,ntspan[1])
+  events = subject.events
   adjust_event_timings!(events,lags,bioav,time_adjust_rate,duration)
   times = sorted_approx_unique(events)
   u = Vector{typeof(u0)}(length(times))
@@ -140,13 +139,12 @@ function simulate(prob::PKPDAnalyticalProblem,set_parameters,θ,ηi,datai::Subje
   end
 
   # The two assumes that all equations are vector equations
-  _soli = PKPDAnalyticalSolution{typeof(u0),2,typeof(u),
+  PKPDAnalyticalSolution{typeof(u0),2,typeof(u),
                      typeof(times),
                      typeof(doses),typeof(rates),
                      typeof(p),
                      typeof(prob)}(
                      u,times,doses,rates,p,prob,true,0,:Success)
-  output_reduction(_soli,p,datai)
 end
 
 function create_dose_rate_vector(cur_ev,u0,rate,bioav)

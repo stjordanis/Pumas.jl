@@ -1,5 +1,5 @@
 using Base.Test
-using PKPDSimulator, NamedTuples
+using PKPDSimulator, NamedTuples, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]
@@ -7,7 +7,7 @@ dvs = [:dv]
 data = process_data(Pkg.dir("PKPDSimulator", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
                     covariates,dvs)
 
-m = @model begin
+m_diffeq = @model begin
 
     @data_cov ka cl v
     
@@ -25,15 +25,47 @@ m = @model begin
     # we approximate the error by computing the loglikelihood
     @error begin
         conc = Central / V
-        dv ~ Normal(conc, 1.0)
+        dv ~ Normal(conc, 1e-100)
     end
-
 end
 
+m_analytic = @model begin
+
+    @data_cov ka cl v
+    
+    # TODO: this shouldn't be necessary
+    @collate begin
+        Ka = ka
+        CL = cl
+        V  = v
+    end
+    @dynamics OneCompartmentModel
+
+    # we approximate the error by computing the loglikelihood
+    @error begin
+        conc = Central / V
+        dv ~ Normal(conc, 1e-100)
+    end
+end
+
+subject1 = data.subjects[1]
 x0 = ()
 y0 = ()
-subject1 = data.subjects[1]
-sol1 = pkpd_simulate(m,data.subjects[1],x0,y0,abstol=1e-14,reltol=1e-14)
-sol2 = pkpd_simulate(m,data.subjects[2],x0,y0,abstol=1e-14,reltol=1e-14)
 
-# TODO: check these actually match up with NONMEM
+sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0)
+sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
+
+@test sol_diffeq(95.99) ≈ sol_analytic(95.99) rtol=1e-4
+@test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?
+
+sim_diffeq = begin
+    srand(1)
+    s = pkpd_simulate(m_diffeq,subject1,x0,y0)
+    map(x-> x.dv, s)
+end
+sim_analytic = begin
+    srand(1)
+    s = pkpd_simulate(m_analytic,subject1,x0,y0)
+    map(x-> x.dv, s)
+end
+@test sim_diffeq ≈ sim_analytic rtol=1e-3

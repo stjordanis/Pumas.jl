@@ -39,7 +39,11 @@ else
 end
 
 function var_def(tupvar, indvars)
-    :($(Expr(:tuple, map(esc,indvars)...)) = $tupvar)
+    quote
+        if $tupvar != nothing
+            $(Expr(:tuple, map(esc,indvars)...)) = $tupvar
+        end
+    end
 end
 var_def(tupvar, inddict::Associative) = var_def(tupvar, keys(inddict))
 
@@ -202,14 +206,14 @@ end
 
 
 # here we just use the ParameterizedFunctions @ode_def
-function dynamics_obj(odeexpr::Expr, collate)
+function dynamics_obj(odeexpr::Expr, collate, odevars)
     quote
-        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...))
+        raw_pkpd_problem(ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...)), zeros($(length(odevars))))
     end
 end
-function dynamics_obj(odename::Symbol, collate)
+function dynamics_obj(odename::Symbol, collate, odevars)
     quote
-        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...))
+        $odename()
     end
 end
 
@@ -284,7 +288,7 @@ macro model(expr)
             $(param_obj(params)),
             $(random_obj(randoms,params)),
             $(collate_obj(collate,params,randoms,data_cov)),
-            raw_pkpd_problem($(dynamics_obj(odeexpr,collate)),zeros($(length(odevars)))),
+            $(dynamics_obj(odeexpr,collate,odevars)),
             $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)))
     end
 end

@@ -12,8 +12,8 @@ for subject in data.subjects
     end
 end
 
-
-m = @model begin
+# Definition using diffeqs
+m_diffeq = @model begin
     @param begin
         θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         Ω ∈ PSDDomain(2)
@@ -43,20 +43,74 @@ m = @model begin
     end
 end
 
+# Definition using analytic models
+m_analytic = @model begin
+    @param begin
+        θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+        Ω ∈ PSDDomain(2)
+        σ ∈ RealDomain(lower=0.0, init=1.0)
+    end
+    
+    @random begin
+        η ~ MvNormal(Ω)
+    end
+
+    @data_cov sex wt etn
+
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
+        V  = θ[3] * exp(η[2])
+    end
+
+    @dynamics OneCompartmentModel
+
+    @error begin
+        conc = Central / V
+        dv ~ Normal(conc, conc*σ)
+    end
+end
+
 # Define the ODE
 x0 = @NT(θ = [2.268,74.17,468.6,0.5876],
          ω = PDMat([0.05 0.0;
                     0.0 0.2]),
          σ = 0.1)
 
-y0 = init_random(m, x0)
 
 subject1 = data.subjects[1]
-sol1 = pkpd_simulate(m,subject1,x0,y0)
 
-pkpd_likelihood(m,subject1,x0,y0)
-pkpd_simulate(m,subject1,x0,y0)
-pkpd_simulate(m,subject1,x0)
+y0 = init_random(m_diffeq, x0)
 
+sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0)
+sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
+
+@test sol_diffeq(1.0) ≈ sol_analytic(1.0) rtol=1e-4
+
+@test pkpd_likelihood(m_diffeq,subject1,x0,y0) ≈ pkpd_likelihood(m_analytic,subject1,x0,y0)
+
+sim_diffeq = begin
+    srand(1)
+    s = pkpd_simulate(m_diffeq,subject1,x0,y0)
+    map(x-> x.dv, s)
+end
+sim_analytic = begin
+    srand(1)
+    s = pkpd_simulate(m_analytic,subject1,x0,y0)
+    map(x-> x.dv, s)
+end
+@test sim_diffeq ≈ sim_analytic rtol=1e-4
+
+sim_diffeq = begin
+    srand(1)
+    s = pkpd_simulate(m_diffeq,subject1,x0)
+    map(x-> x.dv, s)
+end
+sim_analytic = begin
+    srand(1)
+    s = pkpd_simulate(m_analytic,subject1,x0)
+    map(x-> x.dv, s)
+end
+@test sim_diffeq ≈ sim_analytic rtol=1e-4
 
 

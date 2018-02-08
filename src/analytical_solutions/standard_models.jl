@@ -5,8 +5,8 @@ function immediate_absorption_f(t,t0,C0,dose,p,rate)
     rKe + exp(-(t-t0)*Ke) * (-rKe + C0)
 end
 
-function ImmediateAbsorptionModel(tf)
-  PKPDAnalyticalProblem{false}(immediate_absorption_f,0.0,(0.0,tf))
+function ImmediateAbsorptionModel()
+  PKPDAnalyticalProblem{false}(immediate_absorption_f,0.0,(nothing,nothing))
 end
 
 export ImmediateAbsorptionModel
@@ -24,8 +24,8 @@ function one_compartment_f(t,t0,amounts,doses,p,rates)
   @SVector [Depot,Central]
 end
 
-function OneCompartmentModel(tf)
-  PKPDAnalyticalProblem{false}(one_compartment_f,@SVector([0.0,0.0]),(0.0,tf))
+function OneCompartmentModel()
+  PKPDAnalyticalProblem{false}(one_compartment_f,@SVector([0.0,0.0]),(nothing, nothing))
 end
 
 export OneCompartmentModel
@@ -51,9 +51,9 @@ function one_compartment_parallel_f(t,t0,amounts,doses,p,rates)
   @SVector [Depot1,Depot2,Central]
 end
 
-function OneCompartmentParallelModel(tf)
+function OneCompartmentParallelModel()
   PKPDAnalyticalProblem{false}(one_compartment_parallel_f,
-                               @SVector([0.0,0.0,0.0]),(0.0,tf))
+                               @SVector([0.0,0.0,0.0]),(nothing, nothing))
 end
 
 export OneCompartmentParallelModel

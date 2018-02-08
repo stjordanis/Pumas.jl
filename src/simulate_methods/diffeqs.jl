@@ -2,9 +2,9 @@ export pkpd_solve, raw_pkpd_problem
 
 
 function pkpd_solve(rawprob::DEProblem,subject::Subject,p,
-                  alg = Tsit5();kwargs...)
+                  alg = Tsit5();tspan=rawprob.tspan, kwargs...)
     # diffeq ODEProblem, event times
-    prob,tstops = modify_pkpd_problem(rawprob,subject,p)
+    prob,tstops = modify_pkpd_problem(rawprob,subject,p,tspan)
     # ODE solution
     solve(prob,alg;
           save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
@@ -22,9 +22,10 @@ raw_pkpd_problem(f, u0; kwargs...) = ODEProblem(f, u0, (nothing, nothing); kwarg
 # returns final problem and necessary stopping times for integrator
 function modify_pkpd_problem(rawprob::DEProblem,  # original diffeq problem
                              subject::Subject,
-                             p)                 # ode parameters
+                             p,                       # ode parameters
+                             tspan = rawprob.tspan)   # timespan
 
-    _tspan = rawprob.tspan == (nothing, nothing) ? timespan(subject) : rawprob.tspan
+    _tspan = tspan == (nothing, nothing) ? timespan(subject) : tspan
 
     # promote u0 and tspan to deal with duals, etc.
     # TODO: make sure this works with tuples, named tuples, etc.  
@@ -32,14 +33,14 @@ function modify_pkpd_problem(rawprob::DEProblem,  # original diffeq problem
     # if not in place, could use?:
     #   u0 + zero(_tspan[1])*f(t,u,p)
     u0 = T.(rawprob.u0) 
-    tspan = T.(_tspan)
+    ntspan = T.(_tspan)
     f = DiffEqWrapper(rawprob)
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(p,subject,u0,tspan[1],typeof(rawprob))
+    tstops,cb = ith_subject_cb(p,subject,u0,ntspan[1],typeof(rawprob))
 
     # create problem of correct type
-    prob =  problem_final_dispatch(rawprob,f,u0,tspan,p,cb)
+    prob =  problem_final_dispatch(rawprob,f,u0,ntspan,p,cb)
     return prob, tstops
 end
 
