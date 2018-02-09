@@ -37,10 +37,7 @@ m_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 m_analytic = @model begin
@@ -55,10 +52,7 @@ m_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data2.csv"),
@@ -70,10 +64,10 @@ x0 = @NT(θ = [1.5,  #Ka
               ])
 y0 = @NT(η = [0.0,0.0])
 
-sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 ###############################
@@ -114,10 +108,7 @@ mlag_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 mlag_analytic = @model begin
@@ -133,10 +124,7 @@ mlag_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data3.csv"),
@@ -149,10 +137,10 @@ x0 = @NT(θ = [1.5,  #Ka
               5.0   #lags
               ])
 
-sim = pkpd_simulate(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_simulate(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 
@@ -198,10 +186,7 @@ mlagbioav_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 mlagbioav_analytic = @model begin
@@ -218,10 +203,7 @@ mlagbioav_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data4.csv"),
@@ -235,10 +217,10 @@ x0 = @NT(θ = [1.5,  #Ka
               0.412,#bioav
               ])
 
-sim = pkpd_simulate(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_simulate(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 
@@ -283,10 +265,7 @@ mbioav_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 mbioav_analytic = @model begin
@@ -302,10 +281,7 @@ mbioav_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
-        conc = Central / V
-        cp ~ Normal(conc, 1e-100)
-    end
+    @post cp = Central / V
 end
 
 subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data5.csv"),
@@ -339,10 +315,10 @@ sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-1
 @test sol[3][2] ≈ u0
 
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -408,10 +384,10 @@ sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-1
 @test sol[3][2] ≈ u0
 
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -454,10 +430,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                1,    #BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -502,10 +478,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                1,    #BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -550,10 +526,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                0.412,#BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -594,10 +570,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                1,    #BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -639,10 +615,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                1.0, #BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
 # TODO: why is the first value wrong?
 
@@ -679,10 +655,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                30.0, #V
                ])
 
-sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
 
@@ -716,10 +692,10 @@ x0 = @NT(θ = [ 1.5,  #Ka
                1.0, #BIOAV
                ])
 
-sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
 
@@ -750,6 +726,46 @@ sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
+
+mlagbioav_diffeq = @model begin
+    @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
+    @random   η ~ MvNormal(eye(2))
+
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+        bioav = θ[5]
+    end
+
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
+
+    @post cp = Central / V
+end
+
+mlagbioav_analytic = @model begin
+    @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
+    @random   η ~ MvNormal(eye(2))
+
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+        bioav = θ[5]
+    end
+
+    @dynamics OneCompartmentModel
+
+    @post cp = Central / V
+end
+
+
+
 
 data,obs,obs_times = get_nonem_data(14)
 

@@ -190,7 +190,7 @@ end
 
 # used for pre-defined analytical systems
 function extract_dynamics!(vars, odevars, sym::Symbol)
-    pp = eval(:(varnames(sym)))
+    pp = varnames(eval(sym))
     for p in pp
         p in vars && error("Variable $p already defined")
         push!(vars,p)
@@ -289,6 +289,7 @@ macro model(expr)
     post  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     errorvars  = OrderedSet{Symbol}()
+    errorexpr = :()
     local vars, params, randoms, data_cov, collate, post, odeexpr, odevars, errorexpr, errorvars
 
     MacroTools.prewalk(expr) do ex
