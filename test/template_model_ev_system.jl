@@ -68,7 +68,7 @@ x0 = @NT(θ = [1.5,  #Ka
               1.0,  #CL
               30.0 #V
               ])
-y0 = init_random(m_diffeq, x0)
+y0 = @NT(η = [0.0,0.0])
 
 sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -98,8 +98,8 @@ sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-m_diffeq = @model begin
-    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))    
+mlag_diffeq = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(eye(2))
 
     @collate begin
@@ -120,10 +120,10 @@ m_diffeq = @model begin
     end
 end
 
-m_analytic = @model begin
-    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))    
+mlag_analytic = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(eye(2))
-    
+
     @collate begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
@@ -148,16 +148,13 @@ x0 = @NT(θ = [1.5,  #Ka
               30.0, #V
               5.0   #lags
               ])
-y0 = init_random(m_diffeq, x0)
 
-sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_simulate(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = pkpd_simulate(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-
-#### TODO: fix below
 
 ###############################
 # Test 4
@@ -183,33 +180,67 @@ sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # ii=12: each additional dose is given with a frequency of ii=12 hours
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
-data,obs,obs_times = get_nonem_data(4)
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    5.0,  #LAGT
-    0.412,#BIOAV
-    ]
+mlagbioav_diffeq = @model begin
+    @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
+    @random   η ~ MvNormal(eye(2))
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        lags = θ[4],
-        bioav = θ[5])
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+        bioav = θ[5]
+    end
+
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
 end
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
+mlagbioav_analytic = @model begin
+    @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
+    @random   η ~ MvNormal(eye(2))
 
-# Make sure modifications are handled correctly with base_time by repeating
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        lags = θ[4]
+        bioav = θ[5]
+    end
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-6
+    @dynamics OneCompartmentModel
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
+end
+
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data4.csv"),
+                       [], [:cp],  separator=',')[1]
+
+
+x0 = @NT(θ = [1.5,  #Ka
+              1.0,  #CL
+              30.0, #V
+              5.0,  #lags
+              0.412,#bioav
+              ])
+
+sim = pkpd_simulate(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+
+sim = pkpd_simulate(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+
 
 ###############################
 # Test 5
@@ -236,23 +267,56 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(5)
+mbioav_diffeq = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+    @random   η ~ MvNormal(eye(2))
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    0.412,#BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        bioav = θ[4]
+    end
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
+    @dynamics begin
+        dDepot   = -Ka*Depot
+        dCentral =  Ka*Depot - (CL/V)*Central
+    end
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
 end
+
+mbioav_analytic = @model begin
+    @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+    @random   η ~ MvNormal(eye(2))
+
+    @collate begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+        bioav = θ[4]
+    end
+
+    @dynamics OneCompartmentModel
+
+    @error begin
+        conc = Central / V
+        cp ~ Normal(conc, 1e-100)
+    end
+end
+
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data5.csv"),
+                       [], [:cp],  separator=',')[1]
+
+
+x0 = @NT(θ = [1.5,  #Ka
+              1.0,  #CL
+              30.0, #V
+              0.412,#bioav
+              ])
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav
@@ -265,20 +329,23 @@ end
 
 u0 = 0.0
 for i in 1:200
-    u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],12)
+    u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],12)
 end
 
-sol  = get_sol(θ,data,abstol=1e-14,reltol=1e-14)
-@test norm(sol[3][2] - u0) < 1e-9
+sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test sol[3][2] ≈ u0
 
-asol  = get_a_sol(θ,data)
-@test norm(asol[1][2] - u0) < 1e-9
+sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test sol[3][2] ≈ u0
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-14,reltol=1e-14)
-@test norm(resid) < 1e-2
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
+
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
+
 
 ###############################
 # Test 6
@@ -309,21 +376,15 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(6)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data6.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    0.812,#BIOAV
-    ]
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+x0 = @NT(θ = [1.5,  #Ka
+              1.0,  #CL
+              30.0, #V
+              0.812,#bioav
+              ])
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav - ii
@@ -335,20 +396,25 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     u
 end
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data)
 u0 = 0.0
 for i in 1:200
-    u0 = analytical_ss_update(u0,10,10,θ[2]/θ[3],θ[4],6)
+    u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],6)
 end
-@test norm(sol[3][2]  - u0) < 1e-9
-@test norm(asol[1][2] - u0) < 1e-9
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
+sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test sol[3][2] ≈ u0
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test sol[3][2] ≈ u0
+
+
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
+
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
+
 
 ###############################
 # Test 7
@@ -379,29 +445,21 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(7)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data7.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    1,    #BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               1,    #BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
 
 
 ###############################
@@ -435,29 +493,21 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(8)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data8.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    1,    #BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               1,    #BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
 
 
 ###############################
@@ -491,29 +541,21 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(9)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data9.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    0.412,#BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               0.412,#BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
 
 
 ###############################
@@ -543,34 +585,21 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(10)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data10.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    1,    #BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               1,    #BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data)
-
-res = 1000sol(obs_times;idxs=2)/30
-
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
 
 
 ###############################
@@ -601,44 +630,22 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(11)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data11.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0, #V
-    1.0, #BIOAV
-    10,   #RAT2
-    1     #ss
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               1.0, #BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-2
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data)
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] atol=1e-2
+# TODO: why is the first value wrong?
 
-analytical_f = OneCompartmentModel(0.0).f
-p = @NT(Ka = θ[1],
-        CL = θ[2],
-        V  = θ[3])
-u0 = zeros(2)
-for i in 1:200
-    u0 = convert(Array,analytical_f(12,0.0,u0,θ[4]*[100.0,0.0],p,zeros(2)))
-end
-u0[1] += θ[4]*100.0
-
-@test norm(sol[3] - u0) < 1e-9
-
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-2
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
-@test norm(a_resid) < 1e-2
 
 ###############################
 # Test 12
@@ -664,29 +671,20 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)[2:end]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(12)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data12.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0,  #V
-    5.0,  #LAGT
-    0.412 #BIOAV
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]))
-        #lag = θ[4],
-        #bioav = θ[5]
-end
+sim = pkpd_simulate(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
+sim = pkpd_simulate(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-6
 
 ###############################
 # Test 13
@@ -709,30 +707,21 @@ a_resid  = get_analytical_residual(θ,data,obs,obs_times)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(13)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data13.csv"),
+                       [], [:cp],  separator=',')[1]
 
-θ = [
-    1.5,  #Ka
-    1.0,  #CL
-    30.0,  #V
-    1 #BIOAV
-    ]
+x0 = @NT(θ = [ 1.5,  #Ka
+               1.0,  #CL
+               30.0, #V
+               1.0, #BIOAV
+               ])
 
-function set_parameters(θ,η,z)
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]),
-        bioav = θ[4])
-end
+sim = pkpd_simulate(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-sol  = get_sol(θ,data,abstol=1e-12,reltol=1e-12)
-asol  = get_a_sol(θ,data)
+sim = pkpd_simulate(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] atol=1e-6
 
-resid  = get_residual(θ,data,obs,obs_times,abstol=1e-12,reltol=1e-12)
-@test norm(resid) < 1e-6
-
-a_resid  = get_analytical_residual(θ,data,obs,obs_times)
-@test norm(a_resid) < 1e-6
 
 ###############################
 # Test 14

@@ -10,6 +10,8 @@ function ImmediateAbsorptionModel()
 end
 
 export ImmediateAbsorptionModel
+varnames(::typeof(ImmediateAbsorptionModel)) = [:Central]
+
 
 function one_compartment_f(t,t0,amounts,doses,p,rates)
   Ka = p.Ka
@@ -29,6 +31,7 @@ function OneCompartmentModel()
 end
 
 export OneCompartmentModel
+varnames(::typeof(OneCompartmentModel)) = [:Depot, :Central]
 
 function one_compartment_parallel_f(t,t0,amounts,doses,p,rates)
   ka1 = p.Ka1
@@ -57,3 +60,4 @@ function OneCompartmentParallelModel()
 end
 
 export OneCompartmentParallelModel
+varnames(::typeof(OneCompartmentParallelModel)) = [:Depot1, :Depot2, :Central]

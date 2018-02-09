@@ -92,3 +92,16 @@ end
 Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
+
+
+function timespan(sub::Subject)
+    lo, hi = extrema(evt.time for evt in sub.events)
+    if !isempty(sub.observations)
+        obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
+        lo = min(lo, obs_lo)
+        hi = max(hi, obs_hi)
+    end
+    lo, hi
+end
+
+observationtimes(sub::Subject) = [obs.time for obs in sub.observations]

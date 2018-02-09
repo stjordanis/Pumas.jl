@@ -3,6 +3,7 @@ using Base.Test
 
 tic()
 @time @testset "Parsing Tests" begin include("parsing_tests.jl") end
+@time @testset "DSL" begin include("dsl.jl") end
 @time @testset "Single Dosage Tests" begin include("single_dosage_tests.jl") end
 @time @testset "Multiple Dosage Tests" begin include("multiple_dosage_tests.jl") end
 @time @testset "SS=2 and Overlap Tests" begin

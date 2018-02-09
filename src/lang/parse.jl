@@ -81,7 +81,7 @@ function extract_params!(vars, params, exprs...)
 end
 
 function param_obj(params)
-    :(ParamSet($(nt_expr(params))))
+    :(ParamSet($(esc(nt_expr(params)))))
 end
 
 function extract_randoms!(vars, randoms, exprs...)
@@ -190,13 +190,7 @@ end
 
 # used for pre-defined analytical systems
 function extract_dynamics!(vars, odevars, sym::Symbol)
-    if sym == :ImmediateAbsorptionModel
-        pp = [:Central]
-    elseif sym == :OneCompartmentModel        
-        pp = [:Depot, :Central]
-    elseif sym == :OneCompartmentParallelModel
-        pp = [:Depot1, :Depot2, :Central]
-    end
+    pp = eval(:(varnames(sym)))
     for p in pp
         p in vars && error("Variable $p already defined")
         push!(vars,p)
@@ -218,6 +212,42 @@ function dynamics_obj(odename::Symbol, collate, odevars)
 end
 
 
+function extract_post!(vars, post, exprs...)
+    # should be called on an expression wrapped in a @post
+    # expr can be:
+    #  a block
+    #  an assignment
+    #    a = 1
+    for expr in exprs
+        @assert expr isa Expr
+        if expr.head == :block
+            for ex in expr.args
+                islinenum(ex) && continue
+                extract_post!(vars, post, ex)
+            end
+        elseif expr.head == :(=)
+            p = expr.args[1]
+            p in vars && error("Variable $p already defined")
+            push!(vars,p)
+            post[p] = expr.args[2]
+        else
+            error("Invalid @post expression: $expr")
+        end
+    end
+end
+
+function post_obj(post, params, randoms, data_cov, collate, odevars)
+    quote
+        function (_param, _random, _data_cov,_collate,_odevars,t)
+            $(var_def(:_param, params))
+            $(var_def(:_random, randoms))
+            $(var_def(:_data_cov, data_cov))
+            $(var_def(:_collate, collate))
+            $(var_def(:_odevars, odevars))
+            $(esc(nt_expr(post)))
+        end
+    end
+end
 
 function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
@@ -236,7 +266,7 @@ end
 
 function error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)
     quote
-        function (_param, _random, _data_cov, _odevars, _collate, t)
+        function (_param, _random, _data_cov, _collate, _odevars, t)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
             $(var_def(:_data_cov, data_cov))
@@ -256,9 +286,10 @@ macro model(expr)
     randoms = OrderedDict{Symbol, Any}()
     data_cov = OrderedDict{Symbol, Any}()
     collate  = OrderedDict{Symbol, Any}()
+    post  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     errorvars  = OrderedSet{Symbol}()
-    local vars, params, randoms, data_cov, collate, odeexpr, odevars, errorexpr, errorvars
+    local vars, params, randoms, data_cov, collate, post, odeexpr, odevars, errorexpr, errorvars
 
     MacroTools.prewalk(expr) do ex
         ex isa Expr && ex.head == :block && return ex
@@ -275,6 +306,8 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@dynamics")
             extract_dynamics!(vars, odevars, ex.args[2])
             odeexpr = ex.args[2]
+        elseif ex.args[1] == Symbol("@post")
+            extract_post!(vars,post, ex.args[2:end]...)
         elseif ex.args[1] == Symbol("@error")
             errorexpr = extract_randvars!(vars, errorvars, ex.args[2])
         else
@@ -289,6 +322,7 @@ macro model(expr)
             $(random_obj(randoms,params)),
             $(collate_obj(collate,params,randoms,data_cov)),
             $(dynamics_obj(odeexpr,collate,odevars)),
+            $(post_obj(post,params,randoms,data_cov,collate, odevars)),
             $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)))
     end
 end

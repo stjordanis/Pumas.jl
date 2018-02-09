@@ -1,14 +1,3 @@
-function timespan(sub::Subject)
-    lo, hi = extrema(evt.time for evt in sub.events)
-    if !isempty(sub.observations)
-        obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
-        lo = min(lo, obs_lo)
-        hi = max(hi, obs_hi)
-    end
-    lo, hi
-end
-
-
 
 Base.start(A::Population) = start(A.subjects)
 Base.next(A::Population, i) = next(A.subjects, i)
