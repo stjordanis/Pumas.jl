@@ -18,6 +18,6 @@ tic()
     include("multiresponses.jl") end
 @time @testset "Type-Stability Tests" begin
     include("stability_tests.jl") end
-# @time @testset "StaticArray Tests" begin
-#     include("static_array_test.jl") end
+ @time @testset "StaticArray Tests" begin
+     include("static_array_test.jl") end
 toc()
