@@ -225,7 +225,7 @@ function init_obj(ode_init,odevars,params,randoms,data_cov,collate,isstatic)
         push!(vecexpr.args, ode_init[p])
     end
     if isstatic
-        vecexpr = :(@SVector $vecexpr)
+        vecexpr = :(StaticArrays.@SVector $vecexpr)
     end
     quote
         function (_param, _random, _data_cov,_collate,t)
