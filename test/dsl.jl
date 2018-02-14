@@ -60,12 +60,13 @@ mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
-                 raw_pkpd_problem(ParameterizedFunctions.@ode_def(OneCompartment,begin
+                 (_param, _random, _data_cov,_collate,t) -> [0.0,0.0],
+                 ParameterizedFunctions.@ode_def(OneCompartment,begin
                      dDepot   = -Ka*Depot
                      dCentral =  Ka*Depot - (CL/V)*Central
-                 end, Ka, CL, V), zeros(2)),
+                 end, Ka, CL, V),
                  (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V),
-(_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V;
+                 (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V;
                                                      @NT(dv = Normal(conc, conc*_param.Σ))))
                  
                  

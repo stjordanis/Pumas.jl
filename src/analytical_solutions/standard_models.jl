@@ -1,39 +1,38 @@
-function immediate_absorption_f(t,t0,C0,dose,p,rate)
+export ImmediateAbsorptionModel
+
+abstract type ExplicitModel end
+
+
+
+struct ImmediateAbsorptionModel <: ExplicitModel end
+function (::ImmediateAbsorptionModel)(t,t0,C0,dose,p,rate)
     Ke = p.CL/p.V
     C0 += dose
     rKe = rate/Ke
     rKe + exp(-(t-t0)*Ke) * (-rKe + C0)
 end
+varnames(::Type{ImmediateAbsorptionModel}) = [:Central]
 
-function ImmediateAbsorptionModel()
-  PKPDAnalyticalProblem{false}(immediate_absorption_f,0.0,(nothing,nothing))
+
+
+struct OneCompartmentModel <: ExplicitModel end
+function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
+    Ka = p.Ka
+    Ke = p.CL/p.V           # elimination rate
+    amt = amounts + doses   # initial values for cmt's + new doses
+    Sa = exp(-(t-t0)*Ka)
+    Se = exp(-(t-t0)*Ke)
+    rKa = rates[1]/Ka
+    Depot  = (amt[1] * Sa) + (1-Sa)*rates[1]/(Ka)          # next depot (cmt==1)
+    Central =  Ka / (Ka - Ke) * (amt[1] * (Se - Sa) + rates[1]*((1-Se)/Ke - (1-Sa)/Ka)) +
+    amt[2] * Se + (1-Se)*rates[2]/Ke # next central (cmt==2)
+    @SVector [Depot,Central]
 end
-
-export ImmediateAbsorptionModel
-varnames(::typeof(ImmediateAbsorptionModel)) = [:Central]
+varnames(::Type{OneCompartmentModel}) = [:Depot, :Central]
 
 
-function one_compartment_f(t,t0,amounts,doses,p,rates)
-  Ka = p.Ka
-  Ke = p.CL/p.V         # elimination rate
-  amt = amounts + doses             # initial values for cmt's + new doses
-  Sa = exp(-(t-t0)*Ka)
-  Se = exp(-(t-t0)*Ke)
-  rKa = rates[1]/Ka
-  Depot  = (amt[1] * Sa) + (1-Sa)*rates[1]/(Ka)          # next depot (cmt==1)
-  Central =  Ka / (Ka - Ke) * (amt[1] * (Se - Sa) + rates[1]*((1-Se)/Ke - (1-Sa)/Ka)) +
-            amt[2] * Se + (1-Se)*rates[2]/Ke # next central (cmt==2)
-  @SVector [Depot,Central]
-end
-
-function OneCompartmentModel()
-  PKPDAnalyticalProblem{false}(one_compartment_f,@SVector([0.0,0.0]),(nothing, nothing))
-end
-
-export OneCompartmentModel
-varnames(::typeof(OneCompartmentModel)) = [:Depot, :Central]
-
-function one_compartment_parallel_f(t,t0,amounts,doses,p,rates)
+struct OneCompartmentParallelModel <: ExplicitModel end
+function (::OneCompartmentParallelModel)(t,t0,amounts,doses,p,rates)
   ka1 = p.Ka1
   ka2 = p.Ka2
   CL = p.CL
@@ -54,10 +53,5 @@ function one_compartment_parallel_f(t,t0,amounts,doses,p,rates)
   @SVector [Depot1,Depot2,Central]
 end
 
-function OneCompartmentParallelModel()
-  PKPDAnalyticalProblem{false}(one_compartment_parallel_f,
-                               @SVector([0.0,0.0,0.0]),(nothing, nothing))
-end
+varnames(::Type{OneCompartmentParallelModel}) = [:Depot1, :Depot2, :Central]
 
-export OneCompartmentParallelModel
-varnames(::typeof(OneCompartmentParallelModel)) = [:Depot1, :Depot2, :Central]

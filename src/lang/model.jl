@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, pkpd_simulate, pkpd_likelihood, pkpd_post, pkpd_postfun
+export PKPDModel, init_param, init_random, rand_random, pkpd_solve, pkpd_simulate, pkpd_likelihood, pkpd_post, pkpd_postfun
 
 """
     PKPDModel
@@ -21,13 +21,14 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-struct PKPDModel{P,Q,R,S,T,U}
+struct PKPDModel{P,Q,R,S,T,U,V}
     param::P
     random::Q
     collate::R
-    ode::S
-    post::T
-    error::U
+    init::S
+    ode::T
+    post::U
+    error::V
 end
 
 init_param(m::PKPDModel) = init(m.param)
@@ -51,9 +52,11 @@ Compute the ODE for model `m`, with parameters `param` and random effects
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
 function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
-                       args...; kwargs...)
-    col = m.collate(param, rfx, subject.covariates)
-    sol = pkpd_solve(m.ode, subject, col, args...; kwargs...)
+                    args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+    col   = m.collate(param, rfx, subject.covariates)
+    u0  = m.init(param, rfx, subject.covariates, col, tspan[1])
+
+    sol = _solve(m.ode, subject, col, u0, tspan, args...;kwargs...)
     return sol, col
 end
 

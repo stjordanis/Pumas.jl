@@ -1,22 +1,23 @@
-function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.tspan,kwargs...)
-  VarType = promote_type(numtype(p),numtype(prob.u0))
-  u0 = VarType.(prob.u0)
-  f = prob.f
+function _solve(f::ExplicitModel,subject::Subject, col, u0, tspan,  args...; kwargs...)
+
+    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+    Ttspan = T.(tspan)
+    Tu0    = T.(u0)
+
+  prob = PKPDAnalyticalProblem{true}(f, Tu0, Ttspan)
   ss = prob.ss
-  _tspan = tspan == (nothing, nothing) ? timespan(subject) : tspan
-  ntspan = VarType.(_tspan)
-  tdir = sign(_tspan[end] - _tspan[1])
-  lags,bioav,time_adjust_rate,duration = get_magic_args(p,u0,ntspan[1])
+
+  lags,bioav,time_adjust_rate,duration = get_magic_args(col,Tu0,Ttspan[1])
   events = subject.events
   adjust_event_timings!(events,lags,bioav,time_adjust_rate,duration)
   times = sorted_approx_unique(events)
-  u = Vector{typeof(u0)}(length(times))
-  doses = Vector{typeof(u0)}(length(times))
-  rates = Vector{typeof(u0)}(length(times))
+  u = Vector{typeof(Tu0)}(length(times))
+  doses = Vector{typeof(Tu0)}(length(times))
+  rates = Vector{typeof(Tu0)}(length(times))
 
   t0 = times[1]
-  rate = zero(u0)
-  last_dose = zero(u0)
+  rate = zero(Tu0)
+  last_dose = zero(Tu0)
   i = 1
   ss_time = -one(t0)
   ss_overlap_duration = -one(t0)
@@ -37,9 +38,9 @@ function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.ts
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
-      u0 = f(t,t0,u0,dose,p,rate)
-      u[i] = u0
-      doses[i] = zero(u0)
+      Tu0 = f(t,t0,Tu0,dose,col,rate)
+      u[i] = Tu0
+      doses[i] = zero(Tu0)
       _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
       rate = _rate
       rates[i] = rate
@@ -47,21 +48,21 @@ function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.ts
       ss_dropoff_event = false
       event_counter += 1
       cur_ev = events[event_counter]
-      cur_ev.evid >= 3 && (u0 = zero(u0))
+      cur_ev.evid >= 3 && (Tu0 = zero(Tu0))
       @assert cur_ev.time == t
       if cur_ev.ss == 0
-        dose,_rate = create_dose_rate_vector(cur_ev,u0,rate,bioav)
+        dose,_rate = create_dose_rate_vector(cur_ev,Tu0,rate,bioav)
 
-        (t0 != t) && cur_ev.evid < 3 && (u0 = f(t,t0,u0,last_dose,p,rate))
+        (t0 != t) && cur_ev.evid < 3 && (Tu0 = f(t,t0,Tu0,last_dose,col,rate))
         rate = _rate
-        u[i] = u0
+        u[i] = Tu0
         doses[i] = dose
         last_dose = dose
         rates[i] = rate
       else # handle steady state
         ss_time = t0
         # No steady state solution given, use a fallback
-        dose,_rate = create_ss_dose_rate_vector(cur_ev,u0,rate,bioav)
+        dose,_rate = create_ss_dose_rate_vector(cur_ev,Tu0,rate,bioav)
         if cur_ev.rate > 0
           ss_rate = _rate
           _duration = (bioav*cur_ev.amt)/cur_ev.rate
@@ -74,23 +75,23 @@ function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.ts
           _t2 = t0 + cur_ev.ii
           _t1 == t0 && (_t1 = _t2)
 
-          cur_ev.ss==2 && (u0_cache = f(t,t0,u0,last_dose,p,rate))
+          cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
 
           if ss == nothing
             cur_norm = Inf
             while cur_norm > 1e-12
-              u0prev = u0
-              u0 = f(_t1,t0,u0,dose,p,_rate)
-              _t2-_t1 > 0 && (u0 = f(_t2,_t1,u0,zero(u0),p,_rate-ss_rate))
-              cur_norm = norm(u0-u0prev)
+              Tu0prev = Tu0
+              Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
+              _t2-_t1 > 0 && (Tu0 = f(_t2,_t1,Tu0,zero(Tu0),col,_rate-ss_rate))
+              cur_norm = norm(Tu0-Tu0prev)
             end
           end
 
           rate = _rate
           cur_ev.amt == 0 && (rate = zero(rate))
-          cur_ev.ss == 2 && (u0 += u0_cache)
+          cur_ev.ss == 2 && (Tu0 += Tu0_cache)
 
-          u[i] = u0
+          u[i] = Tu0
           doses[i] = dose
           last_dose = dose
           rates[i] = rate
@@ -110,20 +111,20 @@ function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.ts
         else # Not a rate event, just a dose
 
           _t1 = t0 + cur_ev.ii
-          cur_ev.ss==2 && (u0_cache = f(t,t0,u0,last_dose,p,rate))
+          cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
 
           if ss == nothing
             cur_norm = Inf
             while cur_norm > 1e-12
-              u0prev = u0
-              u0 = f(_t1,t0,u0,dose,p,_rate)
-              cur_norm = norm(u0-u0prev)
+              Tu0prev = Tu0
+              Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
+              cur_norm = norm(Tu0-Tu0prev)
             end
           end
 
           rate = _rate
-          cur_ev.ss == 2 && (u0 += u0_cache)
-          u[i] = u0
+          cur_ev.ss == 2 && (Tu0 += Tu0_cache)
+          u[i] = Tu0
           doses[i] = dose
           last_dose = dose
           rates[i] = rate
@@ -139,12 +140,12 @@ function pkpd_solve(prob::PKPDAnalyticalProblem,subject::Subject,p;tspan=prob.ts
   end
 
   # The two assumes that all equations are vector equations
-  PKPDAnalyticalSolution{typeof(u0),2,typeof(u),
+  PKPDAnalyticalSolution{typeof(Tu0),2,typeof(u),
                      typeof(times),
                      typeof(doses),typeof(rates),
-                     typeof(p),
+                     typeof(col),
                      typeof(prob)}(
-                     u,times,doses,rates,p,prob,true,0,:Success)
+                     u,times,doses,rates,col,prob,true,0,:Success)
 end
 
 function create_dose_rate_vector(cur_ev,u0,rate,bioav)

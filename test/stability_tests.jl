@@ -1,7 +1,4 @@
 using Base.Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
-
-using Base.Test
 using PKPDSimulator, NamedTuples, Distributions
 
 # Load data

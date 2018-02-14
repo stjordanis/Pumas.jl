@@ -1,23 +1,6 @@
-using PKPDSimulator, Base.Test, NamedTuples
+using Base.Test
+using PKPDSimulator, NamedTuples, Distributions, PDMats
 
-function get_nonem_data(i)
-    data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-                  "examples/event_data/ev$i.csv"), covariates,dvs,
-                  separator=',')
-    obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-                "examples/event_data","data$i.csv"),Symbol[],Symbol[:cp],
-                separator=',')
-    obs = obsdata.subjects[1].obs.vals[1]
-    obs_times = obsdata.subjects[1].obs.times
-    data,obs,obs_times
-end
-
-# Fake dvs and covariates for testing
-covariates = [1]
-dvs = [1]
-
-
-# Indirect Response Model (irm1)
 
 ###############################
 # Test 23
@@ -47,76 +30,76 @@ dvs = [1]
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(23)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data23.csv"),
+                       [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
-function f(du,u,p,t)
- ev1,cent,periph,resp = u
- cp     = (cent/p.Vc)
- ct     = (periph/p.Vp)
- CLNL   = p.Vmax/(p.Km+cp)
- INH    = (p.IMAX*cp^p.γ/(p.IC50^p.γ+cp^p.γ))
 
- du[1] = -p.Ka1*ev1
- du[2] =  p.Ka1*ev1 - (p.CL+CLNL+p.Q)*cp  + p.Q*ct
- du[3] =  p.Q*cp  - p.Q*ct
- du[4] =  p.Kin*(1-INH)  - p.Kout*resp
+m23 = @model begin
+    @param   θ ∈ VectorDomain(12)
+    @random  η ~ MvNormal(eye(11))
+
+    @collate begin
+        Ka1     = θ[1]
+        CL      = θ[2]*exp(η[1])
+        Vc      = θ[3]*exp(η[2])
+        Q       = θ[4]*exp(η[3])
+        Vp      = θ[5]*exp(η[4])
+        Kin     = θ[6]*exp(η[5])
+        Kout    = θ[7]*exp(η[6])
+        IC50    = θ[8]*exp(η[7])
+        IMAX    = θ[9]*exp(η[8])
+        γ       = θ[10]*exp(η[9])
+        Vmax    = θ[11]*exp(η[10])
+        Km      = θ[12]*exp(η[11])
+    end
+
+    @init begin
+        Resp = θ[6]/θ[7]
+    end
+    
+    @dynamics begin
+        # TODO: allow intermediate expressions in macro
+        dEv1    = -Ka1*Ev1
+        dCent   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
+        dPeriph =  Q*(Cent/Vc)  - Q*(Periph/Vp)
+        dResp   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
+    end
+
+    @post begin
+        # TODO: allow direct output of dynamical variables
+        ev1    = Ev1
+        cp     = Cent / θ[3]
+        periph = Periph
+        resp   = Resp
+
+    end
 end
 
-function set_parameters(θ,η,z)
-    @NT(Ka1     = θ[1],
-        CL      = θ[2]*exp(η[1]),
-        Vc      = θ[3]*exp(η[2]),
-        Q       = θ[4]*exp(η[3]),
-        Vp      = θ[5]*exp(η[4]),
-        Kin     = θ[6]*exp(η[5]),
-        Kout    = θ[7]*exp(η[6]),
-        IC50    = θ[8]*exp(η[7]),
-        IMAX    = θ[9]*exp(η[8]),
-        γ       = θ[10]*exp(η[9]),
-        Vmax    = θ[11]*exp(η[10]),
-        Km      = θ[12]*exp(η[11]))
-end
 
-θ = [
-    1, # Ka1  Absorption rate constant 1 (1/time)
-    1, # CL   Clearance (volume/time)
-   20, # Vc   Central volume (volume)
-    2, # Q    Inter-compartmental clearance (volume/time)
-   10, # Vp   Peripheral volume of distribution (volume)
-   10, # Kin  Response in rate constant (1/time)
-    2, # Kout Response out rate constant (1/time)
-    2, # IC50 Concentration for 50% of max inhibition (mass/volume)
-    1, # IMAX Maximum inhibition
-    1, # γ    Emax model sigmoidicity
-    0, # Vmax Maximum reaction velocity (mass/time)
-    2  # Km   Michaelis constant (mass/volume)
-    ]
+x0 = @NT(θ = [
+              1, # Ka1  Absorption rate constant 1 (1/time)
+              1, # CL   Clearance (volume/time)
+              20, # Vc   Central volume (volume)
+              2, # Q    Inter-compartmental clearance (volume/time)
+              10, # Vp   Peripheral volume of distribution (volume)
+              10, # Kin  Response in rate constant (1/time)
+              2, # Kout Response out rate constant (1/time)
+              2, # IC50 Concentration for 50% of max inhibition (mass/volume)
+              1, # IMAX Maximum inhibition
+              1, # γ    Emax model sigmoidicity
+              0, # Vmax Maximum reaction velocity (mass/time)
+              2  # Km   Michaelis constant (mass/volume)
+              ])
+y0 = @NT(η = zeros(11))
+sim = pkpd_post(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
-resp_0 = θ[6]/θ[7] # Kin/Kout
-prob = ODEProblem(f,[0.0,0.0,0.0,resp_0],(0.0,240.0))
-pkpd = PKPDModel(prob,set_parameters)
-η = zeros(11)
-sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
+# exclude discontinuities
+inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 
-obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-            "examples/event_data","data23.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
-            separator=',')
-obs_ev1s = obsdata.subjects[1].obs.vals[1]
-obs_cps = obsdata.subjects[1].obs.vals[2]
-obs_periphs = obsdata.subjects[1].obs.vals[3]
-obs_resps = obsdata.subjects[1].obs.vals[4]
-
-ev1s = sol(obs_times;idxs=1).u
-@test maximum(ev1s - obs_ev1s) < 1e-6
-
-cps = sol(obs_times;idxs=2)./θ[3]
-@test maximum(cps - obs) < 1e-6
-
-periphs = sol(obs_times;idxs=3).u
-@test maximum(periphs - obs_periphs) < 1e-6
-
-resps = sol(obs_times;idxs=4).u
-@test maximum(resps - obs_resps) < 1e-6
+@test [s.ev1 for s in sim][inds] ≈ [obs.val.ev1 for obs in subject.observations][inds]
+@test [s.cp for s in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [s.periph for s in sim] ≈ [obs.val.periph for obs in subject.observations]  rtol=1e-6
+@test [s.resp for s in sim] ≈ [obs.val.resp for obs in subject.observations] rtol=1e-6
 
 # Indirect Response Model (irm2)
 
@@ -148,73 +131,58 @@ resps = sol(obs_times;idxs=4).u
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-data,obs,obs_times = get_nonem_data(24)
+subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data24.csv"),
+                       [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
-function f(du,u,p,t)
-    ev1,cent,periph,resp = u
-    cp     = (cent/p.Vc)
-    ct     = (periph/p.Vp)
-    CLNL   = p.Vmax/(p.Km+cp)
-    INH    = (p.IMAX*cp^p.γ/(p.IC50^p.γ+cp^p.γ))
 
-    du[1] = -p.Ka1*ev1
-    du[2] =  p.Ka1*ev1 - (p.CL+CLNL+p.Q)*cp  + p.Q*ct
-    du[3] =  p.Q*cp  - p.Q*ct
-    du[4] =  p.Kin  - p.Kout*(1-INH)*resp
+m24 = @model begin
+    @param   θ ∈ VectorDomain(12)
+    @random  η ~ MvNormal(eye(11))
+
+    @collate begin
+        Ka1     = θ[1]
+        CL      = θ[2]*exp(η[1])
+        Vc      = θ[3]*exp(η[2])
+        Q       = θ[4]*exp(η[3])
+        Vp      = θ[5]*exp(η[4])
+        Kin     = θ[6]*exp(η[5])
+        Kout    = θ[7]*exp(η[6])
+        IC50    = θ[8]*exp(η[7])
+        IMAX    = θ[9]*exp(η[8])
+        γ       = θ[10]*exp(η[9])
+        Vmax    = θ[11]*exp(η[10])
+        Km      = θ[12]*exp(η[11])
+    end
+
+    @init begin
+        Resp = θ[6]/θ[7]
+    end
+    
+    @dynamics begin
+        # TODO: allow intermediate expressions in macro
+        dEv1    = -Ka1*Ev1
+        dCent   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
+        dPeriph =  Q*(Cent/Vc)  - Q*(Periph/Vp)
+        dResp   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
+    end
+
+    @post begin
+        # TODO: allow direct output of dynamical variables
+        ev1    = Ev1
+        cp     = Cent / θ[3]
+        periph = Periph
+        resp   = Resp
+
+    end
 end
 
-function set_parameters(θ,η,z)
-   @NT(Ka1     = θ[1],
-       CL      = θ[2]*exp(η[1]),
-       Vc      = θ[3]*exp(η[2]),
-       Q       = θ[4]*exp(η[3]),
-       Vp      = θ[5]*exp(η[4]),
-       Kin     = θ[6]*exp(η[5]),
-       Kout    = θ[7]*exp(η[6]),
-       IC50    = θ[8]*exp(η[7]),
-       IMAX    = θ[9]*exp(η[8]),
-       γ       = θ[10]*exp(η[9]),
-       Vmax    = θ[11]*exp(η[10]),
-       Km      = θ[12]*exp(η[11]))
-end
 
-θ = [
-   1, # Ka1  Absorption rate constant 1 (1/time)
-   1, # CL   Clearance (volume/time)
-  20, # Vc   Central volume (volume)
-   2, # Q    Inter-compartmental clearance (volume/time)
-  10, # Vp   Peripheral volume of distribution (volume)
-  10, # Kin  Response in rate constant (1/time)
-   2, # Kout Response out rate constant (1/time)
-   2, # IC50 Concentration for 50% of max inhibition (mass/volume)
-   1, # IMAX Maximum inhibition
-   1, # γ    Emax model sigmoidicity
-   0, # Vmax Maximum reaction velocity (mass/time)
-   2  # Km   Michaelis constant (mass/volume)
-   ]
+sim = pkpd_post(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
-resp_0 = θ[6]/θ[7] # Kin/Kout
-prob = ODEProblem(f,[0.0,0.0,0.0,resp_0],(0.0,240.0))
-pkpd = PKPDModel(prob,set_parameters)
-η = zeros(11)
-sol  = simulate(pkpd,θ,η,data[1],abstol=1e-12,reltol=1e-12)
+# exclude discontinuities
+inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 
-obsdata = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-           "examples/event_data","data24.csv"),Symbol[],Symbol[:ev1,:cp,:periph,:resp],
-           separator=',')
-obs_ev1s = obsdata.subjects[1].obs.vals[1]
-obs_cps = obsdata.subjects[1].obs.vals[2]
-obs_periphs = obsdata.subjects[1].obs.vals[3]
-obs_resps = obsdata.subjects[1].obs.vals[4]
-
-ev1s = sol(obs_times;idxs=1).u
-@test maximum(ev1s - obs_ev1s) < 1e-6
-
-cps = sol(obs_times;idxs=2)./θ[3]
-@test maximum(cps - obs) < 1e-6
-
-periphs = sol(obs_times;idxs=3).u
-@test maximum(periphs - obs_periphs) < 1e-6
-
-resps = sol(obs_times;idxs=4).u
-@test maximum(resps - obs_resps) < 1e-6
+@test [s.ev1 for s in sim][inds] ≈ [obs.val.ev1 for obs in subject.observations][inds]
+@test [s.cp for s in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [s.periph for s in sim] ≈ [obs.val.periph for obs in subject.observations]  rtol=1e-6
+@test [s.resp for s in sim] ≈ [obs.val.resp for obs in subject.observations] rtol=1e-6

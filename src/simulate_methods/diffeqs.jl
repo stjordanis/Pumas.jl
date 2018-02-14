@@ -1,48 +1,38 @@
-export pkpd_solve, raw_pkpd_problem
+function _solve(f, subject::Subject, col, u0, tspan, alg=Tsit5(), args...; kwargs...)
+    
+    # Promotion to handle Dual numbers
+    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+    Ttspan = T.(tspan)
+    Tu0    = T.(u0)
+    
+    prob, tstops = _problem(f, subject, col, Tu0, Ttspan)
 
-
-function pkpd_solve(rawprob::DEProblem,subject::Subject,p,
-                  alg = Tsit5();tspan=rawprob.tspan, kwargs...)
-    # diffeq ODEProblem, event times
-    prob,tstops = modify_pkpd_problem(rawprob,subject,p,tspan)
-    # ODE solution
-    solve(prob,alg;
-          save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
-          tstops=tstops,   # extra times that the timestepping algorithm must step to
-          kwargs...)    
+    sol = solve(prob,alg,args...;
+                save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
+                tstops=tstops,   # extra times that the timestepping algorithm must step to
+                kwargs...)
 end
 
-# build a "raw" problem
-# this is a bit of a kludge, as it is not actually used
-# it is later modified to allow for parameters and events
-# fake interval will be replaced by data.
-raw_pkpd_problem(f, u0; kwargs...) = ODEProblem(f, u0, (nothing, nothing); kwargs...)
-
-# build a "modified" problem out of a "raw" problem to account for events
+# build a "modified" problem using DiffEqWrapper 
 # returns final problem and necessary stopping times for integrator
-function modify_pkpd_problem(rawprob::DEProblem,  # original diffeq problem
-                             subject::Subject,
-                             p,                       # ode parameters
-                             tspan = rawprob.tspan)   # timespan
+function _problem(f,
+                  subject::Subject,
+                  col,  # collated parameters
+                  u0,
+                  tspan)   # timespan
 
-    _tspan = tspan == (nothing, nothing) ? timespan(subject) : tspan
-
-    # promote u0 and tspan to deal with duals, etc.
-    # TODO: make sure this works with tuples, named tuples, etc.  
-    T = promote_type(numtype(p),numtype(rawprob.u0),numtype(_tspan))
-    # if not in place, could use?:
-    #   u0 + zero(_tspan[1])*f(t,u,p)
-    u0 = T.(rawprob.u0) 
-    ntspan = T.(_tspan)
-    f = DiffEqWrapper(rawprob)
+    fd = DiffEqWrapper(f, 0, zeros(u0))
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(p,subject,u0,ntspan[1],typeof(rawprob))
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],ODEProblem)
 
+    inplace = !(u0 isa StaticArray)
+    
     # create problem of correct type
-    prob =  problem_final_dispatch(rawprob,f,u0,ntspan,p,cb)
+    prob = ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
     return prob, tstops
 end
+
 
 function build_pkpd_problem(_prob::AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
@@ -401,7 +391,7 @@ mutable struct DiffEqWrapper{F,rateType} <: Function
   rates_on::Int
   rates::rateType
 end
-DiffEqWrapper(rawprob::DEProblem) = DiffEqWrapper(rawprob.f,0,zeros(rawprob.u0))
+# DiffEqWrapper(rawprob::DEProblem) = DiffEqWrapper(rawprob.f,0,zeros(rawprob.u0))
 DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)
 
 function (f::DiffEqWrapper)(u,p,t)

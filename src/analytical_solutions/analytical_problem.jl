@@ -1,13 +1,12 @@
 struct PKPDAnalyticalProblem{uType,tType,isinplace,F,S,C} <: AbstractAnalyticalProblem{uType,tType,isinplace}
   f::F
-  ss::S
   u0::uType
   tspan::Tuple{tType,tType}
+  ss::S
   callback::C
-  function PKPDAnalyticalProblem{iip}(f,u0,tspan,ss = nothing;
-           callback = nothing) where {iip}
+  function PKPDAnalyticalProblem{iip}(f,u0,tspan,ss = nothing,callback = nothing) where {iip}
     new{typeof(u0),promote_type(map(typeof,tspan)...),iip,
-        typeof(f),typeof(ss),typeof(callback)}(f,ss,u0,tspan,callback)
+        typeof(f),typeof(ss),typeof(callback)}(f,u0,tspan,ss,callback)
   end
 end
 

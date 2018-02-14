@@ -528,7 +528,7 @@ x0 = @NT(θ = [ 1.5,  #Ka
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: this is wrong
-#@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
+@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
@@ -573,7 +573,7 @@ x0 = @NT(θ = [ 1.5,  #Ka
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: what is going on here?
-#@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
@@ -881,7 +881,7 @@ x0 = @NT(θ = [
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
-#@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -908,7 +908,7 @@ x0 = @NT(θ = [
 
 # TODO: very wrong
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-#@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
