@@ -86,3 +86,26 @@ function get_magic_args(p,u0,t0)
 
   lags,bioav,rate,duration
 end
+
+
+
+# promote to correct numerical type (e.g. to handle Duals correctly)
+# TODO Unitful.jl support?
+numtype(x::Number)        = typeof(x)
+numtype(x::AbstractArray) = eltype(x)
+numtype(x::Tuple)         = promote_type(map(numtype,x)...)
+if VERSION < v"0.7"    
+    @generated function numtype(x::NamedTuple)
+        ex = :(promote_type())
+        for s in fieldnames(x)
+            push!(ex.args, :(numtype(getfield(x, $(QuoteNode(s))))))
+        end
+        ex
+    end
+else
+    numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
+end
+
+zero(x) = Base.zero(x)
+zero(x::Tuple) = map(zero,x)
+zero(x::NamedTuple) = map(zero,x)

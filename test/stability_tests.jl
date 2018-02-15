@@ -11,7 +11,6 @@ m_diffeq = @model begin
 
     @data_cov ka cl v
     
-    # TODO: this shouldn't be necessary
     @collate begin
         Ka = ka
         CL = cl
@@ -22,7 +21,8 @@ m_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    # we approximate the error by computing the loglikelihood
+    @post cp = Central / V
+    
     @error begin
         conc = Central / V
         dv ~ Normal(conc, 1e-100)
@@ -33,7 +33,6 @@ m_analytic = @model begin
 
     @data_cov ka cl v
     
-    # TODO: this shouldn't be necessary
     @collate begin
         Ka = ka
         CL = cl
@@ -41,31 +40,19 @@ m_analytic = @model begin
     end
     @dynamics OneCompartmentModel
 
-    # we approximate the error by computing the loglikelihood
+    @post cp = Central / V
+
     @error begin
         conc = Central / V
         dv ~ Normal(conc, 1e-100)
     end
 end
 
-subject1 = data.subjects[1]
-x0 = ()
-y0 = ()
+@inferred pkpd_solve(m_analytic,data[1],(),())
+@inferred pkpd_post(m_analytic,data[1],(),())
+@inferred pkpd_simulate(m_analytic,data[1],(),())
 
-sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0)
-sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
-
-@test sol_diffeq(95.99) ≈ sol_analytic(95.99) rtol=1e-4
-@test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?
-
-sim_diffeq = begin
-    srand(1)
-    s = pkpd_simulate(m_diffeq,subject1,x0,y0)
-    map(x-> x.dv, s)
-end
-sim_analytic = begin
-    srand(1)
-    s = pkpd_simulate(m_analytic,subject1,x0,y0)
-    map(x-> x.dv, s)
-end
-@test sim_diffeq ≈ sim_analytic rtol=1e-3
+# inference broken in both `modify_pkpd_problem` and `solve`
+@test_broken @inferred pkpd_solve(m_diffeq,data[1],(),())
+@test_broken @inferred pkpd_post(m_analytic,data[1],(),())
+@test_broken @inferred pkpd_simulate(m_diffeq,data[1],(),()) 

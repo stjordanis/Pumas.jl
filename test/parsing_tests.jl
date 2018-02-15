@@ -1,7 +1,7 @@
 using PKPDSimulator, Base.Test
 
-data = process_data(joinpath(Pkg.dir("PKPDSimulator"),
-              "examples/event_data/ev1.csv"),separator=',')
+data = process_data(Pkg.dir("PKPDSimulator","examples/event_data/ev1.csv"),
+                    separator=',')
 
 @test map(x->x.time,data[1].events) == collect(0:12.0:36.0)
 for ev in data[1].events
@@ -15,9 +15,8 @@ for ev in data[1].events
   @test ev.cmt == 1
 end
 
-gen_data = build_dataset(amt=100, addl=3, cmt=1, ii=12, ss=0)
-@test data[1].id == gen_data.id
-@test data[1].obs.vals == gen_data.obs.vals
-@test data[1].obs.times == gen_data.obs.times
-@test data[1].z == gen_data.z
-@test data[1].events == gen_data.events
+gen_subject = build_dataset(amt=100, addl=3, cmt=1, ii=12, ss=0)
+@test data[1].id == gen_subject.id
+@test data[1].observations == gen_subject.observations
+@test data[1].covariates == gen_subject.covariates
+@test data[1].events == gen_subject.events
