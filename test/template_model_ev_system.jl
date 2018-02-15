@@ -808,12 +808,14 @@ x0 = @NT(θ = [
               30.0 #V
               ])
 
-# TODO: this is broken
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [v.cp for v in sim[1:19]] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
+# TODO: this is mixing pre and post dose observations, making some obs fail
+@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 # Also, for some reason this is unscaled?
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -847,12 +849,17 @@ x0 = @NT(θ = [
               30.0 #V
               ])
 
-# TODO: this is broken
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-# TODO: wrong at dose times?
+
+sol,col = pkpd_solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+ts = [obs.time for obs in subject.observations]
+@test 1000*sol(ts-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+# TODO: wrong at dose times?
+# Uses pre-dose observations
 @test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -905,9 +912,17 @@ x0 = @NT(θ = [
               30.0  #V
               ])
 
-# TODO: very wrong
+sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+ts = [obs.time for obs in subject.observations]
+@test sol(ts+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+# TODO: post-dose observation causing failure
+@test_broken [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+
+ts = [obs.time for obs in subject.observations]
+plot(ts,[v.cp for v in sim])
+plot(ts,[obs.val.cp for obs in subject.observations])
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
