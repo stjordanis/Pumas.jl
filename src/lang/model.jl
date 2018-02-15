@@ -90,7 +90,7 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
 function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
                          args...; kwargs...)
     obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     sum(subject.observations) do obs
         # TODO: figure out a way to iterate directly over sol(t)
         t = obs.time
@@ -103,11 +103,11 @@ end
 function pkpd_post(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
                        args...; obstimes=observationtimes(subject),kwargs...)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         m.post(param,rfx,subject.covariates,col,sol(t),t)
-    end        
+    end
 end
 
 function pkpd_postfun(m::PKPDModel, subject::Subject, param,

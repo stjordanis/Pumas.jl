@@ -527,8 +527,8 @@ x0 = @NT(θ = [ 1.5,  #Ka
                ])
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: this is wrong
-@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
+# TODO: why is the first value wrong?
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
@@ -572,8 +572,7 @@ x0 = @NT(θ = [ 1.5,  #Ka
                ])
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: what is going on here?
-@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
@@ -850,7 +849,7 @@ x0 = @NT(θ = [
 
 # TODO: this is broken
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 # TODO: wrong at dose times?
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -881,7 +880,7 @@ x0 = @NT(θ = [
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
-@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
