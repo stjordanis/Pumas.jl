@@ -18,7 +18,7 @@ end
 ## parameters
 mdsl = @model begin
     @param begin
-        θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+        θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         Ω ∈ PSDDomain(2)
         Σ ∈ RealDomain(lower=0.0, init=1.0)
     end
@@ -52,7 +52,7 @@ end
 
 mstatic = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4)),
                               Ω = PSDDomain(2),
-                              Σ = RealDomain(lower=0.0, init=1.0)),
+                              Σ = RealDomain(lower=0.0, init=1.0))),
                  (_param) -> RandomEffectSet(@NT(η = RandomEffect(MvNormal(_param.Ω)))),
                  (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
@@ -68,8 +68,8 @@ mstatic = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(
                  (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V),
                  (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V;
                                                      @NT(dv = Normal(conc, conc*_param.Σ))))
-                 
-                 
+
+
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -108,7 +108,7 @@ mstatic2 = PKPDModel(ParamSet(@NT(θ = VectorDomain(3, lower=zeros(3), init=ones
                  end,
                  (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V),
                  (_param, _random, _data_cov,_collate,_odevars,t) -> ())
-                 
+
 
 
 subject = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])
@@ -120,6 +120,6 @@ x0 = @NT(θ = [
               ],
          Ω = eye(2))
 y0 = @NT(η = zeros(2))
-         
+
 p = pkpd_post(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
-@test_broken [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]
+@test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]

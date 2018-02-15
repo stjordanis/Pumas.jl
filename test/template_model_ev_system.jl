@@ -920,10 +920,6 @@ sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose observation causing failure
 @test_broken [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
-ts = [obs.time for obs in subject.observations]
-plot(ts,[v.cp for v in sim])
-plot(ts,[obs.val.cp for obs in subject.observations])
-
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
