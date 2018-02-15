@@ -125,6 +125,10 @@ end
 init(p::ParamSet) = map(init, p.params)
 packlen(p::ParamSet) = sum(packlen, p.params)
 
+pack_upper(p::ParamSet) = pack_upper!(Array{Float64}(packlen(p)),p)
+pack_lower(p::ParamSet) = pack_lower!(Array{Float64}(packlen(p)),p)
+pack_init(p::ParamSet)  = (x = init(p); pack!(Array{numtype(x)}(packlen(p)), p, x))
+
 function pack_upper!(v, p::ParamSet)
     k = 0
     for pp in p.params
@@ -133,6 +137,7 @@ function pack_upper!(v, p::ParamSet)
         pack_upper!(vv, pp)
         k += n
     end
+    return v
 end
 function pack_lower!(v, p::ParamSet)
     k = 0
@@ -142,6 +147,7 @@ function pack_lower!(v, p::ParamSet)
         pack_lower!(vv, pp)
         k += n
     end
+    return v
 end
 function pack!(v, p::ParamSet, x)
     k = 0
@@ -151,6 +157,7 @@ function pack!(v, p::ParamSet, x)
         pack!(vv, pp, xx)
         k += n
     end
+    return v
 end
 function unpack(v, p::ParamSet)
     local k::Int

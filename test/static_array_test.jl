@@ -53,7 +53,7 @@ end
 mstatic = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4)),
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0))),
-                 (_param) -> RandomEffectSet(@NT(η = RandomEffect(MvNormal(_param.Ω)))),
+                 (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))),
                  (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
@@ -95,7 +95,7 @@ post_static = pkpd_postfun(mstatic, subject, x0, y0,abstol=1e-12,reltol=1e-12)
 #
 mstatic2 = PKPDModel(ParamSet(@NT(θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
                               Ω = PSDDomain(2))),
-                 (_param) -> RandomEffectSet(@NT(η = RandomEffect(MvNormal(_param.Ω)))),
+                 (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))),
                  (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
                                                      CL = _param.θ[2] * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),

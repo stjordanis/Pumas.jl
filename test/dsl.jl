@@ -55,7 +55,7 @@ mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0),
                               a = ConstDomain(0.2))),
-                 (_param) -> RandomEffectSet(@NT(η = RandomEffect(MvNormal(_param.Ω)))),
+                 (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))),
                  (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),

@@ -8,7 +8,7 @@ using PKPDSimulator, Base.Test, NamedTuples, Distributions, DiffEqJump
 
 params = ParamSet(@NT(θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
-  RandomEffectSet(@NT(η=RandomEffect(MvNormal(p.Ω))))
+  RandomEffectSet(@NT(η=MvNormal(p.Ω)))
 end
 
 function collate(params, randoms, covars)
