@@ -19,13 +19,18 @@ function collate(params, randoms, covars)
         V  = θ[3]*exp(η[2]))
 end
 
-function f(du,u,h,p,t)
-  Depot,Central = u
-  du[1] = -p.Ka*Depot
-  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central - 0.1h(t-1,Val{0},2)
+function f(du,u,p,t)
+ Depot,Central = u
+ du[1] = -p.Ka*Depot
+ du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
 end
-h(t,idxs=0) = 0.0
-prob = DDEProblem(f,h,zeros(2),(0.0,72.0),[1])
+
+function g(t,u,du)
+ du[1] = 0.5u[1]
+ du[2] = 0.1u[2]
+end
+
+prob = SDEProblem(f,g,zeros(2),(0.0,72.0))
 
 function err(params, randoms, covars, u,p, t)
     V = p.V
@@ -41,7 +46,6 @@ model = PKPDSimulator.PKPDModel(params,randomfx,collate,init,prob,post,err)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)
-subject = data
 
 data = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[0,0], time=[0,12],  cmt=[1,1])
 sol  = pkpd_solve(model,data,x0,y0,MethodOfSteps(Tsit5()))
