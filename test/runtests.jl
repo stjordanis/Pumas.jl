@@ -6,6 +6,11 @@ tic()
     include("parsing_tests.jl") end
 @time @testset "DSL" begin
     include("dsl.jl") end
+
+# What is this?
+#@time @testset "Lang" begin
+#    include("lang.jl") end
+
 @time @testset "Single Dosage Tests" begin
     include("single_dosage_tests.jl") end
 @time @testset "Multiple Dosage Tests" begin
@@ -18,6 +23,18 @@ tic()
     include("multiresponses.jl") end
 @time @testset "Type-Stability Tests" begin
     include("stability_tests.jl") end
- @time @testset "StaticArray Tests" begin
+@time @testset "StaticArray Tests" begin
      include("static_array_test.jl") end
+
+#=
+@time @testset "DDE Tests" begin
+     include("ddes.jl") end
+@time @testset "SDE Tests" begin
+     include("sdes.jl") end
+@time @testset "Mixed ODE and Discrete Tests" begin
+     include("mixed_ode_discrete.jl") end
+@time @testset "Sensitivity Tests" begin
+     include("sensitivity_tests.jl") end
+=#
+
 toc()
