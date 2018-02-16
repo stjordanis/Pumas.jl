@@ -1,53 +1,37 @@
-export RandomEffect, RandomEffectSet
+export RandomEffectSet
 
-"""
-    RandomEffect([domain, ]dist)
 
-Represents a single random effect.
-
-`dist` is a distribution of a random effect (e.g. `MvNormal(Ω)`), and `domain` is its corresponding `Domain`.
-"""
-struct RandomEffect{S,T}
-    domain::S
-    dist::T
-end
-
-function RandomEffect(d::MvNormal)
+function Domain(d::MvNormal)
     n = length(d)
-    RandomEffect(VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d)), d)
+    VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
 end
-function RandomEffect(d::ContinuousUnivariateDistribution)
-    RandomEffect(RealDomain(minimum(d), maximum(d), median(d)), d)
+function Domain(d::ContinuousUnivariateDistribution)
+    RealDomain(minimum(d), maximum(d), median(d))
 end
 
 """
-    RandomEffectSet
+    RandomEffectSet([domains,] dists)
 
-Contains a named tuple of `RandomEffect`s.
+Specifies the `RandomEffect`s:
+- `dists` is a collection (e.g. a `NamedTuple`) of distributions of random effect (e.g. `MvNormal(Ω)`)
+- `domains` are the corresponding `Domains`.
+
 """
-struct RandomEffectSet{T}
-    effects::T
+struct RandomEffectSet{S,T}
+    domains::S
+    dists::T
 end
+RandomEffectSet(dists) = RandomEffectSet(map(Domain, dists), dists)
 
-# struct ConstDist{T} <: Distribution
-#     val::T
-# end
-# function RandomEffect(d::ConstDist)
-#     RandomEffect(ConstDomain(d.val), d)
-# end
-
-Base.rand(rfx::RandomEffectSet) = map(rf -> rand(rf.dist), rfx.effects)
+Base.rand(rfx::RandomEffectSet) = map(rand, rfx.dists)
 
 
-## define a conversion to simplify packing/unpacking
-ParamSet(rfx::RandomEffectSet) = ParamSet(map(rf -> rf.domain, rfx.effects))
+init(rfx::RandomEffectSet) = init(ParamSet(rfx.domains))
+packlen(rfx::RandomEffectSet) = packlen(ParamSet(rfx.domains))
 
-init(rfx::RandomEffectSet) = init(ParamSet(rfx))
-packlen(rfx::RandomEffectSet) = packlen(ParamSet(rfx))
-
-pack_upper!(v, rfx::RandomEffectSet) = pack_upper!(v, ParamSet(rfx))
-pack_lower!(v, rfx::RandomEffectSet) = pack_lower!(v, ParamSet(rfx))
-pack!(v, rfx::RandomEffectSet, x) = pack!(v, ParamSet(rfx), x)
-unpack(v, rfx::RandomEffectSet) = unpack(v, ParamSet(rfx))
+pack_upper(rfx::RandomEffectSet) = pack_upper(ParamSet(rfx.domains))
+pack_lower(rfx::RandomEffectSet) = pack_lower(ParamSet(rfx.domains))
+pack_init(rfx::RandomEffectSet) = pack_init(ParamSet(rfx.domains))
+unpack(v, rfx::RandomEffectSet) = unpack(v, ParamSet(rfx.domains))
 
 

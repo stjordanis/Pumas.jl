@@ -44,9 +44,9 @@ unpack(v, d::RealDomain) = v[1]
 
 Specifies a parameter as a real vector of length `n`. `lower` and `upper` are the respective bounds, `init` is the value used as the initial guess in the optimisation.
 """
-struct VectorDomain{T} <: Domain
-    lower::T
-    upper::T
+struct VectorDomain{L,T} <: Domain
+    lower::L
+    upper::L
     init::T
 end
 
@@ -94,8 +94,9 @@ end
 function pack_upper!(v, d::PSDDomain)
     v[:] = +Inf
 end
-function pack!(v, d::PSDDomain, X::PDMat)
-    U = X.chol.factors
+function pack!(v, d::PSDDomain, C::LinAlg.Cholesky)
+    @assert C.uplo == 'U'
+    U = C.factors
     n = size(d.init,1)
     k = 0
     for j = 1:n
@@ -105,9 +106,12 @@ function pack!(v, d::PSDDomain, X::PDMat)
         v[k+=1] = U[j,j]
     end
 end
+pack!(v, d::PSDDomain, X::PDMats.PDMat) = pack!(v, d, X.chol)
+pack!(v, d::PSDDomain, X::AbstractMatrix) = pack!(v, d, cholfact(X))
+
 function unpack(v, d::PSDDomain)
     n = size(d.init,1)
-    U = zeros(n,n)
+    U = zeros(eltype(v), n,n)
     k = 0
     for j = 1:n
         for i = 1:j-1
@@ -125,6 +129,11 @@ end
 init(p::ParamSet) = map(init, p.params)
 packlen(p::ParamSet) = sum(packlen, p.params)
 
+pack_upper(p::ParamSet) = pack_upper!(Array{Float64}(packlen(p)),p)
+pack_lower(p::ParamSet) = pack_lower!(Array{Float64}(packlen(p)),p)
+pack(p::ParamSet, x)  = pack!(Array{numtype(x)}(packlen(p)), p, x)
+pack_init(p::ParamSet)  = pack(p, init(p))
+
 function pack_upper!(v, p::ParamSet)
     k = 0
     for pp in p.params
@@ -133,6 +142,7 @@ function pack_upper!(v, p::ParamSet)
         pack_upper!(vv, pp)
         k += n
     end
+    return v
 end
 function pack_lower!(v, p::ParamSet)
     k = 0
@@ -142,6 +152,7 @@ function pack_lower!(v, p::ParamSet)
         pack_lower!(vv, pp)
         k += n
     end
+    return v
 end
 function pack!(v, p::ParamSet, x)
     k = 0
@@ -151,6 +162,7 @@ function pack!(v, p::ParamSet, x)
         pack!(vv, pp, xx)
         k += n
     end
+    return v
 end
 function unpack(v, p::ParamSet)
     local k::Int

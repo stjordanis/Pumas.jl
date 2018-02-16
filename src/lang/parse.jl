@@ -104,7 +104,7 @@ function extract_randoms!(vars, randoms, exprs...)
             p = expr.args[2]
             p in vars && error("Variable $p already defined")
             push!(vars,p)
-            randoms[p] = :(RandomEffect($(expr.args[3])))
+            randoms[p] = expr.args[3]
         # TODO support const expressions
         # elseif expr.head == :(=)
         #     p = expr.args[1]

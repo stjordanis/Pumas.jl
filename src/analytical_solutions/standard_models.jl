@@ -1,4 +1,4 @@
-export ImmediateAbsorptionModel
+export ImmediateAbsorptionModel, OneCompartmentModel, OneCompartmentParallelModel
 
 abstract type ExplicitModel end
 
