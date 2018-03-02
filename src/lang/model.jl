@@ -62,7 +62,7 @@ end
 
 
 """
-    pkpd_simulate(m::PKPDModel, subject::Subject, param[, rfx, [args...]]; 
+    pkpd_simulate(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
 Simulate random observations from model `m` for `subject` with parameters `param` at
@@ -77,7 +77,19 @@ function pkpd_simulate(m::PKPDModel, subject::Subject, param,
         # TODO: figure out a way to iterate directly over sol(t)
         errdist = m.error(param,rfx,subject.covariates,col,sol(t),t)
         map(rand, errdist)
-    end        
+    end
+end
+
+
+function pkpd_map(f, m::PKPDModel, subject::Subject, param, rfx,
+                         args...; kwargs...)
+    obstimes = observationtimes(subject)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    map(subject.observations) do obs
+        t = obs.time
+        err = m.error(param,rfx,subject.covariates,col,sol(t),t)
+        f(err, obs)
+    end
 end
 
 
@@ -90,7 +102,7 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
 function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
                          args...; kwargs...)
     obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
     sum(subject.observations) do obs
         # TODO: figure out a way to iterate directly over sol(t)
         t = obs.time
@@ -98,6 +110,9 @@ function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
         sum(map(logpdf,errdist,obs.val))
     end
 end
+
+
+
 
 
 function pkpd_post(m::PKPDModel, subject::Subject, param,

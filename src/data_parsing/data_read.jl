@@ -37,18 +37,18 @@ Import NONMEM-formatted data from `filename`.
 
 """
 function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
-    header=true, names=nothing, separator=nothing)
+                      header=true, names=nothing, separator=nothing)
     io = open(filename)
     if header == true
         l = readline(io)
+        if startswith(l, "#")
+            l = l[2:end]
+        end
         if names === nothing
             if separator === nothing
                 names = lowercase.(split(l))
             else
                 names = lowercase.(split(l,separator))
-            end
-            if names[1] == "#"
-                shift!(names)
             end
             names = Symbol.(names)
         end

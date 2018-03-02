@@ -7,7 +7,7 @@ export @model
 if VERSION < v"0.7-"
     islinenum(x) = x isa Expr && x.head == :line
     function nt_expr(set)
-        isempty(set) && return :(())        
+        isempty(set) && return :(())
         t = :(NamedTuples.@NT)
         for p in set
             push!(t.args, :($p = $p))
@@ -42,7 +42,12 @@ end
 function var_def(tupvar, indvars)
     quote
         if $tupvar != nothing
-            $(Expr(:tuple, map(esc,indvars)...)) = $tupvar
+            if $tupvar isa NamedTuple
+                # Allow for NamedTuples to be in different order
+                $(Expr(:block, [:($(esc(v)) = $tupvar.$v) for v in indvars]...))
+            else
+                $(Expr(:tuple, map(esc,indvars)...)) = $tupvar
+            end
         end
     end
 end
@@ -133,7 +138,7 @@ function extract_syms!(vars, dict, syms)
     end
 end
 
-function extract_collate!(vars, collate, exprs...)
+function extract_collate!(vars, collatevars, exprs...)
     # should be called on an expression wrapped in a @collate
     # expr can be:
     #  a block
@@ -144,26 +149,27 @@ function extract_collate!(vars, collate, exprs...)
         if expr.head == :block
             for ex in expr.args
                 islinenum(ex) && continue
-                extract_collate!(vars, collate, ex)
+                extract_collate!(vars, collatevars, ex)
             end
         elseif expr.head == :(=)
             p = expr.args[1]
             p in vars && error("Variable $p already defined")
             push!(vars,p)
-            collate[p] = expr.args[2]
+            push!(collatevars, p)
         else
             error("Invalid @collate expression: $expr")
         end
     end
 end
 
-function collate_obj(collate, params, randoms, data_cov)
+function collate_obj(collateexpr, collatevars, params, randoms, data_cov)
     quote
         function (_param, _random, _data_cov)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
             $(var_def(:_data_cov, data_cov))
-            $(esc(nt_expr(collate)))
+            $(esc(collateexpr))
+            $(esc(nt_expr(collatevars)))
         end
     end
 end
@@ -182,11 +188,11 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr)
         dp in vars && error("Variable $dp already defined")
         p = Symbol(s[2:end])
         if p in keys(ode_init)
-            push!(odevars, p)            
+            push!(odevars, p)
         else
             p in vars && error("Variable $p already defined")
             push!(vars,p)
-            push!(odevars, p)            
+            push!(odevars, p)
             ode_init[p] = 0.0
         end
     else
@@ -201,19 +207,19 @@ function extract_dynamics!(vars, odevars, ode_init, sym::Symbol)
     if obj isa Type && obj <: ExplicitModel # explict model
         for p in varnames(obj)
             if p in keys(ode_init)
-                push!(odevars, p)            
+                push!(odevars, p)
             else
                 p in vars && error("Variable $p already defined")
                 push!(vars,p)
-                push!(odevars, p)            
+                push!(odevars, p)
                 ode_init[p] = 0
             end
         end
         return true # isstatic
     else
         # we assume they are defined in @init
-        for p in keys(d)
-            push!(odevars, p)            
+        for p in keys(ode_init)
+            push!(odevars, p)
         end
         return false # isstatic
     end
@@ -241,7 +247,7 @@ end
 # here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(odeexpr::Expr, collate, odevars)
     quote
-        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,keys(collate))...))
+        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,collate)...))
     end
 end
 function dynamics_obj(odename::Symbol, collate, odevars)
@@ -324,13 +330,14 @@ macro model(expr)
     params = OrderedDict{Symbol, Any}()
     randoms = OrderedDict{Symbol, Any}()
     data_cov = OrderedDict{Symbol, Any}()
-    collate  = OrderedDict{Symbol, Any}()
+    collatevars  = OrderedSet{Symbol}()
+    collateexpr = :()
     post  = OrderedDict{Symbol, Any}()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     errorvars  = OrderedSet{Symbol}()
     errorexpr = :()
-    local vars, params, randoms, data_cov, collate, post, odeexpr, odevars, ode_init, errorexpr, errorvars, isstatic
+    local vars, params, randoms, data_cov, collatevars, collateexpr, post, odeexpr, odevars, ode_init, errorexpr, errorvars, isstatic
 
     MacroTools.prewalk(expr) do ex
         ex isa Expr && ex.head == :block && return ex
@@ -343,7 +350,8 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@data_cov")
             extract_syms!(vars, data_cov, ex.args[2:end])
         elseif ex.args[1] == Symbol("@collate")
-            extract_collate!(vars,collate, ex.args[2:end]...)
+            collateexpr = ex.args[2]
+            extract_collate!(vars,collatevars,collateexpr)
         elseif ex.args[1] == Symbol("@init")
             extract_defs!(vars,ode_init, ex.args[2:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
@@ -363,10 +371,10 @@ macro model(expr)
         PKPDModel(
             $(param_obj(params)),
             $(random_obj(randoms,params)),
-            $(collate_obj(collate,params,randoms,data_cov)),
-            $(init_obj(ode_init,odevars,params,randoms,data_cov,collate,isstatic)),
-            $(dynamics_obj(odeexpr,collate,odevars)),
-            $(post_obj(post,params,randoms,data_cov,collate, odevars)),
-            $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)))
+            $(collate_obj(collateexpr,collatevars,params,randoms,data_cov)),
+            $(init_obj(ode_init,odevars,params,randoms,data_cov,collatevars,isstatic)),
+            $(dynamics_obj(odeexpr,collatevars,odevars)),
+            $(post_obj(post,params,randoms,data_cov,collatevars, odevars)),
+            $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collatevars, odevars)))
     end
 end
