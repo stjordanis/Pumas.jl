@@ -21,6 +21,10 @@ tic()
 @time @testset "StaticArray Tests" begin
      include("static_array_test.jl") end
 
+
+@time @testset "Neutropenia" begin
+     include("neutropenia.jl") end
+
 #=
 @time @testset "DDE Tests" begin
      include("ddes.jl") end
