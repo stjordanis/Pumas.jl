@@ -15,6 +15,7 @@ if VERSION < v"0.7-"
         t
     end
     function nt_expr(dict::Associative)
+        isempty(dict) && return :(())
         t = :(NamedTuples.@NT)
         for (p,d) in dict
             push!(t.args, :($p = $d))

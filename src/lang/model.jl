@@ -93,22 +93,30 @@ function pkpd_map(f, m::PKPDModel, subject::Subject, param, rfx,
 end
 
 
+function pkpd_sum(f, m::PKPDModel, subject::Subject, param, rfx,
+                         args...; kwargs...)
+    obstimes = observationtimes(subject)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sum(subject.observations) do obs
+        t = obs.time
+        err = m.error(param,rfx,subject.covariates,col,sol(t),t)
+        f(err, obs)
+    end
+end
+
+likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
+zval(d) = 0.0
+zval(d::Distributions.Normal{T}) where {T} = zero(T)
+
+
 """
     pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
 """
-function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
-                         args...; kwargs...)
-    obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
-    sum(subject.observations) do obs
-        # TODO: figure out a way to iterate directly over sol(t)
-        t = obs.time
-        errdist = m.error(param,rfx,subject.covariates,col,sol(t),t)
-        sum(map(logpdf,errdist,obs.val))
-    end
+function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    pkpd_sum(likelihood, m, subject, param, rfx, args...; kwargs...)
 end
 
 
