@@ -11,20 +11,14 @@ m_diffeq = @model begin
 
     @data_cov ka cl v
     
-    # TODO: this shouldn't be necessary
-    @collate begin
-        Ka = ka
-        CL = cl
-        V  = v
-    end
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        dDepot   = -ka*Depot
+        dCentral =  ka*Depot - (cl/v)*Central
     end
 
     # we approximate the error by computing the loglikelihood
     @error begin
-        conc = Central / V
+        conc = Central / v
         dv ~ Normal(conc, 1e-100)
     end
 end
@@ -33,7 +27,6 @@ m_analytic = @model begin
 
     @data_cov ka cl v
     
-    # TODO: this shouldn't be necessary
     @collate begin
         Ka = ka
         CL = cl

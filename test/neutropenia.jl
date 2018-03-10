@@ -16,23 +16,16 @@ m_neut = @model begin
         sigma ∈ RealDomain(lower=1e-8, upper=30.0, init=1.0)
 
         mtt ∈ RealDomain(lower=30.0,     upper=250.0, init=125.0)
-        Circ0 ∈ RealDomain(lower=2.0,    upper=12.0,  init=5.0)
-        Alpha ∈ RealDomain(lower=0.0002, upper=0.02,  init=0.002)
-        Gamma ∈ RealDomain(lower=0.08,    upper=0.4,   init=0.17)
+        circ0 ∈ RealDomain(lower=2.0,    upper=12.0,  init=5.0)
+        alpha ∈ RealDomain(lower=0.0002, upper=0.02,  init=0.002)
+        gamma ∈ RealDomain(lower=0.08,    upper=0.4,   init=0.17)
 
         sigmaNeut ∈ RealDomain(lower=1e-8, upper=30.0, init=1.0)
 
-        Ka ∈ RealDomain(lower=1e-8,  upper=100.0,init=1.0) # no prior defined?
+        ka ∈ RealDomain(lower=1e-8,  upper=100.0,init=1.0) # no prior defined?
     end
 
     @collate begin
-        ka = Ka
-        circ0 = Circ0
-        alpha = Alpha
-        gamma = Gamma
-
-        v1 = V1
-
         k10 = CL / V1
         k12 = Q / V1
         k21 = Q / V2
@@ -55,8 +48,8 @@ m_neut = @model begin
         # transit3 = x7 + circ0
         # circ =     max(x8 + circ0, eps())  # Device for implementing a modeled initial condition
 
-        # dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / v1) ) * ((circ0 / max(x8 + circ0, ϵ))^gamma) - 1)
-        dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / v1) ) * ((circ0 / (x8 + circ0))^gamma) - 1)
+        # dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / V1) ) * ((circ0 / max(x8 + circ0, ϵ))^gamma) - 1)
+        dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / V1) ) * ((circ0 / (x8 + circ0))^gamma) - 1)
         dx5 = ktr * (x4 - x5)
         dx6 = ktr * (x5 - x6)
         dx7 = ktr * (x6 - x7)

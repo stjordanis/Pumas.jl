@@ -54,20 +54,21 @@ mstatic = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0))),
                  (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))),
-                 (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
+                 (_param, _random, _data_cov) -> @NT(Σ = _param.Σ,
+                                                     Ka = _param.θ[1],
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
-                 (_param, _random, _data_cov,_collate,t) -> @SVector([0.0,0.0]),
+                 (_pre,t) -> @SVector([0.0,0.0]),
                  function depot_model(u,p,t)
                      Depot,Central = u
                      @SVector [-p.Ka*Depot,
                                 p.Ka*Depot - (p.CL/p.V)*Central
                               ]
                  end,
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V),
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V;
-                                                     @NT(dv = Normal(conc, conc*_param.Σ))))
+                 (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V),
+                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V;
+                                                     @NT(dv = Normal(conc, conc*_pre.Σ))))
 
 
 
@@ -99,15 +100,15 @@ mstatic2 = PKPDModel(ParamSet(@NT(θ = VectorDomain(3, lower=zeros(3), init=ones
                  (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],
                                                      CL = _param.θ[2] * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
-                 (_param, _random, _data_cov,_collate,t) -> @SVector([0.0,0.0]),
+                 (_pre,t) -> @SVector([0.0,0.0]),
                  function depot_model(u,p,t)
                      Depot,Central = u
                      @SVector [-p.Ka*Depot,
                                 p.Ka*Depot - (p.CL/p.V)*Central
                               ]
                  end,
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V),
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> ())
+                 (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V),
+                 (_pre,_odevars,t) -> ())
 
 
 
