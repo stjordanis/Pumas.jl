@@ -363,7 +363,7 @@ macro model(expr)
     prevars = union(collatevars, keys(params), keys(randoms), data_cov)
 
     quote
-        PKPDModel(
+        x = PKPDModel(
             $(param_obj(params)),
             $(random_obj(randoms,params)),
             $(collate_obj(collateexpr,prevars,params,randoms,data_cov)),
@@ -371,5 +371,15 @@ macro model(expr)
             $(dynamics_obj(odeexpr,prevars,odevars)),
             $(post_obj(post,prevars, odevars)),
             $(error_obj(errorexpr, errorvars,prevars, odevars)))
+        function Base.show(io::IO, ::typeof(x))
+            println(io,"PKPDModel")
+            println(io,"  Parameters: ",$(join(keys(params),", ")))
+            println(io,"  Random effects: ",$(join(keys(randoms),", ")))
+            println(io,"  Covariates: ",$(join(data_cov,", ")))
+            println(io,"  Dynamical variables: ",$(join(odevars,", ")))
+            println(io,"  Post variables: ",$(join(keys(post),", ")))
+            println(io,"  Observable: ",$(join(errorvars,", ")))
+        end
+        x
     end
 end

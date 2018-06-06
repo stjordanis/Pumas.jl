@@ -18,13 +18,31 @@ struct Subject{T1,T2,T3}
   events::T3
 end
 
+
+function Base.show(io::IO, subject::Subject)
+    println(io, "Subject")
+    println(io, "  Events: ", length(subject.events))
+    println(io, "  Observations: ", length(subject.observations))
+    println(io, "  Covariates: ", join(fieldnames(subject.covariates),", "))
+    println(io, "  Observables: ", join(fieldnames(subject.observations[1].val),", "))
+end
+
+
+
 """
     Population
 
 A set of `Subject`s.
 """
-struct Population{T} <: AbstractVector{T}
+struct Population{T}# <: AbstractVector{T}
   subjects::T
+end
+
+function Base.show(io::IO, data::Population)
+    println(io, "Population")
+    println(io, "  Subjects: ", length(data.subjects))
+    println(io, "  Covariates: ", join(fieldnames(data.subjects[1].covariates),", "))
+    println(io, "  Observables: ", join(fieldnames(data.subjects[1].observations[1].val),", "))
 end
 
 """
