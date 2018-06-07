@@ -15,6 +15,7 @@ if VERSION < v"0.7-"
         t
     end
     function nt_expr(dict::Associative)
+        isempty(dict) && return :(())
         t = :(NamedTuples.@NT)
         for (p,d) in dict
             push!(t.args, :($p = $d))
@@ -131,10 +132,11 @@ function random_obj(randoms, params)
     end
 end
 
-function extract_syms!(vars, dict, syms)
+function extract_syms!(vars, subvars, syms)
     for p in syms
         p in vars && error("Variable $p already defined")
-        dict[p] = true
+        push!(subvars, p)
+        push!(vars, p)
     end
 end
 
@@ -162,14 +164,14 @@ function extract_collate!(vars, collatevars, exprs...)
     end
 end
 
-function collate_obj(collateexpr, collatevars, params, randoms, data_cov)
+function collate_obj(collateexpr, prevars, params, randoms, data_cov)
     quote
         function (_param, _random, _data_cov)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
             $(var_def(:_data_cov, data_cov))
             $(esc(collateexpr))
-            $(esc(nt_expr(collatevars)))
+            $(esc(nt_expr(prevars)))
         end
     end
 end
@@ -225,7 +227,7 @@ function extract_dynamics!(vars, odevars, ode_init, sym::Symbol)
     end
 end
 
-function init_obj(ode_init,odevars,params,randoms,data_cov,collate,isstatic)
+function init_obj(ode_init,odevars,prevars,isstatic)
     vecexpr = :([])
     for p in odevars
         push!(vecexpr.args, ode_init[p])
@@ -234,11 +236,8 @@ function init_obj(ode_init,odevars,params,randoms,data_cov,collate,isstatic)
         vecexpr = :(StaticArrays.@SVector $vecexpr)
     end
     quote
-        function (_param, _random, _data_cov,_collate,t)
-            $(var_def(:_param, params))
-            $(var_def(:_random, randoms))
-            $(var_def(:_data_cov, data_cov))
-            $(var_def(:_collate, collate))
+        function (_pre,t)
+            $(var_def(:_pre, prevars))
             $(esc(vecexpr))
         end
     end
@@ -281,12 +280,9 @@ function extract_defs!(vars, defsdict, exprs...)
     end
 end
 
-function post_obj(post, params, randoms, data_cov, collate, odevars)
+function post_obj(post, collate, odevars)
     quote
-        function (_param, _random, _data_cov,_collate,_odevars,t)
-            $(var_def(:_param, params))
-            $(var_def(:_random, randoms))
-            $(var_def(:_data_cov, data_cov))
+        function (_collate,_odevars,t)
             $(var_def(:_collate, collate))
             $(var_def(:_odevars, odevars))
             $(esc(nt_expr(post)))
@@ -309,12 +305,9 @@ function extract_randvars!(vars, randvars, expr)
 end
 
 
-function error_obj(errorexpr, errorvars, params, randoms, data_cov, collate, odevars)
+function error_obj(errorexpr, errorvars, collate, odevars)
     quote
-        function (_param, _random, _data_cov, _collate, _odevars, t)
-            $(var_def(:_param, params))
-            $(var_def(:_random, randoms))
-            $(var_def(:_data_cov, data_cov))
+        function (_collate, _odevars, t)
             $(var_def(:_collate, collate))
             $(var_def(:_odevars, odevars))
             $(esc(errorexpr))
@@ -329,7 +322,7 @@ macro model(expr)
     vars = Set{Symbol}([:t]) # t is the only reserved symbol
     params = OrderedDict{Symbol, Any}()
     randoms = OrderedDict{Symbol, Any}()
-    data_cov = OrderedDict{Symbol, Any}()
+    data_cov = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
     collateexpr = :()
     post  = OrderedDict{Symbol, Any}()
@@ -367,14 +360,26 @@ macro model(expr)
         return nothing
     end
 
+    prevars = union(collatevars, keys(params), keys(randoms), data_cov)
+
     quote
-        PKPDModel(
+        x = PKPDModel(
             $(param_obj(params)),
             $(random_obj(randoms,params)),
-            $(collate_obj(collateexpr,collatevars,params,randoms,data_cov)),
-            $(init_obj(ode_init,odevars,params,randoms,data_cov,collatevars,isstatic)),
-            $(dynamics_obj(odeexpr,collatevars,odevars)),
-            $(post_obj(post,params,randoms,data_cov,collatevars, odevars)),
-            $(error_obj(errorexpr, errorvars, params, randoms, data_cov, collatevars, odevars)))
+            $(collate_obj(collateexpr,prevars,params,randoms,data_cov)),
+            $(init_obj(ode_init,odevars,prevars,isstatic)),
+            $(dynamics_obj(odeexpr,prevars,odevars)),
+            $(post_obj(post,prevars, odevars)),
+            $(error_obj(errorexpr, errorvars,prevars, odevars)))
+        function Base.show(io::IO, ::typeof(x))
+            println(io,"PKPDModel")
+            println(io,"  Parameters: ",$(join(keys(params),", ")))
+            println(io,"  Random effects: ",$(join(keys(randoms),", ")))
+            println(io,"  Covariates: ",$(join(data_cov,", ")))
+            println(io,"  Dynamical variables: ",$(join(odevars,", ")))
+            println(io,"  Post variables: ",$(join(keys(post),", ")))
+            println(io,"  Observable: ",$(join(errorvars,", ")))
+        end
+        x
     end
 end

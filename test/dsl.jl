@@ -56,18 +56,19 @@ mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                               Σ = RealDomain(lower=0.0, init=1.0),
                               a = ConstDomain(0.2))),
                  (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))), # random effects
-                 (_param, _random, _data_cov) -> @NT(Ka = _param.θ[1],  # collate
+                 (_param, _random, _data_cov) -> @NT(Σ  = _param.Σ,
+                                                     Ka = _param.θ[1],  # collate
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
-                 (_param, _random, _data_cov,_collate,t0) -> [0.0,0.0], # init
+                 (_pre,t0) -> [0.0,0.0], # init
                  ParameterizedFunctions.@ode_def(OneCompartment,begin # dynamics
                      dDepot   = -Ka*Depot
                      dCentral =  Ka*Depot - (CL/V)*Central
-                 end, Ka, CL, V),
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V), # post
-                 (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V; # error
-                                                     @NT(dv = Normal(conc, conc*_param.Σ))))
+                 end, Σ, Ka, CL, V),
+                 (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V), # post
+                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
+                                                     @NT(dv = Normal(conc, conc*_pre.Σ))))
                  
                  
 

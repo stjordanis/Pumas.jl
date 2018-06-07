@@ -54,7 +54,7 @@ Returns a tuple containing the ODE solution `sol` and collation `col`.
 function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
                     args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
     col   = m.collate(param, rfx, subject.covariates)
-    u0  = m.init(param, rfx, subject.covariates, col, tspan[1])
+    u0  = m.init(col, tspan[1])
 
     sol = _solve(m.ode, subject, col, u0, tspan, args...;kwargs...)
     return sol, col
@@ -72,10 +72,10 @@ Simulate random observations from model `m` for `subject` with parameters `param
 function pkpd_simulate(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
                        args...; obstimes=observationtimes(subject),kwargs...)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(param,rfx,subject.covariates,col,sol(t),t)
+        errdist = m.error(col,sol(t),t)
         map(rand, errdist)
     end
 end
@@ -84,13 +84,29 @@ end
 function pkpd_map(f, m::PKPDModel, subject::Subject, param, rfx,
                          args...; kwargs...)
     obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
-    map(subject.observations) do obs
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
+    sum(subject.observations) do obs
         t = obs.time
-        err = m.error(param,rfx,subject.covariates,col,sol(t),t)
+        err = m.error(col,sol(t),t)
         f(err, obs)
     end
 end
+
+
+function pkpd_sum(f, m::PKPDModel, subject::Subject, param, rfx,
+                         args...; kwargs...)
+    obstimes = observationtimes(subject)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
+    sum(subject.observations) do obs
+        t = obs.time
+        err = m.error(col,sol(t),t)
+        f(err, obs)
+    end
+end
+
+likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
+zval(d) = 0.0
+zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
 
 """
@@ -99,16 +115,8 @@ end
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
 """
-function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx,
-                         args...; kwargs...)
-    obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
-    sum(subject.observations) do obs
-        # TODO: figure out a way to iterate directly over sol(t)
-        t = obs.time
-        errdist = m.error(param,rfx,subject.covariates,col,sol(t),t)
-        sum(map(logpdf,errdist,obs.val))
-    end
+function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    pkpd_sum(likelihood, m, subject, param, rfx, args...; kwargs...)
 end
 
 
@@ -121,7 +129,7 @@ function pkpd_post(m::PKPDModel, subject::Subject, param,
     sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        m.post(param,rfx,subject.covariates,col,sol(t),t)
+        m.post(col,sol(t),t)
     end
 end
 
@@ -130,7 +138,7 @@ function pkpd_postfun(m::PKPDModel, subject::Subject, param,
                        args...; kwargs...)
     sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     function post(t)
-        m.post(param,rfx,subject.covariates,col,sol(t),t)
+        m.post(col,sol(t),t)
     end
     return post
 end

@@ -1,4 +1,4 @@
-export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain
+export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain, PDiagDomain
 
 abstract type Domain end
 
@@ -121,6 +121,40 @@ function unpack(v, d::PSDDomain)
     end
     PDMat(LinAlg.Cholesky(U, :U))
 end
+
+
+"""
+    @param x ∈ PDiagDomain(n::Int; init=ones(n))
+
+Specifies a parameter as a positive diagonal matrix, with diagonal elements
+specified by `init`.
+"""
+struct PDiagDomain{T} <: Domain
+    init::T
+end
+PDiagDomain(n::Int; init=ones(n)) = PDiagDomain(PDMats.PDiagMat(init))
+
+
+init(d::PDiagDomain) = d.init
+function packlen(d::PDiagDomain)
+    size(d.init,1)
+end
+
+function pack_lower!(v, d::PDiagDomain)
+    v[:] = 0.0
+end
+function pack_upper!(v, d::PDiagDomain)
+    v[:] = +Inf
+end
+function pack!(v, d::PDiagDomain, D::PDMats.PDiagMat)
+    v[:] = D.diag
+end
+
+function unpack(v, d::PDiagDomain)
+    PDMats.PDiagMat(collect(v))
+end
+
+
 
 
 struct ParamSet{T}

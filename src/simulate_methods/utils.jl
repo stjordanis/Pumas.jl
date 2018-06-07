@@ -98,11 +98,9 @@ numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 numtype(x::Tuple)         = promote_type(map(numtype,x)...)
 if VERSION < v"0.7"    
     @generated function numtype(x::NamedTuple)
-        ex = :(promote_type())
-        for s in fieldnames(x)
-            push!(ex.args, :(numtype(getfield(x, $(QuoteNode(s))))))
-        end
-        ex
+        mapfoldl(s -> :(numtype(getfield(x, $(QuoteNode(s))))),
+                 (a,b) -> :(promote_type($a, $b)),
+                 fieldnames(x))
     end
 else
     numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
