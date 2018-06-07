@@ -72,7 +72,7 @@ Simulate random observations from model `m` for `subject` with parameters `param
 function pkpd_simulate(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
                        args...; obstimes=observationtimes(subject),kwargs...)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         errdist = m.error(col,sol(t),t)
@@ -84,8 +84,8 @@ end
 function pkpd_map(f, m::PKPDModel, subject::Subject, param, rfx,
                          args...; kwargs...)
     obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
-    map(subject.observations) do obs
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
+    sum(subject.observations) do obs
         t = obs.time
         err = m.error(col,sol(t),t)
         f(err, obs)
@@ -96,7 +96,7 @@ end
 function pkpd_sum(f, m::PKPDModel, subject::Subject, param, rfx,
                          args...; kwargs...)
     obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; saveat=obstimes, kwargs...)
+    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     sum(subject.observations) do obs
         t = obs.time
         err = m.error(col,sol(t),t)
