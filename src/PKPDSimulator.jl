@@ -6,7 +6,7 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples,
       StaticArrays, DiffEqJump, PDMats
 
 @reexport using OrdinaryDiffEq
-
+@reexport using DelayDiffEq
 
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")

@@ -19,7 +19,7 @@ m_diffeq = @model begin
         Ω ∈ PSDDomain(2)
         σ ∈ RealDomain(lower=0.0, init=1.0)
     end
-    
+
     @random begin
         η ~ MvNormal(Ω)
     end
@@ -50,7 +50,7 @@ m_analytic = @model begin
         Ω ∈ PSDDomain(2)
         σ ∈ RealDomain(lower=0.0, init=1.0)
     end
-    
+
     @random begin
         η ~ MvNormal(Ω)
     end
@@ -87,6 +87,10 @@ sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(1.0) ≈ sol_analytic(1.0) rtol=1e-4
 
+sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
+
+@test sol_diffeq.alg == Rosenbrock23()
+
 @test pkpd_likelihood(m_diffeq,subject1,x0,y0) ≈ pkpd_likelihood(m_analytic,subject1,x0,y0)
 
 sim_diffeq = begin
@@ -112,5 +116,3 @@ sim_analytic = begin
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
-
-

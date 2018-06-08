@@ -1,10 +1,10 @@
 function _solve(f, subject::Subject, col, u0, tspan, alg=Tsit5(), args...; kwargs...)
-    
+
     # Promotion to handle Dual numbers
     T = promote_type(numtype(col), numtype(u0), numtype(tspan))
     Ttspan = T.(tspan)
     Tu0    = T.(u0)
-    
+
     prob, tstops = _problem(f, subject, col, Tu0, Ttspan)
 
     sol = solve(prob,alg,args...;
@@ -13,7 +13,7 @@ function _solve(f, subject::Subject, col, u0, tspan, alg=Tsit5(), args...; kwarg
                 kwargs...)
 end
 
-# build a "modified" problem using DiffEqWrapper 
+# build a "modified" problem using DiffEqWrapper
 # returns final problem and necessary stopping times for integrator
 function _problem(f,
                   subject::Subject,
@@ -27,7 +27,7 @@ function _problem(f,
     tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],ODEProblem)
 
     inplace = !(u0 isa StaticArray)
-    
+
     # create problem of correct type
     prob = ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
     return prob, tstops
@@ -402,11 +402,11 @@ function (f::DiffEqWrapper)(u,p,t)
     return out
   end
 end
-function (f::DiffEqWrapper)(du::T,u::T,p,t) where T
+function (f::DiffEqWrapper)(du,u,p,t)
   f.f(du,u,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-function (f::DiffEqWrapper)(u::T,h,p,t) where T # h is DelayDiffEq.HistoryFunction
+function (f::DiffEqWrapper)(u,h::DelayDiffEq.HistoryFunction,p,t)
   f.f(du,u,h,p,t)
   if f.rates_on > 0
     return out + rates
@@ -414,7 +414,7 @@ function (f::DiffEqWrapper)(u::T,h,p,t) where T # h is DelayDiffEq.HistoryFuncti
     return out
   end
 end
-function (f::DiffEqWrapper)(du::T,u::T,h,p,t) where T # h is DelayDiffEq.HistoryFunction
+function (f::DiffEqWrapper)(du,u,h::DelayDiffEq.HistoryFunction,p,t)
   f.f(du,u,h,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
