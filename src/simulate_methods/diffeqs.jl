@@ -33,8 +33,7 @@ function _problem(f,
     return prob, tstops
 end
 
-
-function build_pkpd_problem(_prob::AbstractJumpProblem,set_parameters,θ,ηi,datai)
+function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
   JumpProblem{typeof(prob),typeof(_prob.aggregator),
               typeof(_prob.jump_callback),
