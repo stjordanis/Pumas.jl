@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test, NamedTuples, Distributions, DiffEqJump
+using PKPDSimulator, Test, NamedTuples, Distributions, DiffEqJump
 
 θ = [
      1.5,  #Ka

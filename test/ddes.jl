@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test, NamedTuples, DelayDiffEq
+using PKPDSimulator, Test, NamedTuples, DelayDiffEq
 
 θ = [
      1.5,  #Ka

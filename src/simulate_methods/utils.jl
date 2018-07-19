@@ -37,7 +37,7 @@ end
 
 function sorted_approx_unique(event)
   tType = typeof(first(event).time)
-  out = Vector{typeof(first(event).time)}(1)
+  out = Vector{typeof(first(event).time)}(undef, 1)
   out[1] = event[1].time
   for i in 2:length(event)
     if abs(out[end] - event[i].time) > 10eps(tType)

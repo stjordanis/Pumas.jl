@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using PKPDSimulator, NamedTuples, Distributions, PDMats
 
 # Gut dosing model

@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test
+using PKPDSimulator, Test
 
 data = process_data(Pkg.dir("PKPDSimulator","examples/event_data/ev1.csv"),
                     separator=',')

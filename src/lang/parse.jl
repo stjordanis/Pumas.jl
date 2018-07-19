@@ -4,40 +4,20 @@ using ParameterizedFunctions
 
 export @model
 
-if VERSION < v"0.7-"
-    islinenum(x) = x isa Expr && x.head == :line
-    function nt_expr(set)
-        isempty(set) && return :(())
-        t = :(NamedTuples.@NT)
-        for p in set
-            push!(t.args, :($p = $p))
-        end
-        t
+islinenum(x) = x isa LineNumberNode
+function nt_expr(set)
+    t = :(())
+    for p in set
+        push!(t.args, :($p = $p))
     end
-    function nt_expr(dict::Associative)
-        isempty(dict) && return :(())
-        t = :(NamedTuples.@NT)
-        for (p,d) in dict
-            push!(t.args, :($p = $d))
-        end
-        t
+    t
+end
+function nt_expr(dict::AbstractDict)
+    t = :(())
+    for (p,d) in pairs(dict)
+        push!(t.args, :($p = $d))
     end
-else
-    islinenum(x) = x isa LineNumberNode
-    function nt_expr(set)
-        t = :(())
-        for p in set
-            push!(t.args, :($p = $p))
-        end
-        t
-    end
-    function nt_expr(dict::Associative)
-        t = :(())
-        for (p,d) in pairs(dict)
-            push!(t.args, :($p = $d))
-        end
-        t
-    end
+    t
 end
 
 function var_def(tupvar, indvars)
@@ -52,7 +32,7 @@ function var_def(tupvar, indvars)
         end
     end
 end
-var_def(tupvar, inddict::Associative) = var_def(tupvar, keys(inddict))
+var_def(tupvar, inddict::AbstractDict) = var_def(tupvar, keys(inddict))
 
 
 function extract_params!(vars, params, exprs...)
