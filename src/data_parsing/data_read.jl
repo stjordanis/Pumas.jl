@@ -66,7 +66,7 @@ function process_data(filename,covariates=Symbol[],dvs=Symbol[:dv];
 end
 
 function build_dataset(cvs=[],dvs=[];kwargs...)
-    if typeof(kwargs[1][2]) <: Number
+    if typeof(kwargs[1]) <: Number
         _kwargs = [(kw[1],[string.(kw[2])]) for kw in kwargs]
     else
         _kwargs = [(kw[1],string.(kw[2])) for kw in kwargs]
