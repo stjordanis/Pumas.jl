@@ -83,7 +83,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   ss_event_counter = Ref(0)
   ss_rate_multiplier = Ref(0)
   ss_dropoff_counter = Ref(0)
-  ss_tstop_cache = Vector{eltype(tstops)}(0)
+  ss_tstop_cache = Vector{eltype(tstops)}()
   last_restart = Ref(-one(eltype(tstops)))
 
   # searchsorted is empty iff t ∉ target_time

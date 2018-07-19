@@ -1,5 +1,5 @@
 using PKPDSimulator
-using Base.Test
+using Test
 
 tic()
 @time @testset "Parsing Tests" begin

@@ -1,4 +1,4 @@
-using PKPDSimulator, Base.Test, NamedTuples, StochasticDiffEq
+using PKPDSimulator, Test, NamedTuples, StochasticDiffEq
 
 θ = [
      1.5,  #Ka

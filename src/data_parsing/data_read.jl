@@ -94,7 +94,7 @@ function build_dataset(cvs=[],dvs=[];kwargs...)
     end
 end
 
-function build_dataset(cols::Associative,cvs=[],dvs=[:dv])
+function build_dataset(cols::AbstractDict,cvs=[],dvs=[:dv])
 
     names = collect(keys(cols))
     m = length(cols[:id])
@@ -112,8 +112,8 @@ function build_dataset(cols::Associative,cvs=[],dvs=[:dv])
     evids = eltype(cols[:evid]) <: AbstractString ? parse.(Int8, cols[:evid])    : cols[:evid]
 
     uids  = unique(ids)
-    Tdv = isempty(dvs) ? Void : NamedTuples.create_namedtuple_type(dvs)
-    Tcv = isempty(cvs) ? Void : NamedTuples.create_namedtuple_type(cvs)
+    Tdv = isempty(dvs) ? Nothing : NamedTuples.create_namedtuple_type(dvs)
+    Tcv = isempty(cvs) ? Nothing : NamedTuples.create_namedtuple_type(cvs)
 
     subjects = map(uids) do id
         ## Observations
