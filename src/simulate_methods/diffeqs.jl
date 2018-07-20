@@ -29,7 +29,7 @@ function _problem(f,
     inplace = !(u0 isa StaticArray)
 
     # create problem of correct type
-    prob = ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
+    prob = DiffEqBase.ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
     return prob, tstops
 end
 
@@ -44,15 +44,15 @@ function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters
 end
 
 # Have separate dispatches to pass along extra pieces of the problem
-function problem_final_dispatch(prob::ODEProblem,true_f,u0,tspan,p,cb)
+function problem_final_dispatch(prob::DiffEqBase.ODEProblem,true_f,u0,tspan,p,cb)
   ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
 end
 
-function problem_final_dispatch(prob::SDEProblem,true_f,u0,tspan,p,cb)
+function problem_final_dispatch(prob::DiffEqBase.SDEProblem,true_f,u0,tspan,p,cb)
   SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
 end
 
-function problem_final_dispatch(prob::DDEProblem,true_f,u0,tspan,p,cb)
+function problem_final_dispatch(prob::DiffEqBase.DDEProblem,true_f,u0,tspan,p,cb)
   DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
                    constant_lags = prob.constant_lags,
                    dependent_lags = prob.dependent_lags,
@@ -95,7 +95,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
 
   function affect!(integrator)
 
-    if ProbType <: DDEProblem
+    if ProbType <: DiffEqBase.DDEProblem
       f = integrator.integrator.f
     else
       f = integrator.f
@@ -142,7 +142,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
           ss_counter[] = 0
           integrator.opts.save_everystep = false
           post_steady_state[] = false
-          ProbType <: SDEProblem && (integrator.W.save_everystep=false)
+          ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=false)
 
           ss_time[] = integrator.t
           # TODO: Handle saveat in this range
@@ -164,8 +164,8 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
           cur_ev.rate > 0 && add_tstop!(integrator,ss_rate_end[])
         elseif integrator.t == ss_end[]
           integrator.t = ss_time[]
-          ProbType <: SDEProblem && (integrator.W.curt = integrator.t)
-          ProbType <: DDEProblem && (integrator.integrator.t = integrator.t)
+          ProbType <: DiffEqBase.SDEProblem && (integrator.W.curt = integrator.t)
+          ProbType <: DiffEqBase.DDEProblem && (integrator.integrator.t = integrator.t)
           ss_cache .-= integrator.u
           err = integrator.opts.internalnorm(ss_cache)
           if ss_counter[] == ss_max_iters || (err < ss_abstol &&
@@ -182,7 +182,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
             end
 
             integrator.opts.save_everystep = true
-            ProbType <: SDEProblem && (integrator.W.save_everystep=true)
+            ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=true)
 
             if cur_ev.ss == 2
               if typeof(integrator.u) <: Union{SArray,Number}
@@ -295,7 +295,7 @@ end
 
 function dose!(integrator,u::SArray,cur_ev,bioav,last_restart)
 
-  if typeof(integrator.sol.prob) <: DDEProblem
+  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
     f = integrator.integrator.f
   else
     f = integrator.f
@@ -318,7 +318,7 @@ end
 
 function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
 
-  if typeof(integrator.sol.prob) <: DDEProblem
+  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
     f = integrator.integrator.f
   else
     f = integrator.f
@@ -338,7 +338,7 @@ end
 
 function ss_dose!(integrator,u::SArray,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
 
-  if typeof(integrator.sol.prob) <: DDEProblem
+  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
     f = integrator.integrator.f
   else
     f = integrator.f

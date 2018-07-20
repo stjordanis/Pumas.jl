@@ -1,4 +1,4 @@
-struct PKPDAnalyticalSolution{T,N,uType,tType,dType,rType,pType,P} <: AbstractAnalyticalSolution{T,N}
+struct PKPDAnalyticalSolution{T,N,uType,tType,dType,rType,pType,P} <: DiffEqBase.AbstractAnalyticalSolution{T,N}
     u::uType
     t::tType
     doses::dType

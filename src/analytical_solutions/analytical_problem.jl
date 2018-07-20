@@ -1,4 +1,4 @@
-struct PKPDAnalyticalProblem{uType,tType,isinplace,F,S,C} <: AbstractAnalyticalProblem{uType,tType,isinplace}
+struct PKPDAnalyticalProblem{uType,tType,isinplace,F,S,C} <: DiffEqBase.AbstractAnalyticalProblem{uType,tType,isinplace}
   f::F
   u0::uType
   tspan::Tuple{tType,tType}
