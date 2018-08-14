@@ -44,6 +44,7 @@ function extract_params!(vars, params, exprs...)
     #  a domain
     #    a ∈ RealDomain()
     for expr in exprs
+        expr isa LineNumberNode && continue
         @assert expr isa Expr
         if expr.head == :block
             for ex in expr.args
@@ -80,6 +81,7 @@ function extract_randoms!(vars, randoms, exprs...)
     #  a random var
     #    a ~ Normal(0,1)
     for expr in exprs
+        expr isa LineNumberNode && continue
         @assert expr isa Expr
         if expr.head == :block
             for ex in expr.args
@@ -114,6 +116,7 @@ end
 
 function extract_syms!(vars, subvars, syms)
     for p in syms
+        p isa LineNumberNode && continue
         p in vars && error("Variable $p already defined")
         push!(subvars, p)
         push!(vars, p)
@@ -127,6 +130,7 @@ function extract_collate!(vars, collatevars, exprs...)
     #  an assignment
     #    a = 1
     for expr in exprs
+        expr isa LineNumberNode && continue
         @assert expr isa Expr
         if expr.head == :block
             for ex in expr.args
@@ -243,6 +247,7 @@ function extract_defs!(vars, defsdict, exprs...)
     #  an assignment
     #    a = 1
     for expr in exprs
+        expr isa LineNumberNode && continue
         @assert expr isa Expr
         if expr.head == :block
             for ex in expr.args
@@ -313,27 +318,28 @@ macro model(expr)
     local vars, params, randoms, data_cov, collatevars, collateexpr, post, odeexpr, odevars, ode_init, errorexpr, errorvars, isstatic
 
     MacroTools.prewalk(expr) do ex
+        ex isa LineNumberNode && return nothing
         ex isa Expr && ex.head == :block && return ex
         islinenum(ex) && return nothing
         @assert ex isa Expr && ex.head == :macrocall
         if ex.args[1] == Symbol("@param")
-            extract_params!(vars, params, ex.args[2:end]...)
+            extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")
-            extract_randoms!(vars, randoms, ex.args[2:end]...)
+            extract_randoms!(vars, randoms, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@data_cov")
-            extract_syms!(vars, data_cov, ex.args[2:end])
+            extract_syms!(vars, data_cov, ex.args[3:end])
         elseif ex.args[1] == Symbol("@collate")
-            collateexpr = ex.args[2]
+            collateexpr = ex.args[3]
             extract_collate!(vars,collatevars,collateexpr)
         elseif ex.args[1] == Symbol("@init")
-            extract_defs!(vars,ode_init, ex.args[2:end]...)
+            extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
-            isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[2])
-            odeexpr = ex.args[2]
+            isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
+            odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
-            extract_defs!(vars,post, ex.args[2:end]...)
+            extract_defs!(vars,post, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@error")
-            errorexpr = extract_randvars!(vars, errorvars, ex.args[2])
+            errorexpr = extract_randvars!(vars, errorvars, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end

@@ -1,6 +1,6 @@
 using Test
 
-using PuMaS, Distributions, NamedTuples
+using PuMaS, Distributions, NamedTuples, ParameterizedFunctions
 
 
 # Read the data# Read the data
