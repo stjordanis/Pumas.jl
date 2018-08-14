@@ -1,5 +1,5 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, NamedTuples, Distributions, PDMats
 
 # Gut dosing model
 m_diffeq = @model begin

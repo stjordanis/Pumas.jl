@@ -1,7 +1,7 @@
-using PKPDSimulator
+using PuMaS
 using Test
 
-tic()
+@time begin
 @time @testset "Parsing Tests" begin
     include("parsing_tests.jl") end
 @time @testset "DSL" begin
@@ -36,4 +36,4 @@ tic()
      include("sensitivity_tests.jl") end
 =#
 
-toc()
+end

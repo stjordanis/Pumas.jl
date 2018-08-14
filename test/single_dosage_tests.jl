@@ -1,14 +1,14 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, NamedTuples, Distributions, PDMats
 
 # Read the data
-data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
+data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
 for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
-        subject.observations[1] = PKPDSimulator.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
 end
 

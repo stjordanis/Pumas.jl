@@ -1,4 +1,4 @@
-using PKPDSimulator, Test, NamedTuples, DelayDiffEq
+using PuMaS, Test, NamedTuples, DelayDiffEq
 
 θ = [
      1.5,  #Ka
@@ -42,7 +42,7 @@ end
 
 init = (_param, _random, _data_cov,_collate,t) -> [0.0,0.0]
 post = (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V)
-model = PKPDSimulator.PKPDModel(params,randomfx,collate,init,prob,post,err)
+model = PuMaS.PKPDModel(params,randomfx,collate,init,prob,post,err)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

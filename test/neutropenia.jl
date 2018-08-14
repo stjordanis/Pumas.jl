@@ -1,5 +1,5 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions
+using PuMaS, NamedTuples, Distributions
 
 # Example from
 # https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/05_margossian/models/neutropenia
@@ -128,12 +128,12 @@ cvals[iObsPK] = cObs
 nvals[iObsPD] = neutObs
 
 
-subject = PKPDSimulator.Subject(1,
-                      [PKPDSimulator.Observation(t,@NT(logc=log(c), logn=log(n)),1) for (t,c,n) in zip(time,cvals,nvals) if !(isnan(n) && isnan(c))],
+subject = PuMaS.Subject(1,
+                      [PuMaS.Observation(t,@NT(logc=log(c), logn=log(n)),1) for (t,c,n) in zip(time,cvals,nvals) if !(isnan(n) && isnan(c))],
                       nothing,
-                      [PKPDSimulator.Event(Float64(a),t,Int8(id),c) for (t,a,id,c) in zip(time,amt,evid,cmt) if id != 0])
+                      [PuMaS.Event(Float64(a),t,Int8(id),c) for (t,a,id,c) in zip(time,amt,evid,cmt) if id != 0])
 
 
-x0 = PKPDSimulator.init_param(m_neut)
+x0 = PuMaS.init_param(m_neut)
 
-@test !isnan(PKPDSimulator.pkpd_likelihood(m_neut, subject, x0, ()))
+@test !isnan(PuMaS.pkpd_likelihood(m_neut, subject, x0, ()))

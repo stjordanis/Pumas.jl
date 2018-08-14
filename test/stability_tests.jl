@@ -1,10 +1,10 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions
+using PuMaS, NamedTuples, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_data(Pkg.dir("PKPDSimulator", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
+data = process_data(Pkg.dir("PuMaS", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
                     covariates,dvs)
 
 m_diffeq = @model begin
