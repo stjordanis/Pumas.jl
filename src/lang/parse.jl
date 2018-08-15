@@ -46,6 +46,7 @@ function extract_params!(vars, params, exprs...)
     for expr in exprs
         expr isa LineNumberNode && continue
         @assert expr isa Expr
+        expr = MacroTools.striplines(expr)
         if expr.head == :block
             for ex in expr.args
                 if !islinenum(ex)
@@ -83,6 +84,7 @@ function extract_randoms!(vars, randoms, exprs...)
     for expr in exprs
         expr isa LineNumberNode && continue
         @assert expr isa Expr
+        expr = MacroTools.striplines(expr)
         if expr.head == :block
             for ex in expr.args
                 islinenum(ex) && continue
@@ -132,6 +134,7 @@ function extract_collate!(vars, collatevars, exprs...)
     for expr in exprs
         expr isa LineNumberNode && continue
         @assert expr isa Expr
+        expr = MacroTools.striplines(expr)
         if expr.head == :block
             for ex in expr.args
                 islinenum(ex) && continue
@@ -229,9 +232,16 @@ end
 
 # here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(odeexpr::Expr, collate, odevars)
-    quote
-        ParameterizedFunctions.@ode_def($(esc(:FooBar)), $(esc(odeexpr)), $(map(esc,collate)...))
-    end
+    opts = Dict{Symbol,Bool}(
+    :build_tgrad => true,
+    :build_jac => true,
+    :build_expjac => false,
+    :build_invjac => true,
+    :build_invW => true,
+    :build_hes => false,
+    :build_invhes => false,
+    :build_dpfuncs => true)
+    ode_def_opts(gensym(),opts,odeexpr,collate...)
 end
 function dynamics_obj(odename::Symbol, collate, odevars)
     quote
@@ -249,6 +259,7 @@ function extract_defs!(vars, defsdict, exprs...)
     for expr in exprs
         expr isa LineNumberNode && continue
         @assert expr isa Expr
+        expr = MacroTools.striplines(expr)
         if expr.head == :block
             for ex in expr.args
                 islinenum(ex) && continue
@@ -322,6 +333,7 @@ macro model(expr)
         ex isa Expr && ex.head == :block && return ex
         islinenum(ex) && return nothing
         @assert ex isa Expr && ex.head == :macrocall
+        ex = MacroTools.striplines(ex)
         if ex.args[1] == Symbol("@param")
             extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")
