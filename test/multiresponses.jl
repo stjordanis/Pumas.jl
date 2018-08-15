@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions, PDMats
+using PuMaS, Distributions, PDMats
 
 
 ###############################
@@ -76,7 +76,7 @@ m23 = @model begin
 end
 
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1, # Ka1  Absorption rate constant 1 (1/time)
               1, # CL   Clearance (volume/time)
               20, # Vc   Central volume (volume)
@@ -89,8 +89,8 @@ x0 = @NT(θ = [
               1, # γ    Emax model sigmoidicity
               0, # Vmax Maximum reaction velocity (mass/time)
               2  # Km   Michaelis constant (mass/volume)
-              ])
-y0 = @NT(η = zeros(11))
+              ],)
+y0 = (η = zeros(11),)
 sim = pkpd_post(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities

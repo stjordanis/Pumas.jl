@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions
+using PuMaS, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]

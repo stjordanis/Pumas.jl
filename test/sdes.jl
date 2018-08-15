@@ -1,4 +1,4 @@
-using PuMaS, Test, NamedTuples, StochasticDiffEq
+using PuMaS, Test, StochasticDiffEq
 
 θ = [
      1.5,  #Ka
@@ -6,17 +6,17 @@ using PuMaS, Test, NamedTuples, StochasticDiffEq
      30.0 #V
      ]
 
-params = ParamSet(@NT(θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
+params = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
-  RandomEffectSet(@NT(η=MvNormal(p.Ω)))
+  RandomEffectSet((η=MvNormal(p.Ω),))
 end
 
 function collate(params, randoms, covars)
     θ = params.θ
     η = randoms.η
-    @NT(Ka = θ[1],
-        CL = θ[2]*exp(η[1]),
-        V  = θ[3]*exp(η[2]))
+    (Ka = θ[1],
+     CL = θ[2]*exp(η[1]),
+     V  = θ[3]*exp(η[2]))
 end
 
 function f(du,u,p,t)
@@ -37,11 +37,11 @@ function err(params, randoms, covars, u,p, t)
     Depot, Central = u
     Σ = params.Σ
     conc = Central / V
-    @NT(dv=Normal(conc, conc*Σ))
+    (dv=Normal(conc, conc*Σ),)
 end
 
 init = (_param, _random, _data_cov,_collate,t) -> [0.0,0.0]
-post = (_param, _random, _data_cov,_collate,_odevars,t) -> @NT(conc = _odevars[2] / _collate.V)
+post = (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V,)
 model = PuMaS.PKPDModel(params,randomfx,collate,init,prob,post,err)
 
 x0 = init_param(model)

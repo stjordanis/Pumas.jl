@@ -1,7 +1,6 @@
 using DataStructures
 using MacroTools
 using ParameterizedFunctions
-using NamedTuples
 
 export @model
 
@@ -24,7 +23,7 @@ end
 function var_def(tupvar, indvars)
     quote
         if $tupvar != nothing
-            if $tupvar isa NamedTuples.NamedTuple
+            if $tupvar isa NamedTuple
                 # Allow for NamedTuples to be in different order
                 $(Expr(:block, [:($(esc(v)) = $tupvar.$v) for v in indvars]...))
             else

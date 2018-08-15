@@ -3,7 +3,6 @@ DiffEqBase 3.0.0
 OrdinaryDiffEq 3.0.0
 Distributions
 Reexport
-NamedTuples
 StaticArrays
 DiffEqJump 1.0.0
 DiffEqMonteCarlo

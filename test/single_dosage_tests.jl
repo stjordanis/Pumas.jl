@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions, PDMats, StaticArrays
+using PuMaS, Distributions, PDMats, StaticArrays
 
 # Read the data
 data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
@@ -72,10 +72,10 @@ m_analytic = @model begin
 end
 
 # Define the ODE
-x0 = @NT(θ = [2.268,74.17,468.6,0.5876],
-         Ω = PDMat([0.05 0.0;
-                    0.0 0.2]),
-         σ = 0.1)
+x0 = (θ = [2.268,74.17,468.6,0.5876],
+      Ω = PDMat([0.05 0.0;
+                 0.0 0.2]),
+      σ = 0.1)
 
 
 subject1 = data.subjects[1]

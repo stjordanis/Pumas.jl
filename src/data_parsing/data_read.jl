@@ -112,22 +112,24 @@ function build_dataset(cols::AbstractDict,cvs=[],dvs=[:dv])
     evids = eltype(cols[:evid]) <: AbstractString ? parse.(Int8, cols[:evid])    : cols[:evid]
 
     uids  = unique(ids)
-    Tdv = isempty(dvs) ? Nothing : NamedTuples.create_namedtuple_type(dvs)
-    Tcv = isempty(cvs) ? Nothing : NamedTuples.create_namedtuple_type(cvs)
+    Tdv = isempty(dvs) ? Nothing : Core.NamedTuple{(dvs...,),NTuple{length(dvs),Float64}}
+    Tcv = isempty(cvs) ? Nothing : Core.NamedTuple{(cvs...,),NTuple{length(cvs),Float64}}
 
     subjects = map(uids) do id
         ## Observations
         idx_obs = filter(i -> ids[i] == id && evids[i] == 0, 1:m)
         obs_times = times[idx_obs]
 
-        obs_dvs = Tdv.([parse.(Float64, cols[dv][idx_obs]) for dv in dvs]...)
+        dv_idx = [parse.(Float64, cols[dv][idx_obs]) for dv in dvs]
+
+        obs_dvs = Tdv === Nothing ? nothing : map((x...)->Tdv(x), dv_idx...)
         obs_cmts = haskey(cols,:cmt) ? misparse.(Int, cols[:cmt][idx_obs]) : nothing
         observations = Observation.(obs_times, obs_dvs, obs_cmts)
 
         ## Covariates
         #  TODO: allow non-constant covariates
         i_z = findfirst(x -> x ==id, ids)
-        covariates = Tcv([parse(Float64, cols[cv][i_z]) for cv in cvs]...)
+        covariates = Tcv === Nothing ? nothing : Tcv(parse(Float64, cols[cv][i_z]) for cv in cvs)
 
         ## Events
         idx_evt = filter(i -> ids[i] ==id && evids[i] != 0, 1:m)

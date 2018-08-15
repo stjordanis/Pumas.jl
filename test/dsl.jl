@@ -1,6 +1,6 @@
 using Test
 
-using PuMaS, Distributions, NamedTuples, ParameterizedFunctions
+using PuMaS, Distributions, ParameterizedFunctions
 
 
 # Read the data# Read the data
@@ -51,12 +51,12 @@ mdsl = @model begin
     end
 end
 
-@isdefined(mobj) || (mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
+@isdefined(mobj) || (mobj = PKPDModel(ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0),
                               a = ConstDomain(0.2))),
-                 (_param) -> RandomEffectSet(@NT(η = MvNormal(_param.Ω))), # random effects
-                 (_param, _random, _data_cov) -> @NT(Σ  = _param.Σ,
+                 (_param) -> RandomEffectSet((η = MvNormal(_param.Ω),)), # random effects
+                 (_param, _random, _data_cov) -> (Σ  = _param.Σ,
                                                      Ka = _param.θ[1],  # collate
                                                      CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
                                                           (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
@@ -66,9 +66,9 @@ end
                      dDepot   = -Ka*Depot
                      dCentral =  Ka*Depot - (CL/V)*Central
                  end, Σ, Ka, CL, V),
-                 (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V), # post
+                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,), # post
                  (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
-                                       @NT(dv = Normal(conc, conc*_pre.Σ)))))
+                                       (dv = Normal(conc, conc*_pre.Σ),))))
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)

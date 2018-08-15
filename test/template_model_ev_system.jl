@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions, PDMats, StaticArrays
+using PuMaS, Distributions, PDMats, StaticArrays
 
 
 ###############################
@@ -58,11 +58,11 @@ end
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data2.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
-y0 = @NT(η = [0.0,0.0])
+              ],)
+y0 = (η = [0.0,0.0],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -131,11 +131,11 @@ subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data3.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               5.0   #lags
-              ])
+              ],)
 
 sim = pkpd_post(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -210,12 +210,12 @@ subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data4.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               5.0,  #lags
               0.412,#bioav
-              ])
+              ],)
 
 sim = pkpd_post(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -288,11 +288,11 @@ subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data5.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               0.412,#bioav
-              ])
+              ],)
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav
@@ -356,11 +356,11 @@ subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data6.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0, #V
-              0.812,#bioav
-              ])
+x0 = (θ = [1.5,  #Ka
+           1.0,  #CL
+           30.0, #V
+           0.812,#bioav
+           ],)
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav - ii
@@ -424,11 +424,11 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data7.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -472,11 +472,11 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data8.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -520,11 +520,11 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data9.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               0.412,#BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            0.412,#BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: why is the first value wrong?
@@ -565,11 +565,11 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data10.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -610,11 +610,11 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data11.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1.0, #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1.0, #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -651,10 +651,10 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data12.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -687,11 +687,11 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data13.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1.0, #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1.0, #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -770,14 +770,14 @@ end
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data14.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0,  #V
-              0.61, #BIOAV
-              5.0, #LAGT
-              9.0  #duration
-              ])
+x0 = (θ = [
+          1.5,  #Ka
+          1.0,  #CL
+          30.0,  #V
+          0.61, #BIOAV
+          5.0, #LAGT
+          9.0  #duration
+          ],)
 
 sim = pkpd_post(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -802,11 +802,11 @@ sim = pkpd_post(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data15.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0 #V
-              ])
+x0 = (θ = [
+           1.5,  #Ka
+           1.0,  #CL
+           30.0 #V
+           ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim[1:19]] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
@@ -843,11 +843,11 @@ maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data16.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -879,11 +879,11 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data17.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.0,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
@@ -906,11 +906,11 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data18.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.0,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+             ],)
 
 sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
@@ -985,14 +985,14 @@ end
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data19.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               0.8,  #Ka1
               0.6,  #Ka2
               50.0, #V # V needs to be 3 for the test to scale the result properly
               5.0,  #CL
               0.5,  #bioav1
               5     #lag2
-              ])
+             ],)
 
 
 sim = pkpd_post(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -1059,13 +1059,13 @@ end
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data20.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               0.5,  #Ka1
               5.0,  #CL
               50.0, #V
               5,    #lag2
               0.5   #bioav1
-              ])
+              ],)
 
 
 sim = pkpd_post(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -1093,11 +1093,11 @@ sim = pkpd_post(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data21.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -1127,11 +1127,11 @@ inds = [1:12...,14:25...]
 subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data22.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
