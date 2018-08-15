@@ -92,7 +92,9 @@ end
 # promote to correct numerical type (e.g. to handle Duals correctly)
 # TODO Unitful.jl support?
 numtype(::Type{T}) where {T<:Number} = T
-numtype(x::Core.NamedTuple) = mapreduce(eltype, promote_type, collect(x))
+numtype(x::Core.NamedTuple) = mapreduce(promote_type, collect(x)) do x
+    T = x isa Tuple ? eltype(promote(x...)) : eltype(x)
+end
 numtype(x::Number)        = typeof(x)
 numtype(x::AbstractArray) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
