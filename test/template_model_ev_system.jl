@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions, PDMats
+using PuMaS, NamedTuples, Distributions, PDMats, StaticArrays
 
 
 ###############################

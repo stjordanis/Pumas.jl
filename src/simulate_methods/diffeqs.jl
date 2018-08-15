@@ -117,12 +117,12 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
         end
 
         last_restart[] = integrator.t
-        f.rates_on = false
+        f.f.rates_on = false
 
-        if typeof(f.rates) <: Union{Number,SArray}
-          f.rates = zero(f.rates)
+        if typeof(f.f.rates) <: Union{Number,SArray}
+          f.f.rates = zero(f.f.rates)
         else
-          f.rates .= 0
+          f.f.rates .= 0
         end
 
         cur_ev.evid == 4 && dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
@@ -202,7 +202,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
             else # amt = 0, turn off rates
 
               if typeof(f.f.rates) <: Union{Number,SArray}
-                f.f.rates = StaticArrays.setindex(f.rates,0.0,cur_ev.cmt)
+                f.f.rates = StaticArrays.setindex(f.f.rates,0.0,cur_ev.cmt)
               else
                 f.f.rates[cur_ev.cmt] .= 0
               end
@@ -227,12 +227,12 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
             #add_tstop!(integrator,ss_end[])
           end
         elseif integrator.t == ss_rate_end[] && cur_ev.amt != 0 # amt==0 means constant
-          if typeof(f.rates) <: SArray
-            f.rates = StaticArrays.setindex(f.rates,f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
+          if typeof(f.f.rates) <: SArray
+            f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
           else
-            f.rates[cur_ev.cmt] -= cur_ev.rate
+            f.f.rates[cur_ev.cmt] -= cur_ev.rate
           end
-          f.rates_on = (ss_rate_multiplier[] > 1)
+          f.f.rates_on = (ss_rate_multiplier[] > 1)
         else
           # This is a tstop that was accidentally picked up in the interval
           # Just re-add so it's not missed after the SS
@@ -256,13 +256,13 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
 
       ss_event = events[ss_event_counter[]]
       if ss_event.amt != 0
-        if typeof(f.rates) <: SArray
-          f.rates = StaticArrays.setindex(f.rates,f.rates[ss_event.cmt]-ss_event.rate,ss_event.cmt)
+        if typeof(f.f.rates) <: SArray
+          f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[ss_event.cmt]-ss_event.rate,ss_event.cmt)
         else
-          f.rates[ss_event.cmt] -= ss_event.rate
+          f.f.rates[ss_event.cmt] -= ss_event.rate
         end
       end
-      # TODO: Optimize by setting f.rates_on = false
+      # TODO: Optimize by setting f.f.rates_on = false
     end
   end
   tstops,DiscreteCallback{typeof(condition),typeof(affect!),
@@ -287,8 +287,8 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
-      f.rates_on += cur_ev.evid > 0
-      @views @. f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
+      f.f.rates_on += cur_ev.evid > 0
+      @views @. f.f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
     end
   end
 end
@@ -310,8 +310,8 @@ function dose!(integrator,u::SArray,cur_ev,bioav,last_restart)
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
-      f.rates_on += cur_ev.evid > 0
-      f.rates = StaticArrays.setindex(f.rates,f.rates[cur_ev.cmt] + cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
+      f.f.rates_on += cur_ev.evid > 0
+      f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[cur_ev.cmt] + cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
     end
   end
 end
@@ -325,8 +325,8 @@ function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
   end
 
   if cur_ev.rate > 0
-    f.rates_on = true
-    f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
+    f.f.rates_on = true
+    f.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
   else
     if typeof(bioav) <: Number
       integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
@@ -345,8 +345,8 @@ function ss_dose!(integrator,u::SArray,cur_ev,bioav,ss_rate_multiplier,ss_rate_e
   end
 
   if cur_ev.rate > 0
-    f.rates_on = true
-    f.rates = StaticArrays.setindex(f.rates,ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
+    f.f.rates_on = true
+    f.f.rates = StaticArrays.setindex(f.f.rates,ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
   else
     if typeof(bioav) <: Number
       integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt]+bioav*cur_ev.amt,cur_ev.cmt)
