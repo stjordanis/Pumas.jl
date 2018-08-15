@@ -1,6 +1,7 @@
 using DataStructures
 using MacroTools
 using ParameterizedFunctions
+using NamedTuples
 
 export @model
 
@@ -23,11 +24,11 @@ end
 function var_def(tupvar, indvars)
     quote
         if $tupvar != nothing
-            if $tupvar isa NamedTuple
+            if $tupvar isa NamedTuples.NamedTuple
                 # Allow for NamedTuples to be in different order
                 $(Expr(:block, [:($(esc(v)) = $tupvar.$v) for v in indvars]...))
             else
-                $(Expr(:tuple, map(esc,indvars)...)) = $tupvar
+                $(Expr(:tuple, (esc(v) for v in indvars)...)) = $tupvar
             end
         end
     end
@@ -333,7 +334,6 @@ macro model(expr)
         ex isa Expr && ex.head == :block && return ex
         islinenum(ex) && return nothing
         @assert ex isa Expr && ex.head == :macrocall
-        ex = MacroTools.striplines(ex)
         if ex.args[1] == Symbol("@param")
             extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")

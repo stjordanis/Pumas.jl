@@ -69,14 +69,11 @@ mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                  (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V), # post
                  (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
                                                      @NT(dv = Normal(conc, conc*_pre.Σ))))
-                 
-                 
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
 
 subject = data.subjects[1]
-
 @test pkpd_likelihood(mdsl,subject,x0,y0) ≈ pkpd_likelihood(mobj,subject,x0,y0)
 
 @test (srand(1); map(x -> x.dv, pkpd_simulate(mdsl,subject,x0,y0))) ≈
