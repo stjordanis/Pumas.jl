@@ -51,7 +51,7 @@ mdsl = @model begin
     end
 end
 
-mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
+@isdefined(mobj) || (mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0),
                               a = ConstDomain(0.2))),
@@ -68,7 +68,7 @@ mobj = PKPDModel(ParamSet(@NT(θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                  end, Σ, Ka, CL, V),
                  (_pre,_odevars,t) -> @NT(conc = _odevars[2] / _pre.V), # post
                  (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
-                                                     @NT(dv = Normal(conc, conc*_pre.Σ))))
+                                       @NT(dv = Normal(conc, conc*_pre.Σ)))))
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)

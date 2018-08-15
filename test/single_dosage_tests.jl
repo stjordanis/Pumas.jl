@@ -1,5 +1,5 @@
 using Test
-using PuMaS, NamedTuples, Distributions, PDMats
+using PuMaS, NamedTuples, Distributions, PDMats, StaticArrays
 
 # Read the data
 data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),

@@ -133,10 +133,10 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
           # This is triggered at the start of a steady-state event
           ss_mode[] = true
 
-          if typeof(f.rates) <: Union{Number,SArray}
-            f.rates = zero(f.rates)
+          if typeof(f.f.rates) <: Union{Number,SArray}
+            f.f.rates = zero(f.f.rates)
           else
-            f.rates .= 0
+            f.f.rates .= 0
           end
 
           ss_counter[] = 0
@@ -175,10 +175,10 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
             # TODO: Make compatible with save_everystep = false
             post_steady_state[] = true
 
-            if typeof(f.rates) <: Union{Number,SArray}
-              f.rates = zero(f.rates)
+            if typeof(f.f.rates) <: Union{Number,SArray}
+              f.f.rates = zero(f.f.rates)
             else
-              f.rates .= 0
+              f.f.rates .= 0
             end
 
             integrator.opts.save_everystep = true
@@ -201,13 +201,13 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
               ss_dropoff_counter[] = start_k
             else # amt = 0, turn off rates
 
-              if typeof(f.rates) <: Union{Number,SArray}
-                f.rates = StaticArrays.setindex(f.rates,0.0,cur_ev.cmt)
+              if typeof(f.f.rates) <: Union{Number,SArray}
+                f.f.rates = StaticArrays.setindex(f.rates,0.0,cur_ev.cmt)
               else
-                f.rates[cur_ev.cmt] .= 0
+                f.f.rates[cur_ev.cmt] .= 0
               end
 
-              f.rates_on = false
+              f.f.rates_on = false
             end
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
