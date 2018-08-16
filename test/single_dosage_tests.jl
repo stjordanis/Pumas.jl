@@ -1,15 +1,18 @@
-using Test
+using Test, Random
 using PuMaS, Distributions, PDMats, StaticArrays
 
 # Read the data
-data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
+data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
-for subject in data.subjects
+let
+global subject
+for outer subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
         subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
+end
 end
 
 # Definition using diffeqs
@@ -94,24 +97,24 @@ sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
 @test pkpd_likelihood(m_diffeq,subject1,x0,y0) ≈ pkpd_likelihood(m_analytic,subject1,x0,y0)
 
 sim_diffeq = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_diffeq,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_analytic,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
 
 sim_diffeq = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_diffeq,subject1,x0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_analytic,subject1,x0)
     map(x-> x.dv, s)
 end

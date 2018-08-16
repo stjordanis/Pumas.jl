@@ -29,9 +29,9 @@ end
 
 function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs=nothing)
     if idxs != nothing
-        u = Vector{eltype(sol.u[1][idxs])}(length(ts))
+        u = Vector{eltype(sol.u[1][idxs])}(undef, length(ts))
     else
-        u = Vector{eltype(sol.u)}(length(ts))
+        u = Vector{eltype(sol.u)}(undef, length(ts))
     end
     for j in 1:length(ts)
         t = ts[j]

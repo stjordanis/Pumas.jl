@@ -1,10 +1,10 @@
-using Test
+using Test, Random
 using PuMaS, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_data(Pkg.dir("PuMaS", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
+data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
                     covariates,dvs)
 
 m_diffeq = @model begin
@@ -52,12 +52,12 @@ sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
 @test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?
 
 sim_diffeq = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_diffeq,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
-    srand(1)
+    Random.seed!(1)
     s = pkpd_simulate(m_analytic,subject1,x0,y0)
     map(x-> x.dv, s)
 end

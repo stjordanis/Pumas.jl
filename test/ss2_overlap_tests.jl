@@ -1,4 +1,4 @@
-using Test
+using Test, LinearAlgebra
 using PuMaS, Distributions, PDMats
 
 # Gut dosing model
@@ -6,9 +6,9 @@ m_diffeq = @model begin
     @param begin
         θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
     end
-    
+
     @random begin
-        η ~ MvNormal(eye(2))
+        η ~ MvNormal(Matrix{Float64}(I, 2, 2))
     end
 
     @collate begin
