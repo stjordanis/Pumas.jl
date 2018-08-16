@@ -1,5 +1,5 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions
+using PuMaS, Distributions
 
 # Example from
 # https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/05_margossian/models/neutropenia
@@ -113,7 +113,7 @@ neutObs = [4.39843397609086, 4.80780714283483, 5.06606895891759, 4.0730742193975
            3.2265501130707, 3.67256011264626, 4.34338234964359, 4.55240425991815, 4.44582475775002,
            5.23971625211994, 4.61043939062381, 5.57263663887337, 5.2697689718298, 6.03135090450531]
 
-time = [0, 0, 0.083, 0.167, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 12, 12.083,
+time_ = [0, 0, 0.083, 0.167, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 12, 12.083,
         12.167, 12.25, 12.5, 12.75, 13, 13.5, 14, 15, 16, 18, 20, 24, 24, 36, 36, 48, 48, 60, 60,
         72, 72, 84, 84, 96, 96, 108, 108, 120, 120, 132, 132, 144, 144, 156, 156, 168, 168,
         168.083, 168.167, 168.25, 168.5, 168.75, 169, 169.5, 170, 171, 172, 174, 176, 180, 186,
@@ -122,18 +122,18 @@ time = [0, 0, 0.083, 0.167, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 12, 12.0
 
 
 
-cvals = fill(NaN,length(time))
-nvals = fill(NaN,length(time))
+cvals = fill(NaN,length(time_))
+nvals = fill(NaN,length(time_))
 cvals[iObsPK] = cObs
 nvals[iObsPD] = neutObs
 
 
-subject = PKPDSimulator.Subject(1,
-                      [PKPDSimulator.Observation(t,@NT(logc=log(c), logn=log(n)),1) for (t,c,n) in zip(time,cvals,nvals) if !(isnan(n) && isnan(c))],
+subject = PuMaS.Subject(1,
+                      [PuMaS.Observation(t,(logc=log(c), logn=log(n)),1) for (t,c,n) in zip(time_,cvals,nvals) if !(isnan(n) && isnan(c))],
                       nothing,
-                      [PKPDSimulator.Event(Float64(a),t,Int8(id),c) for (t,a,id,c) in zip(time,amt,evid,cmt) if id != 0])
+                      [PuMaS.Event(Float64(a),t,Int8(id),c) for (t,a,id,c) in zip(time_,amt,evid,cmt) if id != 0])
 
 
-x0 = PKPDSimulator.init_param(m_neut)
+x0 = PuMaS.init_param(m_neut)
 
-@test !isnan(PKPDSimulator.pkpd_likelihood(m_neut, subject, x0, ()))
+@test !isnan(PuMaS.pkpd_likelihood(m_neut, subject, x0, ()))

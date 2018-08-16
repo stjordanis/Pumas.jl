@@ -1,14 +1,14 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, Distributions, PDMats, StaticArrays
 
 # Read the data
-data = process_data(joinpath(Pkg.dir("PKPDSimulator"),"examples/data1.csv"),
+data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
 for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
-        subject.observations[1] = PKPDSimulator.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
 end
 
@@ -72,10 +72,10 @@ m_analytic = @model begin
 end
 
 # Define the ODE
-x0 = @NT(θ = [2.268,74.17,468.6,0.5876],
-         Ω = PDMat([0.05 0.0;
-                    0.0 0.2]),
-         σ = 0.1)
+x0 = (θ = [2.268,74.17,468.6,0.5876],
+      Ω = PDMat([0.05 0.0;
+                 0.0 0.2]),
+      σ = 0.1)
 
 
 subject1 = data.subjects[1]

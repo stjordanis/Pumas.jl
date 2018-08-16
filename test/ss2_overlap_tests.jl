@@ -1,5 +1,5 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, Distributions, PDMats
 
 # Gut dosing model
 m_diffeq = @model begin
@@ -33,11 +33,11 @@ end
 ###############################
 
 
-x0 = @NT(θ = [
+x0 = (θ = [
      1.5,  #Ka
      1.0,  #CL
      30.0  #V
-     ])
+     ],)
 y0 = init_random(m_diffeq, x0)
 
 subject = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])

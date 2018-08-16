@@ -96,16 +96,8 @@ numtype(x::Number)        = typeof(x)
 numtype(x::AbstractArray) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 numtype(x::Tuple)         = promote_type(map(numtype,x)...)
-if VERSION < v"0.7"    
-    @generated function numtype(x::NamedTuples.NamedTuple)
-        mapfoldl(s -> :(numtype(getfield(x, $(QuoteNode(s))))),
-                 (a,b) -> :(promote_type($a, $b)),
-                 fieldnames(x))
-    end
-else
-    numtype(x::NamedTuples.NamedTuple) = promote_type(map(numtype,x)...)
-end
+numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
 
 zero(x) = Base.zero(x)
 zero(x::Tuple) = map(zero,x)
-zero(x::NamedTuples.NamedTuple) = map(zero,x)
+zero(x::NamedTuple) = map(zero,x)

@@ -1,5 +1,5 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, Distributions, PDMats
 
 
 ###############################
@@ -11,7 +11,7 @@ using PKPDSimulator, NamedTuples, Distributions, PDMats
 # - Inhibition of response input
 # - Two-compartment PK model
 # - Optional nonlinear clearance - not being used in this example (Vmax and Km)
-# use ev23.csv in PKPDSimulator/examples/event_data/
+# use ev23.csv in PuMaS/examples/event_data/
 # For the current example, a bolus dose is given into the gut compartment at time=0 and three additional doses
 # every 24 hours.
 
@@ -30,7 +30,7 @@ using PKPDSimulator, NamedTuples, Distributions, PDMats
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data23.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data23.csv"),
                        [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
 
@@ -76,7 +76,7 @@ m23 = @model begin
 end
 
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1, # Ka1  Absorption rate constant 1 (1/time)
               1, # CL   Clearance (volume/time)
               20, # Vc   Central volume (volume)
@@ -89,8 +89,8 @@ x0 = @NT(θ = [
               1, # γ    Emax model sigmoidicity
               0, # Vmax Maximum reaction velocity (mass/time)
               2  # Km   Michaelis constant (mass/volume)
-              ])
-y0 = @NT(η = zeros(11))
+              ],)
+y0 = (η = zeros(11),)
 sim = pkpd_post(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities
@@ -112,7 +112,7 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # - Inhibition of response elimination
 # - Two-compartment PK model
 # - Optional nonlinear clearance - not being used in this example (Vmax and Km)
-# use ev24.csv in PKPDSimulator/examples/event_data/
+# use ev24.csv in PuMaS/examples/event_data/
 # For the current example, a bolus dose is given into the gut compartment at time=0 and three additional doses
 # every 24 hours.
 
@@ -131,7 +131,7 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data24.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data24.csv"),
                        [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
 

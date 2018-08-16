@@ -1,12 +1,12 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions, PDMats
+using PuMaS, Distributions, PDMats, StaticArrays
 
 
 ###############################
 # Test 2
 ###############################
 
-# ev2 - infusion into the central compartment - use ev2.csv in PKPDSimulator/examples/event_data/
+# ev2 - infusion into the central compartment - use ev2.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 
 # new
@@ -55,14 +55,14 @@ m_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data2.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data2.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
-y0 = @NT(η = [0.0,0.0])
+              ],)
+y0 = (η = [0.0,0.0],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -75,7 +75,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 ###############################
 
 # ev3 - infusion into the central compartment with lag time
-# - use ev3.csv in PKPDSimulator/examples/event_data/
+# - use ev3.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -127,15 +127,15 @@ mlag_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data3.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data3.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               5.0   #lags
-              ])
+              ],)
 
 sim = pkpd_post(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -149,7 +149,7 @@ sim = pkpd_post(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 ###############################
 
 # ev4 - infusion into the central compartment with lag time and bioavailability
-# - use ev4.csv in PKPDSimulator/examples/event_data/
+# - use ev4.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -206,16 +206,16 @@ mlagbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data4.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data4.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               5.0,  #lags
               0.412,#bioav
-              ])
+              ],)
 
 sim = pkpd_post(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
@@ -229,7 +229,7 @@ sim = pkpd_post(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 ###############################
 
 # ev5 - infusion into the central compartment at steady state (ss)
-# - use ev5.csv in PKPDSimulator/examples/event_data/
+# - use ev5.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -284,15 +284,15 @@ mbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data5.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data5.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
+x0 = (θ = [1.5,  #Ka
               1.0,  #CL
               30.0, #V
               0.412,#bioav
-              ])
+              ],)
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav
@@ -329,7 +329,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 # ev6 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
-# - use ev6.csv in PKPDSimulator/examples/event_data/
+# - use ev6.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -352,15 +352,15 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data6.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data6.csv"),
                        [], [:cp],  separator=',')[1]
 
 
-x0 = @NT(θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0, #V
-              0.812,#bioav
-              ])
+x0 = (θ = [1.5,  #Ka
+           1.0,  #CL
+           30.0, #V
+           0.812,#bioav
+           ],)
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav - ii
@@ -398,7 +398,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 # ev7 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
-# - use ev7.csv in PKPDSimulator/examples/event_data/
+# - use ev7.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -421,14 +421,14 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data7.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data7.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -444,7 +444,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 # ev8 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is a
 # multiple of infusion duration (DUR)
-# - use ev8.csv in PKPDSimulator/examples/event_data/
+# - use ev8.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
@@ -469,14 +469,14 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data8.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data8.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -492,7 +492,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 # ev9 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
-# - use ev9.csv in PKPDSimulator/examples/event_data/
+# - use ev9.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
@@ -517,14 +517,14 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data9.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data9.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               0.412,#BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            0.412,#BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: why is the first value wrong?
@@ -541,7 +541,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 # ev10 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
-# - use ev10.csv in PKPDSimulator/examples/event_data/
+# - use ev10.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -562,14 +562,14 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data10.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data10.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1,    #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1,    #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -584,7 +584,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev11 - gut dose at steady state with lower bioavailability
-# - use ev11.csv in PKPDSimulator/examples/event_data/
+# - use ev11.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg bolus into depot compartment
 
 #new
@@ -607,14 +607,14 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data11.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data11.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1.0, #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1.0, #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -629,7 +629,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev12 - gut dose at with lower bioavailability and a 5 hour lag time
-# - use ev12.csv in PKPDSimulator/examples/event_data/
+# - use ev12.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg bolus into gut compartment
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
 # BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
@@ -648,13 +648,13 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data12.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data12.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -668,7 +668,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev13 - zero order infusion followed by first order absorption into gut
-# - use ev13.csv in PKPDSimulator/examples/event_data/
+# - use ev13.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into gut compartment at time zero
 # amt=50; 50 mg bolus into gut compartment at time = 12 hours
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
@@ -684,14 +684,14 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data13.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data13.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [ 1.5,  #Ka
-               1.0,  #CL
-               30.0, #V
-               1.0, #BIOAV
-               ])
+x0 = (θ = [ 1.5,  #Ka
+            1.0,  #CL
+            30.0, #V
+            1.0, #BIOAV
+            ],)
 
 sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -705,7 +705,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev14 - zero order infusion into central compartment specified by duration parameter
-# - use ev14.csv in PKPDSimulator/examples/event_data/
+# - use ev14.csv in PuMaS/examples/event_data/
 # amt=100: 100 mg infusion into central compartment at time zero
 
 #new
@@ -767,17 +767,17 @@ mbld_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data14.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data14.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0,  #V
-              0.61, #BIOAV
-              5.0, #LAGT
-              9.0  #duration
-              ])
+x0 = (θ = [
+          1.5,  #Ka
+          1.0,  #CL
+          30.0,  #V
+          0.61, #BIOAV
+          5.0, #LAGT
+          9.0  #duration
+          ],)
 
 sim = pkpd_post(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -792,21 +792,21 @@ sim = pkpd_post(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 ## SS=2 and next dose overlapping into the SS interval
 # ev15 - first order bolus into central compartment at ss followed by an ss=2 (superposition ss) dose at 12 hours
-# - use ev15.csv in PKPDSimulator/examples/event_data/
+# - use ev15.csv in PuMaS/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by a 20 mg ss=2 dose at time 12
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data15.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data15.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0 #V
-              ])
+x0 = (θ = [
+           1.5,  #Ka
+           1.0,  #CL
+           30.0 #V
+           ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim[1:19]] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
@@ -826,7 +826,7 @@ maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 ## SS=2 with a no-reset afterwards
 # ev16 - first order bolus into central compartment at ss followed by
 # an ss=2 (superposition ss) dose at 12 hours followed by reset ss=1 dose at 24 hours
-# - use ev16.csv in PKPDSimulator/examples/event_data/
+# - use ev16.csv in PuMaS/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by 20 mg ss=2 dose at time 12 followed
 # 10 mg ss = 1 reset dose at time 24
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
@@ -840,14 +840,14 @@ maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data16.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data16.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -868,7 +868,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev2_const_infusion.csv - zero order constant infusion at time=10 followed by infusion at time 15
-# - use ev17.csv in PKPDSimulator/examples/event_data/
+# - use ev17.csv in PuMaS/examples/event_data/
 # several observations predose (time<10) even though time=10 is a constant infusion as steady state (SS=1)
 # amt=0: constant infusion with rate=10 at time 10
 # amt=200; 200 dose units infusion with rate=20 starting at time 15
@@ -876,14 +876,14 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data17.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data17.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.0,  #Ka
               1.0,  #CL
               30.0 #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
@@ -898,19 +898,19 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev2_const_infusion2.csv - zero order constant infusion at all observations
-# - use ev18.csv in PKPDSimulator/examples/event_data/
+# - use ev18.csv in PuMaS/examples/event_data/
 # several constant infusion dose rows (SS=1, amt=0, rate=10) are added previous to each observation
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data18.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data18.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.0,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+             ],)
 
 sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
@@ -929,7 +929,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev19 - Two parallel first order absorption models
-# use ev19.csv in PKPDSimulator/examples/event_data/
+# use ev19.csv in PuMaS/examples/event_data/
 # In some cases, after oral administration, the plasma concentrations exhibit a double
 # peak or shouldering-type absorption.
 # gut compartment is split into two compartments Depot1 and Depot2
@@ -982,17 +982,17 @@ mparbl_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data19.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data19.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               0.8,  #Ka1
               0.6,  #Ka2
               50.0, #V # V needs to be 3 for the test to scale the result properly
               5.0,  #CL
               0.5,  #bioav1
               5     #lag2
-              ])
+             ],)
 
 
 sim = pkpd_post(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -1007,7 +1007,7 @@ sim = pkpd_post(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev20 - Mixed zero and first order absorption
-# use ev20.csv in PKPDSimulator/examples/event_data/
+# use ev20.csv in PuMaS/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
 # and is followed, with a lag time (lag2), by a zero-order process in the central compartment.
 # a 10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 0.5 (bioav1)
@@ -1056,16 +1056,16 @@ mbl2_analytic = @model begin
 end
 
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data20.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data20.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               0.5,  #Ka1
               5.0,  #CL
               50.0, #V
               5,    #lag2
               0.5   #bioav1
-              ])
+              ],)
 
 
 sim = pkpd_post(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -1080,7 +1080,7 @@ sim = pkpd_post(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev21 - Testing evid=4
-# use ev21.csv in PKPDSimulator/examples/event_data/
+# use ev21.csv in PuMaS/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
 # at time=0 and evid=1 followed by a second dose into Depot at time=12 hours, but with evid=4
 # A  10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 1 (bioav1)
@@ -1090,14 +1090,14 @@ sim = pkpd_post(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data21.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data21.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -1113,7 +1113,7 @@ inds = [1:12...,14:25...]
 ###############################
 
 # ev22 - Testing evid=4
-# use ev22.csv in PKPDSimulator/examples/event_data/
+# use ev22.csv in PuMaS/examples/event_data/
 # For the current example, a bolus dose is given into the central compartment at time=0 followed by a
 # second dose into the gut compartment at time=12 with evid=4
 
@@ -1124,14 +1124,14 @@ inds = [1:12...,14:25...]
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PKPDSimulator", "examples/event_data","data22.csv"),
+subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data22.csv"),
                        [], [:cp],  separator=',')[1]
 
-x0 = @NT(θ = [
+x0 = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0  #V
-              ])
+              ],)
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6

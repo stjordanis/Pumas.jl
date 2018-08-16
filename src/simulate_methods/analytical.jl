@@ -29,7 +29,7 @@ function _solve(f::ExplicitModel,subject::Subject, col, u0, tspan,  args...; kwa
   ss_cmt = 0
   ss_dropoff_event = false
   start_val = 0
-
+  local dose
   # Now loop through the rest
   while i <= length(times)
     t = times[i]

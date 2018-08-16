@@ -1,8 +1,6 @@
-__precompile__()
+module PuMaS
 
-module PKPDSimulator
-
-using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, NamedTuples,
+using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport,
       StaticArrays, DiffEqJump, PDMats
 
 @reexport using OrdinaryDiffEq

@@ -1,3 +1,4 @@
+using LinearAlgebra
 export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain, PDiagDomain
 
 abstract type Domain end
@@ -94,7 +95,7 @@ end
 function pack_upper!(v, d::PSDDomain)
     v[:] = +Inf
 end
-function pack!(v, d::PSDDomain, C::LinAlg.Cholesky)
+function pack!(v, d::PSDDomain, C::LinearAlgebra.Cholesky)
     @assert C.uplo == 'U'
     U = C.factors
     n = size(d.init,1)
@@ -119,7 +120,7 @@ function unpack(v, d::PSDDomain)
         end
         U[j,j] = v[k+=1]
     end
-    PDMat(LinAlg.Cholesky(U, :U))
+    PDMat(LinearAlgebra.Cholesky(U, :U))
 end
 
 

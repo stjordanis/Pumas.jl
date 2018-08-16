@@ -1,10 +1,10 @@
 using Test
-using PKPDSimulator, NamedTuples, Distributions
+using PuMaS, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_data(Pkg.dir("PKPDSimulator", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
+data = process_data(Pkg.dir("PuMaS", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
                     covariates,dvs)
 
 m_diffeq = @model begin
@@ -48,9 +48,9 @@ m_analytic = @model begin
     end
 end
 
-@inferred pkpd_solve(m_analytic,data[1],(),())
-@inferred pkpd_post(m_analytic,data[1],(),())
-@inferred pkpd_simulate(m_analytic,data[1],(),())
+@test_broken @inferred pkpd_solve(m_analytic,data[1],(),())
+@test_broken @inferred pkpd_post(m_analytic,data[1],(),())
+@test_broken @inferred pkpd_simulate(m_analytic,data[1],(),())
 
 # inference broken in both `modify_pkpd_problem` and `solve`
 @test_broken @inferred pkpd_solve(m_diffeq,data[1],(),())
