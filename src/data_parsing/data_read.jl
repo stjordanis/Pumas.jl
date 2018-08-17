@@ -1,7 +1,6 @@
 using DelimitedFiles
-Base.start(A::Population) = start(A.subjects)
-Base.next(A::Population, i) = next(A.subjects, i)
-Base.done(A::Population, i) = done(A.subjects, i)
+Base.iterate(A::Population)    = iterate(A.subjects)
+Base.iterate(A::Population, i) = iterate(A.subjects, i)
 
 # size
 Base.length(A::Population) = length(A.subjects)
@@ -16,7 +15,7 @@ end
     @boundscheck checkbounds(A.subjects, I...)
     @inbounds A.subjects[I...] = x
 end
-Base.indices(A::Population) = indices(A.subjects)
+Base.axes(A::Population) = axes(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
 ## Parsing Functions
