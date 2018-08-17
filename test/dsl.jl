@@ -1,17 +1,20 @@
 using Test
 
-using PuMaS, Distributions, ParameterizedFunctions
+using PuMaS, Distributions, ParameterizedFunctions, Random
 
 
 # Read the data# Read the data
-data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
+data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
-for subject in data.subjects
+let
+global subject
+for outer subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
         subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
+end
 end
 
 
@@ -76,8 +79,8 @@ y0 = init_random(mdsl, x0)
 subject = data.subjects[1]
 @test pkpd_likelihood(mdsl,subject,x0,y0) ≈ pkpd_likelihood(mobj,subject,x0,y0)
 
-@test (srand(1); map(x -> x.dv, pkpd_simulate(mdsl,subject,x0,y0))) ≈
-      (srand(1); map(x -> x.dv, pkpd_simulate(mobj,subject,x0,y0)))
+@test (Random.seed!(1); map(x -> x.dv, pkpd_simulate(mdsl,subject,x0,y0))) ≈
+      (Random.seed!(1); map(x -> x.dv, pkpd_simulate(mobj,subject,x0,y0)))
 
 @test map(x -> x.conc, pkpd_post(mdsl,subject,x0,y0)) ≈
       map(x -> x.conc, pkpd_post(mobj,subject,x0,y0))

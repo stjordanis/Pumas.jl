@@ -66,14 +66,14 @@ unpack(v, d::VectorDomain) = copy(v)
 
 
 """
-    @param x ∈ PSDDomain(n::Int; init=eye(n))
+    @param x ∈ PSDDomain(n::Int; init=Matrix{Float64}(I, n, n))
 
 Specifies a parameter as a symmetric `n`-by-`n` positive semidefinite matrix.
 """
 struct PSDDomain{T} <: Domain
     init::T
 end
-PSDDomain(n::Int; init=eye(n)) = PSDDomain(PDMat(init))
+PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(PDMat(init))
 
 
 init(d::PSDDomain) = d.init

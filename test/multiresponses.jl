@@ -30,13 +30,13 @@ using PuMaS, Distributions, PDMats
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data23.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data23.csv"),
                        [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
 
 m23 = @model begin
     @param   θ ∈ VectorDomain(12)
-    @random  η ~ MvNormal(eye(11))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
 
     @collate begin
         Ka1     = θ[1]
@@ -131,13 +131,13 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data24.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data24.csv"),
                        [], [:ev1,:cp,:periph,:resp],  separator=',')[1]
 
 
 m24 = @model begin
     @param   θ ∈ VectorDomain(12)
-    @random  η ~ MvNormal(eye(11))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
 
     @collate begin
         Ka1     = θ[1]

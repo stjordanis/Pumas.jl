@@ -21,7 +21,7 @@ function _problem(f,
                   u0,
                   tspan)   # timespan
 
-    fd = DiffEqWrapper(f, 0, zeros(u0))
+    fd = DiffEqWrapper(f, 0, zero(u0))
 
     # figure out callbacks and whatnot
     tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],ODEProblem)
@@ -204,7 +204,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
               if typeof(f.f.rates) <: Union{Number,SArray}
                 f.f.rates = StaticArrays.setindex(f.f.rates,0.0,cur_ev.cmt)
               else
-                f.f.rates[cur_ev.cmt] .= 0
+                f.f.rates[cur_ev.cmt] = 0
               end
 
               f.f.rates_on = false
@@ -280,15 +280,15 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
 
   if cur_ev.rate == 0
     if typeof(bioav) <: Number
-      @views @. integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
+      @views integrator.u[cur_ev.cmt] += bioav*cur_ev.amt
     else
-      @views @. integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
+      @views integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
     end
     savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.f.rates_on += cur_ev.evid > 0
-      @views @. f.f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
+      @views f.f.rates[cur_ev.cmt] += cur_ev.rate*cur_ev.rate_dir
     end
   end
 end
@@ -390,7 +390,7 @@ mutable struct DiffEqWrapper{F,rateType} <: Function
   rates_on::Int
   rates::rateType
 end
-# DiffEqWrapper(rawprob::DEProblem) = DiffEqWrapper(rawprob.f,0,zeros(rawprob.u0))
+# DiffEqWrapper(rawprob::DEProblem) = DiffEqWrapper(rawprob.f,0,zero(rawprob.u0))
 DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)
 
 function (f::DiffEqWrapper)(u,p,t)

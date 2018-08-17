@@ -11,9 +11,9 @@ function _solve(f::ExplicitModel,subject::Subject, col, u0, tspan,  args...; kwa
   events = subject.events
   adjust_event_timings!(events,lags,bioav,time_adjust_rate,duration)
   times = sorted_approx_unique(events)
-  u = Vector{typeof(Tu0)}(length(times))
-  doses = Vector{typeof(Tu0)}(length(times))
-  rates = Vector{typeof(Tu0)}(length(times))
+  u = Vector{typeof(Tu0)}(undef, length(times))
+  doses = Vector{typeof(Tu0)}(undef, length(times))
+  rates = Vector{typeof(Tu0)}(undef, length(times))
 
   t0 = times[1]
   rate = zero(Tu0)

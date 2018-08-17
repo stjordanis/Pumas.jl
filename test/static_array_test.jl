@@ -1,17 +1,20 @@
 using Test
 
-using PuMaS, Distributions, StaticArrays
+using PuMaS, Distributions, StaticArrays, Random
 
 
 # Read the data# Read the data
-data = process_data(joinpath(Pkg.dir("PuMaS"),"examples/data1.csv"),
+data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
-for subject in data.subjects
+let
+global subject
+for outer subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
         subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
+end
 end
 
 
@@ -79,8 +82,8 @@ subject = data.subjects[1]
 
 @test pkpd_likelihood(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12) ≈ pkpd_likelihood(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)
 
-@test (srand(1); map(x -> x.dv, pkpd_simulate(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12))) ≈
-      (srand(1); map(x -> x.dv, pkpd_simulate(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)))
+@test (Random.seed!(1); map(x -> x.dv, pkpd_simulate(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12))) ≈
+      (Random.seed!(1); map(x -> x.dv, pkpd_simulate(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)))
 
 @test map(x -> x.conc, pkpd_post(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)) ≈
       map(x -> x.conc, pkpd_post(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12))
@@ -119,7 +122,7 @@ x0 = (θ = [
               1.0,  #CL
               30.0 #V
               ],
-         Ω = eye(2))
+         Ω = Matrix{Float64}(I, 2, 2))
 y0 = (η = zeros(2),)
 
 p = pkpd_post(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)

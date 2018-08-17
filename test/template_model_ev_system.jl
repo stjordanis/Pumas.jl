@@ -24,7 +24,7 @@ using PuMaS, Distributions, PDMats, StaticArrays
 # Gut dosing model
 m_diffeq = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -42,7 +42,7 @@ end
 
 m_analytic = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -55,7 +55,7 @@ m_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data2.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data2.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [1.5,  #Ka
@@ -94,7 +94,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mlag_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -113,7 +113,7 @@ end
 
 mlag_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -127,7 +127,7 @@ mlag_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data3.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data3.csv"),
                        [], [:cp],  separator=',')[1]
 
 
@@ -171,7 +171,7 @@ sim = pkpd_post(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mlagbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -191,7 +191,7 @@ end
 
 mlagbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -206,7 +206,7 @@ mlagbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data4.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data4.csv"),
                        [], [:cp],  separator=',')[1]
 
 
@@ -251,7 +251,7 @@ sim = pkpd_post(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -270,7 +270,7 @@ end
 
 mbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -284,7 +284,7 @@ mbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data5.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data5.csv"),
                        [], [:cp],  separator=',')[1]
 
 
@@ -304,8 +304,11 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
 end
 
 u0 = 0.0
-for i in 1:200
-    u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],12)
+let
+  global u0
+  for i in 1:200
+      u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],12)
+  end
 end
 
 sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
@@ -352,7 +355,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data6.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data6.csv"),
                        [], [:cp],  separator=',')[1]
 
 
@@ -373,8 +376,11 @@ function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
 end
 
 u0 = 0.0
-for i in 1:200
-    u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],6)
+let
+  global u0
+  for i in 1:200
+      u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],6)
+  end
 end
 
 sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
@@ -421,7 +427,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data7.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data7.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -469,7 +475,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data8.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data8.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -517,7 +523,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data9.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data9.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -562,7 +568,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data10.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data10.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -607,7 +613,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data11.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data11.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -648,7 +654,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data12.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data12.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -684,7 +690,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data13.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data13.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [ 1.5,  #Ka
@@ -730,7 +736,7 @@ sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mbld_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -751,7 +757,7 @@ end
 
 mbld_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(eye(2))
+    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -767,7 +773,7 @@ mbld_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data14.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data14.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -799,7 +805,7 @@ sim = pkpd_post(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data15.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data15.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -840,7 +846,7 @@ maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data16.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data16.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -855,7 +861,7 @@ sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 sol,col = pkpd_solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
-@test 1000*sol(ts-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sol(ts.-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at dose times?
@@ -876,7 +882,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data17.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data17.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -903,7 +909,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data18.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data18.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -914,7 +920,7 @@ x0 = (θ = [
 
 sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
-@test sol(ts+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose observation causing failure
@@ -944,7 +950,7 @@ sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mparbl_diffeq = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka1 = θ[1]
@@ -966,7 +972,7 @@ end
 
 mparbl_analytic = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka1 = θ[1]
@@ -982,7 +988,7 @@ mparbl_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data19.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data19.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -1018,7 +1024,7 @@ sim = pkpd_post(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mbl2_diffeq = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -1039,7 +1045,7 @@ end
 
 mbl2_analytic = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random  η ~ MvNormal(eye(2))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
     @collate begin
         Ka = θ[1]
@@ -1056,7 +1062,7 @@ mbl2_analytic = @model begin
 end
 
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data20.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data20.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -1090,7 +1096,7 @@ sim = pkpd_post(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data21.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data21.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
@@ -1124,7 +1130,7 @@ inds = [1:12...,14:25...]
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(Pkg.dir("PuMaS", "examples/event_data","data22.csv"),
+subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data22.csv"),
                        [], [:cp],  separator=',')[1]
 
 x0 = (θ = [
