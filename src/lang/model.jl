@@ -33,7 +33,7 @@ mutable struct PKPDModel{P,Q,R,S,T,U,V,PO}
 end
 
 function PKPDModel(param, random, collate, init, ode, post, error)
-    prob = ODEProblem(ode, nothing, nothing)
+    prob = ODEProblem(ODEFunction(ode), nothing, nothing)
     PKPDModel{typeof(param), typeof(random),
               typeof(collate), typeof(init),
               typeof(ode), typeof(post),

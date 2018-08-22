@@ -21,17 +21,17 @@ function _problem!(m, subject::Subject)
     tspan = prob.tspan
     col = prob.p
 
-    #_u0 = m.prob.u0(col, tspan[1])
-    _u0 = m.prob.u0
-    fd = DiffEqWrapper(prob.f.f, 0, zero(_u0))
+    u0 = m.prob.u0
+    fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,_u0,tspan[1],ODEProblem)
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
 
-    #inplace = !(u0 isa StaticArray)
+    inplace = !(u0 isa StaticArray)
+    ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
     # create problem of correct type
-    m.prob = remake(m.prob; callback=cb, f=DiffEqBase.ODEFunction(fd))
+    m.prob = remake(prob; callback=cb, f=ft{inplace}(fd))
     return m.prob, tstops
 end
 
@@ -46,20 +46,20 @@ function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters
 end
 
 # Have separate dispatches to pass along extra pieces of the problem
-function problem_final_dispatch(prob::DiffEqBase.ODEProblem,true_f,u0,tspan,p,cb)
-  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
-end
-
-function problem_final_dispatch(prob::DiffEqBase.SDEProblem,true_f,u0,tspan,p,cb)
-  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
-end
-
-function problem_final_dispatch(prob::DiffEqBase.DDEProblem,true_f,u0,tspan,p,cb)
-  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
-                   constant_lags = prob.constant_lags,
-                   dependent_lags = prob.dependent_lags,
-                   callback=cb)
-end
+#function problem_final_dispatch(prob::DiffEqBase.ODEProblem,true_f,u0,tspan,p,cb)
+#  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
+#end
+#
+#function problem_final_dispatch(prob::DiffEqBase.SDEProblem,true_f,u0,tspan,p,cb)
+#  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
+#end
+#
+#function problem_final_dispatch(prob::DiffEqBase.DDEProblem,true_f,u0,tspan,p,cb)
+#  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
+#                   constant_lags = prob.constant_lags,
+#                   dependent_lags = prob.dependent_lags,
+#                   callback=cb)
+#end
 
 function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   events = datai.events
