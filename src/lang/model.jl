@@ -21,7 +21,7 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-struct PKPDModel{P,Q,R,S,T,U,V}
+mutable struct PKPDModel{P,Q,R,S,T,U,V,PO}
     param::P
     random::Q
     collate::R
@@ -29,6 +29,15 @@ struct PKPDModel{P,Q,R,S,T,U,V}
     ode::T
     post::U
     error::V
+    prob::PO
+end
+
+function PKPDModel(param, random, collate, init, ode, post, error)
+    prob = ODEProblem(ode, nothing, nothing)
+    PKPDModel{typeof(param), typeof(random),
+              typeof(collate), typeof(init),
+              typeof(ode), typeof(post),
+              typeof(error), DiffEqBase.DEProblem}(param, random, collate, init, ode, post, error, prob)
 end
 
 init_param(m::PKPDModel) = init(m.param)
@@ -54,9 +63,9 @@ Returns a tuple containing the ODE solution `sol` and collation `col`.
 function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
                     args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
     col   = m.collate(param, rfx, subject.covariates)
-    u0  = m.init(col, tspan[1])
+    m.prob = remake(m.prob; p=col, u0=m.init, tspan=tspan)
 
-    sol = _solve(m.ode, subject, col, u0, tspan, args...;kwargs...)
+    sol = _solve(m, m.ode, subject, args...;kwargs...)
     return sol, col
 end
 

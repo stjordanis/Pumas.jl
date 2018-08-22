@@ -1,11 +1,12 @@
-function _solve(f, subject::Subject, col, u0, tspan, alg=Tsit5(), args...; kwargs...)
+function _solve(m::PKPDModel, f, subject::Subject, alg=Tsit5(), args...; kwargs...)
+    prob = m.prob
 
     # Promotion to handle Dual numbers
-    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-    Ttspan = T.(tspan)
-    Tu0    = T.(u0)
+    T = promote_type(numtype(prob.p), numtype(prob.tspan))
+    #m.prob = remake(m.prob; u0=(p,t1)->T.(prob.u0(p, t1)), tspan=T.(prob.tspan))
+    m.prob = remake(m.prob; u0=T.(prob.u0(prob.p, prob.tspan[1])), tspan=T.(prob.tspan))
 
-    prob, tstops = _problem(f, subject, col, Tu0, Ttspan)
+    prob, tstops = _problem!(m, subject)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
@@ -15,22 +16,23 @@ end
 
 # build a "modified" problem using DiffEqWrapper
 # returns final problem and necessary stopping times for integrator
-function _problem(f,
-                  subject::Subject,
-                  col,  # collated parameters
-                  u0,
-                  tspan)   # timespan
+function _problem!(m, subject::Subject)
+    prob = m.prob
+    tspan = prob.tspan
+    col = prob.p
 
-    fd = DiffEqWrapper(f, 0, zero(u0))
+    #_u0 = m.prob.u0(col, tspan[1])
+    _u0 = m.prob.u0
+    fd = DiffEqWrapper(prob.f.f, 0, zero(_u0))
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],ODEProblem)
+    tstops,cb = ith_subject_cb(col,subject,_u0,tspan[1],ODEProblem)
 
-    inplace = !(u0 isa StaticArray)
+    #inplace = !(u0 isa StaticArray)
 
     # create problem of correct type
-    prob = DiffEqBase.ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
-    return prob, tstops
+    m.prob = remake(m.prob; callback=cb, f=DiffEqBase.ODEFunction(fd))
+    return m.prob, tstops
 end
 
 function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters,θ,ηi,datai)
