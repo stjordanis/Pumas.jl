@@ -15,7 +15,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
 
     # figure out callbacks and whatnot
     tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
-    prob.callback == nothing && (cb = CallbackSet(cb, prob.callback))
+    prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
     # Remake problem of correct type
     inplace = !(u0 isa StaticArray)
