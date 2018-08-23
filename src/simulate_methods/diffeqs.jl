@@ -1,38 +1,31 @@
-function _solve(m::PKPDModel, f, subject::Subject, alg=Tsit5(), args...; kwargs...)
+function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwargs...)
     prob = m.prob
+    tspan = prob.tspan
+    col = prob.p
+    u0 = prob.u0
 
     # Promotion to handle Dual numbers
-    T = promote_type(numtype(prob.p), numtype(prob.tspan))
-    #m.prob = remake(m.prob; u0=(p,t1)->T.(prob.u0(p, t1)), tspan=T.(prob.tspan))
-    m.prob = remake(m.prob; u0=T.(prob.u0(prob.p, prob.tspan[1])), tspan=T.(prob.tspan))
+    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+    Ttspan = T.(tspan)
+    Tu0 = T.(u0)
 
-    prob, tstops = _problem!(m, subject)
+    # build a "modified" problem using DiffEqWrapper
+    fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
+    ft = DiffEqBase.parameterless_type(typeof(prob.f))
+
+    # figure out callbacks and whatnot
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
+
+    # Remake problem of correct type
+    inplace = !(u0 isa StaticArray)
+    prob = remake(prob; callback=cb, f=ft{inplace}(fd), tspan=Ttspan, u0=Tu0)
+
+    #prob, tstops = _problem!(m, subject)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
                 tstops=tstops,   # extra times that the timestepping algorithm must step to
                 kwargs...)
-end
-
-# build a "modified" problem using DiffEqWrapper
-# returns final problem and necessary stopping times for integrator
-function _problem!(m, subject::Subject)
-    prob = m.prob
-    tspan = prob.tspan
-    col = prob.p
-
-    u0 = m.prob.u0
-    fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
-
-    # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
-
-    inplace = !(u0 isa StaticArray)
-    ft = DiffEqBase.parameterless_type(typeof(prob.f))
-
-    # create problem of correct type
-    m.prob = remake(prob; callback=cb, f=ft{inplace}(fd))
-    return m.prob, tstops
 end
 
 function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters,θ,ηi,datai)

@@ -1,7 +1,8 @@
-function _solve(m::PKPDModel, f::ExplicitModel,subject::Subject, args...; kwargs...)
+function _solve_analytical(m::PKPDModel, subject::Subject, args...; kwargs...)
   col = m.prob.p
   tspan = m.prob.tspan
-  u0 = m.prob.u0(col, tspan[1])
+  u0 = m.prob.u0
+  f = m.prob.f.f
 
   T = promote_type(numtype(col), numtype(u0), numtype(tspan))
   Ttspan = T.(tspan)
