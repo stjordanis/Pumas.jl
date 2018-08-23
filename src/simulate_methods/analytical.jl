@@ -1,8 +1,12 @@
-function _solve(f::ExplicitModel,subject::Subject, col, u0, tspan,  args...; kwargs...)
+function _solve_analytical(m::PKPDModel, subject::Subject, args...; kwargs...)
+  col = m.prob.p
+  tspan = m.prob.tspan
+  u0 = m.prob.u0
+  f = m.prob.f.f
 
-    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-    Ttspan = T.(tspan)
-    Tu0    = T.(u0)
+  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+  Ttspan = T.(tspan)
+  Tu0    = T.(u0)
 
   prob = PKPDAnalyticalProblem{true}(f, Tu0, Ttspan)
   ss = prob.ss

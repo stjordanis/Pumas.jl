@@ -21,14 +21,21 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-struct PKPDModel{P,Q,R,S,T,U,V}
+mutable struct PKPDModel{P,Q,R,S,T,U,V}
     param::P
     random::Q
     collate::R
     init::S
-    ode::T
+    prob::T
     post::U
     error::V
+    function PKPDModel(param, random, collate, init, ode, post, error)
+        prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
+        new{typeof(param), typeof(random),
+            typeof(collate), typeof(init),
+            DiffEqBase.DEProblem, typeof(post),
+            typeof(error)}(param, random, collate, init, prob, post, error)
+    end
 end
 
 init_param(m::PKPDModel) = init(m.param)
@@ -53,13 +60,21 @@ Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
 function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
                     args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
-    col   = m.collate(param, rfx, subject.covariates)
+    col = m.collate(param, rfx, subject.covariates)
     u0  = m.init(col, tspan[1])
+    m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
 
-    sol = _solve(m.ode, subject, col, u0, tspan, args...;kwargs...)
+    sol = _solve(m, subject, args...;kwargs...)
     return sol, col
 end
 
+function _solve(m::PKPDModel, subject, args...;kwargs...)
+    if m.prob.f.f isa ExplicitModel
+        return _solve_analytical(m, subject, args...;kwargs...)
+    else
+        return _solve_diffeq(m, subject, args...;kwargs...)
+    end
+end
 
 """
     pkpd_simulate(m::PKPDModel, subject::Subject, param[, rfx, [args...]];

@@ -1,36 +1,30 @@
-function _solve(f, subject::Subject, col, u0, tspan, alg=Tsit5(), args...; kwargs...)
+function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwargs...)
+    prob = m.prob
+    tspan = prob.tspan
+    col = prob.p
+    u0 = prob.u0
 
     # Promotion to handle Dual numbers
     T = promote_type(numtype(col), numtype(u0), numtype(tspan))
     Ttspan = T.(tspan)
-    Tu0    = T.(u0)
+    Tu0 = T.(u0)
 
-    prob, tstops = _problem(f, subject, col, Tu0, Ttspan)
+    # build a "modified" problem using DiffEqWrapper
+    fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
+    ft = DiffEqBase.parameterless_type(typeof(prob.f))
+
+    # figure out callbacks and whatnot
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
+    prob.callback == nothing && (cb = CallbackSet(cb, prob.callback))
+
+    # Remake problem of correct type
+    inplace = !(u0 isa StaticArray)
+    prob = remake(prob; callback=cb, f=ft{inplace}(fd), tspan=Ttspan, u0=Tu0)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
                 tstops=tstops,   # extra times that the timestepping algorithm must step to
                 kwargs...)
-end
-
-# build a "modified" problem using DiffEqWrapper
-# returns final problem and necessary stopping times for integrator
-function _problem(f,
-                  subject::Subject,
-                  col,  # collated parameters
-                  u0,
-                  tspan)   # timespan
-
-    fd = DiffEqWrapper(f, 0, zero(u0))
-
-    # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],ODEProblem)
-
-    inplace = !(u0 isa StaticArray)
-
-    # create problem of correct type
-    prob = DiffEqBase.ODEProblem{inplace}(fd, u0, tspan, col, callback=cb)
-    return prob, tstops
 end
 
 function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters,θ,ηi,datai)
@@ -44,20 +38,20 @@ function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters
 end
 
 # Have separate dispatches to pass along extra pieces of the problem
-function problem_final_dispatch(prob::DiffEqBase.ODEProblem,true_f,u0,tspan,p,cb)
-  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
-end
-
-function problem_final_dispatch(prob::DiffEqBase.SDEProblem,true_f,u0,tspan,p,cb)
-  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
-end
-
-function problem_final_dispatch(prob::DiffEqBase.DDEProblem,true_f,u0,tspan,p,cb)
-  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
-                   constant_lags = prob.constant_lags,
-                   dependent_lags = prob.dependent_lags,
-                   callback=cb)
-end
+#function problem_final_dispatch(prob::DiffEqBase.ODEProblem,true_f,u0,tspan,p,cb)
+#  ODEProblem{DiffEqBase.isinplace(prob)}(true_f,u0,tspan,p,callback=cb)
+#end
+#
+#function problem_final_dispatch(prob::DiffEqBase.SDEProblem,true_f,u0,tspan,p,cb)
+#  SDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.g,u0,tspan,p,callback=cb)
+#end
+#
+#function problem_final_dispatch(prob::DiffEqBase.DDEProblem,true_f,u0,tspan,p,cb)
+#  DDEProblem{DiffEqBase.isinplace(prob)}(true_f,prob.h,u0,tspan,prob.p,
+#                   constant_lags = prob.constant_lags,
+#                   dependent_lags = prob.dependent_lags,
+#                   callback=cb)
+#end
 
 function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   events = datai.events
