@@ -15,12 +15,11 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
 
     # figure out callbacks and whatnot
     tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
+    prob.callback == nothing && (cb = CallbackSet(cb, prob.callback))
 
     # Remake problem of correct type
     inplace = !(u0 isa StaticArray)
     prob = remake(prob; callback=cb, f=ft{inplace}(fd), tspan=Ttspan, u0=Tu0)
-
-    #prob, tstops = _problem!(m, subject)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
