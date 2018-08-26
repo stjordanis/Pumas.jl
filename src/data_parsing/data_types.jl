@@ -7,7 +7,7 @@ The data corresponding to a single subject:
 
 Fields:
 - `id::Int`: numerical identifier
-- `obsverations`: a vector of `Observation`s
+- `observations`: a vector of `Observation`s
 - `covariates`: a named tuple containing the covariates, or `nothing`.
 - `events`: a vector of `Event`s.
 """
