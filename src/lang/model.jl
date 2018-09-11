@@ -140,11 +140,15 @@ end
 
 function pkpd_post(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),kwargs...)
+                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...) # TODO: handle continuity
     sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        m.post(col,sol(t),t)
+        if sol isa PKPDAnalyticalSolution
+            m.post(col,sol(t),t)
+        else
+            m.post(col,sol(t,continuity=continuity),t)
+        end
     end
 end
 

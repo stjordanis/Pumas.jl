@@ -922,9 +922,9 @@ sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:right)
 # TODO: post-dose observation causing failure
-@test_broken [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
 sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
