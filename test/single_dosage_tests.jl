@@ -86,12 +86,12 @@ subject1 = data.subjects[1]
 
 y0 = init_random(m_diffeq, x0)
 
-sol_diffeq, _   = solve(m_diffeq,subject1,x0,y0)
-sol_analytic, _ = solve(m_analytic,subject1,x0,y0)
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0)
+sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(1.0) ≈ sol_analytic(1.0) rtol=1e-4
 
-sol_diffeq, _   = solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
 
 @test sol_diffeq.alg == Rosenbrock23()
 

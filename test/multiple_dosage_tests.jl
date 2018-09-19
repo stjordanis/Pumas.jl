@@ -10,7 +10,7 @@ data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_
 m_diffeq = @model begin
 
     @data_cov ka cl v
-    
+
     @dynamics begin
         dDepot   = -ka*Depot
         dCentral =  ka*Depot - (cl/v)*Central
@@ -26,7 +26,7 @@ end
 m_analytic = @model begin
 
     @data_cov ka cl v
-    
+
     @collate begin
         Ka = ka
         CL = cl
@@ -45,8 +45,8 @@ subject1 = data.subjects[1]
 x0 = ()
 y0 = ()
 
-sol_diffeq, _   = solve(m_diffeq,subject1,x0,y0)
-sol_analytic, _ = solve(m_analytic,subject1,x0,y0)
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0)
+sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(95.99) ≈ sol_analytic(95.99) rtol=1e-4
 @test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?

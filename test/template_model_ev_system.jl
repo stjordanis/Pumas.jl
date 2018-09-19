@@ -311,10 +311,10 @@ let
   end
 end
 
-sol,col = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sol,col = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 
@@ -383,10 +383,10 @@ let
   end
 end
 
-sol,col = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sol,col = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 
@@ -859,7 +859,7 @@ sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
-sol,col = solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sol = solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test 1000*sol(ts.-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
@@ -918,7 +918,7 @@ x0 = (θ = [
               30.0  #V
              ],)
 
-sol,col = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sol = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 

@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, pkpd_solve, simobs, likelihood, pkpd_post, pkpd_postfun
+export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate, pkpd_post
 
 """
     PKPDModel
@@ -51,29 +51,33 @@ rand_random(m::PKPDModel, param) = rand(m.random(param))
 
 
 """
-    (sol, col) = pkpd_solve(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    sol = pkpd_solve(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the ODE for model `m`, with parameters `param` and random effects
 `rfx`. `alg` and `kwargs` are passed to the ODE solver.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
-function DiffEqBase.solve(m::PKPDModel, subject::Subject, param, rfx,
-                    args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+function DiffEqBase.solve(m::PKPDModel, subject::Subject,
+                          param, rfx,
+                          args...; kwargs...)
     col = m.collate(param, rfx, subject.covariates)
-    u0  = m.init(col, tspan[1])
-    m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
-
-    sol = _solve(m, subject, args...;kwargs...)
-    return sol, col
+    _solve(m,subject,col,args...;kwargs...)
 end
 
-function _solve(m::PKPDModel, subject, args...;kwargs...)
-    if m.prob.f.f isa ExplicitModel
-        return _solve_analytical(m, subject, args...;kwargs...)
-    else
-        return _solve_diffeq(m, subject, args...;kwargs...)
-    end
+"""
+This internal function is just so that the collation doesn't need to
+be repeated in the other API functions
+"""
+function _solve(m::PKPDModel, subject, col, args...;
+                tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+  u0  = m.init(col, tspan[1])
+  m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
+  if m.prob.f.f isa ExplicitModel
+      return _solve_analytical(m, subject, args...;kwargs...)
+  else
+      return _solve_diffeq(m, subject, args...;kwargs...)
+  end
 end
 
 """
@@ -87,7 +91,8 @@ Simulate random observations from model `m` for `subject` with parameters `param
 function simobs(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
                        args...; obstimes=observationtimes(subject),kwargs...)
-    sol, col = solve(m, subject, param, rfx, args...; kwargs...)
+    col = m.collate(param, rfx, subject.covariates)
+    sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         errdist = m.error(col,sol(t),t)
@@ -108,7 +113,8 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
 function likelihood(m::PKPDModel, subject::Subject, param,
                          rfx, args...; kwargs...)
    obstimes = observationtimes(subject)
-   sol, col = solve(m, subject, param, rfx, args...; kwargs...)
+   col = m.collate(param, rfx, subject.covariates)
+   sol = _solve(m, subject, col, args...; kwargs...)
    sum(subject.observations) do obs
        t = obs.time
        err = m.error(col,sol(t),t)
@@ -116,17 +122,29 @@ function likelihood(m::PKPDModel, subject::Subject, param,
    end
 end
 
+"""
+    collate(m::PKPDModel, subject::Subject, param, rfx)
+
+Returns the parameters of the differential equation for a specific subject
+subject to parameter and random effects choices. Intended for internal use
+and debugging.
+"""
+function collate(m::PKPDModel, subject::Subject, param, rfx)
+   m.collate(param, rfx, subject.covariates)
+end
+
 function pkpd_post(m::PKPDModel, subject::Subject, param,
                    rfx=rand_random(m, param),
                    args...; obstimes=observationtimes(subject),
                    continuity=:left,kwargs...) # TODO: handle continuity
-    sol, col = solve(m, subject, param, rfx, args...; kwargs...)
-    map(obstimes) do t
-        # TODO: figure out a way to iterate directly over sol(t)
-        if sol isa PKPDAnalyticalSolution
-            m.post(col,sol(t),t)
-        else
-            m.post(col,sol(t,continuity=continuity),t)
-        end
-    end
+  col = m.collate(param, rfx, subject.covariates)
+  sol = _solve(m, subject, col, args...; kwargs...)
+  map(obstimes) do t
+      # TODO: figure out a way to iterate directly over sol(t)
+      if sol isa PKPDAnalyticalSolution
+          m.post(col,sol(t),t)
+      else
+          m.post(col,sol(t,continuity=continuity),t)
+      end
+  end
 end
