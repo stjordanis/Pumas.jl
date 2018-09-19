@@ -41,8 +41,13 @@ end
 function Base.show(io::IO, data::Population)
     println(io, "Population")
     println(io, "  Subjects: ", length(data.subjects))
-    println(io, "  Covariates: ", join(fieldnames(typeof(data.subjects[1].covariates)),", "))
-    println(io, "  Observables: ", join(fieldnames(typeof(data.subjects[1].observations[1].val)),", "))
+    if isassigned(data.subjects, 1)
+        co = data.subjects[1].covariates
+        co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
+        obs = data.subjects[1].observations
+        !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
+    end
+    nothing
 end
 
 """
