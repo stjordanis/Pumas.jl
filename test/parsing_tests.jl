@@ -2,6 +2,7 @@ using PuMaS, Test
 
 data = process_data(joinpath(dirname(pathof(PuMaS)), "..","examples/event_data/ev1.csv"),
                     separator=',')
+@test_nowarn show(data)
 
 @test map(x->x.time,data[1].events) == collect(0:12.0:36.0)
 for ev in data[1].events
