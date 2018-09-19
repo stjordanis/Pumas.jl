@@ -23,8 +23,8 @@ function Base.show(io::IO, subject::Subject)
     println(io, "Subject")
     println(io, "  Events: ", length(subject.events))
     println(io, "  Observations: ", length(subject.observations))
-    println(io, "  Covariates: ", join(fieldnames(subject.covariates),", "))
-    println(io, "  Observables: ", join(fieldnames(subject.observations[1].val),", "))
+    println(io, "  Covariates: ", join(fieldnames(typeof(subject.covariates)),", "))
+    println(io, "  Observables: ", join(fieldnames(typeof(subject.observations[1].val)),", "))
 end
 
 
@@ -41,8 +41,8 @@ end
 function Base.show(io::IO, data::Population)
     println(io, "Population")
     println(io, "  Subjects: ", length(data.subjects))
-    println(io, "  Covariates: ", join(fieldnames(data.subjects[1].covariates),", "))
-    println(io, "  Observables: ", join(fieldnames(data.subjects[1].observations[1].val),", "))
+    println(io, "  Covariates: ", join(fieldnames(typeof(data.subjects[1].covariates)),", "))
+    println(io, "  Observables: ", join(fieldnames(typeof(data.subjects[1].observations[1].val)),", "))
 end
 
 """
