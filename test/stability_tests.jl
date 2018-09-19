@@ -48,11 +48,11 @@ m_analytic = @model begin
     end
 end
 
-@test_broken @inferred pkpd_solve(m_analytic,data[1],(),())
+@test_broken @inferred solve(m_analytic,data[1],(),())
 @test_broken @inferred pkpd_post(m_analytic,data[1],(),())
-@test_broken @inferred pkpd_simulate(m_analytic,data[1],(),())
+@test_broken @inferred simobs(m_analytic,data[1],(),())
 
 # inference broken in both `modify_pkpd_problem` and `solve`
-@test_broken @inferred pkpd_solve(m_diffeq,data[1],(),())
+@test_broken @inferred solve(m_diffeq,data[1],(),())
 @test_broken @inferred pkpd_post(m_analytic,data[1],(),())
-@test_broken @inferred pkpd_simulate(m_diffeq,data[1],(),()) 
+@test_broken @inferred simobs(m_diffeq,data[1],(),()) 

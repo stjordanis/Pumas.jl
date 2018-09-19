@@ -136,4 +136,4 @@ subject = PuMaS.Subject(1,
 
 x0 = PuMaS.init_param(m_neut)
 
-@test !isnan(PuMaS.pkpd_likelihood(m_neut, subject, x0, ()))
+@test !isnan(PuMaS.likelihood(m_neut, subject, x0, ()))
