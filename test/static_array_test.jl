@@ -7,16 +7,12 @@ using PuMaS, Distributions, StaticArrays, Random
 data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
 # add a small epsilon to time 0 observations
-let
-global subject
-for outer subject in data.subjects
+for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
         subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
 end
-end
-
 
 ## parameters
 mdsl = @model begin

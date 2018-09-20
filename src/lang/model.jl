@@ -101,7 +101,7 @@ _lpdf(d,x)
 
 The logpdf. Of a non-distribution it assumes the Dirac distribution.
 """
-_lpdf(d,x) = -Inf
+_lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d)
 
 """
