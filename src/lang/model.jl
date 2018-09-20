@@ -125,7 +125,17 @@ function simobs(m::PKPDModel, subject::Subject, param,
     end
 end
 
-_likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
+"""
+_likelihood(err, obs)
+
+Computes the log-likelihood between the err and obs, only using err terms that
+also have observations, and assuming the Dirac distribution for any err terms
+that are numbers.
+"""
+function _likelihood(err::T, obs::G) where {T,G}
+   syms =  fieldnames(T) ∩ fieldnames(G)
+   sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
+end
 
 """
     likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
