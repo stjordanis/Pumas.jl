@@ -51,15 +51,19 @@ rand_random(m::PKPDModel, param) = rand(m.random(param))
 
 
 """
-    sol = pkpd_solve(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    sol = pkpd_solve(m::PKPDModel, subject::Subject, param,
+                     rfx=rand_random(m, param),
+                     args...; kwargs...)
 
 Compute the ODE for model `m`, with parameters `param` and random effects
-`rfx`. `alg` and `kwargs` are passed to the ODE solver.
+`rfx`. `alg` and `kwargs` are passed to the ODE solver. If no `rfx` are
+given, then they are generated according to the distribution determined
+in the model.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
 function DiffEqBase.solve(m::PKPDModel, subject::Subject,
-                          param, rfx,
+                          param, rfx=rand_random(m, param),
                           args...; kwargs...)
     col = m.collate(param, rfx, subject.covariates)
     _solve(m,subject,col,args...;kwargs...)
@@ -81,12 +85,33 @@ function _solve(m::PKPDModel, subject, col, args...;
 end
 
 """
+sample(d)
+
+Samples a random value from a distribution or if it's a number assumes it's the
+constant distribution and passes it through.
+"""
+sample(d::Distributions.Sampleable) = rand(d)
+sample(d) = d
+
+zval(d) = 0.0
+zval(d::Distributions.Normal{T}) where {T} = zero(T)
+
+"""
+_lpdf(d,x)
+
+The logpdf. Of a non-distribution it assumes the Dirac distribution.
+"""
+_lpdf(d,x) = -Inf
+_lpdf(d::Distributions.Sampleable,x) = logpdf(d)
+
+"""
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
 Simulate random observations from model `m` for `subject` with parameters `param` at
 `obstimes` (by default, use the times of the existing observations for the subject). If no
-`rfx` is provided, then random ones are generated.
+`rfx` is provided, then random ones are generated according to the distribution
+in the model.
 """
 function simobs(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
@@ -96,22 +121,20 @@ function simobs(m::PKPDModel, subject::Subject, param,
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         errdist = m.error(col,sol(t),t)
-        map(rand, errdist)
+        map(sample, errdist)
     end
 end
 
 _likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
-zval(d) = 0.0
-zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
 """
     likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
-random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
+random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
+the post produces distributions.
 """
-function likelihood(m::PKPDModel, subject::Subject, param,
-                         rfx, args...; kwargs...)
+function likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
    obstimes = observationtimes(subject)
    col = m.collate(param, rfx, subject.covariates)
    sol = _solve(m, subject, col, args...; kwargs...)
