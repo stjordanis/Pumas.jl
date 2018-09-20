@@ -118,7 +118,11 @@ function simobs(m::PKPDModel, subject::Subject, param,
     sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(col,sol(t,continuity=continuity),t)
+        if sol isa PKPDAnalyticalSolution
+            errdist = m.error(col,sol(t),t)
+        else
+            errdist = m.error(col,sol(t,continuity=continuity),t)
+        end
         map(sample, errdist)
     end
 end
