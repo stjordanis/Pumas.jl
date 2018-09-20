@@ -58,12 +58,6 @@ m_neut = @model begin
     end
 
     @error begin
-        conc = x1 / V1
-        cHat = x2 / V1
-        neutHat = x8 + circ0
-    end
-
-    @error begin
         cHat = max(x2,0.0) / V1
         neutHat = x8 + circ0
 

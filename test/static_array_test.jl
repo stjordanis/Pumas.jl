@@ -41,10 +41,6 @@ mdsl = @model begin
 
     @error begin
         conc = Central / V
-    end
-
-    @error begin
-        conc = Central / V
         dv ~ Normal(conc, conc*Σ)
     end
 end
@@ -65,7 +61,6 @@ mstatic = PKPDModel(ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                                 p.Ka*Depot - (p.CL/p.V)*Central
                               ]
                  end,
-                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,),
                  (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V;
                                                      (dv = Normal(conc, conc*_pre.Σ),)))
 
@@ -80,17 +75,6 @@ subject = data.subjects[1]
 
 @test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12))) ≈
       (Random.seed!(1); map(x -> x.dv, simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)))
-
-@test map(x -> x.conc, simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)) ≈
-      map(x -> x.conc, simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12))
-
-@test_broken begin
-  post_dsl = simobsfun(mdsl, subject, x0, y0,abstol=1e-12,reltol=1e-12)
-  post_static = simobsfun(mstatic, subject, x0, y0,abstol=1e-12,reltol=1e-12)
-
-  @test post_dsl(1).conc ≈ post_static(1).conc
-end
-
 
 
 #
@@ -107,7 +91,6 @@ mstatic2 = PKPDModel(ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)
                                 p.Ka*Depot - (p.CL/p.V)*Central
                               ]
                  end,
-                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,),
                  (_pre,_odevars,t) -> ())
 
 
@@ -123,4 +106,3 @@ x0 = (θ = [
 y0 = (η = zeros(2),)
 
 p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
-@test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]
