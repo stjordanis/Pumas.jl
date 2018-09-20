@@ -288,13 +288,18 @@ end
 
 function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
-        #if ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
         if ex isa Expr && ex.head == :(=) && length(ex.args) == 2
             p = ex.args[1]
             p in vars && error("Variable $p already defined")
             push!(vars,p)
             push!(randvars,p)
             :($p = $(ex.args[2]))
+        elseif ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
+            p = ex.args[2]
+            p in vars && error("Variable $p already defined")
+            push!(vars,p)
+            push!(randvars,p)
+            :($p = $(ex.args[3]))
         else
             ex
         end

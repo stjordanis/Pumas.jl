@@ -113,12 +113,12 @@ in the model.
 """
 function simobs(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),kwargs...)
+                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...)
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(col,sol(t),t)
+        errdist = m.error(col,sol(t,continuity=continuity),t)
         map(sample, errdist)
     end
 end
