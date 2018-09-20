@@ -6,14 +6,11 @@ data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/da
                     [:sex,:wt,:etn],separator=',')
 
 # add a small epsilon to time 0 observations
-let
-  global subject
-  for outer subject in data.subjects
-      obs1 = subject.observations[1]
-      if obs1.time == 0
-          subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
-      end
-  end
+for subject in data.subjects
+    obs1 = subject.observations[1]
+    if obs1.time == 0
+        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+    end
 end
 
 # Definition using diffeqs
@@ -80,7 +77,6 @@ x0 = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
                  0.0 0.2]),
       σ = 0.1)
-
 
 subject1 = data.subjects[1]
 
