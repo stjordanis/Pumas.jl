@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate, pkpd_post
+export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate
 
 """
     PKPDModel
@@ -21,26 +21,24 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,U,V}
+mutable struct PKPDModel{P,Q,R,S,T,V}
     param::P
     random::Q
     collate::R
     init::S
     prob::T
-    post::U
     error::V
-    function PKPDModel(param, random, collate, init, ode, post, error)
+    function PKPDModel(param, random, collate, init, ode, error)
         prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
-            DiffEqBase.DEProblem, typeof(post),
-            typeof(error)}(param, random, collate, init, prob, post, error)
+            DiffEqBase.DEProblem,
+            typeof(error)}(param, random, collate, init, prob, error)
     end
 end
 
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
-
 
 """
     rand_random(m::PKPDModel, param)
@@ -101,8 +99,8 @@ _lpdf(d,x)
 
 The logpdf. Of a non-distribution it assumes the Dirac distribution.
 """
-_lpdf(d,x) = -Inf
-_lpdf(d::Distributions.Sampleable,x) = logpdf(d)
+_lpdf(d,x) = d == x ? 0.0 : -Inf
+_lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
@@ -115,17 +113,31 @@ in the model.
 """
 function simobs(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),kwargs...)
+                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...)
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(col,sol(t),t)
+        if sol isa PKPDAnalyticalSolution
+            errdist = m.error(col,sol(t),t)
+        else
+            errdist = m.error(col,sol(t,continuity=continuity),t)
+        end
         map(sample, errdist)
     end
 end
 
-_likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
+"""
+_likelihood(err, obs)
+
+Computes the log-likelihood between the err and obs, only using err terms that
+also have observations, and assuming the Dirac distribution for any err terms
+that are numbers.
+"""
+function _likelihood(err::T, obs) where {T}
+  syms =  fieldnames(T) ∩ fieldnames(typeof(obs.val))
+  sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
+end
 
 """
     likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
@@ -154,20 +166,4 @@ and debugging.
 """
 function collate(m::PKPDModel, subject::Subject, param, rfx)
    m.collate(param, rfx, subject.covariates)
-end
-
-function pkpd_post(m::PKPDModel, subject::Subject, param,
-                   rfx=rand_random(m, param),
-                   args...; obstimes=observationtimes(subject),
-                   continuity=:left,kwargs...) # TODO: handle continuity
-  col = m.collate(param, rfx, subject.covariates)
-  sol = _solve(m, subject, col, args...; kwargs...)
-  map(obstimes) do t
-      # TODO: figure out a way to iterate directly over sol(t)
-      if sol isa PKPDAnalyticalSolution
-          m.post(col,sol(t),t)
-      else
-          m.post(col,sol(t,continuity=continuity),t)
-      end
-  end
 end

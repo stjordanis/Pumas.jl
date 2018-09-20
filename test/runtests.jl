@@ -32,8 +32,6 @@ using Test
      include("sdes.jl") end
 @time @testset "Mixed ODE and Discrete Tests" begin
      include("mixed_ode_discrete.jl") end
-@time @testset "Sensitivity Tests" begin
-     include("sensitivity_tests.jl") end
 =#
 
 end

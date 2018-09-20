@@ -56,7 +56,7 @@ m23 = @model begin
     @init begin
         Resp = θ[6]/θ[7]
     end
-    
+
     @dynamics begin
         # TODO: allow intermediate expressions in macro
         dEv1    = -Ka1*Ev1
@@ -65,7 +65,7 @@ m23 = @model begin
         dResp   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
     end
 
-    @post begin
+    @error begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]
@@ -91,7 +91,7 @@ x0 = (θ = [
               2  # Km   Michaelis constant (mass/volume)
               ],)
 y0 = (η = zeros(11),)
-sim = pkpd_post(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
+sim = simobs(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
@@ -157,7 +157,7 @@ m24 = @model begin
     @init begin
         Resp = θ[6]/θ[7]
     end
-    
+
     @dynamics begin
         # TODO: allow intermediate expressions in macro
         dEv1    = -Ka1*Ev1
@@ -166,7 +166,7 @@ m24 = @model begin
         dResp   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
     end
 
-    @post begin
+    @error begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]
@@ -177,7 +177,7 @@ m24 = @model begin
 end
 
 
-sim = pkpd_post(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12)
+sim = simobs(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))

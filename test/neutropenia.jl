@@ -57,12 +57,6 @@ m_neut = @model begin
         dx8 = ktr * (x7 - x8)
     end
 
-    @post begin
-        conc = x1 / V1
-        cHat = x2 / V1
-        neutHat = x8 + circ0
-    end
-
     @error begin
         cHat = max(x2,0.0) / V1
         neutHat = x8 + circ0
