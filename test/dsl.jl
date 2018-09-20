@@ -62,7 +62,6 @@ end
                      dDepot   = -Ka*Depot
                      dCentral =  Ka*Depot - (CL/V)*Central
                  end, Σ, Ka, CL, V),
-                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,), # post
                  (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
                                        (dv = Normal(conc, conc*_pre.Σ),))))
 

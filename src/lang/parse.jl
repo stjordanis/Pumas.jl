@@ -321,7 +321,6 @@ macro model(expr)
     data_cov = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
     collateexpr = :()
-    post  = OrderedDict{Symbol, Any}()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     errorvars  = OrderedSet{Symbol}()
@@ -347,8 +346,6 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@dynamics")
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
             odeexpr = ex.args[3]
-        elseif ex.args[1] == Symbol("@post")
-            extract_defs!(vars,post, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@error")
             errorexpr = extract_randvars!(vars, errorvars, ex.args[3])
         else
@@ -366,7 +363,6 @@ macro model(expr)
             $(collate_obj(collateexpr,prevars,params,randoms,data_cov)),
             $(init_obj(ode_init,odevars,prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars)),
-            $(post_obj(post,prevars, odevars)),
             $(error_obj(errorexpr, errorvars,prevars, odevars)))
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
@@ -374,7 +370,6 @@ macro model(expr)
             println(io,"  Random effects: ",$(join(keys(randoms),", ")))
             println(io,"  Covariates: ",$(join(data_cov,", ")))
             println(io,"  Dynamical variables: ",$(join(odevars,", ")))
-            println(io,"  Post variables: ",$(join(keys(post),", ")))
             println(io,"  Observable: ",$(join(errorvars,", ")))
         end
         x

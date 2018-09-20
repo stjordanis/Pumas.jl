@@ -21,20 +21,19 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,U,V}
+mutable struct PKPDModel{P,Q,R,S,T,V}
     param::P
     random::Q
     collate::R
     init::S
     prob::T
-    post::U
     error::V
-    function PKPDModel(param, random, collate, init, ode, post, error)
+    function PKPDModel(param, random, collate, init, ode, error)
         prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
-            DiffEqBase.DEProblem, typeof(post),
-            typeof(error)}(param, random, collate, init, prob, post, error)
+            DiffEqBase.DEProblem,
+            typeof(error)}(param, random, collate, init, prob, error)
     end
 end
 
