@@ -91,7 +91,7 @@ x0 = (θ = [
               2  # Km   Michaelis constant (mass/volume)
               ],)
 y0 = (η = zeros(11),)
-sim = pkpd_post(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
+sim = simobs(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
@@ -177,7 +177,7 @@ m24 = @model begin
 end
 
 
-sim = pkpd_post(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12)
+sim = simobs(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
