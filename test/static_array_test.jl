@@ -106,3 +106,4 @@ x0 = (θ = [
 y0 = (η = zeros(2),)
 
 p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+@test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]
