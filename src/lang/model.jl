@@ -41,7 +41,6 @@ end
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
 
-
 """
     rand_random(m::PKPDModel, param)
 
@@ -102,7 +101,7 @@ _lpdf(d,x)
 The logpdf. Of a non-distribution it assumes the Dirac distribution.
 """
 _lpdf(d,x) = d == x ? 0.0 : -Inf
-_lpdf(d::Distributions.Sampleable,x) = logpdf(d)
+_lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
@@ -120,7 +119,7 @@ function simobs(m::PKPDModel, subject::Subject, param,
     sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.post(col,sol(t),t)
+        errdist = m.error(col,sol(t),t)
         map(sample, errdist)
     end
 end

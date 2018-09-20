@@ -39,7 +39,7 @@ mdsl = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @post begin
+    @error begin
         conc = Central / V
     end
 

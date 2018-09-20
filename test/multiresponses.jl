@@ -56,7 +56,7 @@ m23 = @model begin
     @init begin
         Resp = θ[6]/θ[7]
     end
-    
+
     @dynamics begin
         # TODO: allow intermediate expressions in macro
         dEv1    = -Ka1*Ev1
@@ -65,7 +65,7 @@ m23 = @model begin
         dResp   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
     end
 
-    @post begin
+    @error begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]
@@ -157,7 +157,7 @@ m24 = @model begin
     @init begin
         Resp = θ[6]/θ[7]
     end
-    
+
     @dynamics begin
         # TODO: allow intermediate expressions in macro
         dEv1    = -Ka1*Ev1
@@ -166,7 +166,7 @@ m24 = @model begin
         dResp   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
     end
 
-    @post begin
+    @error begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]

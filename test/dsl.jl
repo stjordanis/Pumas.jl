@@ -41,10 +41,6 @@ mdsl = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @post begin
-        conc = Central / V
-    end
-
     @error begin
         conc = Central / V
         dv ~ Normal(conc, conc*Σ)
@@ -74,6 +70,7 @@ x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
 
 subject = data.subjects[1]
+
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
 @test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0))) ≈
