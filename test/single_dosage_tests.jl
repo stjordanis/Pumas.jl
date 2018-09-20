@@ -41,9 +41,9 @@ m_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
+    @post begin
         conc = Central / V
-        dv ~ Normal(conc, conc*σ)
+        dv = Normal(conc, conc*σ)
     end
 end
 
@@ -69,9 +69,9 @@ m_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
+    @post begin
         conc = Central / V
-        dv ~ Normal(conc, conc*σ)
+        dv = Normal(conc, conc*σ)
     end
 end
 

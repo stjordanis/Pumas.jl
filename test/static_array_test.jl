@@ -85,12 +85,12 @@ subject = data.subjects[1]
 @test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12))) ≈
       (Random.seed!(1); map(x -> x.dv, simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)))
 
-@test map(x -> x.conc, pkpd_post(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)) ≈
-      map(x -> x.conc, pkpd_post(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12))
+@test map(x -> x.conc, simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)) ≈
+      map(x -> x.conc, simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12))
 
 @test_broken begin
-  post_dsl = pkpd_postfun(mdsl, subject, x0, y0,abstol=1e-12,reltol=1e-12)
-  post_static = pkpd_postfun(mstatic, subject, x0, y0,abstol=1e-12,reltol=1e-12)
+  post_dsl = simobsfun(mdsl, subject, x0, y0,abstol=1e-12,reltol=1e-12)
+  post_static = simobsfun(mstatic, subject, x0, y0,abstol=1e-12,reltol=1e-12)
 
   @test post_dsl(1).conc ≈ post_static(1).conc
 end
@@ -126,5 +126,5 @@ x0 = (θ = [
          Ω = Matrix{Float64}(I, 2, 2))
 y0 = (η = zeros(2),)
 
-p = pkpd_post(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 @test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]

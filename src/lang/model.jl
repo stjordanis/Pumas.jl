@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate, pkpd_post
+export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate
 
 """
     PKPDModel
@@ -120,7 +120,7 @@ function simobs(m::PKPDModel, subject::Subject, param,
     sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(col,sol(t),t)
+        errdist = m.post(col,sol(t),t)
         map(sample, errdist)
     end
 end
@@ -154,20 +154,4 @@ and debugging.
 """
 function collate(m::PKPDModel, subject::Subject, param, rfx)
    m.collate(param, rfx, subject.covariates)
-end
-
-function pkpd_post(m::PKPDModel, subject::Subject, param,
-                   rfx=rand_random(m, param),
-                   args...; obstimes=observationtimes(subject),
-                   continuity=:left,kwargs...) # TODO: handle continuity
-  col = m.collate(param, rfx, subject.covariates)
-  sol = _solve(m, subject, col, args...; kwargs...)
-  map(obstimes) do t
-      # TODO: figure out a way to iterate directly over sol(t)
-      if sol isa PKPDAnalyticalSolution
-          m.post(col,sol(t),t)
-      else
-          m.post(col,sol(t,continuity=continuity),t)
-      end
-  end
 end
