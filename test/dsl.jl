@@ -81,7 +81,11 @@ function post_f(col,u,t)
     (dv = Normal(conc, conc*col.Σ),)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f)
+function derived_f(col,sol,obstimes,obs)
+    (obs_cmax = maximum((o.dv for o in obs)),)
+end
+
+mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -92,6 +96,8 @@ sol1 = solve(mdsl,subject,x0,y0)
 sol2 = solve(mobj,subject,x0,y0)
 
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
+
+@test simobs(mobj,subject,x0,y0).derived.obs_cmax > 0
 
 @test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0))) ≈
       (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0)))

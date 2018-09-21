@@ -355,6 +355,8 @@ macro model(expr)
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
             postexpr = extract_randvars!(vars, postvars, ex.args[3])
+        elseif ex.args[1] == Symbol("@derived")
+            error("@derived not implemented yet")
         else
             error("Invalid macro $(ex.args[1])")
         end
@@ -370,7 +372,8 @@ macro model(expr)
             $(collate_obj(collateexpr,prevars,params,randoms,covariates)),
             $(init_obj(ode_init,odevars,prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars)),
-            $(post_obj(postexpr, postvars,prevars, odevars)))
+            $(post_obj(postexpr, postvars,prevars, odevars)),
+            (col,sol,obstimes,obs) -> nothing)
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
@@ -378,6 +381,7 @@ macro model(expr)
             println(io,"  Covariates: ",$(join(covariates,", ")))
             println(io,"  Dynamical variables: ",$(join(odevars,", ")))
             println(io,"  Observable: ",$(join(postvars,", ")))
+            println(io,"  Derived: ")
         end
         x
     end

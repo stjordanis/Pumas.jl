@@ -19,19 +19,21 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,V}
+mutable struct PKPDModel{P,Q,R,S,T,V,W}
     param::P
     random::Q
     collate::R
     init::S
     prob::T
     post::V
-    function PKPDModel(param, random, collate, init, ode, post)
+    derived::W
+    function PKPDModel(param, random, collate, init, ode, post, derived)
         prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
             DiffEqBase.DEProblem,
-            typeof(post)}(param, random, collate, init, prob, post)
+            typeof(post), typeof(derived)}(
+            param, random, collate, init, prob, post, derived)
     end
 end
 
@@ -128,6 +130,10 @@ function postfun(m::PKPDModel, subject::Subject,
                   args...; continuity=:left,kwargs...)
   col = m.collate(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
+  postfun(m,col,sol)
+end
+
+function postfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
       post = t-> m.post(col,sol(t),t)
   else
@@ -170,12 +176,19 @@ Simulate random observations from model `m` for `subject` with parameters `param
 `rfx` is provided, then random ones are generated according to the distribution
 in the model.
 """
-function simobs(m::PKPDModel, subject::Subject, args...;
+function simobs(m::PKPDModel, subject::Subject,
+                param = init_param(m),
+                rfx=rand_random(m, param),
+                args...;
                 obstimes=observationtimes(subject),kwargs...)
-    post = postfun(m,subject,args...;kwargs...)
-    SimulatedObservations(obstimes,map(obstimes) do t
+    col = m.collate(param, rfx, subject.covariates)
+    sol = _solve(m, subject, col, args...; kwargs...)
+    post = postfun(m,col,sol)
+    obs = map(obstimes) do t
         map(sample, post(t))
-    end,nothing)
+    end
+    derived = m.derived(col,sol,obstimes,obs)
+    SimulatedObservations(obstimes,obs,derived)
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;
