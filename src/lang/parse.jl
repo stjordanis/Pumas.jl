@@ -332,6 +332,7 @@ macro model(expr)
     odevars  = OrderedSet{Symbol}()
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
+    collateexpr = :()
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
 
     MacroTools.prewalk(expr) do ex
