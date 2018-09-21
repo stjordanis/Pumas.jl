@@ -47,28 +47,48 @@ mdsl = @model begin
     end
 end
 
-@isdefined(mobj) || (mobj = PKPDModel(ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
-                              Ω = PSDDomain(2),
-                              Σ = RealDomain(lower=0.0, init=1.0),
-                              a = ConstDomain(0.2))),
-                 (_param) -> RandomEffectSet((η = MvNormal(_param.Ω),)), # random effects
-                 (_param, _random, _covariates) -> (Σ  = _param.Σ,
-                                                     Ka = _param.θ[1],  # collate
-                                                     CL = _param.θ[2] * ((_covariates.wt/70)^0.75) *
-                                                          (_param.θ[4]^_covariates.sex) * exp(_random.η[1]),
-                                                     V  = _param.θ[3] * exp(_random.η[2])),
-                 (_pre,t0) -> [0.0,0.0], # init
-                 ParameterizedFunctions.@ode_def(OneCompartment,begin # dynamics
-                     dDepot   = -Ka*Depot
-                     dCentral =  Ka*Depot - (CL/V)*Central
-                 end, Σ, Ka, CL, V),
-                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V; # error
-                                       (dv = Normal(conc, conc*_pre.Σ),))))
+### Function-Based Interface
+
+p = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
+              Ω = PSDDomain(2),
+              Σ = RealDomain(lower=0.0, init=1.0),
+              a = ConstDomain(0.2)))
+
+function rfx_f(p)
+    RandomEffectSet((η=MvNormal(p.Ω),))
+end
+
+function col_f(p,rfx,cov)
+    (Σ  = p.Σ,
+    Ka = p.θ[1],  # collate
+    CL = p.θ[2] * ((cov.wt/70)^0.75) *
+         (p.θ[4]^cov.sex) * exp(rfx.η[1]),
+    V  = p.θ[3] * exp(rfx.η[2]))
+end
+
+function init_f(col,t0)
+    [0.0,0.0]
+end
+
+function onecompartment_f(du,u,p,t)
+    du[1] = -p.Ka*u[1]
+    du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
+end
+
+function post_f(col,u,t)
+    conc = u[2] / col.V
+    (dv = Normal(conc, conc*col.Σ),)
+end
+
+mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
 
 subject = data.subjects[1]
+
+sol1 = solve(mdsl,subject,x0,y0)
+sol2 = solve(mobj,subject,x0,y0)
 
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
