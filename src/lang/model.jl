@@ -136,6 +136,31 @@ function postfun(m::PKPDModel, subject::Subject,
   post
 end
 
+struct SimulatedObservations{T,T2} <: AbstractVector{T}
+    times::Vector{Float64}
+    obs::Vector{T}
+    derived::T2
+end
+
+Base.iterate(A::SimulatedObservations)    = iterate(A.obs)
+Base.iterate(A::SimulatedObservations, i) = iterate(A.obs, i)
+
+# size
+Base.length(A::SimulatedObservations) = length(A.obs)
+Base.size(A::SimulatedObservations) = size(A.obs)
+
+# indexing
+@inline function Base.getindex(A::SimulatedObservations, I...)
+    @boundscheck checkbounds(A.obs, I...)
+    @inbounds return A.obs[I...]
+end
+@inline function Base.setindex!(A::SimulatedObservations, x, I...)
+    @boundscheck checkbounds(A.obs, I...)
+    @inbounds A.obs[I...] = x
+end
+Base.axes(A::SimulatedObservations) = axes(A.obs)
+Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexLinear()
+
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
@@ -148,9 +173,9 @@ in the model.
 function simobs(m::PKPDModel, subject::Subject, args...;
                 obstimes=observationtimes(subject),kwargs...)
     post = postfun(m,subject,args...;kwargs...)
-    map(obstimes) do t
+    SimulatedObservations(obstimes,map(obstimes) do t
         map(sample, post(t))
-    end
+    end,nothing)
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;

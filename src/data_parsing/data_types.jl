@@ -34,8 +34,8 @@ end
 
 A set of `Subject`s.
 """
-struct Population{T}# <: AbstractVector{T}
-  subjects::T
+struct Population{T} <: AbstractVector{T}
+  subjects::Vector{T}
 end
 
 function Base.show(io::IO, data::Population)
