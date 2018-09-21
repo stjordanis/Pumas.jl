@@ -131,24 +131,23 @@ function extract_collate!(vars, collatevars, exprs...)
     #  a block
     #  an assignment
     #    a = 1
+    newexpr = Expr(:block)
     for expr in exprs
-        expr isa LineNumberNode && continue
-        @assert expr isa Expr
-        expr = MacroTools.striplines(expr)
-        if expr.head == :block
-            for ex in expr.args
-                islinenum(ex) && continue
-                extract_collate!(vars, collatevars, ex)
+        MacroTools.prewalk(expr) do ex
+            if ex isa Expr && ((iseq = ex.head == :(=)) || ex.head == :(:=)) && length(ex.args) == 2
+                p = ex.args[1]
+                p in vars && error("Variable $p already defined")
+                if iseq
+                    push!(vars, p)
+                    push!(collatevars, p)
+                end
+                push!(newexpr.args, :($p = $(ex.args[2])))
+            else
+                ex
             end
-        elseif expr.head == :(=)
-            p = expr.args[1]
-            p in vars && error("Variable $p already defined")
-            push!(vars,p)
-            push!(collatevars, p)
-        else
-            error("Invalid @collate expression: $expr")
         end
     end
+    newexpr
 end
 
 function collate_obj(collateexpr, prevars, params, randoms, covariates)
@@ -329,7 +328,6 @@ macro model(expr)
     randoms = OrderedDict{Symbol, Any}()
     covariates = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
-    collateexpr = :()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     postvars  = OrderedSet{Symbol}()
@@ -348,8 +346,7 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@covariates")
             extract_syms!(vars, covariates, ex.args[3:end])
         elseif ex.args[1] == Symbol("@collate")
-            collateexpr = ex.args[3]
-            extract_collate!(vars,collatevars,collateexpr)
+            collateexpr = extract_collate!(vars,collatevars,ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@init")
             extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")

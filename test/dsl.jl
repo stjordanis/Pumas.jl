@@ -31,7 +31,8 @@ mdsl = @model begin
     @covariates sex wt etn
 
     @collate begin
-        Ka = θ[1]
+        θ1 := θ[1]
+        Ka = θ1
         CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
         V  = θ[3] * exp(η[2])
     end
