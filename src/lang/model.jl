@@ -130,7 +130,7 @@ function postfun(m::PKPDModel, subject::Subject,
                   args...; continuity=:left,kwargs...)
   col = m.collate(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
-  postfun(m,col,sol)
+  postfun(m,col,sol;continuity=continuity)
 end
 
 function postfun(m::PKPDModel, col, sol; continuity=:left)
@@ -180,10 +180,11 @@ function simobs(m::PKPDModel, subject::Subject,
                 param = init_param(m),
                 rfx=rand_random(m, param),
                 args...;
+                continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; kwargs...)
-    post = postfun(m,col,sol)
+    post = postfun(m,col,sol;continuity=continuity)
     obs = map(obstimes) do t
         map(sample, post(t))
     end

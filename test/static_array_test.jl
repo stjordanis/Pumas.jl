@@ -75,7 +75,9 @@ function post_f(col,u,t)
     (dv = Normal(conc, conc*col.Σ),)
 end
 
-mstatic = PKPDModel(p,rfx_f,col_f,init_f,static_onecompartment_f,post_f)
+derived_f(col,sol,obstimes,obs) = nothing
+
+mstatic = PKPDModel(p,rfx_f,col_f,init_f,static_onecompartment_f,post_f,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -101,7 +103,7 @@ function post_f(col,u,t)
     (conc = u[2] / col.V,)
 end
 
-mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,post_f)
+mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,post_f,derived_f)
 
 subject = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])
 
