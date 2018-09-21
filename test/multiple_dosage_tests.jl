@@ -17,7 +17,7 @@ m_diffeq = @model begin
     end
 
     # we approximate the error by computing the loglikelihood
-    @error begin
+    @post begin
         conc = Central / v
         dv ~ Normal(conc, 1e-100)
     end
@@ -35,7 +35,7 @@ m_analytic = @model begin
     @dynamics OneCompartmentModel
 
     # we approximate the error by computing the loglikelihood
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, 1e-100)
     end

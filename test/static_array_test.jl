@@ -39,7 +39,7 @@ mdsl = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, conc*Σ)
     end
@@ -91,7 +91,7 @@ mstatic2 = PKPDModel(ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)
                                 p.Ka*Depot - (p.CL/p.V)*Central
                               ]
                  end,
-                 (_pre,_odevars,t) -> ())
+                 (_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,))
 
 
 

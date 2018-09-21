@@ -22,7 +22,7 @@ m_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, 1e-100)
     end

@@ -24,8 +24,6 @@ include("simulate_methods/analytical.jl")
 
 
 export Subject, Population, process_data, build_dataset
-
-export simulate, ith_subject_cb
-export PKPDModel, FullModel, ErrorModel, Independent
+export PKPDModel
 
 end # module

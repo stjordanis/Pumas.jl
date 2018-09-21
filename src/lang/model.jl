@@ -9,7 +9,7 @@ A model takes the following arguments
 - `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
 - `collate`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `error`: the error model mapping (param, rfx, data, ode vals) -> sampling dist
+- `post`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -27,13 +27,13 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
     collate::R
     init::S
     prob::T
-    error::V
-    function PKPDModel(param, random, collate, init, ode, error)
+    post::V
+    function PKPDModel(param, random, collate, init, ode, post)
         prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
             DiffEqBase.DEProblem,
-            typeof(error)}(param, random, collate, init, prob, error)
+            typeof(post)}(param, random, collate, init, prob, post)
     end
 end
 
@@ -119,9 +119,9 @@ function simobs(m::PKPDModel, subject::Subject, param,
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         if sol isa PKPDAnalyticalSolution
-            errdist = m.error(col,sol(t),t)
+            errdist = m.post(col,sol(t),t)
         else
-            errdist = m.error(col,sol(t,continuity=continuity),t)
+            errdist = m.post(col,sol(t,continuity=continuity),t)
         end
         map(sample, errdist)
     end
@@ -152,7 +152,7 @@ function likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs.
    sol = _solve(m, subject, col, args...; kwargs...)
    sum(subject.observations) do obs
        t = obs.time
-       err = m.error(col,sol(t),t)
+       err = m.post(col,sol(t),t)
        _likelihood(err, obs)
    end
 end
