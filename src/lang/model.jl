@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, pkpd_solve, pkpd_simulate, pkpd_likelihood, pkpd_post, pkpd_postfun
+export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate
 
 """
     PKPDModel
@@ -9,7 +9,7 @@ A model takes the following arguments
 - `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
 - `collate`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `error`: the error model mapping (param, rfx, data, ode vals) -> sampling dist
+- `post`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -21,26 +21,24 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,U,V}
+mutable struct PKPDModel{P,Q,R,S,T,V}
     param::P
     random::Q
     collate::R
     init::S
     prob::T
-    post::U
-    error::V
-    function PKPDModel(param, random, collate, init, ode, post, error)
+    post::V
+    function PKPDModel(param, random, collate, init, ode, post)
         prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
-            DiffEqBase.DEProblem, typeof(post),
-            typeof(error)}(param, random, collate, init, prob, post, error)
+            DiffEqBase.DEProblem,
+            typeof(post)}(param, random, collate, init, prob, post)
     end
 end
 
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
-
 
 """
     rand_random(m::PKPDModel, param)
@@ -51,113 +49,121 @@ rand_random(m::PKPDModel, param) = rand(m.random(param))
 
 
 """
-    (sol, col) = pkpd_solve(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    sol = pkpd_solve(m::PKPDModel, subject::Subject, param,
+                     rfx=rand_random(m, param),
+                     args...; kwargs...)
 
 Compute the ODE for model `m`, with parameters `param` and random effects
-`rfx`. `alg` and `kwargs` are passed to the ODE solver.
+`rfx`. `alg` and `kwargs` are passed to the ODE solver. If no `rfx` are
+given, then they are generated according to the distribution determined
+in the model.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
-function pkpd_solve(m::PKPDModel, subject::Subject, param, rfx,
-                    args...; tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+function DiffEqBase.solve(m::PKPDModel, subject::Subject,
+                          param, rfx=rand_random(m, param),
+                          args...; kwargs...)
     col = m.collate(param, rfx, subject.covariates)
-    u0  = m.init(col, tspan[1])
-    m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
-
-    sol = _solve(m, subject, args...;kwargs...)
-    return sol, col
-end
-
-function _solve(m::PKPDModel, subject, args...;kwargs...)
-    if m.prob.f.f isa ExplicitModel
-        return _solve_analytical(m, subject, args...;kwargs...)
-    else
-        return _solve_diffeq(m, subject, args...;kwargs...)
-    end
+    _solve(m,subject,col,args...;kwargs...)
 end
 
 """
-    pkpd_simulate(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
+This internal function is just so that the collation doesn't need to
+be repeated in the other API functions
+"""
+function _solve(m::PKPDModel, subject, col, args...;
+                tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+  u0  = m.init(col, tspan[1])
+  m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
+  if m.prob.f.f isa ExplicitModel
+      return _solve_analytical(m, subject, args...;kwargs...)
+  else
+      return _solve_diffeq(m, subject, args...;kwargs...)
+  end
+end
+
+"""
+sample(d)
+
+Samples a random value from a distribution or if it's a number assumes it's the
+constant distribution and passes it through.
+"""
+sample(d::Distributions.Sampleable) = rand(d)
+sample(d) = d
+
+zval(d) = 0.0
+zval(d::Distributions.Normal{T}) where {T} = zero(T)
+
+"""
+_lpdf(d,x)
+
+The logpdf. Of a non-distribution it assumes the Dirac distribution.
+"""
+_lpdf(d,x) = d == x ? 0.0 : -Inf
+_lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
+
+"""
+    simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
 Simulate random observations from model `m` for `subject` with parameters `param` at
 `obstimes` (by default, use the times of the existing observations for the subject). If no
-`rfx` is provided, then random ones are generated.
+`rfx` is provided, then random ones are generated according to the distribution
+in the model.
 """
-function pkpd_simulate(m::PKPDModel, subject::Subject, param,
+function simobs(m::PKPDModel, subject::Subject, param,
                        rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),kwargs...)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
-    map(obstimes) do t
-        # TODO: figure out a way to iterate directly over sol(t)
-        errdist = m.error(col,sol(t),t)
-        map(rand, errdist)
-    end
-end
-
-
-function pkpd_map(f, m::PKPDModel, subject::Subject, param, rfx,
-                         args...; kwargs...)
-    obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
-    sum(subject.observations) do obs
-        t = obs.time
-        err = m.error(col,sol(t),t)
-        f(err, obs)
-    end
-end
-
-
-function pkpd_sum(f, m::PKPDModel, subject::Subject, param, rfx,
-                         args...; kwargs...)
-    obstimes = observationtimes(subject)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
-    sum(subject.observations) do obs
-        t = obs.time
-        err = m.error(col,sol(t),t)
-        f(err, obs)
-    end
-end
-
-likelihood(err, obs) = sum(map((d,x) -> isnan(x) ? zval(d) : logpdf(d,x), err, obs.val))
-zval(d) = 0.0
-zval(d::Distributions.Normal{T}) where {T} = zero(T)
-
-
-"""
-    pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
-
-Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
-random effects `rfx`. `args` and `kwargs` are passed to ODE solver.
-"""
-function pkpd_likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
-    pkpd_sum(likelihood, m, subject, param, rfx, args...; kwargs...)
-end
-
-
-
-
-
-function pkpd_post(m::PKPDModel, subject::Subject, param,
-                       rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...) # TODO: handle continuity
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
+                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...)
+    col = m.collate(param, rfx, subject.covariates)
+    sol = _solve(m, subject, col, args...; kwargs...)
     map(obstimes) do t
         # TODO: figure out a way to iterate directly over sol(t)
         if sol isa PKPDAnalyticalSolution
-            m.post(col,sol(t),t)
+            errdist = m.post(col,sol(t),t)
         else
-            m.post(col,sol(t,continuity=continuity),t)
+            errdist = m.post(col,sol(t,continuity=continuity),t)
         end
+        map(sample, errdist)
     end
 end
 
-function pkpd_postfun(m::PKPDModel, subject::Subject, param,
-                       rfx=rand_random(m, param),
-                       args...; kwargs...)
-    sol, col = pkpd_solve(m, subject, param, rfx, args...; kwargs...)
-    function post(t)
-        m.post(col,sol(t),t)
-    end
-    return post
+"""
+_likelihood(err, obs)
+
+Computes the log-likelihood between the err and obs, only using err terms that
+also have observations, and assuming the Dirac distribution for any err terms
+that are numbers.
+"""
+function _likelihood(err::T, obs) where {T}
+  syms =  fieldnames(T) ∩ fieldnames(typeof(obs.val))
+  sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
+end
+
+"""
+    likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+
+Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
+random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
+the post produces distributions.
+"""
+function likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+   obstimes = observationtimes(subject)
+   col = m.collate(param, rfx, subject.covariates)
+   sol = _solve(m, subject, col, args...; kwargs...)
+   sum(subject.observations) do obs
+       t = obs.time
+       err = m.post(col,sol(t),t)
+       _likelihood(err, obs)
+   end
+end
+
+"""
+    collate(m::PKPDModel, subject::Subject, param, rfx)
+
+Returns the parameters of the differential equation for a specific subject
+subject to parameter and random effects choices. Intended for internal use
+and debugging.
+"""
+function collate(m::PKPDModel, subject::Subject, param, rfx)
+   m.collate(param, rfx, subject.covariates)
 end

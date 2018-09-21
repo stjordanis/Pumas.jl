@@ -64,10 +64,10 @@ x0 = (θ = [1.5,  #Ka
               ],)
 y0 = (η = [0.0,0.0],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 ###############################
@@ -137,10 +137,10 @@ x0 = (θ = [1.5,  #Ka
               5.0   #lags
               ],)
 
-sim = pkpd_post(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_post(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 
@@ -217,10 +217,10 @@ x0 = (θ = [1.5,  #Ka
               0.412,#bioav
               ],)
 
-sim = pkpd_post(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
-sim = pkpd_post(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
 
 
@@ -311,17 +311,17 @@ let
   end
 end
 
-sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # TODO: why is the first value wrong?
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
@@ -383,17 +383,17 @@ let
   end
 end
 
-sol,col = pkpd_solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sol,col = pkpd_solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -436,10 +436,10 @@ x0 = (θ = [ 1.5,  #Ka
             1,    #BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -484,10 +484,10 @@ x0 = (θ = [ 1.5,  #Ka
             1,    #BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -532,11 +532,11 @@ x0 = (θ = [ 1.5,  #Ka
             0.412,#BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: why is the first value wrong?
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -577,10 +577,10 @@ x0 = (θ = [ 1.5,  #Ka
             1,    #BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -622,10 +622,10 @@ x0 = (θ = [ 1.5,  #Ka
             1.0, #BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
@@ -662,10 +662,10 @@ x0 = (θ = [ 1.5,  #Ka
             30.0, #V
             ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -699,10 +699,10 @@ x0 = (θ = [ 1.5,  #Ka
             1.0, #BIOAV
             ],)
 
-sim = pkpd_post(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -785,10 +785,10 @@ x0 = (θ = [
           9.0  #duration
           ],)
 
-sim = pkpd_post(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -814,13 +814,13 @@ x0 = (θ = [
            30.0 #V
            ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim[1:19]] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
 # TODO: this is mixing pre and post dose observations, making some obs fail
 @test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 # Also, for some reason this is unscaled?
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
@@ -855,15 +855,16 @@ x0 = (θ = [
               30.0 #V
               ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
-sol,col = pkpd_solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+col = collate(m_analytic, subject, x0, y0)
+sol = solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test 1000*sol(ts.-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at dose times?
 # Uses pre-dose observations
 @test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -891,11 +892,11 @@ x0 = (θ = [
               30.0 #V
               ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -918,15 +919,16 @@ x0 = (θ = [
               30.0  #V
              ],)
 
-sol,col = pkpd_solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+col = collate(m_diffeq, subject, x0, y0)
+sol = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:right)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:right)
 # TODO: post-dose observation causing failure
 @test [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -1001,10 +1003,10 @@ x0 = (θ = [
              ],)
 
 
-sim = pkpd_post(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -1074,10 +1076,10 @@ x0 = (θ = [
               ],)
 
 
-sim = pkpd_post(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
@@ -1105,10 +1107,10 @@ x0 = (θ = [
               30.0  #V
               ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose mixup at 13th observation?
 inds = [1:12...,14:25...]
 @test [1000*v.cp for v in sim][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6
@@ -1139,10 +1141,10 @@ x0 = (θ = [
               30.0  #V
               ],)
 
-sim = pkpd_post(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-sim = pkpd_post(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose mixup at 1st & 13th observation?
 inds = [2:12...,14:25...]
 @test [1000*v.cp for v in sim][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6

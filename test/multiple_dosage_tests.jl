@@ -10,14 +10,14 @@ data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_
 m_diffeq = @model begin
 
     @data_cov ka cl v
-    
+
     @dynamics begin
         dDepot   = -ka*Depot
         dCentral =  ka*Depot - (cl/v)*Central
     end
 
     # we approximate the error by computing the loglikelihood
-    @error begin
+    @post begin
         conc = Central / v
         dv ~ Normal(conc, 1e-100)
     end
@@ -26,7 +26,7 @@ end
 m_analytic = @model begin
 
     @data_cov ka cl v
-    
+
     @collate begin
         Ka = ka
         CL = cl
@@ -35,7 +35,7 @@ m_analytic = @model begin
     @dynamics OneCompartmentModel
 
     # we approximate the error by computing the loglikelihood
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, 1e-100)
     end
@@ -45,20 +45,20 @@ subject1 = data.subjects[1]
 x0 = ()
 y0 = ()
 
-sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0)
-sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0)
+sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(95.99) ≈ sol_analytic(95.99) rtol=1e-4
 @test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?
 
 sim_diffeq = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_diffeq,subject1,x0,y0)
+    s = simobs(m_diffeq,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_analytic,subject1,x0,y0)
+    s = simobs(m_analytic,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-3

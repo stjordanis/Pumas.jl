@@ -288,7 +288,13 @@ end
 
 function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
-        if ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
+        if ex isa Expr && ex.head == :(=) && length(ex.args) == 2
+            p = ex.args[1]
+            p in vars && error("Variable $p already defined")
+            push!(vars,p)
+            push!(randvars,p)
+            :($p = $(ex.args[2]))
+        elseif ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
             p = ex.args[2]
             p in vars && error("Variable $p already defined")
             push!(vars,p)
@@ -301,13 +307,13 @@ function extract_randvars!(vars, randvars, expr)
 end
 
 
-function error_obj(errorexpr, errorvars, collate, odevars)
+function post_obj(postexpr, postvars, collate, odevars)
     quote
         function (_collate, _odevars, t)
             $(var_def(:_collate, collate))
             $(var_def(:_odevars, odevars))
-            $(esc(errorexpr))
-            $(esc(nt_expr(errorvars)))
+            $(esc(postexpr))
+            $(esc(nt_expr(postvars)))
         end
     end
 end
@@ -321,12 +327,11 @@ macro model(expr)
     data_cov = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
     collateexpr = :()
-    post  = OrderedDict{Symbol, Any}()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
-    errorvars  = OrderedSet{Symbol}()
-    errorexpr = :()
-    local vars, params, randoms, data_cov, collatevars, collateexpr, post, odeexpr, odevars, ode_init, errorexpr, errorvars, isstatic
+    postvars  = OrderedSet{Symbol}()
+    postexpr = :()
+    local vars, params, randoms, data_cov, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
 
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
@@ -348,9 +353,7 @@ macro model(expr)
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
-            extract_defs!(vars,post, ex.args[3:end]...)
-        elseif ex.args[1] == Symbol("@error")
-            errorexpr = extract_randvars!(vars, errorvars, ex.args[3])
+            postexpr = extract_randvars!(vars, postvars, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end
@@ -366,16 +369,14 @@ macro model(expr)
             $(collate_obj(collateexpr,prevars,params,randoms,data_cov)),
             $(init_obj(ode_init,odevars,prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars)),
-            $(post_obj(post,prevars, odevars)),
-            $(error_obj(errorexpr, errorvars,prevars, odevars)))
+            $(post_obj(postexpr, postvars,prevars, odevars)))
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
             println(io,"  Random effects: ",$(join(keys(randoms),", ")))
             println(io,"  Covariates: ",$(join(data_cov,", ")))
             println(io,"  Dynamical variables: ",$(join(odevars,", ")))
-            println(io,"  Post variables: ",$(join(keys(post),", ")))
-            println(io,"  Observable: ",$(join(errorvars,", ")))
+            println(io,"  Observable: ",$(join(postvars,", ")))
         end
         x
     end

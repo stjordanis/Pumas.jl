@@ -1,6 +1,6 @@
-julia 0.7-beta2
+julia 0.7
 DiffEqBase 3.0.0
-OrdinaryDiffEq 3.0.0
+OrdinaryDiffEq 4.12.1
 Distributions
 Reexport
 StaticArrays

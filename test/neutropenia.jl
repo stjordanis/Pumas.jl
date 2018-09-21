@@ -58,12 +58,6 @@ m_neut = @model begin
     end
 
     @post begin
-        conc = x1 / V1
-        cHat = x2 / V1
-        neutHat = x8 + circ0
-    end
-
-    @error begin
         cHat = max(x2,0.0) / V1
         neutHat = x8 + circ0
 
@@ -136,4 +130,4 @@ subject = PuMaS.Subject(1,
 
 x0 = PuMaS.init_param(m_neut)
 
-@test !isnan(PuMaS.pkpd_likelihood(m_neut, subject, x0, ()))
+@test !isnan(PuMaS.likelihood(m_neut, subject, x0, ()))

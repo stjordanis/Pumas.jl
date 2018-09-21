@@ -4,15 +4,13 @@ using PuMaS, Distributions, PDMats, StaticArrays
 # Read the data
 data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                     [:sex,:wt,:etn],separator=',')
+
 # add a small epsilon to time 0 observations
-let
-global subject
-for outer subject in data.subjects
+for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
         subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
     end
-end
 end
 
 # Definition using diffeqs
@@ -40,7 +38,7 @@ m_diffeq = @model begin
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, conc*σ)
     end
@@ -68,7 +66,7 @@ m_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @error begin
+    @post begin
         conc = Central / V
         dv ~ Normal(conc, conc*σ)
     end
@@ -80,42 +78,41 @@ x0 = (θ = [2.268,74.17,468.6,0.5876],
                  0.0 0.2]),
       σ = 0.1)
 
-
 subject1 = data.subjects[1]
 
 y0 = init_random(m_diffeq, x0)
 
-sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0)
-sol_analytic, _ = pkpd_solve(m_analytic,subject1,x0,y0)
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0)
+sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(1.0) ≈ sol_analytic(1.0) rtol=1e-4
 
-sol_diffeq, _   = pkpd_solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
 
 @test sol_diffeq.alg == Rosenbrock23()
 
-@test pkpd_likelihood(m_diffeq,subject1,x0,y0) ≈ pkpd_likelihood(m_analytic,subject1,x0,y0)
+@test likelihood(m_diffeq,subject1,x0,y0) ≈ likelihood(m_analytic,subject1,x0,y0)
 
 sim_diffeq = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_diffeq,subject1,x0,y0)
+    s = simobs(m_diffeq,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_analytic,subject1,x0,y0)
+    s = simobs(m_analytic,subject1,x0,y0)
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
 
 sim_diffeq = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_diffeq,subject1,x0)
+    s = simobs(m_diffeq,subject1,x0)
     map(x-> x.dv, s)
 end
 sim_analytic = begin
     Random.seed!(1)
-    s = pkpd_simulate(m_analytic,subject1,x0)
+    s = simobs(m_analytic,subject1,x0)
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
