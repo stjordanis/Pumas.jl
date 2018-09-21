@@ -61,7 +61,8 @@ in the model.
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
 function DiffEqBase.solve(m::PKPDModel, subject::Subject,
-                          param, rfx=rand_random(m, param),
+                          param = init_param(m),
+                          rfx = rand_random(m, param),
                           args...; kwargs...)
     col = m.collate(param, rfx, subject.covariates)
     _solve(m,subject,col,args...;kwargs...)
@@ -102,7 +103,8 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
-function postfun(m::PKPDModel, subject::Subject, param,
+function postfun(m::PKPDModel, subject::Subject,
+                  param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
   col = m.collate(param, rfx, subject.covariates)
