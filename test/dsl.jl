@@ -42,7 +42,7 @@ mdsl = @model begin
     end
 
     @post begin
-        conc = Central / V
+        conc := Central / V
         dv ~ Normal(conc, conc*Σ)
     end
 end

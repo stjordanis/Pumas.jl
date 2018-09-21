@@ -232,6 +232,7 @@ end
 
 # here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(odeexpr::Expr, collate, odevars)
+    # TODO: `:=` handling
     opts = Dict{Symbol,Bool}(
     :build_tgrad => true,
     :build_jac => true,
@@ -288,11 +289,13 @@ end
 
 function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
-        if ex isa Expr && ex.head == :(=) && length(ex.args) == 2
+        if ex isa Expr && ((iseq = ex.head == :(=)) || ex.head == :(:=)) && length(ex.args) == 2
             p = ex.args[1]
             p in vars && error("Variable $p already defined")
-            push!(vars,p)
-            push!(randvars,p)
+            if iseq
+                push!(vars,p)
+                push!(randvars,p)
+            end
             :($p = $(ex.args[2]))
         elseif ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
             p = ex.args[2]
