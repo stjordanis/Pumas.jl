@@ -151,14 +151,11 @@ Compute the full log-likelihood of model `m` for `subject` with parameters `para
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the post produces distributions.
 """
-function likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
-   obstimes = observationtimes(subject)
-   col = m.collate(param, rfx, subject.covariates)
-   sol = _solve(m, subject, col, args...; kwargs...)
+function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
+   post = postfun(m,subject,args...;kwargs...)
    sum(subject.observations) do obs
        t = obs.time
-       err = m.post(col,sol(t),t)
-       _likelihood(err, obs)
+       _likelihood(post(t), obs)
    end
 end
 
