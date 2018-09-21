@@ -1,4 +1,4 @@
-export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate
+export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate, simpost
 
 """
     PKPDModel
@@ -102,6 +102,19 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
+function postfun(m::PKPDModel, subject::Subject, param,
+                  rfx=rand_random(m, param),
+                  args...; continuity=:left,kwargs...)
+  col = m.collate(param, rfx, subject.covariates)
+  sol = _solve(m, subject, col, args...; kwargs...)
+  if sol isa PKPDAnalyticalSolution
+      post = t-> m.post(col,sol(t),t)
+  else
+      post = t-> m.post(col,sol(t,continuity=continuity),t)
+  end
+  post
+end
+
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
@@ -111,19 +124,11 @@ Simulate random observations from model `m` for `subject` with parameters `param
 `rfx` is provided, then random ones are generated according to the distribution
 in the model.
 """
-function simobs(m::PKPDModel, subject::Subject, param,
-                       rfx=rand_random(m, param),
-                       args...; obstimes=observationtimes(subject),continuity=:left,kwargs...)
-    col = m.collate(param, rfx, subject.covariates)
-    sol = _solve(m, subject, col, args...; kwargs...)
+function simobs(m::PKPDModel, subject::Subject, args...;
+                obstimes=observationtimes(subject),kwargs...)
+    post = postfun(m,subject,args...;kwargs...)
     map(obstimes) do t
-        # TODO: figure out a way to iterate directly over sol(t)
-        if sol isa PKPDAnalyticalSolution
-            errdist = m.post(col,sol(t),t)
-        else
-            errdist = m.post(col,sol(t,continuity=continuity),t)
-        end
-        map(sample, errdist)
+        map(sample, post(t))
     end
 end
 
