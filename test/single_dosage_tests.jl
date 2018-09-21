@@ -116,3 +116,8 @@ sim_analytic = begin
     map(x-> x.dv, s)
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
+
+sol_diffeq = solve(m_diffeq,data,x0, parallel_type = PuMaS.Serial)
+sol_diffeq = solve(m_diffeq,data,x0, parallel_type = PuMaS.Threading)
+sol_diffeq = solve(m_diffeq,data,x0, parallel_type = PuMaS.Distributed)
+@test_broken sol_diffeq = solve(m_diffeq,data,x0, parallel_type = PuMaS.SplitThreads)

@@ -1,5 +1,3 @@
-export PKPDModel, init_param, init_random, rand_random, simobs, likelihood, collate, simpost
-
 """
     PKPDModel
 
@@ -68,6 +66,27 @@ function DiffEqBase.solve(m::PKPDModel, subject::Subject,
     _solve(m,subject,col,args...;kwargs...)
 end
 
+@enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
+function DiffEqBase.solve(m::PKPDModel, pop::Population,
+                          param = init_param(m),
+                          args...; parallel_type = Threading,
+                          kwargs...)
+    time = @elapsed if parallel_type == Serial
+        sols = [solve(m,subject,param,args...;kwargs...) for subject in pop]
+    elseif parallel_type == Threading
+        _sols = Vector{Any}(undef,length(pop))
+        Threads.@threads for i in 1:length(pop)
+            _sols[i] = solve(m,pop[i],param,args...;kwargs...)
+        end
+        sols = [sol for sol in _sols] # Make strict typed
+    elseif parallel_type == Distributed
+        sols = pmap((subject)->solve(m,subject,param,args...;kwargs...),pop)
+    elseif parallel_type == SplitThreads
+        error("SplitThreads is not yet implemented")
+    end
+    MonteCarloSolution(sols,time,true)
+end
+
 """
 This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
@@ -132,6 +151,24 @@ function simobs(m::PKPDModel, subject::Subject, args...;
     map(obstimes) do t
         map(sample, post(t))
     end
+end
+
+function simobs(m::PKPDModel, pop::Population, args...;
+                parallel_type = Threading, kwargs...)
+    time = @elapsed if parallel_type == Serial
+        sols = [simobs(m,subject,args...;kwargs...) for subject in pop]
+    elseif parallel_type == Threading
+        _sols = Vector{Any}(undef,length(pop))
+        Threads.@threads for i in 1:length(pop)
+            _sols[i] = simobs(m,pop[i],args...;kwargs...)
+        end
+        sols = [sol for sol in _sols] # Make strict typed
+    elseif parallel_type == Distributed
+        sols = pmap((subject)->simobs(m,subject,args...;kwargs...),pop)
+    elseif parallel_type == SplitThreads
+        error("SplitThreads is not yet implemented")
+    end
+    sols
 end
 
 """

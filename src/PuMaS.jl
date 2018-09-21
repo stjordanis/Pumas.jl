@@ -1,7 +1,7 @@
 module PuMaS
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport,
-      StaticArrays, DiffEqJump, PDMats
+      StaticArrays, DiffEqJump, PDMats, Distributed
 
 @reexport using OrdinaryDiffEq
 @reexport using DelayDiffEq
@@ -24,6 +24,7 @@ include("simulate_methods/analytical.jl")
 
 
 export Subject, Population, process_data, build_dataset
-export PKPDModel
+export PKPDModel, init_param, init_random, rand_random,
+       simobs, likelihood, collate, simpost
 
 end # module

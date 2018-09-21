@@ -130,4 +130,9 @@ subject = PuMaS.Subject(1,
 
 x0 = PuMaS.init_param(m_neut)
 
+sol_diffeq = solve(m_neut,subject,x0)
+
+# Should be made into a population test
+sol_diffeq = solve(m_neut,subject,x0, parallel_type = PuMaS.Threading)
+
 @test !isnan(PuMaS.likelihood(m_neut, subject, x0, ()))
