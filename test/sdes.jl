@@ -40,8 +40,8 @@ function err(params, randoms, covars, u,p, t)
     (dv=Normal(conc, conc*Σ),)
 end
 
-init = (_param, _random, _data_cov,_collate,t) -> [0.0,0.0]
-post = (_param, _random, _data_cov,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V,)
+init = (_param, _random, _covariates,_collate,t) -> [0.0,0.0]
+post = (_param, _random, _covariates,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V,)
 model = PuMaS.PKPDModel(params,randomfx,collate,init,prob,post,err)
 
 x0 = init_param(model)

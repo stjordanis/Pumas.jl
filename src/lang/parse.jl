@@ -151,12 +151,12 @@ function extract_collate!(vars, collatevars, exprs...)
     end
 end
 
-function collate_obj(collateexpr, prevars, params, randoms, data_cov)
+function collate_obj(collateexpr, prevars, params, randoms, covariates)
     quote
-        function (_param, _random, _data_cov)
+        function (_param, _random, _covariates)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
-            $(var_def(:_data_cov, data_cov))
+            $(var_def(:_covariates, covariates))
             $(esc(collateexpr))
             $(esc(nt_expr(prevars)))
         end
@@ -324,14 +324,14 @@ macro model(expr)
     vars = Set{Symbol}([:t]) # t is the only reserved symbol
     params = OrderedDict{Symbol, Any}()
     randoms = OrderedDict{Symbol, Any}()
-    data_cov = OrderedSet{Symbol}()
+    covariates = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
     collateexpr = :()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = OrderedSet{Symbol}()
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
-    local vars, params, randoms, data_cov, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
+    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
 
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
@@ -342,8 +342,8 @@ macro model(expr)
             extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")
             extract_randoms!(vars, randoms, ex.args[3:end]...)
-        elseif ex.args[1] == Symbol("@data_cov")
-            extract_syms!(vars, data_cov, ex.args[3:end])
+        elseif ex.args[1] == Symbol("@covariates")
+            extract_syms!(vars, covariates, ex.args[3:end])
         elseif ex.args[1] == Symbol("@collate")
             collateexpr = ex.args[3]
             extract_collate!(vars,collatevars,collateexpr)
@@ -360,13 +360,13 @@ macro model(expr)
         return nothing
     end
 
-    prevars = union(collatevars, keys(params), keys(randoms), data_cov)
+    prevars = union(collatevars, keys(params), keys(randoms), covariates)
 
     quote
         x = PKPDModel(
             $(param_obj(params)),
             $(random_obj(randoms,params)),
-            $(collate_obj(collateexpr,prevars,params,randoms,data_cov)),
+            $(collate_obj(collateexpr,prevars,params,randoms,covariates)),
             $(init_obj(ode_init,odevars,prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars)),
             $(post_obj(postexpr, postvars,prevars, odevars)))
@@ -374,7 +374,7 @@ macro model(expr)
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
             println(io,"  Random effects: ",$(join(keys(randoms),", ")))
-            println(io,"  Covariates: ",$(join(data_cov,", ")))
+            println(io,"  Covariates: ",$(join(covariates,", ")))
             println(io,"  Dynamical variables: ",$(join(odevars,", ")))
             println(io,"  Observable: ",$(join(postvars,", ")))
         end

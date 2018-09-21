@@ -9,7 +9,7 @@ data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_
 
 m_diffeq = @model begin
 
-    @data_cov ka cl v
+    @covariates ka cl v
 
     @dynamics begin
         dDepot   = -ka*Depot
@@ -25,7 +25,7 @@ end
 
 m_analytic = @model begin
 
-    @data_cov ka cl v
+    @covariates ka cl v
 
     @collate begin
         Ka = ka
