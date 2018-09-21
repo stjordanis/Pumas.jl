@@ -25,7 +25,7 @@ m_diffeq = @model begin
         η ~ MvNormal(Ω)
     end
 
-    @data_cov sex wt etn
+    @covariates sex wt etn
 
     @collate begin
         Ka = θ[1]
@@ -56,7 +56,7 @@ m_analytic = @model begin
         η ~ MvNormal(Ω)
     end
 
-    @data_cov sex wt etn
+    @covariates sex wt etn
 
     @collate begin
         Ka = θ[1]

@@ -26,7 +26,7 @@ mdsl = @model begin
         η ~ MvNormal(Ω)
     end
 
-    @data_cov sex wt etn
+    @covariates sex wt etn
 
     @collate begin
         Ka = θ[1]
@@ -49,10 +49,10 @@ mstatic = PKPDModel(ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4))
                               Ω = PSDDomain(2),
                               Σ = RealDomain(lower=0.0, init=1.0))),
                  (_param) -> RandomEffectSet((η = MvNormal(_param.Ω),)),
-                 (_param, _random, _data_cov) -> (Σ = _param.Σ,
+                 (_param, _random, _covariates) -> (Σ = _param.Σ,
                                                      Ka = _param.θ[1],
-                                                     CL = _param.θ[2] * ((_data_cov.wt/70)^0.75) *
-                                                          (_param.θ[4]^_data_cov.sex) * exp(_random.η[1]),
+                                                     CL = _param.θ[2] * ((_covariates.wt/70)^0.75) *
+                                                          (_param.θ[4]^_covariates.sex) * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
                  (_pre,t) -> @SVector([0.0,0.0]),
                  function depot_model(u,p,t)
@@ -81,7 +81,7 @@ subject = data.subjects[1]
 mstatic2 = PKPDModel(ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
                               Ω = PSDDomain(2))),
                  (_param) -> RandomEffectSet((η = MvNormal(_param.Ω),)),
-                 (_param, _random, _data_cov) -> (Ka = _param.θ[1],
+                 (_param, _random, _covariates) -> (Ka = _param.θ[1],
                                                      CL = _param.θ[2] * exp(_random.η[1]),
                                                      V  = _param.θ[3] * exp(_random.η[2])),
                  (_pre,t) -> @SVector([0.0,0.0]),
