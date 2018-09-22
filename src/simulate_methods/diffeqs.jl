@@ -6,7 +6,6 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
 
     # Promotion to handle Dual numbers
     T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-    Ttspan = T.(tspan)
     Tu0 = T.(u0)
 
     # build a "modified" problem using DiffEqWrapper
@@ -19,7 +18,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
 
     # Remake problem of correct type
     inplace = !(u0 isa StaticArray)
-    prob = remake(prob; callback=cb, f=ft{inplace}(fd), tspan=Ttspan, u0=Tu0)
+    prob = remake(prob; callback=cb, f=ft{inplace}(fd), u0=Tu0)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
