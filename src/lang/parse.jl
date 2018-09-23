@@ -362,6 +362,15 @@ function post_obj(postexpr, postvars, collate, odevars)
     end
 end
 
+function derived_obj(derivedexpr, derivedvars, collate, odevars)
+    quote
+        function (_collate,sol,obstimes,obs)
+            $(var_def(:_collate, collate))
+            $(esc(derivedexpr))
+            $(esc(nt_expr(derivedvars)))
+        end
+    end
+end
 
 macro model(expr)
 
@@ -375,9 +384,12 @@ macro model(expr)
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
     collateexpr = :()
-    vars_ = Expr[]
-    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic, eqs
+    derivedvars = OrderedSet{Symbol}()
     eqs = Expr(:vect)
+    vars_ = Expr[]
+    derivedvars = OrderedSet{Symbol}()
+    derivedexpr = :()
+    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
@@ -412,7 +424,7 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@derived")
             # Add in @vars
             # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
-            error("@derived not implemented yet")
+            derivedexpr = extract_randvars!(vars, derivedvars, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end
@@ -429,7 +441,7 @@ macro model(expr)
             $(init_obj(ode_init,odevars[1],prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
             $(post_obj(postexpr, postvars,prevars, odevars[1])),
-            (col,sol,obstimes,obs) -> nothing)
+            $(derived_obj(derivedexpr, derivedvars, prevars, odevars[1])))
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
@@ -437,7 +449,7 @@ macro model(expr)
             println(io,"  Covariates: ",$(join(covariates,", ")))
             println(io,"  Dynamical variables: ",$(join(odevars[1],", ")))
             println(io,"  Observable: ",$(join(postvars,", ")))
-            println(io,"  Derived: ")
+            println(io,"  Derived: ",$(join(derivedvars,", ")))
         end
         x
     end
