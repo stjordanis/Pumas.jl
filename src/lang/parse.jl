@@ -333,6 +333,7 @@ macro model(expr)
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
     collateexpr = :()
+    vars_ = :()
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
 
     MacroTools.prewalk(expr) do ex
@@ -340,20 +341,26 @@ macro model(expr)
         ex isa Expr && ex.head == :block && return ex
         islinenum(ex) && return nothing
         @assert ex isa Expr && ex.head == :macrocall
-        if ex.args[1] == Symbol("@param")
+        if ex.args[1] == Symbol("@vars")
+            vars_ = ex.args[3:end]
+        elseif ex.args[1] == Symbol("@param")
             extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")
             extract_randoms!(vars, randoms, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@covariates")
             extract_syms!(vars, covariates, ex.args[3:end])
         elseif ex.args[1] == Symbol("@collate")
+            push!(collatevars,copy(vars_))
             collateexpr = extract_collate!(vars,collatevars,ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@init")
+            push!(ode_init,copy(vars_))
             extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
+            # push!(odevars,copy(vars_))
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
+            push!(postvars,copy(vars_))
             postexpr = extract_randvars!(vars, postvars, ex.args[3])
         elseif ex.args[1] == Symbol("@derived")
             error("@derived not implemented yet")
