@@ -1,6 +1,7 @@
 using DataStructures
 using MacroTools
 using ParameterizedFunctions
+using ModelingToolkit
 
 export @model
 
@@ -163,24 +164,30 @@ function collate_obj(collateexpr, prevars, params, randoms, covariates)
 end
 
 
-function extract_dynamics!(vars, odevars, ode_init, expr::Expr)
+function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
     if expr.head == :block
         for ex in expr.args
             islinenum(ex) && continue
-            extract_dynamics!(vars, odevars, ode_init, ex)
+            extract_dynamics!(vars, odevars, ode_init, ex, eqs)
         end
     elseif expr.head == :(=)
+        # `odevars[1]` stores DVar & `odevars[2]` stores Var
         dp = expr.args[1]
-        s = string(dp)
-        startswith(s, 'd') && length(s) > 1 || error("Invalid variable $s: must be prefixed with 'd'")
+        isder = dp isa Expr && dp.head == Symbol('\'')
         dp in vars && error("Variable $dp already defined")
-        p = Symbol(s[2:end])
+        (isder && length(dp.args) != 1) ||
+            (!isder && !isa(dp, Symbol)) &&
+                error("Invalid variable $dp: must be in the form of X' or X")
+        p = isder ? dp.args[1] : dp
+        _odevars = isder ? odevars[1] : odevars[2]
+        lhs = isder ? :(D*$p) : p
+        push!(eqs.args, :($lhs ~ $(expr.args[2])))
         if p in keys(ode_init)
-            push!(odevars, p)
+            push!(_odevars, p)
         else
             p in vars && error("Variable $p already defined")
             push!(vars,p)
-            push!(odevars, p)
+            push!(_odevars, p)
             ode_init[p] = 0.0
         end
     else
@@ -230,18 +237,36 @@ function init_obj(ode_init,odevars,prevars,isstatic)
 end
 
 # here we just use the ParameterizedFunctions @ode_def
-function dynamics_obj(odeexpr::Expr, collate, odevars)
-    # TODO: `:=` handling
-    opts = Dict{Symbol,Bool}(
-    :build_tgrad => true,
-    :build_jac => true,
-    :build_expjac => false,
-    :build_invjac => true,
-    :build_invW => true,
-    :build_hes => false,
-    :build_invhes => false,
-    :build_dpfuncs => true)
-    ode_def_opts(gensym(),opts,odeexpr,collate...)
+function dynamics_obj(odeexpr::Expr, collate, odevars, eqs)
+    ivar  = :(@IVar t)
+    var   = :(@Var)
+    dvar  = :(@DVar)
+    der   = :(@Deriv D'~t)
+    param = :(@Param)
+    diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], [])))
+    # DVar
+    for v in odevars[1]
+        push!(dvar.args, :($v(t)))
+        push!(diffeq.args[2].args[4].args, v)
+    end
+    # Var
+    for v in odevars[2]
+        push!(var.args, v)
+        push!(diffeq.args[2].args[5].args, v)
+    end
+    # Param
+    for p in collate
+        push!(param.args, p)
+        push!(diffeq.args[2].args[6].args, p)
+    end
+    quote
+        $ivar
+        $var
+        $dvar
+        $der
+        $param
+        $diffeq
+    end
 end
 function dynamics_obj(odename::Symbol, collate, odevars)
     quote
@@ -329,12 +354,13 @@ macro model(expr)
     covariates = OrderedSet{Symbol}()
     collatevars  = OrderedSet{Symbol}()
     ode_init  = OrderedDict{Symbol, Any}()
-    odevars  = OrderedSet{Symbol}()
+    odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
     collateexpr = :()
     vars_ = :()
-    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic
+    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic, eqs
+    eqs = Expr(:vect)
 
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
@@ -358,7 +384,7 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@dynamics")
             # Add in @vars
             # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
-            isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
+            isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
             # Add in @vars
@@ -381,16 +407,16 @@ macro model(expr)
             $(param_obj(params)),
             $(random_obj(randoms,params)),
             $(collate_obj(collateexpr,prevars,params,randoms,covariates)),
-            $(init_obj(ode_init,odevars,prevars,isstatic)),
-            $(dynamics_obj(odeexpr,prevars,odevars)),
-            $(post_obj(postexpr, postvars,prevars, odevars)),
+            $(init_obj(ode_init,odevars[1],prevars,isstatic)),
+            $(dynamics_obj(odeexpr,prevars,odevars,eqs)),
+            $(post_obj(postexpr, postvars,prevars, odevars[1])),
             (col,sol,obstimes,obs) -> nothing)
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
             println(io,"  Random effects: ",$(join(keys(randoms),", ")))
             println(io,"  Covariates: ",$(join(covariates,", ")))
-            println(io,"  Dynamical variables: ",$(join(odevars,", ")))
+            println(io,"  Dynamical variables: ",$(join(odevars[1],", ")))
             println(io,"  Observable: ",$(join(postvars,", ")))
             println(io,"  Derived: ")
         end
