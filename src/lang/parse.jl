@@ -359,7 +359,7 @@ macro model(expr)
     postvars  = OrderedSet{Symbol}()
     postexpr = :()
     collateexpr = :()
-    vars_ = :()
+    vars_ = Expr[]
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, isstatic, eqs
     eqs = Expr(:vect)
 
