@@ -42,9 +42,8 @@ mdsl = @model begin
     end
 
     @dynamics begin
-        cp       =  Central/V
         Depot'   = -Ka*Depot
-        Central' =  Ka*Depot - CL*cp
+        Central' =  Ka*Depot - CL*conc
     end
 
     @post begin

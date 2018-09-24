@@ -384,7 +384,9 @@ macro model(expr)
             extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
             # Add in @vars
-            # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
+            if !(typeof(ex) <: Symbol)
+              ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
+            end
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
