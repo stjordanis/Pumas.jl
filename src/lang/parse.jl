@@ -341,28 +341,32 @@ macro model(expr)
         ex isa Expr && ex.head == :block && return ex
         islinenum(ex) && return nothing
         @assert ex isa Expr && ex.head == :macrocall
-        if ex.args[1] == Symbol("@vars")
-            vars_ = ex.args[3:end]
-        elseif ex.args[1] == Symbol("@param")
+        if ex.args[1] == Symbol("@param")
             extract_params!(vars, params, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@random")
             extract_randoms!(vars, randoms, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@covariates")
             extract_syms!(vars, covariates, ex.args[3:end])
         elseif ex.args[1] == Symbol("@collate")
-            push!(collatevars,copy(vars_))
             collateexpr = extract_collate!(vars,collatevars,ex.args[3:end]...)
+        elseif ex.args[1] == Symbol("@vars")
+            vars_ = ex.args[3:end]
         elseif ex.args[1] == Symbol("@init")
-            push!(ode_init,copy(vars_))
+            # Add in @vars
+            ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
             extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
-            # push!(odevars,copy(vars_))
+            # Add in @vars
+            # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3])
             odeexpr = ex.args[3]
         elseif ex.args[1] == Symbol("@post")
-            push!(postvars,copy(vars_))
+            # Add in @vars
+            ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
             postexpr = extract_randvars!(vars, postvars, ex.args[3])
         elseif ex.args[1] == Symbol("@derived")
+            # Add in @vars
+            # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
             error("@derived not implemented yet")
         else
             error("Invalid macro $(ex.args[1])")

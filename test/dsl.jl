@@ -37,13 +37,16 @@ mdsl = @model begin
         V  = θ[3] * exp(η[2])
     end
 
+    @vars begin
+      conc = Central / V
+    end
+
     @dynamics begin
         dDepot   = -Ka*Depot
         dCentral =  Ka*Depot - (CL/V)*Central
     end
 
     @post begin
-        conc := Central / V
         dv ~ Normal(conc, conc*Σ)
     end
 end
