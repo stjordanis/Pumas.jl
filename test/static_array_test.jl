@@ -1,6 +1,6 @@
 using Test
 
-using PuMaS, Distributions, StaticArrays, Random, LinearAlgebra
+using PuMaS, Distributions, StaticArrays, Random, LinearAlgebra, LabelledArrays
 
 
 # Read the data# Read the data
@@ -63,12 +63,13 @@ function col_f(p,rfx,cov)
     V  = p.θ[3] * exp(rfx.η[2]))
 end
 
+@SLVector OneCompartmentVector Float64 [Depot,Central]
 function init_f(col,t0)
-    @SVector [0.0,0.0]
+     OneCompartmentVector(0.0,0.0)
 end
 
 function static_onecompartment_f(u,p,t)
-    @SVector [-p.Ka*u[1], p.Ka*u[1] - (p.CL/p.V)*u[2]]
+    OneCompartmentVector(-p.Ka*u[1], p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
 function post_f(col,u,t)
@@ -115,6 +116,9 @@ x0 = (θ = [
               ],
          Ω = Matrix{Float64}(I, 2, 2))
 y0 = (η = zeros(2),)
+
+sol = solve(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+[sol[i].Central for i in 1:length(sol)]
 
 p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 @test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]
