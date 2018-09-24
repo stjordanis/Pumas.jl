@@ -1,6 +1,6 @@
 using Test
 
-using PuMaS, Distributions, ParameterizedFunctions, Random
+using PuMaS, Distributions, ParameterizedFunctions, Random, LabelledArrays
 
 
 # Read the data# Read the data
@@ -70,13 +70,15 @@ function col_f(p,rfx,cov)
     V  = p.θ[3] * exp(rfx.η[2]))
 end
 
+@SLVector OneCompartmentVector Float64 [Depot,Central]
+
 function init_f(col,t0)
-    [0.0,0.0]
+    OneCompartmentVector(0.0,0.0)
 end
 
-function onecompartment_f(du,u,p,t)
-    du[1] = -p.Ka*u[1]
-    du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
+function onecompartment_f(u,p,t)
+    OneCompartmentVector(-p.Ka*u[1],
+                          p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
 function post_f(col,u,t)
@@ -98,9 +100,30 @@ subject = data.subjects[1]
 sol1 = solve(mdsl,subject,x0,y0)
 sol2 = solve(mobj,subject,x0,y0)
 
+@test sol1[10].Central ≈ sol2[10].Central
+
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
 @test simobs(mobj,subject,x0,y0).derived.obs_cmax > 0
 
 @test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0))) ≈
       (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0)))
+
+# Now test an array-based version
+
+function init_f_iip(col,t0)
+    [0.0,0.0]
+end
+
+function onecompartment_f_iip(du,u,p,t)
+    du[1] = -p.Ka*u[1]
+    du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
+end
+
+mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,post_f,derived_f)
+sol2 = solve(mobj_iip,subject,x0,y0)
+
+@test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4
+
+@test (Random.seed!(1); map(x -> x.dv, simobs(mobj_iip,subject,x0,y0))) ≈
+      (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0))) rtol=1e-4

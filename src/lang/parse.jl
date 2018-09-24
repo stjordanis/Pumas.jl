@@ -192,7 +192,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
     else
         error("Invalid @dynamics expression: $expr")
     end
-    return false # isstatic
+    return true # isstatic
 end
 
 # used for pre-defined analytical systems
@@ -227,24 +227,38 @@ function init_obj(ode_init,odevars,prevars,isstatic)
         push!(vecexpr.args, ode_init[p])
     end
     if isstatic
-        vecexpr = :(StaticArrays.@SVector $vecexpr)
-    end
-    quote
-        function (_pre,t)
-            $(var_def(:_pre, prevars))
-            $(esc(vecexpr))
+        tname = gensym()
+        vecexpr = :($tname($vecexpr))
+        quote
+            @SLVector $tname Float64 [$(odevars...)]
+            function (_pre,t)
+                $(var_def(:_pre, prevars))
+                $(esc(vecexpr))
+            end
         end
+    else
+      quote
+          function (_pre,t)
+              $(var_def(:_pre, prevars))
+              $(esc(vecexpr))
+          end
+      end
     end
 end
 
 # here we just use the ParameterizedFunctions @ode_def
-function dynamics_obj(odeexpr::Expr, collate, odevars, eqs)
+function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
     ivar  = :(@IVar t)
     var   = :(@Var)
     dvar  = :(@DVar)
     der   = :(@Deriv D'~t)
     param = :(@Param)
-    diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], [])))
+    if isstatic
+      diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], []),version=ModelingToolkit.SArrayFunction))
+    else
+      diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], [])))
+    end
+
     # DVar
     for v in odevars[1]
         push!(dvar.args, :($v(t)))
@@ -271,7 +285,7 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs)
         end
     end
 end
-function dynamics_obj(odename::Symbol, collate, odevars, eqs)
+function dynamics_obj(odename::Symbol, collate, odevars, eqs, isstatic)
     quote
         ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
     end
@@ -413,7 +427,7 @@ macro model(expr)
             $(random_obj(randoms,params)),
             $(collate_obj(collateexpr,prevars,params,randoms,covariates)),
             $(init_obj(ode_init,odevars[1],prevars,isstatic)),
-            $(dynamics_obj(odeexpr,prevars,odevars,eqs)),
+            $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
             $(post_obj(postexpr, postvars,prevars, odevars[1])),
             (col,sol,obstimes,obs) -> nothing)
         function Base.show(io::IO, ::typeof(x))

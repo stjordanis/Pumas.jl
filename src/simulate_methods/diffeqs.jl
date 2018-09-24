@@ -103,7 +103,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
       elseif cur_ev.evid >= 3
         savevalues!(integrator)
 
-        if typeof(integrator.u) <: Union{Number,SArray}
+        if typeof(integrator.u) <: Union{Number,FieldVector,SArray}
           integrator.u = zero(integrator.u)
         else
           integrator.u .= 0
@@ -112,7 +112,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
         last_restart[] = integrator.t
         f.f.rates_on = false
 
-        if typeof(f.f.rates) <: Union{Number,SArray}
+        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
           f.f.rates = zero(f.f.rates)
         else
           f.f.rates .= 0
@@ -220,7 +220,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
             #add_tstop!(integrator,ss_end[])
           end
         elseif integrator.t == ss_rate_end[] && cur_ev.amt != 0 # amt==0 means constant
-          if typeof(f.f.rates) <: SArray
+          if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
             f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
           else
             f.f.rates[cur_ev.cmt] -= cur_ev.rate
@@ -249,7 +249,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
 
       ss_event = events[ss_event_counter[]]
       if ss_event.amt != 0
-        if typeof(f.f.rates) <: SArray
+        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
           f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[ss_event.cmt]-ss_event.rate,ss_event.cmt)
         else
           f.f.rates[ss_event.cmt] -= ss_event.rate
@@ -389,7 +389,7 @@ DiffEqWrapper(f::DiffEqWrapper) = DiffEqWrapper(f.f,0,f.rates)
 function (f::DiffEqWrapper)(u,p,t)
   out = f.f(u,p,t)
   if f.rates_on > 0
-    return out + rates
+    return out + f.rates
   else
     return out
   end

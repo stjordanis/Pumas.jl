@@ -1,7 +1,7 @@
 module PuMaS
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport,
-      StaticArrays, DiffEqJump, PDMats, Distributed
+      StaticArrays, DiffEqJump, PDMats, Distributed, LabelledArrays
 
 @reexport using OrdinaryDiffEq
 @reexport using DelayDiffEq
