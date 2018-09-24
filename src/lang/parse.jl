@@ -197,8 +197,9 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
 end
 
 # used for pre-defined analytical systems
-function extract_dynamics!(vars, odevars, ode_init, sym::Symbol)
+function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
     obj = eval(sym)
+    odevars = odevars[1]
     if obj isa Type && obj <: ExplicitModel # explict model
         for p in varnames(obj)
             if p in keys(ode_init)
@@ -268,7 +269,7 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs)
         $diffeq
     end
 end
-function dynamics_obj(odename::Symbol, collate, odevars)
+function dynamics_obj(odename::Symbol, collate, odevars, eqs)
     quote
         ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
     end
