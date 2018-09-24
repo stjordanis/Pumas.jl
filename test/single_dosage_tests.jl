@@ -34,8 +34,9 @@ m_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        cp       =  Central/V
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - CL*cp
     end
 
     @post begin
