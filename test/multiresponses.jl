@@ -59,10 +59,10 @@ m23 = @model begin
 
     @dynamics begin
         # TODO: allow intermediate expressions in macro
-        dEv1    = -Ka1*Ev1
-        dCent   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
-        dPeriph =  Q*(Cent/Vc)  - Q*(Periph/Vp)
-        dResp   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
+        Ev1'    = -Ka1*Ev1
+        Cent'   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
+        Periph' =  Q*(Cent/Vc)  - Q*(Periph/Vp)
+        Resp'   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
     end
 
     @post begin
@@ -160,10 +160,10 @@ m24 = @model begin
 
     @dynamics begin
         # TODO: allow intermediate expressions in macro
-        dEv1    = -Ka1*Ev1
-        dCent   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
-        dPeriph =  Q*(Cent/Vc)  - Q*(Periph/Vp)
-        dResp   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
+        Ev1'    = -Ka1*Ev1
+        Cent'   =  Ka1*Ev1 - (CL+Vmax/(Km+(Cent/Vc))+Q)*(Cent/Vc)  + Q*(Periph/Vp)
+        Periph' =  Q*(Cent/Vc)  - Q*(Periph/Vp)
+        Resp'   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
     end
 
     @post begin
