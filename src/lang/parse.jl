@@ -362,6 +362,14 @@ function post_obj(postexpr, postvars, collate, odevars)
     end
 end
 
+function broadcasted_vars(vars)
+  for ex in first(vars).args
+      ex isa LineNumberNode && continue
+      ex.args[2] = :(@. $(ex.args[2]))
+  end
+  vars
+end
+
 function derived_obj(derivedexpr, derivedvars, collate, odevars)
     quote
         function (_collate,sol,obstimes,obs)
@@ -423,7 +431,8 @@ macro model(expr)
             postexpr = extract_randvars!(vars, postvars, ex.args[3])
         elseif ex.args[1] == Symbol("@derived")
             # Add in @vars
-            # ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
+            bvars = broadcasted_vars(copy(vars_))
+            ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
             derivedexpr = extract_randvars!(vars, derivedvars, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
