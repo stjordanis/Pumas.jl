@@ -174,7 +174,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
         # `odevars[1]` stores DVar & `odevars[2]` stores Var
         dp = expr.args[1]
         isder = dp isa Expr && dp.head == Symbol('\'')
-        dp in vars && error("Variable $dp already defined")
+        #dp in vars && error("Variable $dp already defined")
         (isder && length(dp.args) != 1) ||
             (!isder && !isa(dp, Symbol)) &&
                 error("Invalid variable $dp: must be in the form of X' or X")
@@ -184,8 +184,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
         push!(eqs.args, :($lhs ~ $(expr.args[2])))
         if p in keys(ode_init)
             push!(_odevars, p)
-        else
-            p in vars && error("Variable $p already defined")
+        elseif p ∉ vars
             push!(vars,p)
             push!(_odevars, p)
             ode_init[p] = 0.0
@@ -205,9 +204,10 @@ function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
             if p in keys(ode_init)
                 push!(odevars, p)
             else
-                p in vars && error("Variable $p already defined")
-                push!(vars,p)
-                push!(odevars, p)
+                if p ∉ vars
+                  push!(vars,p)
+                  push!(odevars, p)
+                end
                 ode_init[p] = 0
             end
         end
@@ -261,12 +261,14 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs)
         push!(diffeq.args[2].args[6].args, p)
     end
     quote
-        $ivar
-        $var
-        $dvar
-        $der
-        $param
-        $diffeq
+        let
+          $ivar
+          $var
+          $dvar
+          $der
+          $param
+          $diffeq
+        end
     end
 end
 function dynamics_obj(odename::Symbol, collate, odevars, eqs)
@@ -316,17 +318,17 @@ function extract_randvars!(vars, randvars, expr)
     MacroTools.prewalk(expr) do ex
         if ex isa Expr && ((iseq = ex.head == :(=)) || ex.head == :(:=)) && length(ex.args) == 2
             p = ex.args[1]
-            p in vars && error("Variable $p already defined")
-            if iseq
+            if p ∉ vars && iseq
                 push!(vars,p)
                 push!(randvars,p)
             end
             :($p = $(ex.args[2]))
         elseif ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
             p = ex.args[2]
-            p in vars && error("Variable $p already defined")
-            push!(vars,p)
-            push!(randvars,p)
+            if p ∉ vars
+              push!(vars,p)
+              push!(randvars,p)
+            end
             :($p = $(ex.args[3]))
         else
             ex
@@ -384,7 +386,7 @@ macro model(expr)
             extract_defs!(vars,ode_init, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@dynamics")
             # Add in @vars
-            if !(typeof(ex) <: Symbol)
+            if !(typeof(ex.args[3]) <: Symbol)
               ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
             end
             isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
