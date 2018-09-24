@@ -49,6 +49,10 @@ mdsl = @model begin
     @post begin
         dv ~ Normal(conc, conc*Σ)
     end
+
+    @derived begin
+      obs_cmax = maximum(dv)
+    end
 end
 
 ### Function-Based Interface
@@ -104,9 +108,7 @@ sol2 = solve(mobj,subject,x0,y0)
 
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
-simobs(mobj,subject,x0,y0)
-
-@test simobs(mobj,subject,x0,y0).derived.obs_cmax > 0
+@test simobs(mdsl,subject,x0,y0).derived.obs_cmax == simobs(mobj,subject,x0,y0).derived.obs_cmax
 
 @test (Random.seed!(1); simobs(mdsl,subject,x0,y0)[:dv]) ≈
       (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv])
