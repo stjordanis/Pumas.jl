@@ -36,9 +36,9 @@ m_neut = @model begin
     end
 
     @dynamics begin
-        dx1 = -ka * x1
-        dx2 = ka * x1 - (k10 + k12) * x2 + k21 * x3
-        dx3 = k12 * x2 - k21 * x3
+        x1' = -ka * x1
+        x2' = ka * x1 - (k10 + k12) * x2 + k21 * x3
+        x3' = k12 * x2 - k21 * x3
 
         # conc = x1 / V1
         # EDrug = alpha * conc
@@ -49,12 +49,12 @@ m_neut = @model begin
         # circ =     max(x8 + circ0, eps())  # Device for implementing a modeled initial condition
 
         # dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / V1) ) * ((circ0 / max(x8 + circ0, ϵ))^gamma) - 1)
-        dx4 = ktr * (x4 + circ0) * ((1 - alpha * (x1 / V1) ) * ((circ0 / (x8 + circ0))^gamma) - 1)
-        dx5 = ktr * (x4 - x5)
-        dx6 = ktr * (x5 - x6)
-        dx7 = ktr * (x6 - x7)
+        x4' = ktr * (x4 + circ0) * ((1 - alpha * (x1 / V1) ) * ((circ0 / (x8 + circ0))^gamma) - 1)
+        x5' = ktr * (x4 - x5)
+        x6' = ktr * (x5 - x6)
+        x7' = ktr * (x6 - x7)
         # dx8 = ktr * ((x7 + circ0) - max(x8 + circ0, ϵ))
-        dx8 = ktr * (x7 - x8)
+        x8' = ktr * (x7 - x8)
     end
 
     @post begin

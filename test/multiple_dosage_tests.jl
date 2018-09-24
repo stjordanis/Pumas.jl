@@ -12,8 +12,9 @@ m_diffeq = @model begin
     @covariates ka cl v
 
     @dynamics begin
-        dDepot   = -ka*Depot
-        dCentral =  ka*Depot - (cl/v)*Central
+        cp       =  cl/v
+        Depot'   = -ka*Depot
+        Central' =  ka*Depot - cp*Central
     end
 
     # we approximate the error by computing the loglikelihood

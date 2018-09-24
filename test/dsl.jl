@@ -42,8 +42,8 @@ mdsl = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - CL*conc
     end
 
     @post begin

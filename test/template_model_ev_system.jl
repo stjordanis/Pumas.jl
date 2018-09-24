@@ -33,8 +33,8 @@ m_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -104,8 +104,8 @@ mlag_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -182,8 +182,8 @@ mlagbioav_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -261,8 +261,8 @@ mbioav_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -748,8 +748,8 @@ mbld_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -964,9 +964,9 @@ mparbl_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot1  = -Ka1*Depot1
-        dDepot2  = -Ka2*Depot2
-        dCentral =  Ka1*Depot1 + Ka2*Depot2 - (CL/V)*Central
+        Depot1'  = -Ka1*Depot1
+        Depot2'  = -Ka2*Depot2
+        Central' =  Ka1*Depot1 + Ka2*Depot2 - (CL/V)*Central
     end
 
     @post cp = Central / V
@@ -1038,8 +1038,8 @@ mbl2_diffeq = @model begin
     end
 
     @dynamics begin
-        dDepot   = -Ka*Depot
-        dCentral =  Ka*Depot - (CL/V)*Central
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
     end
 
     @post cp = Central / V
