@@ -374,7 +374,13 @@ function broadcasted_vars(vars)
 end
 
 function bvar_def(collection, indvars)
-    Expr(:block, [:($(esc(v)) = map(x -> x.$v, $collection)) for v in indvars]...)
+    quote
+        if $collection isa DataFrame
+            $(Expr(:block, [:($(esc(v)) = $collection.$v) for v in indvars]...))
+        else
+            $(Expr(:block, [:($(esc(v)) = map(x -> x.$v, $collection)) for v in indvars]...))
+        end
+    end
 end
 
 function derived_obj(derivedexpr, derivedvars, collate, odevars, postvars)
