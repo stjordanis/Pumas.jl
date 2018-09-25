@@ -370,10 +370,15 @@ function broadcasted_vars(vars)
   vars
 end
 
+function bvar_def(sol, indvars)
+    Expr(:block, [:($(esc(v)) = map(x -> x.$v, $sol.u)) for v in indvars]...)
+end
+
 function derived_obj(derivedexpr, derivedvars, collate, odevars)
     quote
-        function (_collate,sol,obstimes,obs)
+        function (_collate,_sol,obstimes,obs)
             $(var_def(:_collate, collate))
+            $(bvar_def(:_sol, odevars))
             $(esc(derivedexpr))
             $(esc(nt_expr(derivedvars)))
         end
