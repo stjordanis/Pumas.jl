@@ -370,15 +370,16 @@ function broadcasted_vars(vars)
   vars
 end
 
-function bvar_def(sol, indvars)
-    Expr(:block, [:($(esc(v)) = map(x -> x.$v, $sol.u)) for v in indvars]...)
+function bvar_def(collection, indvars)
+    Expr(:block, [:($(esc(v)) = map(x -> x.$v, $collection)) for v in indvars]...)
 end
 
-function derived_obj(derivedexpr, derivedvars, collate, odevars)
+function derived_obj(derivedexpr, derivedvars, collate, odevars, postvars)
     quote
-        function (_collate,_sol,obstimes,obs)
+        function (_collate,_sol,_obstimes,_obs)
             $(var_def(:_collate, collate))
-            $(bvar_def(:_sol, odevars))
+            $(bvar_def(:(_sol.u), odevars))
+            $(bvar_def(:_obs, postvars))
             $(esc(derivedexpr))
             $(esc(nt_expr(derivedvars)))
         end
@@ -455,7 +456,7 @@ macro model(expr)
             $(init_obj(ode_init,odevars[1],prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
             $(post_obj(postexpr, postvars,prevars, odevars[1])),
-            $(derived_obj(derivedexpr, derivedvars, prevars, odevars[1])))
+            $(derived_obj(derivedexpr, derivedvars, prevars, odevars[1], postvars)))
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))
