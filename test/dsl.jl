@@ -111,9 +111,9 @@ sol2 = solve(mobj,subject,x0,y0)
 Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
 Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
 
-@test obs_dsl.derived.obs_cmax == obs_obj.derived.obs_cmax
+@test obs_dsl.derived.obs_cmax == obs_obj.derived.obs_cmax > 0
 
-@test map(x -> x.dv, obs_dsl) ≈ map(x -> x.dv, obs_obj)
+@test obs_dsl[:dv] ≈ obs_obj[:dv]
 
 # Now test an array-based version
 
