@@ -180,6 +180,8 @@ function simobs(m::PKPDModel, subject::Subject,
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; kwargs...)
     post = postfun(m,col,sol;continuity=continuity)
+    # This can be made slightly more efficient
+    # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup
     obs = DataFrame(map(obstimes) do t
         map(sample, post(t))
     end)
