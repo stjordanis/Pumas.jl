@@ -410,7 +410,7 @@ macro model(expr)
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
     postvars  = OrderedSet{Symbol}()
-    postexpr = Expr(:block)
+    postexpr = :()
     collateexpr = :()
     derivedvars = OrderedSet{Symbol}()
     eqs = Expr(:vect)
@@ -453,7 +453,7 @@ macro model(expr)
             # Add in @vars
             bvars = broadcasted_vars(copy(vars_))
             ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
-            derivedexpr = extract_randvars!(vars, derivedvars, ex.args[3])
+            extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end
