@@ -410,13 +410,13 @@ macro model(expr)
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
     postvars  = OrderedSet{Symbol}()
-    postexpr = :()
+    postexpr = Expr(:block)
     collateexpr = :()
     derivedvars = OrderedSet{Symbol}()
     eqs = Expr(:vect)
     vars_ = Expr[]
     derivedvars = OrderedSet{Symbol}()
-    derivedexpr = :()
+    derivedexpr = Expr(:block)
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
     MacroTools.prewalk(expr) do ex
