@@ -87,7 +87,7 @@ function post_f(col,u,t)
 end
 
 function derived_f(col,sol,obstimes,obs)
-    (obs_cmax = maximum((o.dv for o in obs)),)
+    (obs_cmax = maximum(obs[:dv]),)
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
@@ -104,10 +104,12 @@ sol2 = solve(mobj,subject,x0,y0)
 
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
+simobs(mobj,subject,x0,y0)
+
 @test simobs(mobj,subject,x0,y0).derived.obs_cmax > 0
 
-@test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0))) ≈
-      (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0)))
+@test (Random.seed!(1); simobs(mdsl,subject,x0,y0)[:dv]) ≈
+      (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv])
 
 # Now test an array-based version
 
@@ -125,5 +127,5 @@ sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4
 
-@test (Random.seed!(1); map(x -> x.dv, simobs(mobj_iip,subject,x0,y0))) ≈
-      (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0))) rtol=1e-4
+@test (Random.seed!(1); simobs(mobj_iip,subject,x0,y0)[:dv]) ≈
+      (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv]) rtol=1e-4

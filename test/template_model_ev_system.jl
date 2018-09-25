@@ -65,10 +65,10 @@ x0 = (θ = [1.5,  #Ka
 y0 = (η = [0.0,0.0],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 ###############################
 # Test 3
@@ -138,10 +138,10 @@ x0 = (θ = [1.5,  #Ka
               ],)
 
 sim = simobs(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 sim = simobs(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 
 ###############################
@@ -218,10 +218,10 @@ x0 = (θ = [1.5,  #Ka
               ],)
 
 sim = simobs(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 sim = simobs(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations]
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
 
 
 ###############################
@@ -319,11 +319,11 @@ sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # TODO: why is the first value wrong?
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
 
 ###############################
@@ -391,10 +391,10 @@ sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -437,10 +437,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -485,10 +485,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -534,10 +534,10 @@ x0 = (θ = [ 1.5,  #Ka
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: why is the first value wrong?
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -578,10 +578,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -623,10 +623,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
 
 
@@ -663,10 +663,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -700,10 +700,10 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -786,10 +786,10 @@ x0 = (θ = [
           ],)
 
 sim = simobs(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -815,14 +815,14 @@ x0 = (θ = [
            ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim[1:19]] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
+@test sim[:cp][1:19] ≈ [obs.val.cp for obs in subject.observations[1:19]] rtol=1e-6
 # TODO: this is mixing pre and post dose observations, making some obs fail
-@test_broken [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test_broken sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 # Also, for some reason this is unscaled?
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-maximum([v.cp for v in sim] - [obs.val.cp for obs in subject.observations])
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+maximum(sim[:cp] - [obs.val.cp for obs in subject.observations])
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -856,7 +856,7 @@ x0 = (θ = [
               ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 col = collate(m_analytic, subject, x0, y0)
@@ -867,7 +867,7 @@ ts = [obs.time for obs in subject.observations]
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at dose times?
 # Uses pre-dose observations
-@test_broken [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test_broken 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -894,10 +894,10 @@ x0 = (θ = [
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: wrong at 12th obs?
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -926,10 +926,10 @@ ts = [obs.time for obs in subject.observations]
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:right)
 # TODO: post-dose observation causing failure
-@test [v.cp for v in sim[2:end]] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -1004,10 +1004,10 @@ x0 = (θ = [
 
 
 sim = simobs(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -1077,10 +1077,10 @@ x0 = (θ = [
 
 
 sim = simobs(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
 ###############################
@@ -1108,12 +1108,12 @@ x0 = (θ = [
               ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose mixup at 13th observation?
 inds = [1:12...,14:25...]
-@test [1000*v.cp for v in sim][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6
+@test 1000*sim[:cp][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6
 
 
 ###############################
@@ -1142,9 +1142,9 @@ x0 = (θ = [
               ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-@test [1000*v.cp for v in sim] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
+@test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose mixup at 1st & 13th observation?
 inds = [2:12...,14:25...]
-@test [1000*v.cp for v in sim][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6
+@test 1000*sim[:cp][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6

@@ -142,14 +142,11 @@ function postfun(m::PKPDModel, col, sol; continuity=:left)
   post
 end
 
-struct SimulatedObservations{T,T2} <: AbstractVector{T}
-    times::Vector{Float64}
-    obs::Vector{T}
+struct SimulatedObservations{T,T2}
+    times::Vector{T}
+    obs::DataFrame
     derived::T2
 end
-
-Base.iterate(A::SimulatedObservations)    = iterate(A.obs)
-Base.iterate(A::SimulatedObservations, i) = iterate(A.obs, i)
 
 # size
 Base.length(A::SimulatedObservations) = length(A.obs)
@@ -157,15 +154,13 @@ Base.size(A::SimulatedObservations) = size(A.obs)
 
 # indexing
 @inline function Base.getindex(A::SimulatedObservations, I...)
-    @boundscheck checkbounds(A.obs, I...)
-    @inbounds return A.obs[I...]
+    return A.obs[I...]
 end
 @inline function Base.setindex!(A::SimulatedObservations, x, I...)
-    @boundscheck checkbounds(A.obs, I...)
-    @inbounds A.obs[I...] = x
+    A.obs[I...] = x
 end
 Base.axes(A::SimulatedObservations) = axes(A.obs)
-Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexLinear()
+Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
 
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
@@ -185,9 +180,9 @@ function simobs(m::PKPDModel, subject::Subject,
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; kwargs...)
     post = postfun(m,col,sol;continuity=continuity)
-    obs = map(obstimes) do t
+    obs = DataFrame(map(obstimes) do t
         map(sample, post(t))
-    end
+    end)
     derived = m.derived(col,sol,obstimes,obs)
     SimulatedObservations(obstimes,obs,derived)
 end

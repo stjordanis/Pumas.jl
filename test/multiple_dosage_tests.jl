@@ -54,12 +54,10 @@ sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 sim_diffeq = begin
     Random.seed!(1)
-    s = simobs(m_diffeq,subject1,x0,y0)
-    map(x-> x.dv, s)
+    s = simobs(m_diffeq,subject1,x0,y0)[:dv]
 end
 sim_analytic = begin
     Random.seed!(1)
-    s = simobs(m_analytic,subject1,x0,y0)
-    map(x-> x.dv, s)
+    s = simobs(m_analytic,subject1,x0,y0)[:dv]
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-3

@@ -88,8 +88,8 @@ subject = data.subjects[1]
 
 @test likelihood(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12) ≈ likelihood(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)
 
-@test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12))) ≈
-      (Random.seed!(1); map(x -> x.dv, simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)))
+@test (Random.seed!(1); simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv]) ≈
+      (Random.seed!(1); simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv])
 
 
 p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
@@ -121,4 +121,4 @@ sol = solve(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-
 [sol[i].Central for i in 1:length(sol)]
 
 p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
-@test [1000*x.conc for x in p] ≈ [605.3220736386598;1616.4036675452326]
+@test 1000p[:conc] ≈ [605.3220736386598;1616.4036675452326]
