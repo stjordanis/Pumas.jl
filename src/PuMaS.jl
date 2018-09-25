@@ -1,6 +1,6 @@
 module PuMaS
 
-using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport,
+using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames,
       StaticArrays, DiffEqJump, PDMats, Distributed, LabelledArrays
 
 @reexport using OrdinaryDiffEq

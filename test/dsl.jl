@@ -49,6 +49,10 @@ mdsl = @model begin
     @post begin
         dv ~ Normal(conc, conc*Σ)
     end
+
+    @derived begin
+      obs_cmax = maximum(dv)
+    end
 end
 
 ### Function-Based Interface
@@ -87,7 +91,7 @@ function post_f(col,u,t)
 end
 
 function derived_f(col,sol,obstimes,obs)
-    (obs_cmax = maximum((o.dv for o in obs)),)
+    (obs_cmax = maximum(obs[:dv]),)
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
@@ -104,10 +108,12 @@ sol2 = solve(mobj,subject,x0,y0)
 
 @test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0)
 
-@test simobs(mobj,subject,x0,y0).derived.obs_cmax > 0
+Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
+Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
 
-@test (Random.seed!(1); map(x -> x.dv, simobs(mdsl,subject,x0,y0))) ≈
-      (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0)))
+@test obs_dsl.derived.obs_cmax == obs_obj.derived.obs_cmax > 0
+
+@test obs_dsl[:dv] ≈ obs_obj[:dv]
 
 # Now test an array-based version
 
@@ -125,5 +131,5 @@ sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4
 
-@test (Random.seed!(1); map(x -> x.dv, simobs(mobj_iip,subject,x0,y0))) ≈
-      (Random.seed!(1); map(x -> x.dv, simobs(mobj,subject,x0,y0))) rtol=1e-4
+@test (Random.seed!(1); simobs(mobj_iip,subject,x0,y0)[:dv]) ≈
+      (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv]) rtol=1e-4
