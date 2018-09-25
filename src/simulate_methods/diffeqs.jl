@@ -6,7 +6,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
 
     # Promotion to handle Dual numbers
     T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-    Tu0 = T.(u0)
+    Tu0 = convert.(T,u0)
 
     # build a "modified" problem using DiffEqWrapper
     fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
