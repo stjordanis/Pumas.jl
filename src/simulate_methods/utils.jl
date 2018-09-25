@@ -97,6 +97,7 @@ numtype(x::AbstractArray) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 numtype(x::Tuple)         = promote_type(map(numtype,x)...)
 numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
+numtype(x::Function) = Float64 # To allow time-varying covars, could be better
 
 zero(x) = Base.zero(x)
 zero(x::Tuple) = map(zero,x)

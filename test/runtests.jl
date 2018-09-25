@@ -20,7 +20,8 @@ using Test
     include("stability_tests.jl") end
 @time @testset "StaticArray Tests" begin
      include("static_array_test.jl") end
-
+@time @testset "Time-Varying Covariate Tests" begin
+     include("time_varying_covar.jl") end
 
 @time @testset "Neutropenia" begin
      include("neutropenia.jl") end
