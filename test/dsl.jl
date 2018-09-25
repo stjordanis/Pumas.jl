@@ -1,6 +1,6 @@
 using Test
 
-using PuMaS, Distributions, ParameterizedFunctions, Random, LabelledArrays
+using PuMaS, Distributions, Random, LabelledArrays
 
 
 # Read the data# Read the data
@@ -42,7 +42,7 @@ mdsl = @model begin
     end
 
     @dynamics begin
-        Depot'   = -Ka*Depot
+        Depot'   := -Ka*Depot # test for `:=` handling
         Central' =  Ka*Depot - CL*conc
     end
 

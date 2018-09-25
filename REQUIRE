@@ -6,7 +6,6 @@ Reexport
 StaticArrays
 DiffEqJump 1.0.0
 DiffEqMonteCarlo
-ParameterizedFunctions
 DataStructures
 MacroTools
 DelayDiffEq
