@@ -1,6 +1,5 @@
 using DataStructures
 using MacroTools
-using ParameterizedFunctions
 using ModelingToolkit
 
 export @model
@@ -170,7 +169,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
             islinenum(ex) && continue
             extract_dynamics!(vars, odevars, ode_init, ex, eqs)
         end
-    elseif expr.head == :(=)
+    elseif expr.head == :(=) || expr.head == :(:=)
         # `odevars[1]` stores DVar & `odevars[2]` stores Var
         dp = expr.args[1]
         isder = dp isa Expr && dp.head == Symbol('\'')
@@ -222,21 +221,26 @@ function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
 end
 
 function init_obj(ode_init,odevars,prevars,isstatic)
-    vecexpr = :([])
-    for p in odevars
-        push!(vecexpr.args, ode_init[p])
-    end
     if isstatic
+        vecexpr = []
+        for p in odevars
+            push!(vecexpr, ode_init[p])
+        end
         tname = gensym()
-        vecexpr = :($tname($vecexpr))
+        typeexpr = :($tname())
+        append!(typeexpr.args,vecexpr)
         quote
             @SLVector $tname Float64 [$(odevars...)]
             function (_pre,t)
                 $(var_def(:_pre, prevars))
-                $(esc(vecexpr))
+                $(esc(typeexpr))
             end
         end
     else
+      vecexpr = :([])
+      for p in odevars
+          push!(vecexpr.args, ode_init[p])
+      end
       quote
           function (_pre,t)
               $(var_def(:_pre, prevars))
@@ -246,7 +250,6 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     end
 end
 
-# here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
     ivar  = :(@IVar t)
     var   = :(@Var)
