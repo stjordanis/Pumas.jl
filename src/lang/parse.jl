@@ -221,21 +221,26 @@ function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
 end
 
 function init_obj(ode_init,odevars,prevars,isstatic)
-    vecexpr = :([])
-    for p in odevars
-        push!(vecexpr.args, ode_init[p])
-    end
     if isstatic
+        vecexpr = []
+        for p in odevars
+            push!(vecexpr, ode_init[p])
+        end
         tname = gensym()
-        vecexpr = :($tname($vecexpr))
+        typeexpr = :($tname())
+        append!(typeexpr.args,vecexpr)
         quote
             @SLVector $tname Float64 [$(odevars...)]
             function (_pre,t)
                 $(var_def(:_pre, prevars))
-                $(esc(vecexpr))
+                $(esc(typeexpr))
             end
         end
     else
+      vecexpr = :([])
+      for p in odevars
+          push!(vecexpr.args, ode_init[p])
+      end
       quote
           function (_pre,t)
               $(var_def(:_pre, prevars))
