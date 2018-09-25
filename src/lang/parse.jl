@@ -1,6 +1,5 @@
 using DataStructures
 using MacroTools
-using ParameterizedFunctions
 using ModelingToolkit
 
 export @model
@@ -170,7 +169,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
             islinenum(ex) && continue
             extract_dynamics!(vars, odevars, ode_init, ex, eqs)
         end
-    elseif expr.head == :(=)
+    elseif expr.head == :(=) || expr.head == :(:=)
         # `odevars[1]` stores DVar & `odevars[2]` stores Var
         dp = expr.args[1]
         isder = dp isa Expr && dp.head == Symbol('\'')
@@ -246,7 +245,6 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     end
 end
 
-# here we just use the ParameterizedFunctions @ode_def
 function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
     ivar  = :(@IVar t)
     var   = :(@Var)
