@@ -1,4 +1,4 @@
-ID,TIME,EVID,AMT,CMT,SS,II,ADDL,CP
+id,time,evid,amt,cmt,ss,ii,addl,cp
 1,0,1,10,2,1,24,2,0.60532207
 1,1,0,0,2,0,0,0,0.58547726
 1,2,0,0,2,0,0,0,0.56628303

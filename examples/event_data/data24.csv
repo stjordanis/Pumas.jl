@@ -1,4 +1,4 @@
-ID,time,amt,cmt,dv,C,evid,ss,ii,addl,rate,EV1,CENT,PERIPH,RESP,EV2,CP,DV,mdv
+id,time,amt,cmt,dv,c,evid,ss,ii,addl,rate,ev1,cent,periph,resp,ev2,cp,DV,mdv
 1,0,0,2,0,.,0,0,0,0,0,0,0,0,5,0,0,.,0
 1,0,100,1,0,.,1,0,24,3,0,100,0,0,5,0,0,.,0
 1,0.1,0,2,0,.,0,0,0,0,0,90.48374181353503,9.444382458785396,0.04780971085670609,5.098174253494473,0,0.4722191229392698,.,0

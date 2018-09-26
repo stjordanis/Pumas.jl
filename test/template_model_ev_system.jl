@@ -1,6 +1,4 @@
-using Test
-using PuMaS, Distributions, PDMats, StaticArrays
-
+using PuMaS, Test, CSV, Distributions, PDMats, StaticArrays
 
 ###############################
 # Test 2
@@ -55,13 +53,13 @@ m_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data2.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data2.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0 #V
-              ],)
+           1.0,  #CL
+           30.0 #V
+           ],)
 y0 = (η = [0.0,0.0],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
@@ -127,15 +125,15 @@ mlag_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data3.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data3.csv")),
+                       [], [:cp])[1]
 
 
 x0 = (θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0, #V
-              5.0   #lags
-              ],)
+           1.0,  #CL
+           30.0, #V
+           5.0   #lags
+           ],)
 
 sim = simobs(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
@@ -206,16 +204,15 @@ mlagbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data4.csv"),
-                       [], [:cp],  separator=',')[1]
-
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data4.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0, #V
-              5.0,  #lags
-              0.412,#bioav
-              ],)
+           1.0,  #CL
+           30.0, #V
+           5.0,  #lags
+           0.412,#bioav
+           ],)
 
 sim = simobs(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations]
@@ -284,15 +281,14 @@ mbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data5.csv"),
-                       [], [:cp],  separator=',')[1]
-
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data5.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
-              1.0,  #CL
-              30.0, #V
-              0.412,#bioav
-              ],)
+           1.0,  #CL
+           30.0, #V
+           0.412,#bioav
+           ],)
 
 function analytical_ss_update(u0,rate,duration,deg,bioav,ii)
     rate_on_duration = duration*bioav
@@ -317,14 +313,12 @@ sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # TODO: why is the first value wrong?
 @test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
-
 
 ###############################
 # Test 6
@@ -355,9 +349,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data6.csv"),
-                       [], [:cp],  separator=',')[1]
-
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data6.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -389,14 +382,12 @@ sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
-
 
 ###############################
 # Test 7
@@ -427,8 +418,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data7.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data7.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -475,8 +466,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data8.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data8.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -490,7 +481,6 @@ sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test 1000*sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 # TODO: why is the first value wrong?
-
 
 ###############################
 # Test 9
@@ -523,8 +513,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data9.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data9.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -568,8 +558,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data10.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data10.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -613,8 +603,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data11.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data11.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -654,8 +644,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data12.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data12.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -690,8 +680,8 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data13.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data13.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -704,7 +694,6 @@ sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
-
 
 ###############################
 # Test 14
@@ -773,8 +762,8 @@ mbld_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data14.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data14.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
           1.5,  #Ka
@@ -805,8 +794,8 @@ sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data15.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data15.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
            1.5,  #Ka
@@ -846,8 +835,8 @@ maximum(sim[:cp] - [obs.val.cp for obs in subject.observations])
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data16.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data16.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
               1.5,  #Ka
@@ -883,8 +872,8 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data17.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data17.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
               1.0,  #Ka
@@ -899,7 +888,6 @@ sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
-
 ###############################
 # Test 18
 ###############################
@@ -910,14 +898,14 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data18.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data18.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
-              1.0,  #Ka
-              1.0,  #CL
-              30.0  #V
-             ],)
+            1.0,  #Ka
+            1.0,  #CL
+            30.0  #V
+          ],)
 
 col = collate(m_diffeq, subject, x0, y0)
 sol = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -990,25 +978,23 @@ mparbl_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data19.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data19.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
-              0.8,  #Ka1
-              0.6,  #Ka2
-              50.0, #V # V needs to be 3 for the test to scale the result properly
-              5.0,  #CL
-              0.5,  #bioav1
-              5     #lag2
-             ],)
-
+            0.8,  #Ka1
+            0.6,  #Ka2
+            50.0, #V # V needs to be 3 for the test to scale the result properly
+            5.0,  #CL
+            0.5,  #bioav1
+            5     #lag2
+           ],)
 
 sim = simobs(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
-
 
 ###############################
 # Test 20
@@ -1063,25 +1049,22 @@ mbl2_analytic = @model begin
     @post cp = Central / V
 end
 
-
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data20.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data20.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
-              0.5,  #Ka1
-              5.0,  #CL
-              50.0, #V
-              5,    #lag2
-              0.5   #bioav1
-              ],)
-
+            0.5,  #Ka1
+            5.0,  #CL
+            50.0, #V
+            5,    #lag2
+            0.5   #bioav1
+           ],)
 
 sim = simobs(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
-
 
 ###############################
 # Test 21
@@ -1098,14 +1081,14 @@ sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data21.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data21.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0  #V
-              ],)
+            1.5,  #Ka
+            1.0,  #CL
+            30.0  #V
+          ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -1114,7 +1097,6 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # TODO: post-dose mixup at 13th observation?
 inds = [1:12...,14:25...]
 @test 1000*sim[:cp][inds] ≈ [obs.val.cp for obs in subject.observations][inds] rtol=1e-6
-
 
 ###############################
 # Test 22
@@ -1132,14 +1114,14 @@ inds = [1:12...,14:25...]
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data22.csv"),
-                       [], [:cp],  separator=',')[1]
+subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data22.csv")),
+                       [], [:cp])[1]
 
 x0 = (θ = [
-              1.5,  #Ka
-              1.0,  #CL
-              30.0  #V
-              ],)
+            1.5,  #Ka
+            1.0,  #CL
+            30.0  #V
+          ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6

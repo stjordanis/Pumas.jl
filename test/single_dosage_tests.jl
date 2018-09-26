@@ -1,9 +1,8 @@
-using Test, Random
-using PuMaS, Distributions, PDMats, StaticArrays
+using PuMaS, Test, CSV, Distributions, PDMats, Random, StaticArrays
 
 # Read the data
-data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
-                    [:sex,:wt,:etn],separator=',')
+data = process_data(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),
+                    [:sex,:wt,:etn])
 
 # add a small epsilon to time 0 observations
 for subject in data.subjects

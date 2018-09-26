@@ -1,5 +1,4 @@
-using PuMaS
-using Test
+using PuMaS, Test
 
 @time begin
 @time @testset "Parsing Tests" begin
