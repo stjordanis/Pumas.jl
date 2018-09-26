@@ -1,4 +1,4 @@
-ID,TIME,EVID,AMT,CMT,SS,II,RATE,CP
+id,time,evid,amt,cmt,ss,ii,rate,cp
 1,0,0,0,2,0,0,0,0
 1,1,0,0,2,0,0,0,0
 1,2,0,0,2,0,0,0,0

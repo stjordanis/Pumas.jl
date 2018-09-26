@@ -1,11 +1,10 @@
-using Test
-using PuMaS, Distributions
+using PuMaS, Test, CSV, Distributions
 
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.csv"),
-                    covariates,dvs, separator=',')
+data = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.csv")),
+                    covariates,dvs)
 
 m_diffeq = @model begin
 

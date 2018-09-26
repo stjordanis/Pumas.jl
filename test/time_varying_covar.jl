@@ -1,7 +1,7 @@
-using PuMaS, LabelledArrays, Distributions, PDMats
+using PuMaS, CSV, LabelledArrays, Distributions, PDMats
 
-data = process_data(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
-                    [:sex,:wt,:etn],separator=',')
+data = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)),"..","examples/data1.csv")),
+                    [:sex,:wt,:etn])
 
 for subject in data.subjects
     obs1 = subject.observations[1]

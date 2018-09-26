@@ -1,4 +1,4 @@
-C,ID,time,evid,amt,cmt,ss,ii,addl,rate,GUT,CENT,CP,DV
+c,id,time,evid,amt,cmt,ss,ii,addl,rate,gut,cent,cp,dv
 .,1,0,0,0,2,0,0,0,0,0,0,0,.
 .,1,0,1,10,1,0,0,0,0,5,0,0,.
 .,1,0,1,10,2,0,0,0,-2,5,0,0,.
