@@ -1,2 +1,2 @@
-id,time,amt,cmt,dv,rate,DUR2,MODE,ii,addl,LAGT,BIOAV,evid,mdv
+id,time,amt,cmt,dv,rate,dur2,mode,ii,addl,lagt,bioav,evid,mdv
 1,0,100,2,0,-2,9,2,12,5,5,0.61,1,1

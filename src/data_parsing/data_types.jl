@@ -18,16 +18,15 @@ struct Subject{T1,T2,T3}
   events::T3
 end
 
-
 function Base.show(io::IO, subject::Subject)
     println(io, "Subject")
     println(io, "  Events: ", length(subject.events))
     println(io, "  Observations: ", length(subject.observations))
     println(io, "  Covariates: ", join(fieldnames(typeof(subject.covariates)),", "))
-    println(io, "  Observables: ", join(fieldnames(typeof(subject.observations[1].val)),", "))
+    !isempty(subject.observations) &&
+        println(io, "  Observables: ",
+                    join(fieldnames(typeof(subject.observations[1].val)),", "))
 end
-
-
 
 """
     Population
@@ -65,7 +64,6 @@ struct Observation{T,V,C}
     val::V
     cmt::C
 end
-
 
 """
     Event
@@ -112,9 +110,8 @@ struct Event{T,T2,T3} # Split parameters for dual numbers
   rate_dir::Int8
 end
 
-Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, 0.0, 0.0, Int8(0), 0.0, time, Int8(1))
-
-
+Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
+                                    Int8(0), 0.0, time, Int8(1))
 
 Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)

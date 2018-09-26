@@ -1,4 +1,4 @@
-id,time,amt,cmt,dv,rate,evid,mdv,SS
+id,time,amt,cmt,dv,rate,evid,mdv,ss
 1,0,0,2,0,10,1,1,1
 1,1,0,2,0,10,1,1,1
 1,2,0,2,0,10,1,1,1

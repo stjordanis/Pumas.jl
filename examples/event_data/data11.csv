@@ -1,4 +1,4 @@
-id,time,amt,cmt,dv,C,ID,evid,ss,ii,addl,rate,LAGT,MODE,DUR2,RAT2,BIOAV,DV,CP,mdv
+id,time,amt,cmt,dv,c,ID,evid,ss,ii,addl,rate,lagt,mode,dur2,rat2,bioav,dv,cp,mdv
 1,0,0,2,0,.,11,0,0,0,0,0,0,0,2,10,0.412,.,0,1
 1,0,100,1,0,.,11,1,1,12,3,0,0,0,2,10,0.412,.,6931.515726520853,1
 1,1,0,2,0,.,11,0,0,0,0,0,0,0,2,10,0.412,.,9240.93026484198,1
