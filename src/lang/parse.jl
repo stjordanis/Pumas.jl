@@ -331,25 +331,30 @@ function post_obj(post, collate, odevars)
     end
 end
 
-function extract_randvars!(vars, randvars, expr)
-    MacroTools.prewalk(expr) do ex
-        if ex isa Expr && ((iseq = ex.head == :(=)) || ex.head == :(:=)) && length(ex.args) == 2
-            p = ex.args[1]
-            if p ∉ vars && iseq
-                push!(vars,p)
-                push!(randvars,p)
-            end
-            :($p = $(ex.args[2]))
-        elseif ex isa Expr && ex.head == :call && ex.args[1] == :~ && length(ex.args) == 3
-            p = ex.args[2]
-            if p ∉ vars
-              push!(vars,p)
-              push!(randvars,p)
-            end
-            :($p = $(ex.args[3]))
-        else
-            ex
+function extract_randvars!(vars, randvars, postexpr, expr)
+    @assert expr isa Expr
+    expr = MacroTools.striplines(expr)
+    if expr.head == :block
+        for ex in expr.args
+            #islinenum(expr) && continue
+            extract_randvars!(vars, randvars, postexpr, ex)
         end
+    elseif ((iseq = expr.head == :(=)) || expr.head == :(:=)) && length(expr.args) == 2
+        p = expr.args[1]
+        if p ∉ vars && iseq
+            push!(vars,p)
+            push!(randvars,p)
+        end
+        push!(postexpr.args, :($p = $(expr.args[2])))
+    elseif expr isa Expr && expr.head == :call && expr.args[1] == :~ && length(expr.args) == 3
+        p = expr.args[2]
+        if p ∉ vars
+          push!(vars,p)
+          push!(randvars,p)
+        end
+        push!(postexpr.args, :($p = $(expr.args[3])))
+    else
+        error("Invalid expression: $expr")
     end
 end
 
@@ -405,13 +410,13 @@ macro model(expr)
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
     postvars  = OrderedSet{Symbol}()
-    postexpr = :()
+    postexpr = Expr(:block)
     collateexpr = :()
     derivedvars = OrderedSet{Symbol}()
     eqs = Expr(:vect)
     vars_ = Expr[]
     derivedvars = OrderedSet{Symbol}()
-    derivedexpr = :()
+    derivedexpr = Expr(:block)
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
     MacroTools.prewalk(expr) do ex
@@ -443,12 +448,12 @@ macro model(expr)
         elseif ex.args[1] == Symbol("@post")
             # Add in @vars
             ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
-            postexpr = extract_randvars!(vars, postvars, ex.args[3])
+            extract_randvars!(vars, postvars, postexpr, ex.args[3])
         elseif ex.args[1] == Symbol("@derived")
             # Add in @vars
             bvars = broadcasted_vars(copy(vars_))
             ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
-            derivedexpr = extract_randvars!(vars, derivedvars, ex.args[3])
+            extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end
