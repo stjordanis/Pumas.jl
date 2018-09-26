@@ -4,8 +4,8 @@ using PuMaS, Distributions
 # Load data
 covariates = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.txt"),
-                    covariates,dvs)
+data = process_data(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.csv"),
+                    covariates,dvs, separator=',')
 
 m_diffeq = @model begin
 
