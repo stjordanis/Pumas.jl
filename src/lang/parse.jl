@@ -179,7 +179,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
                 error("Invalid variable $dp: must be in the form of X' or X")
         p = isder ? dp.args[1] : dp
         _odevars = isder ? odevars[1] : odevars[2]
-        lhs = isder ? :(D*$p) : p
+        lhs = isder ? :(___D*$p) : p
         push!(eqs.args, :($lhs ~ $(expr.args[2])))
         if p in keys(ode_init)
             push!(_odevars, p)
@@ -254,7 +254,7 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
     ivar  = :(@IVar t)
     var   = :(@Var)
     dvar  = :(@DVar)
-    der   = :(@Deriv D'~t)
+    der   = :(@Deriv ___D'~t)
     param = :(@Param)
     if isstatic
       diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], []),version=ModelingToolkit.SArrayFunction))
