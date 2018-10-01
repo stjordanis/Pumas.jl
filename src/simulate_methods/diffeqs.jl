@@ -78,6 +78,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   ss_dropoff_counter = Ref(0)
   ss_tstop_cache = Vector{eltype(tstops)}()
   last_restart = Ref(-one(eltype(tstops)))
+  save_on_cache = Ref(true)
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
@@ -133,13 +134,15 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
           end
 
           ss_counter[] = 0
-          integrator.opts.save_everystep = false
+
+          # Turn off saving
+          save_on_cache[] = integrator.opts.save_on
+          integrator.opts.save_on = false
+
           post_steady_state[] = false
           ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=false)
 
-          ss_time[] = integrator.t
-          # TODO: Handle saveat in this range
-          # TODO: Make compatible with save_everystep = false
+          ss_time[] = integrator.t          
           if typeof(bioav) <: Number
             _duration = (bioav*cur_ev.amt)/cur_ev.rate
           else
@@ -165,7 +168,6 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
              err/integrator.opts.internalnorm(integrator.u) < ss_reltol)
             # Steady state complete
             ss_mode[] = false
-            # TODO: Make compatible with save_everystep = false
             post_steady_state[] = true
 
             if typeof(f.f.rates) <: Union{Number,SArray,FieldVector}
@@ -174,7 +176,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
               f.f.rates .= 0
             end
 
-            integrator.opts.save_everystep = true
+            integrator.opts.save_on = save_on_cache[] # revert saving behavior to original
             ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=true)
 
             if cur_ev.ss == 2
