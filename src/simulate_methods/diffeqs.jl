@@ -98,12 +98,9 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
     while counter <= length(events) && events[counter].time <= integrator.t
       cur_ev = events[counter]
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
-        savevalues!(integrator)
         dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.evid >= 3
-        savevalues!(integrator)
-
         if typeof(integrator.u) <: Union{Number,FieldVector,SArray}
           integrator.u = zero(integrator.u)
         else
@@ -123,7 +120,6 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
         counter += 1
       elseif cur_ev.ss > 0
         if !ss_mode[]
-          savevalues!(integrator)
           # This is triggered at the start of a steady-state event
           ss_mode[] = true
 
@@ -260,9 +256,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
       # TODO: Optimize by setting f.f.rates_on = false
     end
   end
-  tstops,DiscreteCallback{typeof(condition),typeof(affect!),
-                          typeof(subject_cb_initialize!)}(condition,
-                          affect!,subject_cb_initialize!,(false,false))
+  tstops,DiscreteCallback(condition,affect!,subject_cb_initialize!,(true,true))
 end
 
 function dose!(integrator,u,cur_ev,bioav,last_restart)
@@ -279,7 +273,6 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
     else
       @views integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
     end
-    savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.f.rates_on += cur_ev.evid > 0
@@ -302,7 +295,6 @@ function dose!(integrator,u::Union{SArray,FieldVector},cur_ev,bioav,last_restart
     else
       integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt] + bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt)
     end
-    savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.f.rates_on += cur_ev.evid > 0
