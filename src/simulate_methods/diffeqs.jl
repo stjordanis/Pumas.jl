@@ -26,7 +26,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
                 kwargs...)
 end
 
-function build_pkpd_problem(_prob::DiffEqJump.AbstractJumpProblem,set_parameters,θ,ηi,datai)
+function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
   JumpProblem{typeof(prob),typeof(_prob.aggregator),
               typeof(_prob.jump_callback),
