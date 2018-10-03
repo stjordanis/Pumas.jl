@@ -1,4 +1,4 @@
-function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwargs...)
+function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; save_discont=true, kwargs...)
     prob = m.prob
     tspan = prob.tspan
     col = prob.p
@@ -13,7 +13,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
     ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob),save_discont)
     prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
     # Remake problem of correct type
@@ -52,7 +52,7 @@ end
 #                   callback=cb)
 #end
 
-function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
+function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   events = datai.events
   ss_abstol = 1e-12 # TODO: Make an option
   ss_reltol = 1e-12 # TODO: Make an option
@@ -256,7 +256,8 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
       # TODO: Optimize by setting f.f.rates_on = false
     end
   end
-  tstops,DiscreteCallback(condition,affect!,subject_cb_initialize!,(true,true))
+  save_positions = save_discont ? (true, true) : (false, false)
+  tstops,DiscreteCallback(condition,affect!,subject_cb_initialize!,save_positions)
 end
 
 function dose!(integrator,u,cur_ev,bioav,last_restart)
