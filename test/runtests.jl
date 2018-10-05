@@ -25,6 +25,9 @@ using PuMaS, Test
 @time @testset "Neutropenia" begin
      include("neutropenia.jl") end
 
+@time @testset "NCA" begin
+     include("nca_tests.jl") end
+
 #=
 @time @testset "DDE Tests" begin
      include("ddes.jl") end

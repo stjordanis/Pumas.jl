@@ -13,5 +13,4 @@ PDMats
 ModelingToolkit
 LabelledArrays
 DataFrames
-Polynomials
 GLM
