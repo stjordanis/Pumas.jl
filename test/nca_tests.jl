@@ -1,16 +1,14 @@
-using PuMaS, Test, ExcelReaders
+using PuMaS, Test, CSV
 
-file = openxl("../examples/nca_test_data/dapa_IV.xls")
-data = readxl(file, "Sheet1!A1:G386")
+data = CSV.read("../examples/nca_test_data/dapa_IV.csv")
 
-conc = Float64.(data[3:end, 4])
-t = Float64.(data[3:end, 3])
+conc = Float64.(data[:CObs])
+t = Float64.(data[:TIME])
 
-file = openxl("../examples/nca_test_data/Final_Parameters_Pivoted.xls")
-data = readxl(file, "Sheet1!A1:AS26")
+data = CSV.read("../examples/nca_test_data/Final_Parameters_Pivoted.csv")
 
-correct_auc = Float64.(data[3:end, 24])
-correct_aumc = Float64.(data[3:end, 37])
+correct_auc = Float64.(data[:AUCINF_obs])
+correct_aumc = Float64.(data[:AUMCINF_obs])
 
 test_auc = rand(24,)
 test_aumc = rand(24,)
