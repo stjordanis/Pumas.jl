@@ -308,7 +308,7 @@ let
 end
 
 sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test sol[3][2] ≈ u0
+@test sol[2][2] ≈ u0
 
 sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
@@ -377,7 +377,7 @@ let
 end
 
 sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-@test sol[3][2] ≈ u0
+@test sol[2][2] ≈ u0
 
 sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
@@ -913,8 +913,7 @@ ts = [obs.time for obs in subject.observations]
 @test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:right)
-# TODO: post-dose observation causing failure
-@test_broken sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
+@test sim[:cp][2:end] ≈ [obs.val.cp for obs in subject.observations[2:end]] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
