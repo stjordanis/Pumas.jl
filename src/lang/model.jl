@@ -178,7 +178,7 @@ function simobs(m::PKPDModel, subject::Subject,
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
     col = m.collate(param, rfx, subject.covariates)
-    sol = _solve(m, subject, col, args...; kwargs...)
+    sol = _solve(m, subject, col, args...; save_discont=false, kwargs...)
     post = postfun(m,col,sol;continuity=continuity)
     # This can be made slightly more efficient
     # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup

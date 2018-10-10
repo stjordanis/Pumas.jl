@@ -1,4 +1,4 @@
-function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwargs...)
+function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; save_discont=true, kwargs...)
     prob = m.prob
     tspan = prob.tspan
     col = prob.p
@@ -13,7 +13,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; kwa
     ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
     # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob))
+    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob),save_discont)
     prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
     # Remake problem of correct type
@@ -52,7 +52,7 @@ end
 #                   callback=cb)
 #end
 
-function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
+function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   events = datai.events
   ss_abstol = 1e-12 # TODO: Make an option
   ss_reltol = 1e-12 # TODO: Make an option
@@ -78,6 +78,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
   ss_dropoff_counter = Ref(0)
   ss_tstop_cache = Vector{eltype(tstops)}()
   last_restart = Ref(-one(eltype(tstops)))
+  save_on_cache = Ref(true)
 
   # searchsorted is empty iff t ∉ target_time
   # this is a fast way since target_time is sorted
@@ -97,12 +98,9 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
     while counter <= length(events) && events[counter].time <= integrator.t
       cur_ev = events[counter]
       @inbounds if (cur_ev.evid == 1 || cur_ev.evid == -1) && cur_ev.ss == 0
-        savevalues!(integrator)
         dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.evid >= 3
-        savevalues!(integrator)
-
         if typeof(integrator.u) <: Union{Number,FieldVector,SArray}
           integrator.u = zero(integrator.u)
         else
@@ -122,7 +120,6 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
         counter += 1
       elseif cur_ev.ss > 0
         if !ss_mode[]
-          savevalues!(integrator)
           # This is triggered at the start of a steady-state event
           ss_mode[] = true
 
@@ -133,13 +130,15 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
           end
 
           ss_counter[] = 0
-          integrator.opts.save_everystep = false
+
+          # Turn off saving
+          save_on_cache[] = integrator.opts.save_on
+          integrator.opts.save_on = false
+
           post_steady_state[] = false
           ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=false)
 
-          ss_time[] = integrator.t
-          # TODO: Handle saveat in this range
-          # TODO: Make compatible with save_everystep = false
+          ss_time[] = integrator.t          
           if typeof(bioav) <: Number
             _duration = (bioav*cur_ev.amt)/cur_ev.rate
           else
@@ -165,7 +164,6 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
              err/integrator.opts.internalnorm(integrator.u) < ss_reltol)
             # Steady state complete
             ss_mode[] = false
-            # TODO: Make compatible with save_everystep = false
             post_steady_state[] = true
 
             if typeof(f.f.rates) <: Union{Number,SArray,FieldVector}
@@ -174,7 +172,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
               f.f.rates .= 0
             end
 
-            integrator.opts.save_everystep = true
+            integrator.opts.save_on = save_on_cache[] # revert saving behavior to original
             ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=true)
 
             if cur_ev.ss == 2
@@ -258,9 +256,8 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType)
       # TODO: Optimize by setting f.f.rates_on = false
     end
   end
-  tstops,DiscreteCallback{typeof(condition),typeof(affect!),
-                          typeof(subject_cb_initialize!)}(condition,
-                          affect!,subject_cb_initialize!,(false,false))
+  save_positions = save_discont ? (true, true) : (false, false)
+  tstops,DiscreteCallback(condition,affect!,subject_cb_initialize!,save_positions)
 end
 
 function dose!(integrator,u,cur_ev,bioav,last_restart)
@@ -277,7 +274,6 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
     else
       @views integrator.u[cur_ev.cmt] += bioav[cur_ev.cmt]*cur_ev.amt
     end
-    savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.f.rates_on += cur_ev.evid > 0
@@ -300,7 +296,6 @@ function dose!(integrator,u::Union{SArray,FieldVector},cur_ev,bioav,last_restart
     else
       integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt] + bioav[cur_ev.cmt]*cur_ev.amt,cur_ev.cmt)
     end
-    savevalues!(integrator)
   else
     if cur_ev.rate_dir > 0 || integrator.t - cur_ev.duration > last_restart[]
       f.f.rates_on += cur_ev.evid > 0
