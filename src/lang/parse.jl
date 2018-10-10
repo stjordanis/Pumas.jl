@@ -394,6 +394,7 @@ function derived_obj(derivedexpr, derivedvars, collate, odevars, postvars)
             $(var_def(:_collate, collate))
             $(bvar_def(:(_sol.u), odevars))
             $(bvar_def(:_obs, postvars))
+            $(esc(:t)) = _obstimes
             $(esc(derivedexpr))
             $(esc(nt_expr(derivedvars)))
         end
