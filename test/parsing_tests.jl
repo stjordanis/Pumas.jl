@@ -1,6 +1,6 @@
 using PuMaS, Test, CSV
 
-data = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..","examples/event_data/ev1.csv")))
+data = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..","examples/event_data/ev1.csv")))
 @test_nowarn show(data)
 
 @test map(x->x.time,data[1].events) == collect(0:12.0:36.0)

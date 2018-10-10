@@ -53,8 +53,8 @@ m_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data2.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data2.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -125,8 +125,8 @@ mlag_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data3.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data3.csv")),
+                         [], [:cp])[1]
 
 
 x0 = (θ = [1.5,  #Ka
@@ -204,8 +204,8 @@ mlagbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data4.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data4.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -281,8 +281,8 @@ mbioav_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data5.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data5.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -349,8 +349,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data6.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data6.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -418,8 +418,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data7.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data7.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -466,8 +466,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data8.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data8.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -513,8 +513,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data9.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data9.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -558,8 +558,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data10.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data10.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -603,8 +603,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data11.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data11.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -644,8 +644,8 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data12.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data12.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -680,8 +680,8 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data13.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data13.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -762,8 +762,8 @@ mbld_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data14.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data14.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
           1.5,  #Ka
@@ -794,8 +794,8 @@ sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data15.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data15.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
            1.5,  #Ka
@@ -835,8 +835,8 @@ maximum(sim[:cp] - [obs.val.cp for obs in subject.observations])
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data16.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data16.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
               1.5,  #Ka
@@ -872,8 +872,8 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data17.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data17.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
               1.0,  #Ka
@@ -898,8 +898,8 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data18.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data18.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
             1.0,  #Ka
@@ -977,8 +977,8 @@ mparbl_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data19.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data19.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
             0.8,  #Ka1
@@ -1048,8 +1048,8 @@ mbl2_analytic = @model begin
     @post cp = Central / V
 end
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data20.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data20.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
             0.5,  #Ka1
@@ -1080,8 +1080,8 @@ sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data21.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data21.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
             1.5,  #Ka
@@ -1113,8 +1113,8 @@ inds = [1:12...,14:25...]
 # evid = 4: indicates a dosing event where time and amounts in all compartments are reset to zero
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data22.csv")),
-                       [], [:cp])[1]
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data22.csv")),
+                         [], [:cp])[1]
 
 x0 = (θ = [
             1.5,  #Ka
