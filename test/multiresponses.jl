@@ -29,7 +29,7 @@ using PuMaS, Test, CSV, Distributions, PDMats
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data23.csv")),
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data23.csv")),
                        [], [:ev1,:cp,:periph,:resp])[1]
 
 
@@ -130,7 +130,7 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_data(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data24.csv")),
+subject = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/event_data","data24.csv")),
                        [], [:ev1,:cp,:periph,:resp])[1]
 
 

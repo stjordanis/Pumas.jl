@@ -1,7 +1,7 @@
 using PuMaS, Test, CSV, Distributions, StaticArrays, Random, LinearAlgebra, LabelledArrays
 
 # Read the data# Read the data
-data = process_data(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),
+data = process_nmtran(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),
                     [:sex,:wt,:etn])
 # add a small epsilon to time 0 observations
 for subject in data.subjects

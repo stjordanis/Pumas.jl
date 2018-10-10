@@ -18,17 +18,15 @@ Base.axes(A::Population) = axes(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
 """
-    process_data(filename, cvs=[], dvs=[:dv])
+    process_nmtran(data, cvs=[], dvs=[:dv])
 
-Import NONMEM-formatted data from `filename`.
+Import NMTRAN-formatted data.
 
-- `cvs` and `dvs` are the list of columns (either names or column numbers) which are considered covariates and dependent variables.
-- `header`: whether or not there is a header row (default=`true`)
-- `names`: a list names of colums. If `nothing` (default) then these are taken as the first row (`header` must be `true`)
-- `separator`: the delimiter. Should be either a character (e.g. `','`) or `nothing` (default) in which case it is taken to be whitespace-delimited with repeated whitespaces treated as one delimiter.
+- `cvs` covariates specified by either names or column numbers
+- `dvs` dependent variables specified by either names or column numbers
 
 """
-function process_data(data,cvs=Symbol[],dvs=Symbol[:dv])
+function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
     Names = names(data)
     m = size(data, 1)
 
@@ -116,7 +114,59 @@ function process_data(data,cvs=Symbol[],dvs=Symbol[:dv])
     Population(subjects)
 end
 
+function build_observation_list(obs::AbstractDataFrame, id::Integer)
+    :id ∈ names(obs) || return Vector{Observation}()
+    data = view(obs, obs[:id] .== id)
+    isempty(data) && return Vector{Observation}()
+    return Observation.(data[:time],
+                        (NamedTuple{Tuple([Symbol(variable)])}(value) for
+                            (variable, value) ∈
+                            zip(data[:variable], data[:value])),
+                        data[:cmt],
+                        )
+end
+
+function build_event_list(regimen::DosageRegimen)
+    data = getfield(regimen, :data)
+    events = Vector{Event}()
+    for i in 1:size(data, 1)
+        t    = data[:time][i]
+        evid = Int8(data[:evid][i])
+        amt  = data[:amt][i]
+        addl = data[:addl][i]
+        ii   = data[:ii][i]
+        cmt  = data[:cmt][i]
+        rate = data[:rate][i]
+        ss   = Int8(data[:ss][i])
+
+        for j = 0:addl  # addl==0 means just once
+            j == 0 ? _ss = ss : _ss = Int8(0)
+            duration = amt/rate
+            @assert amt != 0 || _ss == 1 || evid == 2
+            if amt == 0 && evid != 2
+                @assert rate > 0
+                # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
+                # Such an event consists of infusion with the stated rate,
+                # starting at time −∞, and ending at the time on the dose
+                # ev event record. Bioavailability fractions do not apply
+                # to these doses.
+
+                # Put in a fake ii=10.0 for the steady state interval length
+                ii == 0.0 && (ii = 10.0)
+                push!(events, Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
+            else
+                push!(events, Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
+                if rate != 0 && _ss == 0
+                    push!(events, Event(amt, t + duration, Int8(-1), cmt, rate, duration, _ss, ii, t, Int8(-1)))
+                end
+            end
+            t += ii
+        end
+    end
+    sort!(events)
+end
+
 function build_dataset(cvs = [], dvs = []; kw...)
     data = DataFrame(kw)
-    return process_data(data, cvs, dvs)[1]
+    return process_nmtran(data, cvs, dvs)[1]
 end
