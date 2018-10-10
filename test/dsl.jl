@@ -50,6 +50,7 @@ mdsl = @model begin
 
     @derived begin
       obs_cmax = maximum(dv)
+      T_max = maximum(t)
     end
 end
 
@@ -89,7 +90,8 @@ function post_f(col,u,t)
 end
 
 function derived_f(col,sol,obstimes,obs)
-    (obs_cmax = maximum(obs[:dv]),)
+    (obs_cmax = maximum(obs[:dv]),
+     T_max = maximum(obstimes))
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
@@ -110,6 +112,7 @@ Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
 Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
 
 @test obs_dsl.derived.obs_cmax == obs_obj.derived.obs_cmax > 0
+@test obs_dsl.derived.T_max == obs_obj.derived.T_max
 
 @test obs_dsl[:dv] ≈ obs_obj[:dv]
 
