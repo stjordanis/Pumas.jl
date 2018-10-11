@@ -160,11 +160,6 @@ mdsl = @model begin
       conc = Central / V
     end
 
-    @dynamics begin
-        Depot'   := -Ka*Depot # test for `:=` handling
-        Central' =  Ka*Depot - CL*conc
-    end
-
     @post begin
         dv ~ Normal(conc, conc*Σ)
     end
