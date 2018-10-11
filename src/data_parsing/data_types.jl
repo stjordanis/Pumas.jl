@@ -68,6 +68,30 @@ Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
+function Base.show(io::IO, e::Event)
+    evid = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
+                2 => "Other", 3 => "Reset", 4 => "Reset and dose")
+    rate = Dict(0 => "instantaneous", -1 => "rate specified by model",
+                -2 => "duration specified by model")
+    rate_dir = Dict(-1 => "end of infusion", 1 => "other")
+    println(io, "$(evid[e.evid]) event: ")
+    println(io, "  dose amount = $(e.amt)")
+    println(io, "  dose time = $(e.time)")
+    println(io, "  compartment = $(e.cmt)")
+    if e.rate > 0
+        println(io, "  rate = $(e.rate)")
+        println(io, "  duration = $(e.duration)")
+    else
+        println(io, "  $(rate[e.rate])")
+    end
+    if e.ss != 0
+        println(io, "  steady state, type = $(e.ss)")
+    end
+    println(io, "  interdose interval = $(e.ii)")
+    println(io, "  base time = $(e.base_time)")
+    println(io, "  rate direction = $(rate_dir[e.rate_dir])")
+end
+
 """
     DosageRegimen
 
