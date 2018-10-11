@@ -68,10 +68,11 @@ Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
+_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
+                   2 => "Other", 3 => "Reset", 4 => "Reset and dose")
+Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
 function Base.show(io::IO, e::Event)
-    evid = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
-                2 => "Other", 3 => "Reset", 4 => "Reset and dose")
-    println(io, "$(evid[e.evid]) event: ")
+    println(io, summary(e))
     println(io, "  dose amount = $(e.amt)")
     println(io, "  dose time = $(e.time)")
     println(io, "  compartment = $(e.cmt)")
@@ -88,7 +89,7 @@ function Base.show(io::IO, e::Event)
     if e.ss == 1
         println(io, "  steady state dose")
     elseif e.ss == 2
-        println(io, "  additional steady state dose")
+        println(io, "  steady state dose, no reset")
     end
     println(io, "  interdose interval = $(e.ii)")
     println(io, "  infusion start time = $(e.base_time)")
