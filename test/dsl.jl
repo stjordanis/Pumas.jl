@@ -134,3 +134,51 @@ sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test (Random.seed!(1); simobs(mobj_iip,subject,x0,y0)[:dv]) ≈
       (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv]) rtol=1e-4
+
+mdsl = @model begin
+    @param begin
+        θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+        Ω ∈ PSDDomain(2)
+        Σ ∈ RealDomain(lower=0.0, init=1.0)
+        a ∈ ConstDomain(0.2)
+    end
+
+    @random begin
+        η ~ MvNormal(Ω)
+    end
+
+    @covariates sex wt etn
+
+    @collate begin
+        θ1 := θ[1]
+        Ka = θ1
+        CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
+        V  = θ[3] * exp(η[2])
+    end
+
+    @vars begin
+      conc = Central / V
+    end
+
+    @dynamics begin
+        Depot'   := -Ka*Depot # test for `:=` handling
+        Central' =  Ka*Depot - CL*conc
+    end
+
+    @post begin
+        dv ~ Normal(conc, conc*Σ)
+    end
+
+    @derived begin
+      obs_cmax = maximum(dv)
+      T_max = maximum(t)
+    end
+end
+x0 = init_param(mdsl)
+y0 = init_random(mdsl, x0)
+
+subject = data.subjects[1]
+
+@test solve(mdsl,subject,x0,y0) == missing
+@test simobs(mdsl,subject,x0,y0) == missing
+@test likelihood(mdsl,subject,x0,y0) == missing

@@ -251,6 +251,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
 end
 
 function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
+    odeexpr == :() && return missing
     ivar  = :(@IVar t)
     var   = :(@Var)
     dvar  = :(@DVar)
@@ -420,6 +421,8 @@ macro model(expr)
     derivedexpr = Expr(:block)
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
+    isstatic = true
+    odeexpr = :()
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
         ex isa Expr && ex.head == :block && return ex
