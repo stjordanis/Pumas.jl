@@ -71,9 +71,6 @@ Base.isless(a::Number,b::Event) = isless(a,b.time)
 function Base.show(io::IO, e::Event)
     evid = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
                 2 => "Other", 3 => "Reset", 4 => "Reset and dose")
-    rate = Dict(0 => "instantaneous", -1 => "rate specified by model",
-                -2 => "duration specified by model")
-    rate_dir = Dict(-1 => "end of infusion", 1 => "other")
     println(io, "$(evid[e.evid]) event: ")
     println(io, "  dose amount = $(e.amt)")
     println(io, "  dose time = $(e.time)")
@@ -81,15 +78,23 @@ function Base.show(io::IO, e::Event)
     if e.rate > 0
         println(io, "  rate = $(e.rate)")
         println(io, "  duration = $(e.duration)")
-    else
-        println(io, "  $(rate[e.rate])")
+    elseif e.rate == 0
+        println(io, "  instantaneous")
+    elseif e.rate == -1
+        println(io, "  rate specified by model")
+    elseif e.rate == -2
+        println(io, "  duration specified by model")
     end
-    if e.ss != 0
-        println(io, "  steady state, type = $(e.ss)")
+    if e.ss == 1
+        println(io, "  steady state dose")
+    elseif e.ss == 2
+        println(io, "  additional steady state dose")
     end
     println(io, "  interdose interval = $(e.ii)")
-    println(io, "  base time = $(e.base_time)")
-    println(io, "  rate direction = $(rate_dir[e.rate_dir])")
+    println(io, "  infusion start time = $(e.base_time)")
+    if e.rate_dir == -1
+        println(io, "  end of infusion")
+    end
 end
 
 """
