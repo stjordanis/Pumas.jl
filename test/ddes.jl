@@ -47,8 +47,8 @@ model = PuMaS.PKPDModel(params,randomfx,collate,init,prob,post,err)
 x0 = init_param(model)
 y0 = init_random(model, x0)
 
-data = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[0,0], time=[0,12],  cmt=[1,1])
+data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
 sol  = solve(model,data,x0,y0,MethodOfSteps(Tsit5()))
 
-#data = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])
+#data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 #sol  = simulate(pkpd,θ,η,data,MethodOfSteps(Tsit5()))

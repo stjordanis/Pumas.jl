@@ -109,7 +109,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
         end
 
         sort!(events)
-        Subject(id, observations, covariates, events)
+        Subject(id = id, obs = observations, cvs = covariates, evs = events)
     end
     Population(subjects)
 end
@@ -125,7 +125,7 @@ function build_observation_list(obs::AbstractDataFrame, id::Integer)
                         data[:cmt],
                         )
 end
-
+build_event_list(evs::AbstractVector{<:Event}) = evs
 function build_event_list(regimen::DosageRegimen)
     data = getfield(regimen, :data)
     events = Vector{Event}()
@@ -164,9 +164,4 @@ function build_event_list(regimen::DosageRegimen)
         end
     end
     sort!(events)
-end
-
-function build_dataset(cvs = [], dvs = []; kw...)
-    data = DataFrame(kw)
-    return process_nmtran(data, cvs, dvs)[1]
 end

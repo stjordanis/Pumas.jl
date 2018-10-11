@@ -75,15 +75,15 @@ Lazy representation of a series of Events.
 """
 mutable struct DosageRegimen
     data::DataFrame
-    function DosageRegimen(amt::Union{<:Unitful.Mass,<:Real};
-                           time::Union{<:Unitful.Time,Real} = 0.,
-                           cmt::Number      = 1,
-                           evid::Number     = 1,
-                           ii::Union{<:Unitful.Time,Real}   = 0.,
-                           addl::Number     = 0,
-                           rate::Number     = 0.,
-                           ss::Number       = 0,
-                           n::Number        = 1)
+    function DosageRegimen(amt::Number,
+                           time::Number,
+                           cmt::Number,
+                           evid::Number,
+                           ii::Number,
+                           addl::Number,
+                           rate::Number,
+                           ss::Number,
+                           n::Number)
         amt = isa(amt, Unitful.Mass) ?
             convert(Float64, getfield(uconvert.(u"g", amt), :val)) :
             float(amt)
@@ -114,9 +114,20 @@ mutable struct DosageRegimen
                                          evid = evid, ii = ii, addl = addl,
                                          rate = rate, ss = ss))))
     end
+    DosageRegimen(amt::Numeric;
+                  time::Numeric = 0.,
+                  cmt::Numeric  = 1,
+                  evid::Numeric = 1,
+                  ii::Numeric   = 0.,
+                  addl::Numeric = 0,
+                  rate::Numeric = 0.,
+                  ss::Numeric   = 0,
+                  n::Numeric    = 1) =
+        DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
+                                     rate, ss, n))
     function DosageRegimen(regimen1::DosageRegimen,
                            regimen2::DosageRegimen;
-                           wait::Union{Nothing,Union{<:Unitful.Time,Real}} = nothing)
+                           wait = nothing)
         data1 = getfield(regimen1, :data)
         data2 = getfield(regimen2, :data)
         if wait === nothing
@@ -132,14 +143,16 @@ mutable struct DosageRegimen
         return new(output)
     end
     function DosageRegimen(regimen::DosageRegimen;
-                           wait::Union{Nothing,Union{<:Unitful.Time,Real}} = nothing,
-                           n::Integer = 1)
+                           wait = nothing,
+                           n::Number = 1)
         output = regimen
         for each in 2:n
             output = DosageRegimen(output, regimen, wait = wait)
         end
         return output
     end
+    DosageRegimen(regimens) =
+        reduce((x, y) -> DosageRegimen(x, y), regimens)
 end
 
 """
@@ -158,6 +171,13 @@ struct Subject{T1,T2,T3}
     observations::T1
     covariates::T2
     events::T3
+    function Subject(;id = 1,
+                     obs = Observation[],
+                     cvs = nothing,
+                     evs = Event[])
+        evs = build_event_list(evs)
+        return new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
+    end
 end
 
 function Base.show(io::IO, subject::Subject)

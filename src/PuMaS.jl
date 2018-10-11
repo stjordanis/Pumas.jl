@@ -5,6 +5,8 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames,
 
 @reexport using OrdinaryDiffEq, DelayDiffEq, Unitful
 
+const Numeric = Union{AbstractVector{<:Number}, Number}
+
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
