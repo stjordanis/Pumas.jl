@@ -68,6 +68,7 @@ Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
+### Display
 _evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
                    2 => "Other", 3 => "Reset", 4 => "Reset and dose")
 Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
@@ -96,6 +97,10 @@ function Base.show(io::IO, e::Event)
     if e.rate_dir == -1
         println(io, "  end of infusion")
     end
+end
+TreeViews.hastreeview(::Event) = true
+function TreeViews.treelabel(io::IO, e::Event, mime::MIME"text/plain")
+    show(io, mime, Text(summary(e)))
 end
 
 """
@@ -190,14 +195,20 @@ struct Subject{T1,T2,T3}
     events::T3
 end
 
+### Display
+Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
-    println(io, "Subject")
+    println(io, summary(subject))
     println(io, "  Events: ", length(subject.events))
     println(io, "  Observations: ", length(subject.observations))
     println(io, "  Covariates: ", join(fieldnames(typeof(subject.covariates)),", "))
     !isempty(subject.observations) &&
         println(io, "  Observables: ",
                     join(fieldnames(typeof(subject.observations[1].val)),", "))
+end
+TreeViews.hastreeview(::Subject) = true
+function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
+    show(io, mime, Text(summary(subject)))
 end
 
 function timespan(sub::Subject)
@@ -283,9 +294,10 @@ struct Population{T} <: AbstractVector{T}
     end
 end
 
+### Display
+Base.summary(::Population) = "Population"
 function Base.show(io::IO, data::Population)
-    typeof(output)
-    println(io, "Population")
+    println(io, summary(data))
     println(io, "  Subjects: ", length(data.subjects))
     if isassigned(data.subjects, 1)
         co = data.subjects[1].covariates
@@ -294,4 +306,8 @@ function Base.show(io::IO, data::Population)
         !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
     end
     nothing
+end
+TreeViews.hastreeview(::Population) = true
+function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
+    show(io, mime, Text(summary(data)))
 end
