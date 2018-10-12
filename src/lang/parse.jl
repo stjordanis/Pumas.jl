@@ -251,7 +251,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
 end
 
 function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
-    odeexpr == :() && return missing
+    odeexpr == :() && return nothing
     ivar  = :(@IVar t)
     var   = :(@Var)
     dvar  = :(@DVar)

@@ -161,7 +161,7 @@ mdsl = @model begin
     end
 
     @post begin
-        dv ~ Normal(conc, conc*Σ)
+        dv ~ Normal(CL,Ka*CL)
     end
 
     @derived begin
@@ -174,6 +174,6 @@ y0 = init_random(mdsl, x0)
 
 subject = data.subjects[1]
 
-@test solve(mdsl,subject,x0,y0) === missing
-@test simobs(mdsl,subject,x0,y0) === missing
-@test likelihood(mdsl,subject,x0,y0) === missing
+@test solve(mdsl,subject,x0,y0) === nothing
+@test simobs(mdsl,subject,x0,y0) === nothing
+@test likelihood(mdsl,subject,x0,y0) === nothing

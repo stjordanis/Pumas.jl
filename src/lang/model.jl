@@ -28,11 +28,11 @@ mutable struct PKPDModel{P,Q,R,S,T,V,W}
     post::V
     derived::W
     function PKPDModel(param, random, collate, init, ode, post, derived)
-        prob = ode === missing ? missing : ODEProblem(ODEFunction(ode),
+        prob = ode === nothing ? nothing : ODEProblem(ODEFunction(ode),
                                                      nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(collate), typeof(init),
-            Union{DiffEqBase.DEProblem,Missing},
+            Union{DiffEqBase.DEProblem,Nothing},
             typeof(post), typeof(derived)}(
             param, random, collate, init, prob, post, derived)
     end
@@ -65,7 +65,7 @@ function DiffEqBase.solve(m::PKPDModel, subject::Subject,
                           param = init_param(m),
                           rfx = rand_random(m, param),
                           args...; kwargs...)
-    m.prob === missing && return missing
+    m.prob === nothing && return nothing
     col = m.collate(param, rfx, subject.covariates)
     _solve(m,subject,col,args...;kwargs...)
 end
@@ -179,7 +179,7 @@ function simobs(m::PKPDModel, subject::Subject,
                 args...;
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
-    m.prob === missing && return missing
+    m.prob === nothing && return nothing
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; save_discont=false, kwargs...)
     post = postfun(m,col,sol;continuity=continuity)
@@ -230,7 +230,7 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the post produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   m.prob === missing && return missing
+   m.prob === nothing && return nothing
    post = postfun(m,subject,args...;kwargs...)
    sum(subject.observations) do obs
        t = obs.time
