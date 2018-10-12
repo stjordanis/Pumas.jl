@@ -156,12 +156,8 @@ mdsl = @model begin
         V  = θ[3] * exp(η[2])
     end
 
-    @vars begin
-      conc = Central / V
-    end
-
     @post begin
-        dv ~ Normal(CL,Ka*CL)
+        dv ~ Binomial(30,Ka*CL)
     end
 
     @derived begin
@@ -172,8 +168,6 @@ end
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
 
-subject = data.subjects[1]
-
 @test solve(mdsl,subject,x0,y0) === nothing
-@test simobs(mdsl,subject,x0,y0) === nothing
-@test likelihood(mdsl,subject,x0,y0) === nothing
+@test simobs(mdsl,subject,x0,y0) != nothing
+@test likelihood(mdsl,subject,x0,y0) == -Inf # since real-valued observations

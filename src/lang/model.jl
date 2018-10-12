@@ -98,6 +98,7 @@ be repeated in the other API functions
 function _solve(m::PKPDModel, subject, col, args...;
                 tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
   u0  = m.init(col, tspan[1])
+  m.prob === nothing && return nothing
   m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
   if m.prob.f.f isa ExplicitModel
       return _solve_analytical(m, subject, args...;kwargs...)
@@ -138,6 +139,8 @@ end
 function postfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
       post = t-> m.post(col,sol(t),t)
+  elseif sol === nothing
+      post = t-> m.post(col,nothing,t)
   else
       post = t-> m.post(col,sol(t,continuity=continuity),t)
   end
@@ -179,7 +182,6 @@ function simobs(m::PKPDModel, subject::Subject,
                 args...;
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
-    m.prob === nothing && return nothing
     col = m.collate(param, rfx, subject.covariates)
     sol = _solve(m, subject, col, args...; save_discont=false, kwargs...)
     post = postfun(m,col,sol;continuity=continuity)
@@ -230,7 +232,6 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the post produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   m.prob === nothing && return nothing
    post = postfun(m,subject,args...;kwargs...)
    sum(subject.observations) do obs
        t = obs.time
