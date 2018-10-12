@@ -1,7 +1,8 @@
 module PuMaS
 
 using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames,
-      StaticArrays, DiffEqJump, PDMats, Distributed, LabelledArrays, GLM
+      StaticArrays, DiffEqJump, PDMats, Distributed, LabelledArrays, GLM,
+      TreeViews
 
 @reexport using OrdinaryDiffEq, DelayDiffEq, Unitful
 

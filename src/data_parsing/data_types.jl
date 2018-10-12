@@ -68,6 +68,41 @@ Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
+### Display
+_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
+                   2 => "Other", 3 => "Reset", 4 => "Reset and dose")
+Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
+function Base.show(io::IO, e::Event)
+    println(io, summary(e))
+    println(io, "  dose amount = $(e.amt)")
+    println(io, "  dose time = $(e.time)")
+    println(io, "  compartment = $(e.cmt)")
+    if e.rate > 0
+        println(io, "  rate = $(e.rate)")
+        println(io, "  duration = $(e.duration)")
+    elseif e.rate == 0
+        println(io, "  instantaneous")
+    elseif e.rate == -1
+        println(io, "  rate specified by model")
+    elseif e.rate == -2
+        println(io, "  duration specified by model")
+    end
+    if e.ss == 1
+        println(io, "  steady state dose")
+    elseif e.ss == 2
+        println(io, "  steady state dose, no reset")
+    end
+    println(io, "  interdose interval = $(e.ii)")
+    println(io, "  infusion start time = $(e.base_time)")
+    if e.rate_dir == -1
+        println(io, "  end of infusion")
+    end
+end
+TreeViews.hastreeview(::Event) = true
+function TreeViews.treelabel(io::IO, e::Event, mime::MIME"text/plain")
+    show(io, mime, Text(summary(e)))
+end
+
 """
     DosageRegimen
 
@@ -160,14 +195,20 @@ struct Subject{T1,T2,T3}
     events::T3
 end
 
+### Display
+Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
-    println(io, "Subject")
+    println(io, summary(subject))
     println(io, "  Events: ", length(subject.events))
     println(io, "  Observations: ", length(subject.observations))
     println(io, "  Covariates: ", join(fieldnames(typeof(subject.covariates)),", "))
     !isempty(subject.observations) &&
         println(io, "  Observables: ",
                     join(fieldnames(typeof(subject.observations[1].val)),", "))
+end
+TreeViews.hastreeview(::Subject) = true
+function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
+    show(io, mime, Text(summary(subject)))
 end
 
 function timespan(sub::Subject)
@@ -253,9 +294,10 @@ struct Population{T} <: AbstractVector{T}
     end
 end
 
+### Display
+Base.summary(::Population) = "Population"
 function Base.show(io::IO, data::Population)
-    typeof(output)
-    println(io, "Population")
+    println(io, summary(data))
     println(io, "  Subjects: ", length(data.subjects))
     if isassigned(data.subjects, 1)
         co = data.subjects[1].covariates
@@ -264,4 +306,8 @@ function Base.show(io::IO, data::Population)
         !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
     end
     nothing
+end
+TreeViews.hastreeview(::Population) = true
+function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
+    show(io, mime, Text(summary(data)))
 end
