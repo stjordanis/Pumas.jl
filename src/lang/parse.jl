@@ -251,6 +251,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
 end
 
 function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
+    odeexpr == :() && return nothing
     ivar  = :(@IVar t)
     var   = :(@Var)
     dvar  = :(@DVar)
@@ -371,9 +372,11 @@ function post_obj(postexpr, postvars, collate, odevars)
 end
 
 function broadcasted_vars(vars)
-  for ex in first(vars).args
-      ex isa LineNumberNode && continue
-      ex.args[2] = :(@. $(ex.args[2]))
+  if !isempty(vars)
+    for ex in first(vars).args
+        ex isa LineNumberNode && continue
+        ex.args[2] = :(@. $(ex.args[2]))
+    end
   end
   vars
 end
@@ -392,7 +395,9 @@ function derived_obj(derivedexpr, derivedvars, collate, odevars, postvars)
     quote
         function (_collate,_sol,_obstimes,_obs)
             $(var_def(:_collate, collate))
-            $(bvar_def(:(_sol.u), odevars))
+            if _sol != nothing
+              $(bvar_def(:(_sol.u), odevars))
+            end
             $(bvar_def(:_obs, postvars))
             $(esc(:t)) = _obstimes
             $(esc(derivedexpr))
@@ -420,6 +425,8 @@ macro model(expr)
     derivedexpr = Expr(:block)
     local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
+    isstatic = true
+    odeexpr = :()
     MacroTools.prewalk(expr) do ex
         ex isa LineNumberNode && return nothing
         ex isa Expr && ex.head == :block && return ex
