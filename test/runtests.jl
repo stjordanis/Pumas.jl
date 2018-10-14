@@ -1,39 +1,39 @@
-using PuMaS, Test
+using PuMaS, SafeTestsets
 
 @time begin
-@time @testset "Parsing Tests" begin
+@time @safetestset "Parsing Tests" begin
     include("parsing_tests.jl") end
-@time @testset "DSL" begin
+@time @safetestset "DSL" begin
     include("dsl.jl") end
-@time @testset "Single Dosage Tests" begin
+@time @safetestset "Single Dosage Tests" begin
     include("single_dosage_tests.jl") end
-@time @testset "Multiple Dosage Tests" begin
+@time @safetestset "Multiple Dosage Tests" begin
     include("multiple_dosage_tests.jl") end
-@time @testset "SS=2 and Overlap Tests" begin
+@time @safetestset "SS=2 and Overlap Tests" begin
     include("ss2_overlap_tests.jl") end
-@time @testset "Template Model EV System" begin
+@time @safetestset "Template Model EV System" begin
     include("template_model_ev_system.jl") end
-@time @testset "Multiple Response Tests" begin
+@time @safetestset "Multiple Response Tests" begin
     include("multiresponses.jl") end
-@time @testset "Type-Stability Tests" begin
+@time @safetestset "Type-Stability Tests" begin
     include("stability_tests.jl") end
-@time @testset "StaticArray Tests" begin
+@time @safetestset "StaticArray Tests" begin
      include("static_array_test.jl") end
-@time @testset "Time-Varying Covariate Tests" begin
+@time @safetestset "Time-Varying Covariate Tests" begin
      include("time_varying_covar.jl") end
 
-@time @testset "Neutropenia" begin
+@time @safetestset "Neutropenia" begin
      include("neutropenia.jl") end
 
-@time @testset "NCA" begin
+@time @safetestset "NCA" begin
      include("nca_tests.jl") end
 
 #=
-@time @testset "DDE Tests" begin
+@time @safetestset "DDE Tests" begin
      include("ddes.jl") end
-@time @testset "SDE Tests" begin
+@time @safetestset "SDE Tests" begin
      include("sdes.jl") end
-@time @testset "Mixed ODE and Discrete Tests" begin
+@time @safetestset "Mixed ODE and Discrete Tests" begin
      include("mixed_ode_discrete.jl") end
 =#
 
