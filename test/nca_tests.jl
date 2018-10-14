@@ -1,11 +1,12 @@
 using PuMaS, Test, CSV
 
-data = CSV.read("../examples/nca_test_data/dapa_IV.csv")
+root = joinpath(dirname(pathof(PuMaS)), "..")
+data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 
-data = CSV.read("../examples/nca_test_data/Final_Parameters_Pivoted.csv")
+data = CSV.read("$root/examples/nca_test_data/Final_Parameters_Pivoted.csv")
 
 correct_auc = Float64.(data[:AUCINF_obs])
 correct_aumc = Float64.(data[:AUMCINF_obs])
