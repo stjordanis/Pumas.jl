@@ -1,6 +1,8 @@
 using PuMaS, SafeTestsets
 
 @time begin
+@time @safetestset "Duplicate Example Check" begin
+    include("duplicate_example.jl") end
 @time @safetestset "Parsing Tests" begin
     include("parsing_tests.jl") end
 @time @safetestset "DSL" begin
