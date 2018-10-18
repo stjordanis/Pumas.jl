@@ -523,7 +523,6 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: why is the first value wrong?
 @test 1000*sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -882,7 +881,6 @@ x0 = (θ = [
               ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: wrong at 12th obs?
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)

@@ -183,7 +183,11 @@ function simobs(m::PKPDModel, subject::Subject,
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
     col = m.pre(param, rfx, subject.covariates)
-    sol = _solve(m, subject, col, args...; save_discont=false, kwargs...)
+    if :saveat in keys(kwargs)
+        sol = _solve(m, subject, col, args...; kwargs...)
+    else
+        sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
+    end
     post = postfun(m,col,sol;continuity=continuity)
     # This can be made slightly more efficient
     # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup
