@@ -21,7 +21,7 @@ function rfx_f(p)
 end
 
 function col_f(p,rfx,cov)
-   (Ka = t->t*p.θ[1],  # collate
+   (Ka = t->t*p.θ[1],  # pre
     CL = p.θ[2] * ((cov.wt/70)^0.75) *
          (p.θ[4]^cov.sex) * exp(rfx.η[1]),
     V  = p.θ[3] * exp(rfx.η[2]))
@@ -75,7 +75,7 @@ sol_mobj   = solve(mobj,subject1,x0,y0)
 
       @covariates sex wt etn
 
-      @collate begin
+      @pre begin
           Ka = t -> t*θ[1]
           CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
           V  = θ[3] * exp(η[2])

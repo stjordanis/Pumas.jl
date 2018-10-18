@@ -28,7 +28,7 @@ mdsl = @model begin
 
     @covariates sex wt etn
 
-    @collate begin
+    @pre begin
         θ1 := θ[1]
         Ka = θ1
         CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
@@ -67,7 +67,7 @@ end
 
 function col_f(p,rfx,cov)
     (Σ  = p.Σ,
-    Ka = p.θ[1],  # collate
+    Ka = p.θ[1],  # pre
     CL = p.θ[2] * ((cov.wt/70)^0.75) *
          (p.θ[4]^cov.sex) * exp(rfx.η[1]),
     V  = p.θ[3] * exp(rfx.η[2]))
@@ -149,7 +149,7 @@ mdsl = @model begin
 
     @covariates sex wt etn
 
-    @collate begin
+    @pre begin
         θ1 := θ[1]
         Ka = θ1
         CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])

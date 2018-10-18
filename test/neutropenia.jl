@@ -25,7 +25,7 @@ m_neut = @model begin
         ka ∈ RealDomain(lower=1e-8,  upper=100.0,init=1.0) # no prior defined?
     end
 
-    @collate begin
+    @pre begin
         k10 = CL / V1
         k12 = Q / V1
         k21 = Q / V2

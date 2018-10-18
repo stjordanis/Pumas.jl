@@ -26,7 +26,7 @@ m_diffeq = @model begin
 
     @covariates sex wt etn
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
         V  = θ[3] * exp(η[2])
@@ -58,7 +58,7 @@ m_analytic = @model begin
 
     @covariates sex wt etn
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2] * ((wt/70)^0.75) * (θ[4]^sex) * exp(η[1])
         V  = θ[3] * exp(η[2])

@@ -37,7 +37,7 @@ m23 = @model begin
     @param   θ ∈ VectorDomain(12)
     @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
 
-    @collate begin
+    @pre begin
         Ka1     = θ[1]
         CL      = θ[2]*exp(η[1])
         Vc      = θ[3]*exp(η[2])
@@ -138,7 +138,7 @@ m24 = @model begin
     @param   θ ∈ VectorDomain(12)
     @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
 
-    @collate begin
+    @pre begin
         Ka1     = θ[1]
         CL      = θ[2]*exp(η[1])
         Vc      = θ[3]*exp(η[2])

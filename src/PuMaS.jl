@@ -26,7 +26,7 @@ include("nca/auc.jl")
 
 export Subject, Population, process_nmtran, build_dataset, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
-       simobs, likelihood, collate, simpost,
+       simobs, likelihood, pre, simpost,
        AUC, AUMC
 
 end # module

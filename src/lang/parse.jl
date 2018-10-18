@@ -125,8 +125,8 @@ function extract_syms!(vars, subvars, syms)
     end
 end
 
-function extract_collate!(vars, collatevars, exprs...)
-    # should be called on an expression wrapped in a @collate
+function extract_pre!(vars, prevars, exprs...)
+    # should be called on an expression wrapped in a @pre
     # expr can be:
     #  a block
     #  an assignment
@@ -139,7 +139,7 @@ function extract_collate!(vars, collatevars, exprs...)
                 p in vars && error("Variable $p already defined")
                 if iseq
                     push!(vars, p)
-                    push!(collatevars, p)
+                    push!(prevars, p)
                 end
                 push!(newexpr.args, :($p = $(ex.args[2])))
             else
@@ -150,13 +150,13 @@ function extract_collate!(vars, collatevars, exprs...)
     newexpr
 end
 
-function collate_obj(collateexpr, prevars, params, randoms, covariates)
+function pre_obj(preexpr, prevars, params, randoms, covariates)
     quote
         function (_param, _random, _covariates)
             $(var_def(:_param, params))
             $(var_def(:_random, randoms))
             $(var_def(:_covariates, covariates))
-            $(esc(collateexpr))
+            $(esc(preexpr))
             $(esc(nt_expr(prevars)))
         end
     end
@@ -250,7 +250,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     end
 end
 
-function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
+function dynamics_obj(odeexpr::Expr, pre, odevars, eqs, isstatic)
     odeexpr == :() && return nothing
     ivar  = :(@IVar t)
     var   = :(@Var)
@@ -274,7 +274,7 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
         push!(diffeq.args[2].args[5].args, v)
     end
     # Param
-    for p in collate
+    for p in pre
         push!(param.args, p)
         push!(diffeq.args[2].args[6].args, p)
     end
@@ -289,7 +289,7 @@ function dynamics_obj(odeexpr::Expr, collate, odevars, eqs, isstatic)
         end
     end
 end
-function dynamics_obj(odename::Symbol, collate, odevars, eqs, isstatic)
+function dynamics_obj(odename::Symbol, pre, odevars, eqs, isstatic)
     quote
         ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
     end
@@ -322,10 +322,10 @@ function extract_defs!(vars, defsdict, exprs...)
     end
 end
 
-function post_obj(post, collate, odevars)
+function post_obj(post, pre, odevars)
     quote
-        function (_collate,_odevars,t)
-            $(var_def(:_collate, collate))
+        function (_pre,_odevars,t)
+            $(var_def(:_pre, pre))
             $(var_def(:_odevars, odevars))
             $(esc(nt_expr(post)))
         end
@@ -360,10 +360,10 @@ function extract_randvars!(vars, randvars, postexpr, expr)
 end
 
 
-function post_obj(postexpr, postvars, collate, odevars)
+function post_obj(postexpr, postvars, pre, odevars)
     quote
-        function (_collate, _odevars, t)
-            $(var_def(:_collate, collate))
+        function (_pre, _odevars, t)
+            $(var_def(:_pre, pre))
             $(var_def(:_odevars, odevars))
             $(esc(postexpr))
             $(esc(nt_expr(postvars)))
@@ -391,10 +391,10 @@ function bvar_def(collection, indvars)
     end
 end
 
-function derived_obj(derivedexpr, derivedvars, collate, odevars, postvars)
+function derived_obj(derivedexpr, derivedvars, pre, odevars, postvars)
     quote
-        function (_collate,_sol,_obstimes,_obs)
-            $(var_def(:_collate, collate))
+        function (_pre,_sol,_obstimes,_obs)
+            $(var_def(:_pre, pre))
             if _sol != nothing
               $(bvar_def(:(_sol.u), odevars))
             end
@@ -412,18 +412,18 @@ macro model(expr)
     params = OrderedDict{Symbol, Any}()
     randoms = OrderedDict{Symbol, Any}()
     covariates = OrderedSet{Symbol}()
-    collatevars  = OrderedSet{Symbol}()
+    prevars  = OrderedSet{Symbol}()
     ode_init  = OrderedDict{Symbol, Any}()
     odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
     postvars  = OrderedSet{Symbol}()
     postexpr = Expr(:block)
-    collateexpr = :()
+    preexpr = :()
     derivedvars = OrderedSet{Symbol}()
     eqs = Expr(:vect)
     vars_ = Expr[]
     derivedvars = OrderedSet{Symbol}()
     derivedexpr = Expr(:block)
-    local vars, params, randoms, covariates, collatevars, collateexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
+    local vars, params, randoms, covariates, prevars, preexpr, post, odeexpr, odevars, ode_init, postexpr, postvars, eqs, derivedexpr, derivedvars, isstatic
 
     isstatic = true
     odeexpr = :()
@@ -438,8 +438,8 @@ macro model(expr)
             extract_randoms!(vars, randoms, ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@covariates")
             extract_syms!(vars, covariates, ex.args[3:end])
-        elseif ex.args[1] == Symbol("@collate")
-            collateexpr = extract_collate!(vars,collatevars,ex.args[3:end]...)
+        elseif ex.args[1] == Symbol("@pre")
+            preexpr = extract_pre!(vars,prevars,ex.args[3:end]...)
         elseif ex.args[1] == Symbol("@vars")
             vars_ = ex.args[3:end]
         elseif ex.args[1] == Symbol("@init")
@@ -468,13 +468,13 @@ macro model(expr)
         return nothing
     end
 
-    prevars = union(collatevars, keys(params), keys(randoms), covariates)
+    prevars = union(prevars, keys(params), keys(randoms), covariates)
 
     quote
         x = PKPDModel(
             $(param_obj(params)),
             $(random_obj(randoms,params)),
-            $(collate_obj(collateexpr,prevars,params,randoms,covariates)),
+            $(pre_obj(preexpr,prevars,params,randoms,covariates)),
             $(init_obj(ode_init,odevars[1],prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
             $(post_obj(postexpr, postvars,prevars, odevars[1])),
