@@ -27,7 +27,7 @@ m_analytic = @model begin
 
     @covariates ka cl v
 
-    @collate begin
+    @pre begin
         Ka = ka
         CL = cl
         V  = v

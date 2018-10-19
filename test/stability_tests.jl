@@ -10,7 +10,7 @@ m_diffeq = @model begin
 
     @covariates ka cl v
 
-    @collate begin
+    @pre begin
         Ka = ka
         CL = cl
         V  = v
@@ -31,7 +31,7 @@ m_analytic = @model begin
 
     @covariates ka cl v
 
-    @collate begin
+    @pre begin
         Ka = ka
         CL = cl
         V  = v

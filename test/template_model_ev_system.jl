@@ -24,7 +24,7 @@ m_diffeq = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -42,7 +42,7 @@ m_analytic = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -94,7 +94,7 @@ mlag_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -113,7 +113,7 @@ mlag_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -171,7 +171,7 @@ mlagbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -191,7 +191,7 @@ mlagbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -250,7 +250,7 @@ mbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -269,7 +269,7 @@ mbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -523,7 +523,6 @@ x0 = (θ = [ 1.5,  #Ka
             ],)
 
 sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: why is the first value wrong?
 @test 1000sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-5
 
 sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -727,7 +726,7 @@ mbld_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -748,7 +747,7 @@ mbld_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -848,7 +847,7 @@ sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 
-col = collate(m_analytic, subject, x0, y0)
+col = pre(m_analytic, subject, x0, y0)
 sol = solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test 1000*sol(ts.-1e-14;idxs=2)/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -882,7 +881,6 @@ x0 = (θ = [
               ],)
 
 sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
-# TODO: wrong at 12th obs?
 @test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
 
 sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
@@ -907,7 +905,7 @@ x0 = (θ = [
             30.0  #V
           ],)
 
-col = collate(m_diffeq, subject, x0, y0)
+col = pre(m_diffeq, subject, x0, y0)
 sol = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 ts = [obs.time for obs in subject.observations]
 @test sol(ts.+1e-14)[2,:]/col.V ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
@@ -941,7 +939,7 @@ mparbl_diffeq = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka1 = θ[1]
         Ka2 = θ[2]
         CL = θ[4]*exp(η[1])
@@ -963,7 +961,7 @@ mparbl_analytic = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka1 = θ[1]
         Ka2 = θ[2]
         CL = θ[4]*exp(η[1])
@@ -1013,7 +1011,7 @@ mbl2_diffeq = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
@@ -1034,7 +1032,7 @@ mbl2_analytic = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-    @collate begin
+    @pre begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])

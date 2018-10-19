@@ -11,7 +11,7 @@ function randomfx(p)
   RandomEffectSet((η=MvNormal(p.Ω),))
 end
 
-function collate(params, randoms, covars)
+function pre(params, randoms, covars)
     θ = params.θ
     η = randoms.η
     (Ka = θ[1],
@@ -43,9 +43,9 @@ function err(params, randoms, covars, u,p, t)
     (dv=Normal(conc, conc*Σ),)
 end
 
-init = (_param, _random, _covariates,_collate,t) -> [0.0,0.0]
-post = (_param, _random, _covariates,_collate,_odevars,t) -> (conc = _odevars[2] / _collate.V,)
-model = PuMaS.PKPDModel(params,randomfx,collate,init,prob,post,err)
+init = (_param, _random, _covariates,_pre,t) -> [0.0,0.0]
+post = (_param, _random, _covariates,_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,)
+model = PuMaS.PKPDModel(params,randomfx,pre,init,prob,post,err)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

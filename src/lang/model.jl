@@ -5,7 +5,7 @@ A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
 - `data`: a `Population` object
 - `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
-- `collate`: a mapping from the (params, rfx, covars) -> ODE params
+- `pre`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
 - `post`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
 
@@ -22,18 +22,19 @@ Todo:
 mutable struct PKPDModel{P,Q,R,S,T,V,W}
     param::P
     random::Q
-    collate::R
+    pre::R
     init::S
     prob::T
     post::V
     derived::W
-    function PKPDModel(param, random, collate, init, ode, post, derived)
-        prob = ODEProblem(ODEFunction(ode), nothing, nothing, nothing)
+    function PKPDModel(param, random, pre, init, ode, post, derived)
+        prob = ode === nothing ? nothing : ODEProblem(ODEFunction(ode),
+                                                     nothing, nothing, nothing)
         new{typeof(param), typeof(random),
-            typeof(collate), typeof(init),
-            DiffEqBase.DEProblem,
+            typeof(pre), typeof(init),
+            Union{DiffEqBase.DEProblem,Nothing},
             typeof(post), typeof(derived)}(
-            param, random, collate, init, prob, post, derived)
+            param, random, pre, init, prob, post, derived)
     end
 end
 
@@ -64,7 +65,8 @@ function DiffEqBase.solve(m::PKPDModel, subject::Subject,
                           param = init_param(m),
                           rfx = rand_random(m, param),
                           args...; kwargs...)
-    col = m.collate(param, rfx, subject.covariates)
+    m.prob === nothing && return nothing
+    col = m.pre(param, rfx, subject.covariates)
     _solve(m,subject,col,args...;kwargs...)
 end
 
@@ -96,6 +98,7 @@ be repeated in the other API functions
 function _solve(m::PKPDModel, subject, col, args...;
                 tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
   u0  = m.init(col, tspan[1])
+  m.prob === nothing && return nothing
   m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
   if m.prob.f.f isa ExplicitModel
       return _solve_analytical(m, subject, args...;kwargs...)
@@ -128,7 +131,7 @@ function postfun(m::PKPDModel, subject::Subject,
                   param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
-  col = m.collate(param, rfx, subject.covariates)
+  col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   postfun(m,col,sol;continuity=continuity)
 end
@@ -136,6 +139,8 @@ end
 function postfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
       post = t-> m.post(col,sol(t),t)
+  elseif sol === nothing
+      post = t-> m.post(col,nothing,t)
   else
       post = t-> m.post(col,sol(t,continuity=continuity),t)
   end
@@ -177,8 +182,12 @@ function simobs(m::PKPDModel, subject::Subject,
                 args...;
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
-    col = m.collate(param, rfx, subject.covariates)
-    sol = _solve(m, subject, col, args...; save_discont=false, kwargs...)
+    col = m.pre(param, rfx, subject.covariates)
+    if :saveat in keys(kwargs)
+        sol = _solve(m, subject, col, args...; kwargs...)
+    else
+        sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
+    end
     post = postfun(m,col,sol;continuity=continuity)
     # This can be made slightly more efficient
     # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup
@@ -235,12 +244,12 @@ function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
 end
 
 """
-    collate(m::PKPDModel, subject::Subject, param, rfx)
+    pre(m::PKPDModel, subject::Subject, param, rfx)
 
 Returns the parameters of the differential equation for a specific subject
 subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
-function collate(m::PKPDModel, subject::Subject, param, rfx)
-   m.collate(param, rfx, subject.covariates)
+function pre(m::PKPDModel, subject::Subject, param, rfx)
+   m.pre(param, rfx, subject.covariates)
 end
