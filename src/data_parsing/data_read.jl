@@ -95,9 +95,6 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
                     # ev event record. Bioavailability fractions do not apply
                     # to these doses.
 
-                    # Put in a fake ii=10.0 for the steady state interval length
-                    # Needed for template_model_ev_system Test 17
-                    ii == 0.0 && (ii = 10.0)
                     push!(events,Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
                 else
                     push!(events,Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
