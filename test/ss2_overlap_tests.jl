@@ -44,7 +44,7 @@ y0 = init_random(m_diffeq, x0)
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 sol = solve(m_diffeq, subject, x0, y0; tspan=(0.0,12.0+1e-14), abstol=1e-14, reltol=1e-14)
 col = collate(m_diffeq, subject, x0, y0)
-@test [1000 * sol(12*i + 1e-14)[2] / col.V for i in 0:1] ≈ [605.3220736386598;1616.4036675452326] atol=1e-8
+@test [1000sol(12i + 1e-14)[2] / col.V for i in 0:1] ≈ [605.3220736386598;1616.4036675452326] atol=1e-8
 
 
 ###############################
@@ -55,9 +55,9 @@ subject = Subject(evs = DosageRegimen([10,20,10], ii = 24, ss = [1, 2, 1], time 
 col = collate(m_diffeq, subject, x0, y0)
 sol = solve(m_diffeq, subject, x0, y0; tspan=(0.0,60.0+1e-14), abstol=1e-14,reltol=1e-14)
 
-@test [1000 * sol(12*i + 1e-14)[2] / col.V for i in 0:5] ≈ [605.3220736386598
-                                                            1616.4036675452326
-                                                            605.3220736387212
-                                                            405.75952026789673
-                                                            271.98874030537564
-                                                            182.31950492267478] atol=1e-9
+@test [1000sol(12i + 1e-14)[2] / col.V for i in 0:5] ≈ [605.3220736386598
+                                                        1616.4036675452326
+                                                        605.3220736387212
+                                                        405.75952026789673
+                                                        271.98874030537564
+                                                        182.31950492267478] atol=1e-9

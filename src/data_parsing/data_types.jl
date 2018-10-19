@@ -82,8 +82,7 @@ mutable struct DosageRegimen
                            ii::Number,
                            addl::Number,
                            rate::Number,
-                           ss::Number,
-                           n::Number)
+                           ss::Number)
         amt = isa(amt, Unitful.Mass) ?
             convert(Float64, getfield(uconvert.(u"g", amt), :val)) :
             float(amt)
@@ -91,14 +90,13 @@ mutable struct DosageRegimen
             convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
             float(time)
         cmt = convert(Int, cmt)
-        evid = convert(Int, evid)
+        evid = convert(Int8, evid)
         ii = isa(ii, Unitful.Time) ?
             convert(Float64, getfield(uconvert.(u"hr", ii), :val)) :
             float(ii)
         addl = convert(Int, addl)
         rate = convert(Float64, rate)
-        ss = convert(Int, ss)
-        n = convert(Int, n)
+        ss = convert(Int8, ss)
         amt > 0 || throw(ArgumentError("amt must be non-negative"))
         time ≥ 0 || throw(ArgumentError("time must be non-negative"))
         evid == 0 && throw(ArgumentError("observations are not allowed"))
@@ -108,48 +106,36 @@ mutable struct DosageRegimen
         addl > 0 && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
         rate ∈ -2:0 || rate .> 0 || throw(ArgumentError("rate is invalid"))
         ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
-        n > 0 || throw(ArgumentError("n must be positive"))
-        return new(map(col -> repeat(col, n),
-                       eachcol(DataFrame(time = time, cmt = cmt, amt = amt,
-                                         evid = evid, ii = ii, addl = addl,
-                                         rate = rate, ss = ss))))
+        return new(DataFrame(time = time, cmt = cmt, amt = amt,
+                             evid = evid, ii = ii, addl = addl,
+                             rate = rate, ss = ss))
     end
     DosageRegimen(amt::Numeric;
-                  time::Numeric = 0.,
+                  time::Numeric = 0,
                   cmt::Numeric  = 1,
                   evid::Numeric = 1,
-                  ii::Numeric   = 0.,
+                  ii::Numeric   = 0,
                   addl::Numeric = 0,
-                  rate::Numeric = 0.,
-                  ss::Numeric   = 0,
-                  n::Numeric    = 1) =
+                  rate::Numeric = 0,
+                  ss::Numeric   = 0) =
         DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
-                                     rate, ss, n))
+                                     rate, ss))
+    DosageRegimen(regimen::DosageRegimen) = regimen
     function DosageRegimen(regimen1::DosageRegimen,
                            regimen2::DosageRegimen;
-                           wait = nothing)
+                           offset = nothing)
         data1 = getfield(regimen1, :data)
         data2 = getfield(regimen2, :data)
-        if wait === nothing
+        if offset === nothing
             output = sort!(vcat(data1, data2), :time)
         else
             data2 = deepcopy(data2)
-            data2[:time] = cumsum(prepend!(diff(data2[:time]),
-                                           data1[:ii][end] * (data1[:addl][end] + 1) +
+            data2[:time] = cumsum(prepend!(data1[:ii][end] * (data1[:addl][end] + 1) +
                                            data1[:time][end] +
-                                           wait))
+                                           offset))
             output = sort!(vcat(data1, data2), :time)
         end
         return new(output)
-    end
-    function DosageRegimen(regimen::DosageRegimen;
-                           wait = nothing,
-                           n::Number = 1)
-        output = regimen
-        for each in 2:n
-            output = DosageRegimen(output, regimen, wait = wait)
-        end
-        return output
     end
     DosageRegimen(regimens) =
         reduce((x, y) -> DosageRegimen(x, y), regimens)
@@ -175,6 +161,7 @@ struct Subject{T1,T2,T3}
                      obs = Observation[],
                      cvs = nothing,
                      evs = Event[])
+        obs = build_observation_list(obs)
         evs = build_event_list(evs)
         return new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
     end
@@ -203,74 +190,14 @@ end
 observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
 
 """
-    Population(;
-               cvs::Dict{<:Integer,<:NamedTuple} = Dict{Int,NamedTuple}(),
-               obs::AbstractDataFrame = DataFrame(),
-               evs::Dict{<:Integer,<:DosageRegimen} = Dict{Int,DosageRegimen}()))
+    Population(::AbstractVector{<:Subject})
 
 A `Population` is a set of `Subject`s. It can be instanced passing covariates,
 observations, and event data for each relevant `Subject` through a unique id.
-
-# Examples
-```jldoctest
-julia> population = c = Population(cvs = Dict(1:4 .=>
-                                              repeat(NamedTuple{(:sex,:age)}.(zip([:male,:female],
-                                                                                  [25, 27])),
-                                                     outer = 2)),
-                                   evs = Dict(1:4 .=>
-                                              (DosageRegimen(amt, time = time) for
-                                                   amt ∈ 1u"g":1u"g":2u"g" for
-                                                   time ∈ 30u"minute":1u"hr":1.5u"hr")),
-                                   obs = DataFrame(id = 1:4,
-                                                   time = 0u"hr":1u"hr":3u"hr",
-                                                   variable = "dvs",
-                                                   value = 1u"g":2u"g":7u"g",
-                                                   ),
-                                   )
-Population
-  Subjects: 4
-  Covariates: sex, age
-  Observables: dvs
-```
 """
 struct Population{T} <: AbstractVector{T}
     subjects::Vector{T}
     Population(obj::AbstractVector{T}) where {T<:Subject} = new{T}(obj)
-    function Population(;
-                        cvs::Dict{<:Integer,<:NamedTuple} = Dict{Int,NamedTuple}(),
-                        obs::AbstractDataFrame = DataFrame(),
-                        evs::Dict{<:Integer,<:DosageRegimen} = Dict{Int,DosageRegimen}())
-        ids = sort!(collect(union(keys(cvs), keys(evs),
-            isempty(obs) ? Set{Int}() : obs[:id])))
-        if :cmt ∉ names(obs) && !isempty(obs)
-            obs[:cmt] = nothing
-        end
-        if !isempty(obs)
-            Set(names(obs)) == Set((:id, :cmt, :time, :variable, :value)) ||
-                throw(ArgumentError("Observations should have id, time, variable, and value"))
-            if isa(obs[:time], AbstractVector{<:Unitful.Time})
-                obs[:time] = convert.(Float64,
-                                      getfield.(uconvert.(u"hr", obs[:time]),
-                                                :val))
-            end
-            if isa(obs[:value], AbstractVector{<:Unitful.Mass})
-                obs[:value] = convert.(Float64,
-                                       getfield.(uconvert.(u"g", obs[:value]),
-                                                 :val))
-            end
-        end
-        regimens =
-            Dict((regimen => process_data(regimen)) for
-                  regimen ∈ unique(values(evs)))
-        output = Vector{Subject}(undef, length(ids))
-        for (idx, id) ∈ enumerate(ids)
-            output[idx] = Subject(id,
-                                  process_data(obs, id),
-                                  get(cvs, id, nothing),
-                                  id ∈ keys(evs) ? regimens[evs[id]] : Vector{Event}())
-        end
-        return new{eltype(output)}(output)
-    end
 end
 
 function Base.show(io::IO, data::Population)
@@ -283,5 +210,5 @@ function Base.show(io::IO, data::Population)
         obs = data.subjects[1].observations
         !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
     end
-    nothing
+    return nothing
 end
