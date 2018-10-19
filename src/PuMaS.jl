@@ -26,7 +26,7 @@ include("simulate_methods/analytical.jl")
 
 include("nca/auc.jl")
 
-export Subject, Population, process_nmtran, build_dataset, DosageRegimen
+export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, likelihood, pre, simpost,
        AUC, AUMC
