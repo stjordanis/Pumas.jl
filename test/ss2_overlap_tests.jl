@@ -51,7 +51,7 @@ col = pre(m_diffeq, subject, x0, y0)
 # Test 16
 ###############################
 
-subject = Subject(amt=[10,20,10], ii=[24,24,24], addl=[0,0,0], ss=[1,2,1], time=[0,12,24],  cmt=[2,2,2])
+subject = Subject([10, 20, 10], ii = 24, ss = [1,2,1], time = 0:12:24, cmt = 2)
 col = pre(m_diffeq, subject, x0, y0)
 sol = solve(m_diffeq, subject, x0, y0; tspan=(0.0,60.0+1e-14), abstol=1e-14,reltol=1e-14)
 
