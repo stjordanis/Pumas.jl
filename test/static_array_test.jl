@@ -2,7 +2,7 @@ using PuMaS, Test, CSV, Distributions, StaticArrays, Random, LinearAlgebra, Labe
 
 # Read the data# Read the data
 data = process_nmtran(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),
-                    [:sex,:wt,:etn])
+                      [:sex,:wt,:etn])
 # add a small epsilon to time 0 observations
 for subject in data.subjects
     obs1 = subject.observations[1]
@@ -104,7 +104,7 @@ end
 
 mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,post_f,derived_f)
 
-subject = build_dataset(amt=[10,20], ii=[24,24], addl=[2,2], ss=[1,2], time=[0,12],  cmt=[2,2])
+subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 
 x0 = (θ = [
               1.5,  #Ka
@@ -115,7 +115,6 @@ x0 = (θ = [
 y0 = (η = zeros(2),)
 
 sol = solve(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
-[sol[i].Central for i in 1:length(sol)]
 
 p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 @test 1000p[:conc] ≈ [605.3220736386598;1616.4036675452326]

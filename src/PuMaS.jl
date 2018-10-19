@@ -6,6 +6,8 @@ using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames,
 
 @reexport using OrdinaryDiffEq, DelayDiffEq, Unitful
 
+const Numeric = Union{AbstractVector{<:Number}, Number}
+
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
@@ -24,7 +26,7 @@ include("simulate_methods/analytical.jl")
 
 include("nca/auc.jl")
 
-export Subject, Population, process_nmtran, build_dataset, DosageRegimen
+export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, likelihood, pre, simpost,
        AUC, AUMC

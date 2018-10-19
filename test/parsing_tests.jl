@@ -15,7 +15,7 @@ for ev in data[1].events
   @test ev.cmt == 1
 end
 
-gen_subject = build_dataset(amt=100, addl=3, cmt=1, ii=12, ss=0)
+gen_subject = Subject(evs = DosageRegimen(100, ii = 12, addl = 3))
 @test data[1].id == gen_subject.id
 @test data[1].observations == gen_subject.observations
 @test data[1].covariates == gen_subject.covariates

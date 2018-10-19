@@ -96,6 +96,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
                     # to these doses.
 
                     # Put in a fake ii=10.0 for the steady state interval length
+                    # Needed for template_model_ev_system Test 17
                     ii == 0.0 && (ii = 10.0)
                     push!(events,Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
                 else
@@ -109,50 +110,45 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
         end
 
         sort!(events)
-        Subject(id, observations, covariates, events)
+        Subject(id = id, obs = observations, cvs = covariates, evs = events)
     end
     Population(subjects)
 end
-
-function build_observation_list(obs::AbstractDataFrame, id::Integer)
-    :id ∈ names(obs) || return Vector{Observation}()
-    data = view(obs, obs[:id] .== id)
-    isempty(data) && return Vector{Observation}()
-    return Observation.(data[:time],
-                        (NamedTuple{Tuple([Symbol(variable)])}(value) for
-                            (variable, value) ∈
-                            zip(data[:variable], data[:value])),
-                        data[:cmt],
-                        )
+build_observation_list(obs::AbstractVector{<:Observation}) = obs
+function build_observation_list(obs::AbstractDataFrame)
+    isempty(obs) && return Observation[]
+    cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
+    vars = setdiff(names(obs), (:time, :cmt))
+    return Observation.(obs[:time],
+                        NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))),
+                        cmt)
 end
 
+build_event_list(evs::AbstractVector{<:Event}) = evs
 function build_event_list(regimen::DosageRegimen)
     data = getfield(regimen, :data)
-    events = Vector{Event}()
+    events = Event[]
     for i in 1:size(data, 1)
         t    = data[:time][i]
-        evid = Int8(data[:evid][i])
+        evid = data[:evid][i]
         amt  = data[:amt][i]
         addl = data[:addl][i]
         ii   = data[:ii][i]
         cmt  = data[:cmt][i]
         rate = data[:rate][i]
-        ss   = Int8(data[:ss][i])
+        ss   = data[:ss][i]
 
         for j = 0:addl  # addl==0 means just once
-            j == 0 ? _ss = ss : _ss = Int8(0)
+            _ss = iszero(j) ? ss : zero(Int8)
             duration = amt/rate
             @assert amt != 0 || _ss == 1 || evid == 2
-            if amt == 0 && evid != 2
+            if iszero(amt) && evid != 2
                 @assert rate > 0
                 # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
                 # Such an event consists of infusion with the stated rate,
                 # starting at time −∞, and ending at the time on the dose
                 # ev event record. Bioavailability fractions do not apply
                 # to these doses.
-
-                # Put in a fake ii=10.0 for the steady state interval length
-                ii == 0.0 && (ii = 10.0)
                 push!(events, Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
             else
                 push!(events, Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
@@ -164,9 +160,4 @@ function build_event_list(regimen::DosageRegimen)
         end
     end
     sort!(events)
-end
-
-function build_dataset(cvs = [], dvs = []; kw...)
-    data = DataFrame(kw)
-    return process_nmtran(data, cvs, dvs)[1]
 end

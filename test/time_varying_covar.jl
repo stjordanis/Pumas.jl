@@ -1,7 +1,7 @@
 using PuMaS, CSV, LabelledArrays, Distributions, PDMats
 
 data = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)),"..","examples/data1.csv")),
-                    [:sex,:wt,:etn])
+                      [:sex,:wt,:etn])
 
 for subject in data.subjects
     obs1 = subject.observations[1]
