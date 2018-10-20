@@ -84,17 +84,18 @@ function onecompartment_f(u,p,t)
                           p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
-function post_f(col,u,t)
-    conc = u[2] / col.V
-    (dv = Normal(conc, conc*col.Σ),)
-end
-
-function derived_f(col,sol,obstimes,obs)
+# In the function interface, the first returned value is a named tuple, the second is a DataFrame
+function derived_f(col,sol,obstimes)
+    dvs(t) = begin
+        conc = sol(t)[2] / col.V
+        PuMaS.sample(Normal(conc, conc*col.Σ))
+    end
+    obs = DataFrame([[dvs(t) for t in obstimes]], [:dv])
     (obs_cmax = maximum(obs[:dv]),
-     T_max = maximum(obstimes))
+     T_max = maximum(obstimes)), obs
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)

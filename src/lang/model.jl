@@ -7,7 +7,7 @@ A model takes the following arguments
 - `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
 - `pre`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `post`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
+- `derived`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -19,22 +19,21 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,V,W}
+mutable struct PKPDModel{P,Q,R,S,T,V}
     param::P
     random::Q
     pre::R
     init::S
     prob::T
-    post::V
-    derived::W
-    function PKPDModel(param, random, pre, init, ode, post, derived)
+    derived::V
+    function PKPDModel(param, random, pre, init, ode, derived)
         prob = ode === nothing ? nothing : ODEProblem(ODEFunction(ode),
                                                      nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(pre), typeof(init),
             Union{DiffEqBase.DEProblem,Nothing},
-            typeof(post), typeof(derived)}(
-            param, random, pre, init, prob, post, derived)
+            typeof(derived)}(
+            param, random, pre, init, prob, derived)
     end
 end
 
@@ -188,14 +187,9 @@ function simobs(m::PKPDModel, subject::Subject,
     else
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
-    post = postfun(m,col,sol;continuity=continuity)
-    # This can be made slightly more efficient
-    # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup
-    obs = DataFrame(map(obstimes) do t
-        map(sample, post(t))
-    end)
-    derived = m.derived(col,sol,obstimes,obs)
-    SimulatedObservations(obstimes,obs,derived)
+    derived = m.derived(col,sol,obstimes)
+    obs = derived[end]
+    SimulatedObservations(obstimes,obs,derived[1:end-1])
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;
