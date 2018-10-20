@@ -119,7 +119,7 @@ mutable struct DosageRegimen
                            rate::Number,
                            ss::Number)
         amt = isa(amt, Unitful.Mass) ?
-            convert(Float64, getfield(uconvert.(u"g", amt), :val)) :
+            convert(Float64, getfield(uconvert.(u"mg", amt), :val)) :
             float(amt)
         time = isa(time, Unitful.Time) ?
             convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
