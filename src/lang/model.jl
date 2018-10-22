@@ -126,24 +126,24 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
-function postfun(m::PKPDModel, subject::Subject,
+function getderivedfun(m::PKPDModel, subject::Subject, t,
                   param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
-  postfun(m,col,sol;continuity=continuity)
+  getderived(m,col,sol,t;continuity=continuity)
 end
 
-function postfun(m::PKPDModel, col, sol; continuity=:left)
+function getderived(m::PKPDModel, col, sol, t; continuity=:left)
   if sol isa PKPDAnalyticalSolution
-      post = t-> m.post(col,sol(t),t)
+      derived = m.derived(col,sol.(t),t)
   elseif sol === nothing
-      post = t-> m.post(col,nothing,t)
+      derived = m.derived(col,nothing,t)
   else
-      post = t-> m.post(col,sol(t,continuity=continuity),t)
+      derived = m.derived(col,sol.(t,continuity=continuity),t)
   end
-  post
+  derived
 end
 
 struct SimulatedObservations{T,T2}
@@ -156,13 +156,13 @@ end
 #Base.length(A::SimulatedObservations) = length(A.obs)
 #Base.size(A::SimulatedObservations) = size(A.obs)
 #
-## indexing
-#@inline function Base.getindex(A::SimulatedObservations, I...)
-#    return A.obs[I...]
-#end
-#@inline function Base.setindex!(A::SimulatedObservations, x, I...)
-#    A.obs[I...] = x
-#end
+# indexing
+@inline function Base.getindex(A::SimulatedObservations, I...)
+    return A.derived[I...]
+end
+@inline function Base.setindex!(A::SimulatedObservations, x, I...)
+    A.derived[I...] = x
+end
 #Base.axes(A::SimulatedObservations) = axes(A.obs)
 #Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
 
@@ -187,7 +187,7 @@ function simobs(m::PKPDModel, subject::Subject,
     else
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
-    derived = m.derived(col,sol,obstimes)
+    derived = getderived(m,col,sol,obstimes;continuity=continuity)
     SimulatedObservations(obstimes,derived)
 end
 
@@ -226,10 +226,10 @@ end
 
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
-the post produces distributions.
+the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   post = postfun(m,subject,args...;kwargs...)
+   derived = getderived(m,subject,args...;kwargs...)
    sum(subject.observations) do obs
        t = obs.time
        _likelihood(post(t), obs)

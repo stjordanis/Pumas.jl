@@ -381,7 +381,7 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
         function (_pre,_sol,_obstimes)
             $(var_def(:_pre, pre))
             if _sol != nothing
-              $(bvar_def(:(_sol.u), odevars))
+              $(bvar_def(:(_sol), odevars))
             end
             $(esc(:t)) = _obstimes
             $(esc(derivedexpr))

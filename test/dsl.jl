@@ -44,11 +44,8 @@ mdsl = @model begin
         Central' =  Ka*Depot - CL*conc
     end
 
-    @post begin
-        dv ~ Normal(conc, conc*Σ)
-    end
-
     @derived begin
+      dv ~ @. Normal(conc, conc*Σ)
       obs_cmax = maximum(dv)
       T_max = maximum(t)
     end
@@ -86,8 +83,8 @@ end
 
 # In the function interface, the first returned value is a named tuple, the second is a DataFrame
 function derived_f(col,sol,obstimes)
-    Random.seed!(1)
-    conc = @. sol(obstimes, idxs=2) / col.V
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
     dv = @. PuMaS.sample(Normal(conc, conc*col.Σ))
     (obs_cmax = maximum(dv),
      T_max = maximum(obstimes),
