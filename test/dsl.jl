@@ -86,13 +86,12 @@ end
 
 # In the function interface, the first returned value is a named tuple, the second is a DataFrame
 function derived_f(col,sol,obstimes)
-    dvs(t) = begin
-        conc = sol(t)[2] / col.V
-        PuMaS.sample(Normal(conc, conc*col.Σ))
-    end
-    obs = DataFrame([[dvs(t) for t in obstimes]], [:dv])
-    (obs_cmax = maximum(obs[:dv]),
-     T_max = maximum(obstimes)), obs
+    Random.seed!(1)
+    conc = @. sol(obstimes, idxs=2) / col.V
+    dv = @. PuMaS.sample(Normal(conc, conc*col.Σ))
+    (obs_cmax = maximum(dv),
+     T_max = maximum(obstimes),
+     dv=dv)
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
