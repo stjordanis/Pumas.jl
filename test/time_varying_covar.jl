@@ -1,6 +1,6 @@
-using PuMaS, CSV, LabelledArrays, Distributions, PDMats
+using PuMaS, LabelledArrays
 
-data = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)),"..","examples/data1.csv")),
+data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 
 for subject in data.subjects

@@ -17,7 +17,12 @@ end
 Base.axes(A::Population) = axes(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
+function process_nmtran(filepath::String,kwargs...)
+  process_nmtran(CSV.read(filepath),kwargs...)
+end
+
 """
+    process_nmtran(filename, cvs=[], dvs=[:dv])
     process_nmtran(data, cvs=[], dvs=[:dv])
 
 Import NMTRAN-formatted data.
