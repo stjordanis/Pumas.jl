@@ -322,13 +322,13 @@ function extract_defs!(vars, defsdict, exprs...)
     end
 end
 
-function extract_randvars!(vars, randvars, postexpr, expr)
+function extract_randvars!(vars, randvars, distvars, postexpr, expr)
     @assert expr isa Expr
     expr = MacroTools.striplines(expr)
     if expr.head == :block
         for ex in expr.args
             #islinenum(expr) && continue
-            extract_randvars!(vars, randvars, postexpr, ex)
+            extract_randvars!(vars, randvars, distvars, postexpr, ex)
         end
     elseif ((iseq = expr.head == :(=)) || expr.head == :(:=)) && length(expr.args) == 2
         p = expr.args[1]
@@ -339,11 +339,12 @@ function extract_randvars!(vars, randvars, postexpr, expr)
         push!(postexpr.args, :($p = $(expr.args[2])))
     elseif expr isa Expr && expr.head == :call && expr.args[1] == :~ && length(expr.args) == 3
         if !isempty(expr.args[3].args)
-            if expr.args[3].args[1] == Symbol("@__dot__")
-                expr.args[3].args[3] = Expr(:call, :(PuMaS.sample), expr.args[3].args[3])
-            else
-                expr.args[3] = Expr(:call, :(PuMaS.sample), expr.args[3])
-            end
+            sym = Symbol(:___, expr.args[2])
+            push!(distvars, sym)
+            # sample distribution
+            expr.args[3] = :(PuMaS.sample.(begin
+                $sym = $(expr.args[3])
+            end))
         end
         p = expr.args[2]
         if p ∉ vars
@@ -376,7 +377,7 @@ function bvar_def(collection, indvars)
     end
 end
 
-function derived_obj(derivedexpr, derivedvars, pre, odevars)
+function derived_obj(derivedexpr, derivedvars, pre, odevars, distvars)
     quote
         function (_pre,_sol,_obstimes)
             $(var_def(:_pre, pre))
@@ -385,7 +386,7 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
             end
             $(esc(:t)) = _obstimes
             $(esc(derivedexpr))
-            $(esc(nt_expr(derivedvars)))
+            $(esc(nt_expr(derivedvars))), $(esc(nt_expr(distvars)))
         end
     end
 end
@@ -395,6 +396,7 @@ macro model(expr)
     vars = Set{Symbol}([:t]) # t is the only reserved symbol
     params = OrderedDict{Symbol, Any}()
     randoms = OrderedDict{Symbol, Any}()
+    distvars = OrderedSet{Symbol}()
     covariates = OrderedSet{Symbol}()
     prevars  = OrderedSet{Symbol}()
     ode_init  = OrderedDict{Symbol, Any}()
@@ -405,7 +407,7 @@ macro model(expr)
     vars_ = Expr[]
     derivedvars = OrderedSet{Symbol}()
     derivedexpr = Expr(:block)
-    local vars, params, randoms, covariates, prevars, preexpr, odeexpr, odevars, ode_init, eqs, derivedexpr, derivedvars, isstatic
+    local vars, params, randoms, covariates, prevars, preexpr, odeexpr, odevars, ode_init, eqs, derivedexpr, derivedvars, isstatic, distvars
 
     isstatic = true
     odeexpr = :()
@@ -439,7 +441,7 @@ macro model(expr)
             # Add in @vars
             bvars = broadcasted_vars(copy(vars_))
             ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
-            extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
+            extract_randvars!(vars, derivedvars, distvars, derivedexpr, ex.args[3])
         else
             error("Invalid macro $(ex.args[1])")
         end
@@ -455,7 +457,7 @@ macro model(expr)
             $(pre_obj(preexpr,prevars,params,randoms,covariates)),
             $(init_obj(ode_init,odevars[1],prevars,isstatic)),
             $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
-            $(derived_obj(derivedexpr, derivedvars, prevars, odevars[1])))
+            $(derived_obj(derivedexpr,derivedvars,prevars,odevars[1],distvars)))
         function Base.show(io::IO, ::typeof(x))
             println(io,"PKPDModel")
             println(io,"  Parameters: ",$(join(keys(params),", ")))

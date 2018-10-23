@@ -85,10 +85,11 @@ end
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    dv = @. PuMaS.sample(Normal(conc, conc*col.Σ))
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. PuMaS.sample(___dv)
     (obs_cmax = maximum(dv),
      T_max = maximum(obstimes),
-     dv=dv)
+     dv=dv), (___dv,)
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
@@ -124,7 +125,7 @@ function onecompartment_f_iip(du,u,p,t)
     du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
 end
 
-mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,post_f,derived_f)
+mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,derived_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4
@@ -153,11 +154,8 @@ mdsl = @model begin
         V  = θ[3] * exp(η[2])
     end
 
-    @post begin
-        dv ~ Binomial(30,Ka*CL)
-    end
-
     @derived begin
+      dv ~ @. Binomial(30,Ka*CL)
       obs_cmax = maximum(dv)
       T_max = maximum(t)
     end

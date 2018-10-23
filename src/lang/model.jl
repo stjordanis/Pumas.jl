@@ -126,7 +126,7 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
-function getderivedfun(m::PKPDModel, subject::Subject, t,
+function getderived(m::PKPDModel, subject::Subject, t,
                   param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
@@ -137,13 +137,13 @@ end
 
 function getderived(m::PKPDModel, col, sol, t; continuity=:left)
   if sol isa PKPDAnalyticalSolution
-      derived = m.derived(col,sol.(t),t)
+      derived, dist = m.derived(col,sol.(t),t)
   elseif sol === nothing
-      derived = m.derived(col,nothing,t)
+      derived, dist = m.derived(col,nothing,t)
   else
-      derived = m.derived(col,sol.(t,continuity=continuity),t)
+      derived, dist = m.derived(col,sol.(t,continuity=continuity),t)
   end
-  derived
+  derived, dist
 end
 
 struct SimulatedObservations{T,T2}
@@ -187,7 +187,7 @@ function simobs(m::PKPDModel, subject::Subject,
     else
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
-    derived = getderived(m,col,sol,obstimes;continuity=continuity)
+    derived, _ = getderived(m,col,sol,obstimes;continuity=continuity)
     SimulatedObservations(obstimes,derived)
 end
 
@@ -229,10 +229,19 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   derived = getderived(m,subject,args...;kwargs...)
+   obstimes = [obs.time for obs in subject.observations]
+   _, _derived_dist = getderived(m,subject,obstimes,args...;kwargs...)
+   derived_dist = _derived_dist[1]
+   idx = 1
    sum(subject.observations) do obs
        t = obs.time
-       _likelihood(post(t), obs)
+       if derived_dist isa Array
+           l = _likelihood(derived_dist[idx], obs)
+       else
+           l = _likelihood(derived_dist, obs)
+       end
+       idx += 1
+       return l
    end
 end
 
