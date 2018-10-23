@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Distributions, PDMats, StaticArrays
+using PuMaS, Test, CSV
 
 ###############################
 # Test 2

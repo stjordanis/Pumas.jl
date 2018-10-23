@@ -1,4 +1,4 @@
-using PuMaS, Test, Distributions, DiffEqJump
+using PuMaS, Test, DiffEqJump
 
 θ = [
      1.5,  #Ka

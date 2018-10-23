@@ -1,5 +1,5 @@
 using Test
-using PuMaS, Distributions, DataFrames
+using PuMaS, DataFrames
 
 # Example from
 # https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/05_margossian/models/neutropenia

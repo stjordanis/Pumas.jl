@@ -1,10 +1,11 @@
 module PuMaS
 
-using DiffEqBase, DiffEqMonteCarlo, Distributions, Reexport, DataFrames,
-      StaticArrays, DiffEqJump, PDMats, Distributed, LabelledArrays, GLM,
+using DiffEqBase, DiffEqMonteCarlo, Reexport, DataFrames,
+      StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews
 
 @reexport using OrdinaryDiffEq, DelayDiffEq, Unitful
+@reexport using Distributions, PDMats
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 

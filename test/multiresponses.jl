@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Distributions, PDMats
+using PuMaS, Test, CSV
 
 
 ###############################

@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Distributions, PDMats, Random, StaticArrays
+using PuMaS, Test, CSV, Random
 
 # Read the data
 data = process_nmtran(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),

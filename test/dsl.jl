@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Distributions, Random, LabelledArrays
+using PuMaS, Test, CSV, Random, LabelledArrays
 
 
 # Read the data# Read the data
