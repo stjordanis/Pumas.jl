@@ -5,17 +5,19 @@ using ModelingToolkit
 export @model
 
 islinenum(x) = x isa LineNumberNode
-function nt_expr(set)
+function nt_expr(set, prefix=nothing)
     t = :(())
     for p in set
-        push!(t.args, :($p = $p))
+        sym = prefix === nothing ? p : Symbol(prefix, p)
+        push!(t.args, :($p = $sym))
     end
     t
 end
-function nt_expr(dict::AbstractDict)
+function nt_expr(dict::AbstractDict, prefix=nothing)
     t = :(())
     for (p,d) in pairs(dict)
-        push!(t.args, :($p = $d))
+        sym = prefix === nothing ? d : Symbol(prefix, d)
+        push!(t.args, :($p = $sym))
     end
     t
 end
@@ -339,8 +341,9 @@ function extract_randvars!(vars, randvars, distvars, postexpr, expr)
         push!(postexpr.args, :($p = $(expr.args[2])))
     elseif expr isa Expr && expr.head == :call && expr.args[1] == :~ && length(expr.args) == 3
         if !isempty(expr.args[3].args)
-            sym = Symbol(:___, expr.args[2])
-            push!(distvars, sym)
+            _sym = expr.args[2]
+            push!(distvars, _sym)
+            sym = Symbol(:___, _sym)
             # sample distribution
             expr.args[3] = :(PuMaS.sample.(begin
                 $sym = $(expr.args[3])
@@ -386,7 +389,7 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars, distvars)
             end
             $(esc(:t)) = _obstimes
             $(esc(derivedexpr))
-            $(esc(nt_expr(derivedvars))), $(esc(nt_expr(distvars)))
+            $(esc(nt_expr(derivedvars))), $(esc(nt_expr(distvars, :___)))
         end
     end
 end

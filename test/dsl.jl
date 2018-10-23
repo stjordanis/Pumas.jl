@@ -81,7 +81,8 @@ function onecompartment_f(u,p,t)
                           p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
-# In the function interface, the first returned value is a named tuple, the second is a DataFrame
+# In the function interface, the first return value is a named tuple of sampled
+# values, the second is a named tuple of distributions
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
@@ -89,7 +90,7 @@ function derived_f(col,sol,obstimes)
     dv = @. PuMaS.sample(___dv)
     (obs_cmax = maximum(dv),
      T_max = maximum(obstimes),
-     dv=dv), (___dv,)
+     dv=dv), (dv=___dv,)
 end
 
 mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)

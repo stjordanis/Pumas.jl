@@ -221,6 +221,8 @@ function _likelihood(err::T, obs) where {T}
   sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
 end
 
+Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
+
 """
     likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
@@ -230,13 +232,13 @@ the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
    obstimes = [obs.time for obs in subject.observations]
-   _, _derived_dist = getderived(m,subject,obstimes,args...;kwargs...)
-   derived_dist = _derived_dist[1]
+   _, derived_dist = getderived(m,subject,obstimes,args...;kwargs...)
+   typ = flattentype(derived_dist)
    idx = 1
    sum(subject.observations) do obs
        t = obs.time
        if derived_dist isa Array
-           l = _likelihood(derived_dist[idx], obs)
+           l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
        else
            l = _likelihood(derived_dist, obs)
        end
