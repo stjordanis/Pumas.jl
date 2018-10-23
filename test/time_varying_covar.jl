@@ -38,16 +38,15 @@ function onecompartment_f(u,p,t)
                           p.Ka(t)*u[1] - (p.CL/p.V)*u[2])
 end
 
-function post_f(col,u,t)
-    conc = u[2] / col.V
-    (dv = Normal(conc, conc*col.Σ),)
-end
-
 function derived_f(col,sol,obstimes,obs)
-    (obs_cmax = maximum(obs[:dv]),)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. rand(___dv)
+    (obs_cmax = maximum(dv),), (dv=___dv,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
 
 x0 = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
@@ -87,9 +86,9 @@ sol_mobj   = solve(mobj,subject1,x0,y0)
           Central' =  Ka(t)*Depot - CL*cp
       end
 
-      @post begin
-          conc = Central / V
-          dv ~ Normal(conc, conc*σ)
+      @derived begin
+          conc = @. Central / V
+          dv ~ @. Normal(conc, conc*σ)
       end
   end
 end

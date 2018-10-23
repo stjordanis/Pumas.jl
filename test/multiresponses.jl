@@ -64,13 +64,12 @@ m23 = @model begin
         Resp'   =  Kin*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))  - Kout*Resp
     end
 
-    @post begin
+    @derived begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]
         periph = Periph
         resp   = Resp
-
     end
 end
 
@@ -165,7 +164,7 @@ m24 = @model begin
         Resp'   =  Kin - Kout*(1-(IMAX*(Cent/Vc)^γ/(IC50^γ+(Cent/Vc)^γ)))*Resp
     end
 
-    @post begin
+    @derived begin
         # TODO: allow direct output of dynamical variables
         ev1    = Ev1
         cp     = Cent / θ[3]
