@@ -345,7 +345,7 @@ function extract_randvars!(vars, randvars, distvars, postexpr, expr)
             push!(distvars, _sym)
             sym = Symbol(:___, _sym)
             # sample distribution
-            expr.args[3] = :(PuMaS.sample.(begin
+            expr.args[3] = :(rand.(begin
                 $sym = $(expr.args[3])
             end))
         end

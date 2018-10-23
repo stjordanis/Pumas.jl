@@ -126,24 +126,24 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
-function getderived(m::PKPDModel, subject::Subject, t,
+function derivedfun(m::PKPDModel, subject::Subject,
                   param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
-  getderived(m,col,sol,t;continuity=continuity)
+  derivedfun(m,col,sol;continuity=continuity)
 end
 
-function getderived(m::PKPDModel, col, sol, t; continuity=:left)
+function derivedfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
-      derived, dist = m.derived(col,sol.(t),t)
+      derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
   elseif sol === nothing
-      derived, dist = m.derived(col,nothing,t)
+      derived = obstimes -> m.derived(col,nothing,obstimes)
   else
-      derived, dist = m.derived(col,sol.(t,continuity=continuity),t)
+      derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
   end
-  derived, dist
+  derived
 end
 
 struct SimulatedObservations{T,T2}
@@ -187,8 +187,8 @@ function simobs(m::PKPDModel, subject::Subject,
     else
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
-    derived, _ = getderived(m,col,sol,obstimes;continuity=continuity)
-    SimulatedObservations(obstimes,derived)
+    derived = derivedfun(m,col,sol;continuity=continuity)
+    SimulatedObservations(obstimes,derived(obstimes)[1]) # the first component is observed values
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;
@@ -232,7 +232,8 @@ the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
    obstimes = [obs.time for obs in subject.observations]
-   _, derived_dist = getderived(m,subject,obstimes,args...;kwargs...)
+   derived = derivedfun(m,subject,args...;kwargs...)
+   _, derived_dist = derived(obstimes) # the second component is distributions
    typ = flattentype(derived_dist)
    idx = 1
    sum(subject.observations) do obs

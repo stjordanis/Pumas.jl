@@ -87,7 +87,7 @@ function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     ___dv = @. Normal(conc, conc*col.Σ)
-    dv = @. PuMaS.sample(___dv)
+    dv = @. rand(___dv)
     (obs_cmax = maximum(dv),
      T_max = maximum(obstimes),
      dv=dv), (dv=___dv,)
