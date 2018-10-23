@@ -374,8 +374,10 @@ function bvar_def(collection, indvars)
     quote
         if $collection isa DataFrame
             $(Expr(:block, [:($(esc(v)) = $collection.$v) for v in indvars]...))
-        else
-            $(Expr(:block, [:($(esc(v)) = map(x -> x.$v, $collection)) for v in indvars]...))
+        else eltype($collection) <: SArray
+            $(Expr(:block, [:($(esc(v)) = map(x -> x[$i], $collection)) for (i,v) in enumerate(indvars)]...))
+        #else
+            #$(Expr(:block, [:($(esc(v)) = map(x -> x.$v, $collection)) for v in indvars]...))
         end
     end
 end
