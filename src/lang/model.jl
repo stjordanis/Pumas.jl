@@ -235,10 +235,11 @@ function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
    derived = derivedfun(m,subject,args...;kwargs...)
    _, derived_dist = derived(obstimes) # the second component is distributions
    typ = flattentype(derived_dist)
+   n = length(derived_dist)
    idx = 1
    sum(subject.observations) do obs
        t = obs.time
-       if derived_dist isa Array
+       if eltype(derived_dist) <: Array
            l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
        else
            l = _likelihood(derived_dist, obs)
