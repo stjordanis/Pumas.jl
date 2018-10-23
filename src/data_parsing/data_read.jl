@@ -115,8 +115,14 @@ build_observation_list(obs::AbstractVector{<:Observation}) = obs
 function build_observation_list(obs::AbstractDataFrame)
     isempty(obs) && return Observation[]
     cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
+    time = obs[:time]
     vars = setdiff(names(obs), (:time, :cmt))
-    return Observation.(obs[:time],
+    if isa(time, Unitful.Time)
+        time = convert.(Float64, getfield(uconvert.(u"hr", time), :val))
+    else
+        time = float(time)
+    end
+    return Observation.(time,
                         NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))),
                         cmt)
 end
