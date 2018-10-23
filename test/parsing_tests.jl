@@ -1,6 +1,6 @@
 using PuMaS, Test
 
-data = process_nmtran(joinpath(dirname(pathof(PuMaS)), "..","examples/event_data/ev1.csv"))
+data = process_nmtran(example_nmtran_data("event_data/ev1"))
 @test_nowarn show(data)
 
 @test map(x->x.time,data[1].events) == collect(0:12.0:36.0)

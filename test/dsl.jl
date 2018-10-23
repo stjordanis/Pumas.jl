@@ -2,7 +2,7 @@ using PuMaS, Test, Random, LabelledArrays
 
 
 # Read the data# Read the data
-data = process_nmtran(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
+data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 # add a small epsilon to time 0 observations
 for subject in data.subjects
