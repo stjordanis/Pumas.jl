@@ -69,7 +69,7 @@ Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
 ### Display
-_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
+_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose",
                    2 => "Other", 3 => "Reset", 4 => "Reset and dose")
 Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
 function Base.show(io::IO, e::Event)
@@ -175,6 +175,9 @@ mutable struct DosageRegimen
     DosageRegimen(regimens) =
         reduce((x, y) -> DosageRegimen(x, y), regimens)
 end
+
+Base.show(io::IO, regimen::DosageRegimen) = show(getfield(regimen, :data))
+Base.print(io::IO, regimen::DosageRegimen) = show(getfield(regimen, :data))
 
 """
     Subject
