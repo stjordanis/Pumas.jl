@@ -37,9 +37,9 @@ mdsl = @model begin
         Central' =  Ka*Depot - CL*cp
     end
 
-    @post begin
-        conc = Central / V
-        dv ~ Normal(conc, conc*Σ)
+    @derived begin
+        conc = @. Central / V
+        dv ~ @. Normal(conc, conc*Σ)
     end
 end
 
@@ -69,14 +69,15 @@ function static_onecompartment_f(u,p,t)
     OneCompartmentVector(-p.Ka*u[1], p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
-function post_f(col,u,t)
-    conc = u[2] / col.V
-    (dv = Normal(conc, conc*col.Σ),)
+function derived_f(col,sol,obstimes)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. rand(___dv)
+    (dv = dv,), (dv=___dv,)
 end
 
-derived_f(col,sol,obstimes,obs) = nothing
-
-mstatic = PKPDModel(p,rfx_f,col_f,init_f,static_onecompartment_f,post_f,derived_f)
+mstatic = PKPDModel(p,rfx_f,col_f,init_f,static_onecompartment_f,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -101,8 +102,13 @@ end
 function post_f(col,u,t)
     (conc = u[2] / col.V,)
 end
+function derived_f(col,sol,obstimes)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    (conc = conc,), nothing
+end
 
-mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,post_f,derived_f)
+mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,derived_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 

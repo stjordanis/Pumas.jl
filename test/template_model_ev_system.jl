@@ -35,7 +35,7 @@ m_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 m_analytic = @model begin
@@ -50,7 +50,7 @@ m_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data2"),
@@ -106,7 +106,7 @@ mlag_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mlag_analytic = @model begin
@@ -122,7 +122,7 @@ mlag_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data3"),
@@ -184,7 +184,7 @@ mlagbioav_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mlagbioav_analytic = @model begin
@@ -201,7 +201,7 @@ mlagbioav_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data4"),
@@ -262,7 +262,7 @@ mbioav_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mbioav_analytic = @model begin
@@ -278,7 +278,7 @@ mbioav_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data5"),
@@ -740,7 +740,7 @@ mbld_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mbld_analytic = @model begin
@@ -758,7 +758,7 @@ mbld_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data14"),
@@ -954,7 +954,7 @@ mparbl_diffeq = @model begin
         Central' =  Ka1*Depot1 + Ka2*Depot2 - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mparbl_analytic = @model begin
@@ -972,7 +972,7 @@ mparbl_analytic = @model begin
 
     @dynamics OneCompartmentParallelModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data19"),
@@ -1025,7 +1025,7 @@ mbl2_diffeq = @model begin
         Central' =  Ka*Depot - (CL/V)*Central
     end
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 mbl2_analytic = @model begin
@@ -1043,7 +1043,7 @@ mbl2_analytic = @model begin
 
     @dynamics OneCompartmentModel
 
-    @post cp = Central / V
+    @derived cp = @. Central / V
 end
 
 subject = process_nmtran(example_nmtran_data("event_data/data20"),

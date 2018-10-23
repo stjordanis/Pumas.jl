@@ -41,8 +41,8 @@ function err(params, randoms, covars, u,p, t)
 end
 
 init = (_param, _random, _covariates,_pre,t) -> [0.0,0.0]
-post = (_param, _random, _covariates,_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,)
-model = PuMaS.PKPDModel(params,randomfx,pre,init,prob,post,err)
+#post = (_param, _random, _covariates,_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,)
+model = PuMaS.PKPDModel(params,randomfx,pre,init,prob,post)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

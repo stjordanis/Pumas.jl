@@ -57,12 +57,12 @@ m_neut = @model begin
         x8' = ktr * (x7 - x8)
     end
 
-    @post begin
-        cHat = max(x2,0.0) / V1
-        neutHat = x8 + circ0
+    @derived begin
+        cHat = @. max(x2,0.0) / V1
+        neutHat = @. x8 + circ0
 
-        logc ~ Normal(log(cHat), sigma)
-        logn ~ Normal(log(neutHat), sigmaNeut)
+        logc ~ @. Normal(log(cHat), sigma)
+        logn ~ @. Normal(log(neutHat), sigmaNeut)
     end
 end
 

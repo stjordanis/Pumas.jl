@@ -44,11 +44,8 @@ mdsl = @model begin
         Central' =  Ka*Depot - CL*conc
     end
 
-    @post begin
-        dv ~ Normal(conc, conc*Σ)
-    end
-
     @derived begin
+      dv ~ @. Normal(conc, conc*Σ)
       obs_cmax = maximum(dv)
       T_max = maximum(t)
     end
@@ -84,17 +81,19 @@ function onecompartment_f(u,p,t)
                           p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
 
-function post_f(col,u,t)
-    conc = u[2] / col.V
-    (dv = Normal(conc, conc*col.Σ),)
+# In the function interface, the first return value is a named tuple of sampled
+# values, the second is a named tuple of distributions
+function derived_f(col,sol,obstimes)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. rand(___dv)
+    (obs_cmax = maximum(dv),
+     T_max = maximum(obstimes),
+     dv=dv), (dv=___dv,)
 end
 
-function derived_f(col,sol,obstimes,obs)
-    (obs_cmax = maximum(obs[:dv]),
-     T_max = maximum(obstimes))
-end
-
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,post_f,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -127,7 +126,7 @@ function onecompartment_f_iip(du,u,p,t)
     du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
 end
 
-mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,post_f,derived_f)
+mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,derived_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4
@@ -156,11 +155,8 @@ mdsl = @model begin
         V  = θ[3] * exp(η[2])
     end
 
-    @post begin
-        dv ~ Binomial(30,Ka*CL)
-    end
-
     @derived begin
+      dv ~ @. Binomial(30,Ka*CL)
       obs_cmax = maximum(dv)
       T_max = maximum(t)
     end

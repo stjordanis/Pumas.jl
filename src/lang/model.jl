@@ -7,7 +7,7 @@ A model takes the following arguments
 - `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
 - `pre`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `post`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
+- `derived`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -19,22 +19,21 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,V,W}
+mutable struct PKPDModel{P,Q,R,S,T,V}
     param::P
     random::Q
     pre::R
     init::S
     prob::T
-    post::V
-    derived::W
-    function PKPDModel(param, random, pre, init, ode, post, derived)
+    derived::V
+    function PKPDModel(param, random, pre, init, ode, derived)
         prob = ode === nothing ? nothing : ODEProblem(ODEFunction(ode),
                                                      nothing, nothing, nothing)
         new{typeof(param), typeof(random),
             typeof(pre), typeof(init),
             Union{DiffEqBase.DEProblem,Nothing},
-            typeof(post), typeof(derived)}(
-            param, random, pre, init, prob, post, derived)
+            typeof(derived)}(
+            param, random, pre, init, prob, derived)
     end
 end
 
@@ -127,45 +126,45 @@ The logpdf. Of a non-distribution it assumes the Dirac distribution.
 _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
-function postfun(m::PKPDModel, subject::Subject,
+function derivedfun(m::PKPDModel, subject::Subject,
                   param = init_param(m),
                   rfx=rand_random(m, param),
                   args...; continuity=:left,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
-  postfun(m,col,sol;continuity=continuity)
+  derivedfun(m,col,sol;continuity=continuity)
 end
 
-function postfun(m::PKPDModel, col, sol; continuity=:left)
+function derivedfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
-      post = t-> m.post(col,sol(t),t)
+      derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
   elseif sol === nothing
-      post = t-> m.post(col,nothing,t)
+      derived = obstimes -> m.derived(col,nothing,obstimes)
   else
-      post = t-> m.post(col,sol(t,continuity=continuity),t)
+      derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
   end
-  post
+  derived
 end
 
 struct SimulatedObservations{T,T2}
     times::Vector{T}
-    obs::DataFrame
     derived::T2
 end
 
-# size
-Base.length(A::SimulatedObservations) = length(A.obs)
-Base.size(A::SimulatedObservations) = size(A.obs)
-
+# TODO: interface on SimulatedObservations
+## size
+#Base.length(A::SimulatedObservations) = length(A.obs)
+#Base.size(A::SimulatedObservations) = size(A.obs)
+#
 # indexing
 @inline function Base.getindex(A::SimulatedObservations, I...)
-    return A.obs[I...]
+    return A.derived[I...]
 end
 @inline function Base.setindex!(A::SimulatedObservations, x, I...)
-    A.obs[I...] = x
+    A.derived[I...] = x
 end
-Base.axes(A::SimulatedObservations) = axes(A.obs)
-Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
+#Base.axes(A::SimulatedObservations) = axes(A.obs)
+#Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
 
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
@@ -188,14 +187,8 @@ function simobs(m::PKPDModel, subject::Subject,
     else
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
-    post = postfun(m,col,sol;continuity=continuity)
-    # This can be made slightly more efficient
-    # https://stackoverflow.com/questions/52503424/generating-named-tuples-of-arrays-on-a-map-of-a-function-that-produces-named-tup
-    obs = DataFrame(map(obstimes) do t
-        map(sample, post(t))
-    end)
-    derived = m.derived(col,sol,obstimes,obs)
-    SimulatedObservations(obstimes,obs,derived)
+    derived = derivedfun(m,col,sol;continuity=continuity)
+    SimulatedObservations(obstimes,derived(obstimes)[1]) # the first component is observed values
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;
@@ -228,18 +221,31 @@ function _likelihood(err::T, obs) where {T}
   sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
 end
 
+Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
+
 """
     likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
-the post produces distributions.
+the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   post = postfun(m,subject,args...;kwargs...)
+   obstimes = [obs.time for obs in subject.observations]
+   derived = derivedfun(m,subject,args...;kwargs...)
+   _, derived_dist = derived(obstimes) # the second component is distributions
+   typ = flattentype(derived_dist)
+   n = length(derived_dist)
+   idx = 1
    sum(subject.observations) do obs
        t = obs.time
-       _likelihood(post(t), obs)
+       if eltype(derived_dist) <: Array
+           l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
+       else
+           l = _likelihood(derived_dist, obs)
+       end
+       idx += 1
+       return l
    end
 end
 
