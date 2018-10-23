@@ -147,7 +147,7 @@ function derivedfun(m::PKPDModel, col, sol; continuity=:left)
 end
 
 struct SimulatedObservations{T,T2}
-    times::Vector{T}
+    times::T
     derived::T2
 end
 
