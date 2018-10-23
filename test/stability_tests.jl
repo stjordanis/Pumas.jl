@@ -1,9 +1,9 @@
-using PuMaS, Test, CSV, Distributions
+using PuMaS, Test, Distributions
 
 # Load data
 cvs = [:ka, :cl, :v]
 dvs = [:dv]
-data = process_nmtran(CSV.read(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.csv")),
+data = process_nmtran(joinpath(dirname(pathof(PuMaS)), "..", "examples/oral1_1cpt_KAVCL_MD_data.csv"),
                       cvs, dvs)
 
 m_diffeq = @model begin

@@ -1,7 +1,7 @@
 using PuMaS, Test, CSV, Random
 
 # Read the data
-data = process_nmtran(CSV.read(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv")),
+data = process_nmtran(joinpath(joinpath(dirname(pathof(PuMaS)), ".."),"examples/data1.csv"),
                       [:sex,:wt,:etn])
 
 # add a small epsilon to time 0 observations

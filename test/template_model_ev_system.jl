@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV
+using PuMaS, Test
 
 ###############################
 # Test 2
