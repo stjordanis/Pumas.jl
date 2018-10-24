@@ -32,15 +32,8 @@ end
 
 prob = SDEProblem(f,g,nothing,nothing)
 
-function err(params, randoms, covars, u,p, t)
-    V = p.V
-    Depot, Central = u
-    Σ = params.Σ
-    conc = Central / V
-    (dv=Normal(conc, conc*Σ),),nothing
-end
-
 init_f = (col,t) -> [0.0,0.0]
+
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
@@ -50,6 +43,7 @@ function derived_f(col,sol,obstimes)
      T_max = maximum(obstimes),
      dv=dv), (dv=___dv,)
 end
+
 model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,prob,derived_f)
 
 x0 = init_param(model)

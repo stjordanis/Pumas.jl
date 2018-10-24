@@ -6,12 +6,12 @@ using PuMaS, Test, DelayDiffEq
      30.0 #V
      ]
 
-params = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
+p = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
   RandomEffectSet((η=MvNormal(p.Ω),))
 end
 
-function pre(params, randoms, covars)
+function pre_f(params, randoms, covars)
     θ = params.θ
     η = randoms.η
     (Ka = θ[1],
@@ -19,30 +19,29 @@ function pre(params, randoms, covars)
      V  = θ[3]*exp(η[2]))
 end
 
-function f(du,u,p,t)
+function f(du,u,h,p,t)
  Depot,Central = u
+ Central_Delay = h(p,t-10)[2]
  du[1] = -p.Ka*Depot
- du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
+ du[2] =  p.Ka*Depot - (p.CL/p.V)*Central_Delay
 end
 
-function g(t,u,du)
- du[1] = 0.5u[1]
- du[2] = 0.1u[2]
+init_f = (col,t) -> [0.0,0.0]
+h(p,t) = zeros(2)
+
+prob = DDEProblem(f,nothing,h,nothing,nothing)
+
+function derived_f(col,sol,obstimes)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. rand(___dv)
+    (obs_cmax = maximum(dv),
+     T_max = maximum(obstimes),
+     dv=dv), (dv=___dv,)
 end
 
-prob = SDEProblem(f,g,zeros(2),(0.0,72.0))
-
-function err(params, randoms, covars, u,p, t)
-    V = p.V
-    Depot, Central = u
-    Σ = params.Σ
-    conc = Central / V
-    (dv=Normal(conc, conc*Σ),)
-end
-
-init = (_param, _random, _covariates,_pre,t) -> [0.0,0.0]
-#post = (_param, _random, _covariates,_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,)
-model = PuMaS.PKPDModel(params,randomfx,pre,init,prob,post)
+model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,prob,derived_f)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)
@@ -50,5 +49,5 @@ y0 = init_random(model, x0)
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
 sol  = solve(model,data,x0,y0,MethodOfSteps(Tsit5()))
 
-#data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
-#sol  = simulate(pkpd,θ,η,data,MethodOfSteps(Tsit5()))
+data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
+sol  = solve(model,data,x0,y0,MethodOfSteps(Tsit5()))

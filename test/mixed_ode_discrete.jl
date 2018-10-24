@@ -6,7 +6,7 @@ using PuMaS, Test, DiffEqJump
      30.0 #V
      ]
 
-params = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
+p = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
   RandomEffectSet((η=MvNormal(p.Ω),))
 end
@@ -25,7 +25,7 @@ function f(du,u,p,t)
  du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
 end
 
-prob = ODEProblem(f,zeros(2),(0.0,100.0))
+prob = ODEProblem(f,nothing,nothing)
 
 rate(u,p,t) = .15u[1]
 function affect!(integrator)
@@ -35,17 +35,19 @@ end
 jump = VariableRateJump(rate,affect!)
 jump_prob = JumpProblem(prob,Direct(),jump)
 
-function err(params, randoms, covars, u,p, t)
-    V = p.V
-    Depot, Central = u
-    Σ = params.Σ
-    conc = Central / V
-    (dv=Normal(conc, conc*Σ),)
+init_f = (col,t) -> [0.0,0.0]
+
+function derived_f(col,sol,obstimes)
+    central = map(x->x[2], sol)
+    conc = @. central / col.V
+    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. rand(___dv)
+    (obs_cmax = maximum(dv),
+     T_max = maximum(obstimes),
+     dv=dv), (dv=___dv,)
 end
 
-init = (_param, _random, _covariates,_pre,t) -> [0.0,0.0]
-post = (_param, _random, _covariates,_pre,_odevars,t) -> (conc = _odevars[2] / _pre.V,)
-model = PuMaS.PKPDModel(params,randomfx,pre,init,prob,post,err)
+model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,prob,derived_f)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

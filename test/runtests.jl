@@ -27,12 +27,13 @@ using PuMaS, SafeTestsets
      include("neutropenia.jl") end
 @time @safetestset "SDE Tests" begin
       include("sdes.jl") end
+@time @safetestset "DDE Tests" begin
+     include("ddes.jl") end
 @time @safetestset "NCA" begin
      include("nca_tests.jl") end
 
 #=
-@time @safetestset "DDE Tests" begin
-     include("ddes.jl") end
+
 
 @time @safetestset "Mixed ODE and Discrete Tests" begin
      include("mixed_ode_discrete.jl") end

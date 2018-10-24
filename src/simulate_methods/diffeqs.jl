@@ -18,13 +18,18 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; sav
 
     # Remake problem of correct type
     inplace = !(u0 isa StaticArray)
-    prob = remake(prob; callback=cb, f=ft{inplace}(fd,prob.f.g), u0=Tu0)
+    new_f = make_function(prob,fd,inplace)
+
+    prob = remake(prob; callback=cb, f=new_f, u0=Tu0)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
                 tstops=tstops,   # extra times that the timestepping algorithm must step to
                 kwargs...)
 end
+
+make_function(prob::Union{ODEProblem,DDEProblem},fd,inplace) = DiffEqBase.parameterless_type(typeof(prob.f)){inplace}(fd)
+make_function(prob::SDEProblem,fd,inplace) = DiffEqBase.parameterless_type(typeof(prob.f)){inplace}(fd,prob.f.g)
 
 function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
@@ -90,7 +95,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   function affect!(integrator)
 
     if ProbType <: DiffEqBase.DDEProblem
-      f = integrator.integrator.f
+      f = integrator.integrator.f.f
     else
       f = integrator.f
     end
