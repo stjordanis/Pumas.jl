@@ -80,6 +80,7 @@ function onecompartment_f(u,p,t)
     OneCompartmentVector(-p.Ka*u[1],
                           p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
+prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 
 # In the function interface, the first return value is a named tuple of sampled
 # values, the second is a named tuple of distributions
@@ -93,7 +94,7 @@ function derived_f(col,sol,obstimes)
      dv=dv), (dv=___dv,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -125,8 +126,9 @@ function onecompartment_f_iip(du,u,p,t)
     du[1] = -p.Ka*u[1]
     du[2] =  p.Ka*u[1] - (p.CL/p.V)*u[2]
 end
+prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
-mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,onecompartment_f_iip,derived_f)
+mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,prob,derived_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=1e-4

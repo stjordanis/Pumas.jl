@@ -1,14 +1,11 @@
-function _solve_analytical(m::PKPDModel, subject::Subject, args...; kwargs...)
-  col = m.prob.p
-  tspan = m.prob.tspan
-  u0 = m.prob.u0
-  f = m.prob.f.f
+function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args...; kwargs...)
+  f = m.prob
 
   T = promote_type(numtype(col), numtype(u0), numtype(tspan))
   Ttspan = T.(tspan)
   Tu0    = T.(u0)
 
-  prob = PKPDAnalyticalProblem{true}(f, Tu0, Ttspan)
+  prob = PKPDAnalyticalProblem{false}(f, Tu0, Ttspan)
   ss = prob.ss
 
   lags,bioav,time_adjust_rate,duration = get_magic_args(col,Tu0,Ttspan[1])

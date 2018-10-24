@@ -260,25 +260,26 @@ function dynamics_obj(odeexpr::Expr, pre, odevars, eqs, isstatic)
     der   = :(@Deriv ___D'~t)
     param = :(@Param)
     if isstatic
-      diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], []),version=ModelingToolkit.SArrayFunction))
+      diffeq= :(ODEProblem(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], []),version=ModelingToolkit.SArrayFunction),nothing,nothing,nothing))
     else
-      diffeq= :(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], [])))
+      diffeq= :(ODEProblem(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[],
+       [])),nothing,nothing,nothing))
     end
 
     # DVar
     for v in odevars[1]
         push!(dvar.args, :($v(t)))
-        push!(diffeq.args[2].args[4].args, v)
+        push!(diffeq.args[2].args[2].args[4].args, v)
     end
     # Var
     for v in odevars[2]
         push!(var.args, v)
-        push!(diffeq.args[2].args[5].args, v)
+        push!(diffeq.args[2].args[2].args[5].args, v)
     end
     # Param
     for p in pre
         push!(param.args, p)
-        push!(diffeq.args[2].args[6].args, p)
+        push!(diffeq.args[2].args[2].args[6].args, p)
     end
     quote
         let

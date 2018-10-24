@@ -27,11 +27,10 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
     prob::T
     derived::V
     function PKPDModel(param, random, pre, init, ode, derived)
-        prob = ode === nothing ? nothing : ODEProblem(ODEFunction(ode),
-                                                     nothing, nothing, nothing)
+        prob = ode === nothing ? nothing : ode
         new{typeof(param), typeof(random),
             typeof(pre), typeof(init),
-            Union{DiffEqBase.DEProblem,Nothing},
+            Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
             typeof(derived)}(
             param, random, pre, init, prob, derived)
     end
@@ -98,10 +97,10 @@ function _solve(m::PKPDModel, subject, col, args...;
                 tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
   u0  = m.init(col, tspan[1])
   m.prob === nothing && return nothing
-  m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
-  if m.prob.f.f isa ExplicitModel
-      return _solve_analytical(m, subject, args...;kwargs...)
+  if m.prob isa ExplicitModel
+      return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
+      m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
       return _solve_diffeq(m, subject, args...;kwargs...)
   end
 end

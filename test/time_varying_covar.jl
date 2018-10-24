@@ -37,6 +37,7 @@ function onecompartment_f(u,p,t)
     OneCompartmentVector(-p.Ka(t)*u[1],
                           p.Ka(t)*u[1] - (p.CL/p.V)*u[2])
 end
+prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 
 function derived_f(col,sol,obstimes,obs)
     central = map(x->x[2], sol)
@@ -46,7 +47,7 @@ function derived_f(col,sol,obstimes,obs)
     (obs_cmax = maximum(dv),), (dv=___dv,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,onecompartment_f,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 x0 = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
@@ -55,7 +56,7 @@ x0 = (θ = [2.268,74.17,468.6,0.5876],
 subject1 = data.subjects[1]
 y0 = init_random(mobj, x0)
 
-sol_mobj   = solve(mobj,subject1,x0,y0)
+sol_mobj = solve(mobj,subject1,x0,y0)
 
 ## DSL
 
