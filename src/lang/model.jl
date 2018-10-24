@@ -95,6 +95,7 @@ be repeated in the other API functions
 """
 function _solve(m::PKPDModel, subject, col, args...;
                 tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+  @show "here1"
   u0  = m.init(col, tspan[1])
   m.prob === nothing && return nothing
   if m.prob isa ExplicitModel

@@ -18,7 +18,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, alg=Tsit5(), args...; sav
 
     # Remake problem of correct type
     inplace = !(u0 isa StaticArray)
-    prob = remake(prob; callback=cb, f=ft{inplace}(fd), u0=Tu0)
+    prob = remake(prob; callback=cb, f=ft{inplace}(fd,prob.f.g), u0=Tu0)
 
     sol = solve(prob,alg,args...;
                 save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
@@ -138,7 +138,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           post_steady_state[] = false
           ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=false)
 
-          ss_time[] = integrator.t          
+          ss_time[] = integrator.t
           if typeof(bioav) <: Number
             _duration = (bioav*cur_ev.amt)/cur_ev.rate
           else

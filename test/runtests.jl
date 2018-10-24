@@ -23,18 +23,17 @@ using PuMaS, SafeTestsets
      include("static_array_test.jl") end
 @time @safetestset "Time-Varying Covariate Tests" begin
      include("time_varying_covar.jl") end
-
 @time @safetestset "Neutropenia" begin
      include("neutropenia.jl") end
-
+@time @safetestset "SDE Tests" begin
+      include("sdes.jl") end
 @time @safetestset "NCA" begin
      include("nca_tests.jl") end
 
 #=
 @time @safetestset "DDE Tests" begin
      include("ddes.jl") end
-@time @safetestset "SDE Tests" begin
-     include("sdes.jl") end
+
 @time @safetestset "Mixed ODE and Discrete Tests" begin
      include("mixed_ode_discrete.jl") end
 =#
