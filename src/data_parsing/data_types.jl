@@ -15,6 +15,19 @@ struct Observation{T,V,C}
     val::V
     cmt::C
 end
+Base.summary(::Observation) = "Observation"
+function Base.show(io::IO, o::Observation)
+    println(io, summary(o))
+    println(io, "  time of measurement = $(o.time)")
+    println(io, "  compartment = $(o.cmt)")
+    println(io, "  measurements")
+    foreach(v -> println(io, "    $(v) = $(getfield(o.val, v))"),
+            fieldnames(typeof(o.val)))
+end
+TreeViews.hastreeview(::Observation) = true
+function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
+    show(io, mime, Text(summary(o)))
+end
 
 """
     Event
@@ -69,7 +82,7 @@ Base.isless(a::Event,b::Number) = isless(a.time,b)
 Base.isless(a::Number,b::Event) = isless(a,b.time)
 
 ### Display
-_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose", 
+_evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose",
                    2 => "Other", 3 => "Reset", 4 => "Reset and dose")
 Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
 function Base.show(io::IO, e::Event)
@@ -208,10 +221,14 @@ function Base.show(io::IO, subject::Subject)
     println(io, summary(subject))
     println(io, "  Events: ", length(subject.events))
     println(io, "  Observations: ", length(subject.observations))
-    println(io, "  Covariates: ", join(fieldnames(typeof(subject.covariates)),", "))
+    println(io, "  Covariates: ")
+    subject.covariates !== nothing &&
+        foreach(kv -> println(io, string("    ", kv[1], ": ", kv[2])),
+                pairs(subject.covariates))
     !isempty(subject.observations) &&
         println(io, "  Observables: ",
                     join(fieldnames(typeof(subject.observations[1].val)),", "))
+    return nothing
 end
 TreeViews.hastreeview(::Subject) = true
 function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
@@ -233,8 +250,7 @@ observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
 """
     Population(::AbstractVector{<:Subject})
 
-A `Population` is a set of `Subject`s. It can be instanced passing covariates,
-observations, and event data for each relevant `Subject` through a unique id.
+A `Population` is a set of `Subject`s. It can be instanced passing a collection or `Subject`.
 """
 struct Population{T} <: AbstractVector{T}
     subjects::Vector{T}
