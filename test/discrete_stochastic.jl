@@ -19,21 +19,21 @@ function pre_f(params, randoms, covars)
      V  = θ[3]*exp(η[2]))
 end
 
-function ode_f(du,u,p,t)
- Depot,Central = u
- du[1] = -p.Ka*Depot
- du[2] =  p.Ka*Depot - (p.CL/p.V)*Central
-end
+prob = DiscreteProblem([0.0,0.0],(0.0,72.0))
 
-prob = ODEProblem(ode_f,nothing,nothing)
-
-rate(u,p,t) = .15u[1]
-function affect!(integrator)
+rate1(u,p,t) = 100p.Ka*u[1]
+function affect1!(integrator)
   integrator.u[1] -= 1
   integrator.u[2] += 1
 end
-jump = VariableRateJump(rate,affect!)
-jump_prob = JumpProblem(prob,Direct(),jump)
+jump1 = ConstantRateJump(rate1,affect1!)
+
+rate2(u,p,t) = (p.CL/p.V)*u[2]
+function affect2!(integrator)
+  integrator.u[2] -= 1
+end
+jump2 = ConstantRateJump(rate2,affect2!)
+jump_prob = JumpProblem(prob,Direct(),jump1,jump2)
 
 init_f = (col,t) -> [0.0,0.0]
 
@@ -54,10 +54,4 @@ x0 = init_param(model)
 y0 = init_random(model, x0)
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
-sol  = solve(model,data,x0,y0,Tsit5())
-
-#data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
-#sol  = simulate(pkpd,θ,η,data,Tsit5())
-
-using Plots
-plot(sol)
+sol  = solve(model,data,x0,y0,FunctionMap())

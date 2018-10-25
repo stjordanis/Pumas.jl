@@ -33,8 +33,8 @@ using PuMaS, SafeTestsets
      include("nca_tests.jl") end
 
 #=
-
-
+@time @safetestset "Discrete Stochastic Tests" begin
+     include("discrete_stochastic.jl") end
 @time @safetestset "Mixed ODE and Discrete Tests" begin
      include("mixed_ode_discrete.jl") end
 =#
