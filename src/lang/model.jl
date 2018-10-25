@@ -94,12 +94,14 @@ This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
 """
 function _solve(m::PKPDModel, subject, col, args...;
-                tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
-  if :saveat in keys(kwargs)
-      tspan = min(tspan[1], first(kwargs[:saveat])), max(tspan[end], last(kwargs[:saveat]))
+                tspan=nothing, kwargs...)
+  m.prob === nothing && return nothing
+  if tspan === nothing
+      _tspan = timespan(subject)
+      !(m.prob.tspan === (nothing, nothing)) && (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+      tspan = min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))
   end
   u0  = m.init(col, tspan[1])
-  m.prob === nothing && return nothing
   if m.prob isa ExplicitModel
       return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
