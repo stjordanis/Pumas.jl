@@ -1,4 +1,4 @@
-using PuMaS, LinearAlgebra, DataFrames
+using PuMaS, LinearAlgebra
 
 #Creating the dataset
 
