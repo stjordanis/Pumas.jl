@@ -147,7 +147,7 @@ function derivedfun(m::PKPDModel, col, sol; continuity=:left)
 end
 
 struct SimulatedObservations{T,T2}
-    times::Vector{T}
+    times::AbstractVector{T}
     derived::T2
 end
 
@@ -183,8 +183,10 @@ function simobs(m::PKPDModel, subject::Subject,
                 obstimes=observationtimes(subject),kwargs...)
     col = m.pre(param, rfx, subject.covariates)
     if :saveat in keys(kwargs)
+        isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
         sol = _solve(m, subject, col, args...; kwargs...)
     else
+        isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
     derived = derivedfun(m,col,sol;continuity=continuity)
@@ -231,7 +233,12 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   obstimes = [obs.time for obs in subject.observations]
+   if :obstimes in keys(kwargs)
+      obstimes = kwargs[:obstimes]
+   else
+      obstimes = [obs.time for obs in subject.observations]
+   end
+   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
    derived = derivedfun(m,subject,args...;kwargs...)
    _, derived_dist = derived(obstimes) # the second component is distributions
    typ = flattentype(derived_dist)
