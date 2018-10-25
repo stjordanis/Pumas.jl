@@ -98,8 +98,10 @@ function _solve(m::PKPDModel, subject, col, args...;
   m.prob === nothing && return nothing
   if tspan === nothing
       _tspan = timespan(subject)
-      !(m.prob.tspan === (nothing, nothing)) && (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
-      tspan = min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))
+      m.prob isa DiffEqBase.DEProblem &&
+        !(m.prob.tspan === (nothing, nothing)) &&
+          (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+      tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
   end
   u0  = m.init(col, tspan[1])
   if m.prob isa ExplicitModel
