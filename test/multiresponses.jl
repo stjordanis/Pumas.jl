@@ -1,4 +1,4 @@
-using PuMaS, Test
+using PuMaS, Test, LinearAlgebra
 
 
 ###############################

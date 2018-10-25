@@ -68,6 +68,7 @@ end
 function static_onecompartment_f(u,p,t)
     OneCompartmentVector(-p.Ka*u[1], p.Ka*u[1] - (p.CL/p.V)*u[2])
 end
+prob = ODEProblem(static_onecompartment_f,nothing,nothing,nothing)
 
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
@@ -77,7 +78,7 @@ function derived_f(col,sol,obstimes)
     (dv = dv,), (dv=___dv,)
 end
 
-mstatic = PKPDModel(p,rfx_f,col_f,init_f,static_onecompartment_f,derived_f)
+mstatic = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -108,7 +109,7 @@ function derived_f(col,sol,obstimes)
     (conc = conc,), nothing
 end
 
-mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,static_onecompartment_f,derived_f)
+mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,prob,derived_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 
