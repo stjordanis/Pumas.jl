@@ -89,7 +89,5 @@ x0 = (θ = θ,
     Σ_dv = 0.04,
     Σ_pddv = 1)
 @test_throws ArgumentError simobs(model, population[1], x0)
-@test_throws ArgumentError simobs(model, population[1], x0)
 @test_throws ArgumentError likelihood(model, population[1])
-@test_nowarn simobs(model, population[1], x0,obstimes=0.1:0.1:300.0, tspan=(0.0,300.0))
-@test_nowarn likelihood(model, population[1], obstimes=0.1:0.1:300.0, tspan=(0.0,300.0))
+@test_nowarn simobs(model, population[1], x0,obstimes=0.1:0.1:300.0)

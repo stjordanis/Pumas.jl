@@ -95,6 +95,9 @@ be repeated in the other API functions
 """
 function _solve(m::PKPDModel, subject, col, args...;
                 tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
+  if :saveat in keys(kwargs)
+      tspan = min(tspan[1], first(kwargs[:saveat])), max(tspan[end], last(kwargs[:saveat]))
+  end
   u0  = m.init(col, tspan[1])
   m.prob === nothing && return nothing
   if m.prob isa ExplicitModel
@@ -232,11 +235,7 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   if :obstimes in keys(kwargs)
-      obstimes = kwargs[:obstimes]
-   else
-      obstimes = [obs.time for obs in subject.observations]
-   end
+   obstimes = [obs.time for obs in subject.observations]
    isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
    derived = derivedfun(m,subject,args...;kwargs...)
    _, derived_dist = derived(obstimes) # the second component is distributions
@@ -244,7 +243,6 @@ function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
    n = length(derived_dist)
    idx = 1
    sum(subject.observations) do obs
-       t = obs.time
        if eltype(derived_dist) <: Array
            l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
        else
