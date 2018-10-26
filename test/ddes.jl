@@ -47,7 +47,7 @@ x0 = init_param(model)
 y0 = init_random(model, x0)
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
-sol  = solve(model,data,x0,y0,MethodOfSteps(Tsit5()))
+sol  = solve(model,data,x0,y0,alg=MethodOfSteps(Tsit5()))
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
-sol  = solve(model,data,x0,y0,MethodOfSteps(Tsit5()))
+sol  = solve(model,data,x0,y0,alg=MethodOfSteps(Tsit5()))

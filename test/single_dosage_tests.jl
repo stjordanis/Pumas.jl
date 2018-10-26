@@ -87,7 +87,7 @@ sol_analytic = solve(m_analytic,subject1,x0,y0)
 
 @test sol_diffeq(1.0) ≈ sol_analytic(1.0) rtol=1e-4
 
-sol_diffeq   = solve(m_diffeq,subject1,x0,y0,Rosenbrock23())
+sol_diffeq   = solve(m_diffeq,subject1,x0,y0,alg=Rosenbrock23())
 
 @test sol_diffeq.alg == Rosenbrock23()
 
