@@ -32,6 +32,9 @@ using PuMaS, SafeTestsets
 @time @safetestset "NCA" begin
      include("nca_tests.jl") end
 
+@time @safetestset "Error Handling" begin
+     include("error_handling.jl") end
+
 #=
 @time @safetestset "Discrete Stochastic Tests" begin
      include("discrete_stochastic.jl") end

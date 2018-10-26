@@ -94,9 +94,16 @@ This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
 """
 function _solve(m::PKPDModel, subject, col, args...;
-                tspan::Tuple{Float64,Float64}=timespan(subject), kwargs...)
-  u0  = m.init(col, tspan[1])
+                tspan=nothing, kwargs...)
   m.prob === nothing && return nothing
+  if tspan === nothing
+      _tspan = timespan(subject)
+      m.prob isa DiffEqBase.DEProblem &&
+        !(m.prob.tspan === (nothing, nothing)) &&
+          (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+      tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+  end
+  u0  = m.init(col, tspan[1])
   if m.prob isa ExplicitModel
       return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
@@ -182,8 +189,10 @@ function simobs(m::PKPDModel, subject::Subject,
                 obstimes=observationtimes(subject),kwargs...)
     col = m.pre(param, rfx, subject.covariates)
     if :saveat in keys(kwargs)
+        isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
         sol = _solve(m, subject, col, args...; kwargs...)
     else
+        isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
         sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
     end
     derived = derivedfun(m,col,sol;continuity=continuity)
@@ -231,13 +240,13 @@ the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
    obstimes = [obs.time for obs in subject.observations]
+   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
    derived = derivedfun(m,subject,args...;kwargs...)
    _, derived_dist = derived(obstimes) # the second component is distributions
    typ = flattentype(derived_dist)
    n = length(derived_dist)
    idx = 1
    sum(subject.observations) do obs
-       t = obs.time
        if eltype(derived_dist) <: Array
            l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
        else
