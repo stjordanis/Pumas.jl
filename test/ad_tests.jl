@@ -1,33 +1,38 @@
 using PuMaS, ForwardDiff, DiffEqDiffTools, Test
-AD = ForwardDiff.gradient
-FD = DiffEqDiffTools.finite_difference_gradient
+AD_gradient = ForwardDiff.gradient
+AD_hessian = ForwardDiff.hessian
+FD_gradient = DiffEqDiffTools.finite_difference_gradient
+FD_jacobian = DiffEqDiffTools.finite_difference_jacobian
+FD_hessian = function (f, x)
+    grad_fun = y -> FD_gradient(f, y)
+    FD_jacobian(grad_fun, x, Val{:central}, eltype(x), Val{false})
+end
 
 subject = process_nmtran(example_nmtran_data("event_data/data2"),
                          [], [:cp])[1]
 
-# # Simple one-compartment model (uses static vector)
-# # Fails now due to convertion problem with @SLVector
-# model = @model begin
-#     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-#     @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+# Simple one-compartment model (uses static vector)
+model = @model begin
+    @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
 
-#     @pre begin
-#         Ka = θ[1]
-#         CL = θ[2]*exp(η[1])
-#         V  = θ[3]*exp(η[2])
-#     end
+    @pre begin
+        Ka = θ[1]
+        CL = θ[2]*exp(η[1])
+        V  = θ[3]*exp(η[2])
+    end
 
-#     @dynamics begin
-#         Depot'   = -Ka*Depot
-#         Central' =  Ka*Depot - (CL/V)*Central
-#     end
+    @dynamics begin
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
+    end
 
-#     @derived begin
-#         cp = @. Central / V
-#         cmax = maximum(cp)
-#         pp = exp(cmax) / (1 + exp(cmax)) # pain probability
-#     end
-# end
+    @derived begin
+        cp = @. Central / V
+        cmax = maximum(cp)
+        pp = exp(cmax) / (1 + exp(cmax)) # pain probability
+    end
+end
 
 # Function-Based Interface (non-static vector)
 p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),))
@@ -50,22 +55,30 @@ function derived_f(col,sol,obstimes)
     pp = exp(cmax) / (1 + exp(cmax))
     (cmax = cmax, pp = pp), ()
 end
-model = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+model_ip = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
-# Compute the jacobian of (cmax, pp) w.r.t. θ
-function test_fun(which)
+# Test gradient and hessian of an observable w.r.t. θ
+function test_fun(model, observable)
     function (θ)
         x0 = (θ = θ,)
         y0 = (η = eltype(θ).([0.0,0.0]),)
         sim = simobs(model, subject, x0, y0; abstol=1e-14, reltol=1e-14)
-        sim[which]
+        sim[observable]
     end
 end
 
 θ0 = [1.5, 1.0, 30.0]
-gcmax_FD = FD(test_fun(:cmax), θ0)
-gcmax_AD = AD(test_fun(:cmax), θ0)
-@test gcmax_FD ≈ gcmax_AD atol=1e-10
-gpp_FD = FD(test_fun(:pp), θ0)
-gpp_AD = AD(test_fun(:pp), θ0)
-@test gpp_FD ≈ gpp_AD atol=1e-10
+# Static vectors currently breaks due to type conversion error
+fun = test_fun(model, :cmax)
+@test_broken FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-10
+@test_broken FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-4
+fun = test_fun(model, :pp)
+@test_broken FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-10
+@test_broken FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-4
+
+fun = test_fun(model_ip, :cmax)
+@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-10
+@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-4
+fun = test_fun(model_ip, :pp)
+@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-10
+@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-4
