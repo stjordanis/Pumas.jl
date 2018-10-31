@@ -12,10 +12,13 @@ end
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 subject = data.subjects[1]
-# add a small epsilon to time 0 observations
-obs1 = subject.observations[1]
-if obs1.time == 0
-    subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+# Cut off the `t=0` pre-dose observation as it throws likelihood calculations
+# off the scale (variance of the simulated distribution is too small).
+for subject in data.subjects
+    obs1 = subject.observations[1]
+    if obs1.time == 0
+        popfirst!(subject.observations)
+    end
 end
 
 # Simple one-compartment model (uses static vector)
@@ -117,8 +120,5 @@ fun = test_likelihood(model)
 @test_broken FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
 
 fun = test_likelihood(model_ip)
-# TODO: fix likelihood problem first
-# @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
-# @test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
-@show maximum(abs.(FD_gradient(fun, θ0) - AD_gradient(fun, θ0)))
-@show maximum(abs.(FD_hessian(fun, θ0) - AD_hessian(fun, θ0)))
+@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-7
+@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3

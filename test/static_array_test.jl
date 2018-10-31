@@ -3,11 +3,12 @@ using PuMaS, Test, Random, LinearAlgebra, LabelledArrays
 # Read the data# Read the data
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
-# add a small epsilon to time 0 observations
+# Cut off the `t=0` pre-dose observation as it throws likelihood calculations
+# off the scale (variance of the simulated distribution is too small).
 for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
-        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+        popfirst!(subject.observations)
     end
 end
 
