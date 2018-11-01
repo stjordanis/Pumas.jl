@@ -19,7 +19,11 @@ Base.summary(::Observation) = "Observation"
 function Base.show(io::IO, o::Observation)
     println(io, summary(o))
     println(io, "  time of measurement = $(o.time)")
-    println(io, "  compartment = $(o.cmt)")
+    if o.cmt == nothing
+        println(io, "  no compartment specified")
+    else
+        println(io, "  compartment = $(o.cmt)")
+    end
     println(io, "  measurements")
     foreach(v -> println(io, "    $(v) = $(getfield(o.val, v))"),
             fieldnames(typeof(o.val)))
