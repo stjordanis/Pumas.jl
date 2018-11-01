@@ -30,7 +30,7 @@ struct RealDomain{T} <: Domain
     upper::T
     init::T
 end
-RealDomain(;lower=-Inf,upper=+Inf,init=0) = RealDomain(lower, upper, init)
+RealDomain(;lower=-Inf,upper=+Inf,init=0.) = RealDomain(lower, upper, init)
 init(d::RealDomain) = d.init
 packlen(d::RealDomain) = 1
 
