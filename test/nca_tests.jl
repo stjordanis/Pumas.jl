@@ -15,8 +15,10 @@ test_auc = rand(24,)
 test_aumc = rand(24,)
 
 for i = 0:23
-	test_auc[i+1] = AUC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
-	test_aumc[i+1] = AUMC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
+  test_auc[i+1] = AUC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
+  test_aumc[i+1] = AUMC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
+  @test_nowarn AUC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :log_linear)
+  @test_nowarn AUMC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :log_linear)
 end
 
 @test test_auc[1] ≈ correct_auc[1] atol = 1.0e-6
