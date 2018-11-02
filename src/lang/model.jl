@@ -20,20 +20,20 @@ Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
 mutable struct PKPDModel{P,Q,R,S,T,V}
-    param::P
-    random::Q
-    pre::R
-    init::S
-    prob::T
-    derived::V
-    function PKPDModel(param, random, pre, init, ode, derived)
-        prob = ode === nothing ? nothing : ode
-        new{typeof(param), typeof(random),
-            typeof(pre), typeof(init),
-            Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
-            typeof(derived)}(
-            param, random, pre, init, prob, derived)
-    end
+  param::P
+  random::Q
+  pre::R
+  init::S
+  prob::T
+  derived::V
+  function PKPDModel(param, random, pre, init, ode, derived)
+    prob = ode === nothing ? nothing : ode
+    new{typeof(param), typeof(random),
+        typeof(pre), typeof(init),
+        Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
+        typeof(derived)}(
+                         param, random, pre, init, prob, derived)
+  end
 end
 
 init_param(m::PKPDModel) = init(m.param)
@@ -63,9 +63,9 @@ function DiffEqBase.solve(m::PKPDModel, subject::Subject,
                           param = init_param(m),
                           rfx = rand_random(m, param),
                           args...; kwargs...)
-    m.prob === nothing && return nothing
-    col = m.pre(param, rfx, subject.covariates)
-    _solve(m,subject,col,args...;kwargs...)
+  m.prob === nothing && return nothing
+  col = m.pre(param, rfx, subject.covariates)
+  _solve(m,subject,col,args...;kwargs...)
 end
 
 @enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
@@ -73,20 +73,20 @@ function DiffEqBase.solve(m::PKPDModel, pop::Population,
                           param = init_param(m),
                           args...; parallel_type = Threading,
                           kwargs...)
-    time = @elapsed if parallel_type == Serial
-        sols = [solve(m,subject,param,args...;kwargs...) for subject in pop]
-    elseif parallel_type == Threading
-        _sols = Vector{Any}(undef,length(pop))
-        Threads.@threads for i in 1:length(pop)
-            _sols[i] = solve(m,pop[i],param,args...;kwargs...)
-        end
-        sols = [sol for sol in _sols] # Make strict typed
-    elseif parallel_type == Distributed
-        sols = pmap((subject)->solve(m,subject,param,args...;kwargs...),pop)
-    elseif parallel_type == SplitThreads
-        error("SplitThreads is not yet implemented")
+  time = @elapsed if parallel_type == Serial
+    sols = [solve(m,subject,param,args...;kwargs...) for subject in pop]
+  elseif parallel_type == Threading
+    _sols = Vector{Any}(undef,length(pop))
+    Threads.@threads for i in 1:length(pop)
+      _sols[i] = solve(m,pop[i],param,args...;kwargs...)
     end
-    MonteCarloSolution(sols,time,true)
+    sols = [sol for sol in _sols] # Make strict typed
+  elseif parallel_type == Distributed
+    sols = pmap((subject)->solve(m,subject,param,args...;kwargs...),pop)
+  elseif parallel_type == SplitThreads
+    error("SplitThreads is not yet implemented")
+  end
+  MonteCarloSolution(sols,time,true)
 end
 
 """
@@ -97,18 +97,18 @@ function _solve(m::PKPDModel, subject, col, args...;
                 tspan=nothing, kwargs...)
   m.prob === nothing && return nothing
   if tspan === nothing
-      _tspan = timespan(subject)
-      m.prob isa DiffEqBase.DEProblem &&
-        !(m.prob.tspan === (nothing, nothing)) &&
-          (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
-      tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+    _tspan = timespan(subject)
+    m.prob isa DiffEqBase.DEProblem &&
+    !(m.prob.tspan === (nothing, nothing)) &&
+    (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+    tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
   end
   u0  = m.init(col, tspan[1])
   if m.prob isa ExplicitModel
-      return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
+    return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-      m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
-      return _solve_diffeq(m, subject, args...;kwargs...)
+    m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
+    return _solve_diffeq(m, subject, args...;kwargs...)
   end
 end
 
@@ -133,9 +133,9 @@ _lpdf(d,x) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 
 function derivedfun(m::PKPDModel, subject::Subject,
-                  param = init_param(m),
-                  rfx=rand_random(m, param),
-                  args...; continuity=:left,kwargs...)
+                    param = init_param(m),
+                    rfx=rand_random(m, param),
+                    args...; continuity=:left,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
@@ -143,18 +143,18 @@ end
 
 function derivedfun(m::PKPDModel, col, sol; continuity=:left)
   if sol isa PKPDAnalyticalSolution
-      derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
+    derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
   elseif sol === nothing
-      derived = obstimes -> m.derived(col,nothing,obstimes)
+    derived = obstimes -> m.derived(col,nothing,obstimes)
   else
-      derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
+    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
   end
   derived
 end
 
 struct SimulatedObservations{T,T2}
-    times::T
-    derived::T2
+  times::T
+  derived::T2
 end
 
 # TODO: interface on SimulatedObservations
@@ -164,10 +164,10 @@ end
 #
 # indexing
 @inline function Base.getindex(A::SimulatedObservations, I...)
-    return A.derived[I...]
+  return A.derived[I...]
 end
 @inline function Base.setindex!(A::SimulatedObservations, x, I...)
-    A.derived[I...] = x
+  A.derived[I...] = x
 end
 #Base.axes(A::SimulatedObservations) = axes(A.obs)
 #Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
@@ -187,34 +187,34 @@ function simobs(m::PKPDModel, subject::Subject,
                 args...;
                 continuity=:left,
                 obstimes=observationtimes(subject),kwargs...)
-    col = m.pre(param, rfx, subject.covariates)
-    if :saveat in keys(kwargs)
-        isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
-        sol = _solve(m, subject, col, args...; kwargs...)
-    else
-        isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-        sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
-    end
-    derived = derivedfun(m,col,sol;continuity=continuity)
-    SimulatedObservations(obstimes,derived(obstimes)[1]) # the first component is observed values
+  col = m.pre(param, rfx, subject.covariates)
+  if :saveat in keys(kwargs)
+    isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
+    sol = _solve(m, subject, col, args...; kwargs...)
+  else
+    isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+    sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
+  end
+  derived = derivedfun(m,col,sol;continuity=continuity)
+  SimulatedObservations(obstimes,derived(obstimes)[1]) # the first component is observed values
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;
                 parallel_type = Threading, kwargs...)
-    time = @elapsed if parallel_type == Serial
-        sols = [simobs(m,subject,args...;kwargs...) for subject in pop]
-    elseif parallel_type == Threading
-        _sols = Vector{Any}(undef,length(pop))
-        Threads.@threads for i in 1:length(pop)
-            _sols[i] = simobs(m,pop[i],args...;kwargs...)
-        end
-        sols = [sol for sol in _sols] # Make strict typed
-    elseif parallel_type == Distributed
-        sols = pmap((subject)->simobs(m,subject,args...;kwargs...),pop)
-    elseif parallel_type == SplitThreads
-        error("SplitThreads is not yet implemented")
+  time = @elapsed if parallel_type == Serial
+    sols = [simobs(m,subject,args...;kwargs...) for subject in pop]
+  elseif parallel_type == Threading
+    _sols = Vector{Any}(undef,length(pop))
+    Threads.@threads for i in 1:length(pop)
+      _sols[i] = simobs(m,pop[i],args...;kwargs...)
     end
-    sols
+    sols = [sol for sol in _sols] # Make strict typed
+  elseif parallel_type == Distributed
+    sols = pmap((subject)->simobs(m,subject,args...;kwargs...),pop)
+  elseif parallel_type == SplitThreads
+    error("SplitThreads is not yet implemented")
+  end
+  sols
 end
 
 """
@@ -239,22 +239,22 @@ random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires tha
 the derived produces distributions.
 """
 function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
-   obstimes = [obs.time for obs in subject.observations]
-   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-   derived = derivedfun(m,subject,args...;kwargs...)
-   _, derived_dist = derived(obstimes) # the second component is distributions
-   typ = flattentype(derived_dist)
-   n = length(derived_dist)
-   idx = 1
-   sum(subject.observations) do obs
-       if eltype(derived_dist) <: Array
-           l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
-       else
-           l = _likelihood(derived_dist, obs)
-       end
-       idx += 1
-       return l
-   end
+  obstimes = [obs.time for obs in subject.observations]
+  isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+  derived = derivedfun(m,subject,args...;kwargs...)
+  _, derived_dist = derived(obstimes) # the second component is distributions
+  typ = flattentype(derived_dist)
+  n = length(derived_dist)
+  idx = 1
+  sum(subject.observations) do obs
+    if eltype(derived_dist) <: Array
+      l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
+    else
+      l = _likelihood(derived_dist, obs)
+    end
+    idx += 1
+    return l
+  end
 end
 
 """
@@ -265,5 +265,5 @@ subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
 function pre(m::PKPDModel, subject::Subject, param, rfx)
-   m.pre(param, rfx, subject.covariates)
+  m.pre(param, rfx, subject.covariates)
 end

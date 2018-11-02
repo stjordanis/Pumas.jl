@@ -10,7 +10,7 @@ abstract type Domain end
 Specifies a parameter as a constant.
 """
 struct ConstDomain{T} <: Domain
-    val::T
+  val::T
 end
 init(d::ConstDomain) = d.val
 packlen(d::ConstDomain) = 0
@@ -26,9 +26,9 @@ unpack(v, d::ConstDomain) = d.val
 Specifies a parameter as a real value. `lower` and `upper` are the respective bounds, `init` is the value used as the initial guess in the optimisation.
 """
 struct RealDomain{T} <: Domain
-    lower::T
-    upper::T
-    init::T
+  lower::T
+  upper::T
+  init::T
 end
 RealDomain(;lower=-Inf,upper=+Inf,init=0.) = RealDomain(lower, upper, init)
 init(d::RealDomain) = d.init
@@ -46,9 +46,9 @@ unpack(v, d::RealDomain) = v[1]
 Specifies a parameter as a real vector of length `n`. `lower` and `upper` are the respective bounds, `init` is the value used as the initial guess in the optimisation.
 """
 struct VectorDomain{L,T} <: Domain
-    lower::L
-    upper::L
-    init::T
+  lower::L
+  upper::L
+  init::T
 end
 
 _vec(n, x::AbstractVector) = x
@@ -71,56 +71,56 @@ unpack(v, d::VectorDomain) = copy(v)
 Specifies a parameter as a symmetric `n`-by-`n` positive semidefinite matrix.
 """
 struct PSDDomain{T} <: Domain
-    init::T
+  init::T
 end
 PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(PDMat(init))
 
 
 init(d::PSDDomain) = d.init
 function packlen(d::PSDDomain)
-    n = size(d.init,1)
-    (n*(n+1)) >> 1
+  n = size(d.init,1)
+  (n*(n+1)) >> 1
 end
 
 function pack_lower!(v, d::PSDDomain)
-    n = size(d.init,1)
-    k = 0
-    for j = 1:n
-        for i = 1:j-1
-            v[k+=1] = -Inf
-        end
-        v[k+=1] = 0
+  n = size(d.init,1)
+  k = 0
+  for j = 1:n
+    for i = 1:j-1
+      v[k+=1] = -Inf
     end
+    v[k+=1] = 0
+  end
 end
 function pack_upper!(v, d::PSDDomain)
-    v[:] = +Inf
+  v[:] = +Inf
 end
 function pack!(v, d::PSDDomain, C::LinearAlgebra.Cholesky)
-    @assert C.uplo == 'U'
-    U = C.factors
-    n = size(d.init,1)
-    k = 0
-    for j = 1:n
-        for i = 1:j-1
-            v[k+=1] = U[i,j]
-        end
-        v[k+=1] = U[j,j]
+  @assert C.uplo == 'U'
+  U = C.factors
+  n = size(d.init,1)
+  k = 0
+  for j = 1:n
+    for i = 1:j-1
+      v[k+=1] = U[i,j]
     end
+    v[k+=1] = U[j,j]
+  end
 end
 pack!(v, d::PSDDomain, X::PDMats.PDMat) = pack!(v, d, X.chol)
 pack!(v, d::PSDDomain, X::AbstractMatrix) = pack!(v, d, cholfact(X))
 
 function unpack(v, d::PSDDomain)
-    n = size(d.init,1)
-    U = zeros(eltype(v), n,n)
-    k = 0
-    for j = 1:n
-        for i = 1:j-1
-            U[i,j] = v[k+=1]
-        end
-        U[j,j] = v[k+=1]
+  n = size(d.init,1)
+  U = zeros(eltype(v), n,n)
+  k = 0
+  for j = 1:n
+    for i = 1:j-1
+      U[i,j] = v[k+=1]
     end
-    PDMat(LinearAlgebra.Cholesky(U, :U))
+    U[j,j] = v[k+=1]
+  end
+  PDMat(LinearAlgebra.Cholesky(U, :U))
 end
 
 
@@ -131,35 +131,35 @@ Specifies a parameter as a positive diagonal matrix, with diagonal elements
 specified by `init`.
 """
 struct PDiagDomain{T} <: Domain
-    init::T
+  init::T
 end
 PDiagDomain(n::Int; init=ones(n)) = PDiagDomain(PDMats.PDiagMat(init))
 
 
 init(d::PDiagDomain) = d.init
 function packlen(d::PDiagDomain)
-    size(d.init,1)
+  size(d.init,1)
 end
 
 function pack_lower!(v, d::PDiagDomain)
-    v[:] = 0.0
+  v[:] = 0.0
 end
 function pack_upper!(v, d::PDiagDomain)
-    v[:] = +Inf
+  v[:] = +Inf
 end
 function pack!(v, d::PDiagDomain, D::PDMats.PDiagMat)
-    v[:] = D.diag
+  v[:] = D.diag
 end
 
 function unpack(v, d::PDiagDomain)
-    PDMats.PDiagMat(collect(v))
+  PDMats.PDiagMat(collect(v))
 end
 
 
 
 
 struct ParamSet{T}
-    params::T
+  params::T
 end
 init(p::ParamSet) = map(init, p.params)
 packlen(p::ParamSet) = sum(packlen, p.params)
@@ -170,43 +170,42 @@ pack(p::ParamSet, x)  = pack!(Array{numtype(x)}(packlen(p)), p, x)
 pack_init(p::ParamSet)  = pack(p, init(p))
 
 function pack_upper!(v, p::ParamSet)
-    k = 0
-    for pp in p.params
-        n = packlen(pp)
-        vv = @view(v[k + (1:n)])
-        pack_upper!(vv, pp)
-        k += n
-    end
-    return v
+  k = 0
+  for pp in p.params
+    n = packlen(pp)
+    vv = @view(v[k + (1:n)])
+    pack_upper!(vv, pp)
+    k += n
+  end
+  return v
 end
 function pack_lower!(v, p::ParamSet)
-    k = 0
-    for pp in p.params
-        n = packlen(pp)
-        vv = @view(v[k + (1:n)])
-        pack_lower!(vv, pp)
-        k += n
-    end
-    return v
+  k = 0
+  for pp in p.params
+    n = packlen(pp)
+    vv = @view(v[k + (1:n)])
+    pack_lower!(vv, pp)
+    k += n
+  end
+  return v
 end
 function pack!(v, p::ParamSet, x)
-    k = 0
-    for (pp,xx) in zip(p.params,x)
-        n = packlen(pp)
-        vv = @view(v[k + (1:n)])
-        pack!(vv, pp, xx)
-        k += n
-    end
-    return v
+  k = 0
+  for (pp,xx) in zip(p.params,x)
+    n = packlen(pp)
+    vv = @view(v[k + (1:n)])
+    pack!(vv, pp, xx)
+    k += n
+  end
+  return v
 end
 function unpack(v, p::ParamSet)
-    local k::Int
-    k = 0
-    map(p.params) do pp
-        n = packlen(pp)
-        vv = @view(v[k + (1:n)])
-        k += n
-        unpack(vv,pp)
-    end
+  local k::Int
+  k = 0
+  map(p.params) do pp
+    n = packlen(pp)
+    vv = @view(v[k + (1:n)])
+    k += n
+    unpack(vv,pp)
+  end
 end
-
