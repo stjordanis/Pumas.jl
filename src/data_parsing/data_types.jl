@@ -11,26 +11,26 @@ Fields
 - `cmt`: Compartment from which measurement was taken
 """
 struct Observation{T,V,C}
-    time::T
-    val::V
-    cmt::C
+  time::T
+  val::V
+  cmt::C
 end
 Base.summary(::Observation) = "Observation"
 function Base.show(io::IO, o::Observation)
-    println(io, summary(o))
-    println(io, "  time of measurement = $(o.time)")
-    if o.cmt == nothing
-        println(io, "  no compartment specified")
-    else
-        println(io, "  compartment = $(o.cmt)")
-    end
-    println(io, "  measurements")
-    foreach(v -> println(io, "    $(v) = $(getfield(o.val, v))"),
-            fieldnames(typeof(o.val)))
+  println(io, summary(o))
+  println(io, "  time of measurement = $(o.time)")
+  if o.cmt == nothing
+    println(io, "  no compartment specified")
+  else
+    println(io, "  compartment = $(o.cmt)")
+  end
+  println(io, "  measurements")
+  foreach(v -> println(io, "    $(v) = $(getfield(o.val, v))"),
+          fieldnames(typeof(o.val)))
 end
 TreeViews.hastreeview(::Observation) = true
 function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
-    show(io, mime, Text(summary(o)))
+  show(io, mime, Text(summary(o)))
 end
 
 """
@@ -90,34 +90,34 @@ _evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose",
                    2 => "Other", 3 => "Reset", 4 => "Reset and dose")
 Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
 function Base.show(io::IO, e::Event)
-    println(io, summary(e))
-    println(io, "  dose amount = $(e.amt)")
-    println(io, "  dose time = $(e.time)")
-    println(io, "  compartment = $(e.cmt)")
-    if e.rate > 0
-        println(io, "  rate = $(e.rate)")
-        println(io, "  duration = $(e.duration)")
-    elseif e.rate == 0
-        println(io, "  instantaneous")
-    elseif e.rate == -1
-        println(io, "  rate specified by model")
-    elseif e.rate == -2
-        println(io, "  duration specified by model")
-    end
-    if e.ss == 1
-        println(io, "  steady state dose")
-    elseif e.ss == 2
-        println(io, "  steady state dose, no reset")
-    end
-    println(io, "  interdose interval = $(e.ii)")
-    println(io, "  infusion start time = $(e.base_time)")
-    if e.rate_dir == -1
-        println(io, "  end of infusion")
-    end
+  println(io, summary(e))
+  println(io, "  dose amount = $(e.amt)")
+  println(io, "  dose time = $(e.time)")
+  println(io, "  compartment = $(e.cmt)")
+  if e.rate > 0
+    println(io, "  rate = $(e.rate)")
+    println(io, "  duration = $(e.duration)")
+  elseif e.rate == 0
+    println(io, "  instantaneous")
+  elseif e.rate == -1
+    println(io, "  rate specified by model")
+  elseif e.rate == -2
+    println(io, "  duration specified by model")
+  end
+  if e.ss == 1
+    println(io, "  steady state dose")
+  elseif e.ss == 2
+    println(io, "  steady state dose, no reset")
+  end
+  println(io, "  interdose interval = $(e.ii)")
+  println(io, "  infusion start time = $(e.base_time)")
+  if e.rate_dir == -1
+    println(io, "  end of infusion")
+  end
 end
 TreeViews.hastreeview(::Event) = true
 function TreeViews.treelabel(io::IO, e::Event, mime::MIME"text/plain")
-    show(io, mime, Text(summary(e)))
+  show(io, mime, Text(summary(e)))
 end
 
 """
@@ -126,71 +126,71 @@ end
 Lazy representation of a series of Events.
 """
 mutable struct DosageRegimen
-    data::DataFrame
-    function DosageRegimen(amt::Number,
-                           time::Number,
-                           cmt::Number,
-                           evid::Number,
-                           ii::Number,
-                           addl::Number,
-                           rate::Number,
-                           ss::Number)
-        amt = isa(amt, Unitful.Mass) ?
-            convert(Float64, getfield(uconvert.(u"mg", amt), :val)) :
-            float(amt)
-        time = isa(time, Unitful.Time) ?
-            convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
-            float(time)
-        cmt = convert(Int, cmt)
-        evid = convert(Int8, evid)
-        ii = isa(ii, Unitful.Time) ?
-            convert(Float64, getfield(uconvert.(u"hr", ii), :val)) :
-            float(ii)
-        addl = convert(Int, addl)
-        rate = convert(Float64, rate)
-        ss = convert(Int8, ss)
-        amt > 0 || throw(ArgumentError("amt must be non-negative"))
-        time ≥ 0 || throw(ArgumentError("time must be non-negative"))
-        evid == 0 && throw(ArgumentError("observations are not allowed"))
-        evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
-        ii ≥ 0 || throw(ArgumentError("ii must be non-negative"))
-        addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
-        addl > 0 && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
-        rate ∈ -2:0 || rate .> 0 || throw(ArgumentError("rate is invalid"))
-        ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
-        return new(DataFrame(time = time, cmt = cmt, amt = amt,
-                             evid = evid, ii = ii, addl = addl,
-                             rate = rate, ss = ss))
+  data::DataFrame
+  function DosageRegimen(amt::Number,
+                         time::Number,
+                         cmt::Number,
+                         evid::Number,
+                         ii::Number,
+                         addl::Number,
+                         rate::Number,
+                         ss::Number)
+    amt = isa(amt, Unitful.Mass) ?
+    convert(Float64, getfield(uconvert.(u"mg", amt), :val)) :
+    float(amt)
+    time = isa(time, Unitful.Time) ?
+    convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
+    float(time)
+    cmt = convert(Int, cmt)
+    evid = convert(Int8, evid)
+    ii = isa(ii, Unitful.Time) ?
+    convert(Float64, getfield(uconvert.(u"hr", ii), :val)) :
+    float(ii)
+    addl = convert(Int, addl)
+    rate = convert(Float64, rate)
+    ss = convert(Int8, ss)
+    amt > 0 || throw(ArgumentError("amt must be non-negative"))
+    time ≥ 0 || throw(ArgumentError("time must be non-negative"))
+    evid == 0 && throw(ArgumentError("observations are not allowed"))
+    evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
+    ii ≥ 0 || throw(ArgumentError("ii must be non-negative"))
+    addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
+    addl > 0 && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
+    rate ∈ -2:0 || rate .> 0 || throw(ArgumentError("rate is invalid"))
+    ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
+    return new(DataFrame(time = time, cmt = cmt, amt = amt,
+                         evid = evid, ii = ii, addl = addl,
+                         rate = rate, ss = ss))
+  end
+  DosageRegimen(amt::Numeric;
+                time::Numeric = 0,
+                cmt::Numeric  = 1,
+                evid::Numeric = 1,
+                ii::Numeric   = 0,
+                addl::Numeric = 0,
+                rate::Numeric = 0,
+                ss::Numeric   = 0) =
+  DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
+                               rate, ss))
+  DosageRegimen(regimen::DosageRegimen) = regimen
+  function DosageRegimen(regimen1::DosageRegimen,
+                         regimen2::DosageRegimen;
+                         offset = nothing)
+    data1 = getfield(regimen1, :data)
+    data2 = getfield(regimen2, :data)
+    if offset === nothing
+      output = sort!(vcat(data1, data2), :time)
+    else
+      data2 = deepcopy(data2)
+      data2[:time] = cumsum(prepend!(data1[:ii][end] * (data1[:addl][end] + 1) +
+                                     data1[:time][end] +
+                                     offset))
+      output = sort!(vcat(data1, data2), :time)
     end
-    DosageRegimen(amt::Numeric;
-                  time::Numeric = 0,
-                  cmt::Numeric  = 1,
-                  evid::Numeric = 1,
-                  ii::Numeric   = 0,
-                  addl::Numeric = 0,
-                  rate::Numeric = 0,
-                  ss::Numeric   = 0) =
-        DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
-                                     rate, ss))
-    DosageRegimen(regimen::DosageRegimen) = regimen
-    function DosageRegimen(regimen1::DosageRegimen,
-                           regimen2::DosageRegimen;
-                           offset = nothing)
-        data1 = getfield(regimen1, :data)
-        data2 = getfield(regimen2, :data)
-        if offset === nothing
-            output = sort!(vcat(data1, data2), :time)
-        else
-            data2 = deepcopy(data2)
-            data2[:time] = cumsum(prepend!(data1[:ii][end] * (data1[:addl][end] + 1) +
-                                           data1[:time][end] +
-                                           offset))
-            output = sort!(vcat(data1, data2), :time)
-        end
-        return new(output)
-    end
-    DosageRegimen(regimens) =
-        reduce((x, y) -> DosageRegimen(x, y), regimens)
+    return new(output)
+  end
+  DosageRegimen(regimens) =
+  reduce((x, y) -> DosageRegimen(x, y), regimens)
 end
 
 """
@@ -205,48 +205,48 @@ Fields:
 - `events`: a vector of `Event`s.
 """
 struct Subject{T1,T2,T3}
-    id::Int
-    observations::T1
-    covariates::T2
-    events::T3
-    function Subject(;id = 1,
-                     obs = Observation[],
-                     cvs = nothing,
-                     evs = Event[])
-        obs = build_observation_list(obs)
-        evs = build_event_list(evs)
-        return new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
-    end
+  id::Int
+  observations::T1
+  covariates::T2
+  events::T3
+  function Subject(;id = 1,
+                   obs = Observation[],
+                   cvs = nothing,
+                   evs = Event[])
+    obs = build_observation_list(obs)
+    evs = build_event_list(evs)
+    return new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
+  end
 end
 
 ### Display
 Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
-    println(io, summary(subject))
-    println(io, "  Events: ", length(subject.events))
-    println(io, "  Observations: ", length(subject.observations))
-    println(io, "  Covariates: ")
-    subject.covariates !== nothing &&
-        foreach(kv -> println(io, string("    ", kv[1], ": ", kv[2])),
-                pairs(subject.covariates))
-    !isempty(subject.observations) &&
-        println(io, "  Observables: ",
-                    join(fieldnames(typeof(subject.observations[1].val)),", "))
-    return nothing
+  println(io, summary(subject))
+  println(io, "  Events: ", length(subject.events))
+  println(io, "  Observations: ", length(subject.observations))
+  println(io, "  Covariates: ")
+  subject.covariates !== nothing &&
+  foreach(kv -> println(io, string("    ", kv[1], ": ", kv[2])),
+          pairs(subject.covariates))
+  !isempty(subject.observations) &&
+  println(io, "  Observables: ",
+          join(fieldnames(typeof(subject.observations[1].val)),", "))
+  return nothing
 end
 TreeViews.hastreeview(::Subject) = true
 function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
-    show(io, mime, Text(summary(subject)))
+  show(io, mime, Text(summary(subject)))
 end
 
 function timespan(sub::Subject)
-    lo, hi = extrema(evt.time for evt in sub.events)
-    if !isempty(sub.observations)
-        obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
-        lo = min(lo, obs_lo)
-        hi = max(hi, obs_hi)
-    end
-    lo, hi
+  lo, hi = extrema(evt.time for evt in sub.events)
+  if !isempty(sub.observations)
+    obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
+    lo = min(lo, obs_lo)
+    hi = max(hi, obs_hi)
+  end
+  lo, hi
 end
 
 observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
@@ -257,24 +257,24 @@ observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
 A `Population` is a set of `Subject`s. It can be instanced passing a collection or `Subject`.
 """
 struct Population{T} <: AbstractVector{T}
-    subjects::Vector{T}
-    Population(obj::AbstractVector{T}) where {T<:Subject} = new{T}(obj)
+  subjects::Vector{T}
+  Population(obj::AbstractVector{T}) where {T<:Subject} = new{T}(obj)
 end
 
 ### Display
 Base.summary(::Population) = "Population"
 function Base.show(io::IO, data::Population)
-    println(io, summary(data))
-    println(io, "  Subjects: ", length(data.subjects))
-    if isassigned(data.subjects, 1)
-        co = data.subjects[1].covariates
-        co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
-        obs = data.subjects[1].observations
-        !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
-    end
-    return nothing
+  println(io, summary(data))
+  println(io, "  Subjects: ", length(data.subjects))
+  if isassigned(data.subjects, 1)
+    co = data.subjects[1].covariates
+    co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
+    obs = data.subjects[1].observations
+    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
+  end
+  return nothing
 end
 TreeViews.hastreeview(::Population) = true
 function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
-    show(io, mime, Text(summary(data)))
+  show(io, mime, Text(summary(data)))
 end

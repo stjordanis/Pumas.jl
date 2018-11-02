@@ -6,7 +6,7 @@ struct PKPDAnalyticalProblem{uType,tType,isinplace,F,S,C} <: DiffEqBase.Abstract
   callback::C
   function PKPDAnalyticalProblem{iip}(f,u0,tspan,ss = nothing,callback = nothing) where {iip}
     new{typeof(u0),promote_type(map(typeof,tspan)...),iip,
-        typeof(f),typeof(ss),typeof(callback)}(f,u0,tspan,ss,callback)
+    typeof(f),typeof(ss),typeof(callback)}(f,u0,tspan,ss,callback)
   end
 end
 

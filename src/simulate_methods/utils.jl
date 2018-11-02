@@ -48,11 +48,11 @@ function sorted_approx_unique(event)
 end
 
 function set_value(A :: StaticVector{L,T}, x,k) where {T,L}
-    SVector(ntuple(i->ifelse(i == k, x, A[i]), Val(L)))
+  SVector(ntuple(i->ifelse(i == k, x, A[i]), Val(L)))
 end
 
 function increment_value(A :: StaticVector{L,T}, x,k) where {T,L}
-    SVector(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val(L)))
+  SVector(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val(L)))
 end
 
 function increment_value(A::Number,x,k)

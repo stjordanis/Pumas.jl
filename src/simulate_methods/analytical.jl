@@ -35,7 +35,7 @@ function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args.
   while i <= length(times)
     t = times[i]
     ss_dropoff_event = post_ss_counter < ss_rate_multiplier + start_val &&
-                       t == ss_time + ss_overlap_duration + post_ss_counter*ss_ii
+    t == ss_time + ss_overlap_duration + post_ss_counter*ss_ii
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
@@ -142,11 +142,11 @@ function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args.
 
   # The two assumes that all equations are vector equations
   PKPDAnalyticalSolution{typeof(Tu0),2,typeof(u),
-                     typeof(times),
-                     typeof(doses),typeof(rates),
-                     typeof(col),
-                     typeof(prob)}(
-                     u,times,doses,rates,col,prob,true,0,:Success)
+                         typeof(times),
+                         typeof(doses),typeof(rates),
+                         typeof(col),
+                         typeof(prob)}(
+                                       u,times,doses,rates,col,prob,true,0,:Success)
 end
 
 function create_dose_rate_vector(cur_ev,u0,rate,bioav)
