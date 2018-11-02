@@ -4,11 +4,12 @@ using PuMaS, Test, CSV, Random
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 
-# add a small epsilon to time 0 observations
+# Cut off the `t=0` pre-dose observation as it throws likelihood calculations
+# off the scale (variance of the simulated distribution is too small).
 for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
-        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+        popfirst!(subject.observations)
     end
 end
 
@@ -91,7 +92,7 @@ sol_diffeq   = solve(m_diffeq,subject1,x0,y0,alg=Rosenbrock23())
 
 @test sol_diffeq.alg == Rosenbrock23()
 
-@test likelihood(m_diffeq,subject1,x0,y0) ≈ likelihood(m_analytic,subject1,x0,y0)
+@test likelihood(m_diffeq,subject1,x0,y0) ≈ likelihood(m_analytic,subject1,x0,y0) rtol=1e-3
 
 sim_diffeq = begin
     Random.seed!(1)

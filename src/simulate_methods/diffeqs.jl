@@ -1,31 +1,31 @@
 function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=true, alg=Tsit5(), kwargs...)
-    prob = typeof(m.prob) <: DiffEqBase.AbstractJumpProblem ? m.prob.prob : m.prob
-    tspan = prob.tspan
-    col = prob.p
-    u0 = prob.u0
+  prob = typeof(m.prob) <: DiffEqBase.AbstractJumpProblem ? m.prob.prob : m.prob
+  tspan = prob.tspan
+  col = prob.p
+  u0 = prob.u0
 
-    # Promotion to handle Dual numbers
-    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-    Tu0 = convert.(T,u0)
+  # Promotion to handle Dual numbers
+  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+  Tu0 = convert.(T,u0)
 
-    # build a "modified" problem using DiffEqWrapper
-    fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
-    ft = DiffEqBase.parameterless_type(typeof(prob.f))
+  # build a "modified" problem using DiffEqWrapper
+  fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
+  ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
-    # figure out callbacks and whatnot
-    tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob),save_discont)
-    prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
+  # figure out callbacks and whatnot
+  tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob),save_discont)
+  prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
-    # Remake problem of correct type
-    inplace = !(u0 isa StaticArray)
-    new_f = make_function(prob,fd,inplace)
+  # Remake problem of correct type
+  inplace = !(u0 isa StaticArray)
+  new_f = make_function(prob,fd,inplace)
 
-    _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0)
+  _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0)
 
-    sol = solve(_prob,alg,args...;
-                save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
-                tstops=tstops,   # extra times that the timestepping algorithm must step to
-                kwargs...)
+  sol = solve(_prob,alg,args...;
+              save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
+              tstops=tstops,   # extra times that the timestepping algorithm must step to
+              kwargs...)
 end
 
 make_function(prob::Union{ODEProblem,DDEProblem,DiscreteProblem},fd,inplace) = DiffEqBase.parameterless_type(typeof(prob.f)){inplace}(fd)
@@ -37,8 +37,8 @@ function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters
               typeof(_prob.jump_callback),
               typeof(_prob.discrete_jump_aggregation),
               typeof(_prob.variable_jumps)}(prob,_prob.aggregator,
-              _prob.discrete_jump_aggregation,
-              _prob.jump_callback,_prob.variable_jumps),tstops
+                                            _prob.discrete_jump_aggregation,
+                                            _prob.jump_callback,_prob.variable_jumps),tstops
 end
 
 # Have separate dispatches to pass along extra pieces of the problem
@@ -166,7 +166,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           ss_cache .-= integrator.u
           err = integrator.opts.internalnorm(ss_cache)
           if ss_counter[] == ss_max_iters || (err < ss_abstol &&
-             err/integrator.opts.internalnorm(integrator.u) < ss_reltol)
+                                              err/integrator.opts.internalnorm(integrator.u) < ss_reltol)
             # Steady state complete
             ss_mode[] = false
             post_steady_state[] = true

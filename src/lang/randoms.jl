@@ -2,11 +2,11 @@ export RandomEffectSet
 
 
 function Domain(d::MvNormal)
-    n = length(d)
-    VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
+  n = length(d)
+  VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
 end
 function Domain(d::ContinuousUnivariateDistribution)
-    RealDomain(minimum(d), maximum(d), median(d))
+  RealDomain(minimum(d), maximum(d), median(d))
 end
 
 """
@@ -18,8 +18,8 @@ Specifies the `RandomEffect`s:
 
 """
 struct RandomEffectSet{S,T}
-    domains::S
-    dists::T
+  domains::S
+  dists::T
 end
 RandomEffectSet(dists) = RandomEffectSet(map(Domain, dists), dists)
 
@@ -33,5 +33,3 @@ pack_upper(rfx::RandomEffectSet) = pack_upper(ParamSet(rfx.domains))
 pack_lower(rfx::RandomEffectSet) = pack_lower(ParamSet(rfx.domains))
 pack_init(rfx::RandomEffectSet) = pack_init(ParamSet(rfx.domains))
 unpack(v, rfx::RandomEffectSet) = unpack(v, ParamSet(rfx.domains))
-
-
