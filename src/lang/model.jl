@@ -241,7 +241,7 @@ Compute the full log-likelihood of model `m` for `subject` with parameters `para
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-function likelihood(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
+function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
   derived = derivedfun(m,subject,args...;kwargs...)
@@ -263,6 +263,17 @@ function likelihood(m::PKPDModel, subject::Subject, args...; extended_return = f
   else
     return x
   end
+end
+
+struct Laplace 
+end
+
+function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx=Laplace(), args...; kwargs...)
+    cl = conditional_likelihood_derivatives(m, subject, x0, y0, args..)
+    g_ita = -cl[1] - logpdf(y0,Ω)
+    m_ita = -cl[2] + inv(Ω.var)*y0
+    w_ita = -cl[3] + inv(Ω.var)
+    -g_ita + ((length(x0)/2)*log(2*pi)) -0.5*(log(abs(w_ita)))
 end
 
 """
