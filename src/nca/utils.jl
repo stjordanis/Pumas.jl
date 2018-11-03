@@ -25,8 +25,7 @@ function checkconctime(conc, time=nothing; monotonictime=true)
     throw(ArgumentError("Time data must be numeric and an array"))
   end
   if monotonictime
-    !issorted(time) && throw(ArgumentError("Time must be monotonically increasing"))
-    !allunique(time) && throw(ArgumentError("All time values must be unique"))
+    !issorted(time, lt=≤) && throw(ArgumentError("Time must be monotonically increasing"))
   end
   # check both
   length(conc) != length(time) && throw(ArgumentError("Concentration and time must be the same length"))
