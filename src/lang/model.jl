@@ -26,15 +26,17 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
   init::S
   prob::T
   derived::V
-  function PKPDModel(param, random, pre, init, ode, derived)
-    prob = ode === nothing ? nothing : ode
-    new{typeof(param), typeof(random),
-        typeof(pre), typeof(init),
-        Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
-        typeof(derived)}(
-                         param, random, pre, init, prob, derived)
+  function PKPDModel(param, random, pre, init, prob, derived)
+      new{typeof(param), typeof(random),
+          typeof(pre), typeof(init),
+          Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
+          typeof(derived)}(
+          param, random, pre, init, prob, derived)
   end
 end
+
+# Shallow copy
+Base.copy(m::PKPDModel) = PKPDModel(m.param, m.random, m.pre, m.init, m.prob, m.derived)
 
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
@@ -107,8 +109,9 @@ function _solve(m::PKPDModel, subject, col, args...;
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-    m.prob = remake(m.prob; p=col, u0=u0, tspan=tspan)
-    return _solve_diffeq(m, subject, args...;kwargs...)
+    mtmp = copy(m) # Avoid mutating m in multithreaded execution
+    mtmp.prob = remake(mtmp.prob; p=col, u0=u0, tspan=tspan)
+    return _solve_diffeq(mtmp, subject, args...;kwargs...)
   end
 end
 

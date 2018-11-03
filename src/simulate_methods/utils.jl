@@ -1,3 +1,8 @@
+function adjust_event_timings(events,args...)
+  adjusted_events = copy(events) # shallow copy of the collection
+  adjust_event_timings!(adjusted_events,args...)
+  adjusted_events
+end
 function adjust_event_timings!(events,lags,bioav,rate_input,duration_input)
   for i in eachindex(events)
     ev = events[i]
