@@ -105,8 +105,9 @@ function find_lambda(concentration::Vector{<:Real}, t::Vector{<:Real})
   points = 2
   outlier = false
   for i in 2:10
-    data = DataFrame(X = t[end-i:end], Y = log.(concentration[end-i:end]))
-    model = lm(@formula(Y ~ X), data)
+    x = t[end-i:end]
+    y = log.(concentration[end-i:end])
+    model = lm(hcat(fill!(similar(x), 1), x), y)
     rsq = r²(model)
     if rsq > maxrsq
       maxrsq = rsq
