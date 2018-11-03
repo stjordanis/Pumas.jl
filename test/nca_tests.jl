@@ -14,6 +14,11 @@ correct_aumc = Float64.(data[:AUMCINF_obs])
 test_auc = rand(24,)
 test_aumc = rand(24,)
 
+for method in (:linear, :log_linear)
+  @inferred AUC(conc, t, method)
+  @inferred AUMC(conc, t, method)
+end
+
 for i = 0:23
   test_auc[i+1] = AUC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
   test_aumc[i+1] = AUMC(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], :linear)
