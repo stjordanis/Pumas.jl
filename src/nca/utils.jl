@@ -34,18 +34,27 @@ end
 
 function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   check && checkconctime(conc, time)
-  T = Base.nonmissingtype(eltype(conc))
-  if missingconc == :drop
-    idxs = .!(ismissing.(conc))
-    newconc = similar(conc, T, count(idxs))
+  E = eltype(conc)
+  T = Base.nonmissingtype(E)
+  n = count(ismissing, conc)
+  # fast path
+  n == 0 && return conc, time
+  len = length(conc)
+  if missingconc === :drop
+    newconc = similar(conc, T, len-n)
+    newtime = similar(time, len-n)
     ii = 1
-    @inbounds for i in eachindex(idxs)
-      idxs[i] && (newconc[ii] = conc[i]; ii+=1)
+    @inbounds for i in eachindex(conc)
+      if !ismissing(conc[i])
+        newconc[ii] = conc[i]
+        newtime[ii] = time[i]
+        ii+=1
+      end
     end
-    return newconc, time[idxs]
+    return newconc, newtime
   elseif missingconc isa Number
     newconc = similar(conc, T)
-    @inbounds for i in eachindex(conc)
+    @inbounds for i in eachindex(newconc)
       newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
     end
     return newconc, time
