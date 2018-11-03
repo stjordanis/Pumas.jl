@@ -30,7 +30,7 @@ using PuMaS, SafeTestsets
 @time @safetestset "DDE Tests" begin
      include("ddes.jl") end
 @time @safetestset "NCA" begin
-     include("nca_tests.jl") end
+     include("nca/runtests.jl") end
 @time @safetestset "Automatic Differentiation Tests" begin
      include("ad_tests.jl") end
 
