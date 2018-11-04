@@ -270,9 +270,9 @@ end
 
 function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx=Laplace(), args...; kwargs...)
     cl = conditional_likelihood_derivatives(m, subject, x0, y0, :η, args...;kwargs...)
-    g_ita = -cl[1] - logpdf(y0,Ω)
-    m_ita = -cl[2] + inv(Ω.var)*y0
-    w_ita = -cl[3] + inv(Ω.var)
+    g_ita = -cl[1] - logpdf(Ω, y0)
+    m_ita = -cl[2] + inv(var(Ω))*y0
+    w_ita = -cl[3] + inv(var(Ω))
     -g_ita + ((length(x0)/2)*log(2*pi)) -0.5*(log(abs(w_ita)))
 end
 
