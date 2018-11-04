@@ -28,6 +28,7 @@ function checkconctime(conc, time=nothing; monotonictime=true)
     !issorted(time, lt=≤) && throw(ArgumentError("Time must be monotonically increasing"))
   end
   # check both
+  # TODO: https://github.com/UMCTM/PuMaS.jl/issues/153
   length(conc) != length(time) && throw(ArgumentError("Concentration and time must be the same length"))
   return
 end
