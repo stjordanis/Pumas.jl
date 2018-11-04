@@ -1,4 +1,5 @@
-using PuMaS, Test, CSV
+using PuMaS.NCA, Test, CSV
+using PuMaS
 
 root = joinpath(dirname(pathof(PuMaS)), "..")
 data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
