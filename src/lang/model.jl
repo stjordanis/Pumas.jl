@@ -269,9 +269,10 @@ struct Laplace
 end
 
 function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx=Laplace(), args...; kwargs...)
+    Ω = m.random(x0).dists.η
     cl = conditional_likelihood_derivatives(m, subject, x0, y0, :η, args...;kwargs...)
-    g_ita = -cl[1] - logpdf(Ω, y0)
-    m_ita = -cl[2] + inv(var(Ω))*y0
+    g_ita = -cl[1] - logpdf(Ω, y0.η)
+    m_ita = -cl[2] + inv(var(Ω))*y0.η
     w_ita = -cl[3] + inv(var(Ω))
     -g_ita + ((length(x0)/2)*log(2*pi)) -0.5*(log(abs(w_ita)))
 end
