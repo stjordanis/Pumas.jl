@@ -241,15 +241,15 @@ Compute the full log-likelihood of model `m` for `subject` with parameters `para
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
+function likelihood(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
   derived = derivedfun(m,subject,args...;kwargs...)
-  _, derived_dist = derived(obstimes) # the second component is distributions
+  vals, derived_dist = derived(obstimes) # the second component is distributions
   typ = flattentype(derived_dist)
   n = length(derived_dist)
   idx = 1
-  sum(subject.observations) do obs
+  x = sum(subject.observations) do obs
     if eltype(derived_dist) <: Array
       l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
     else
@@ -257,6 +257,11 @@ function likelihood(m::PKPDModel, subject::Subject, args...; kwargs...)
     end
     idx += 1
     return l
+  end
+  if extended_return
+    return x, vals, derived_dist
+  else
+    return x
   end
 end
 
@@ -271,45 +276,47 @@ function pre(m::PKPDModel, subject::Subject, param, rfx)
   m.pre(param, rfx, subject.covariates)
 end
 
+
+"""
+In named tuple nt, replace the value x.var by y
+"""
+@generated function setindex(x::NamedTuple,y,v::Val)
+  k = first(v.parameters)
+  k ∉ x.names ? :x : :( (x..., $k=y) )
+end
+
+function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
+  f = function (z)
+    _x0 = setindex(x0,z,v)
+    _y0 = setindex(y0,z,v)
+    likelihood(model, subject, _x0, _y0, args...; kwargs...)
+  end
+end
+
 function likelihood_derivatives(model,subject,x0,y0,var::Symbol,transform=false)
   likelihood_derivatives(model,subject,x0,y0,Val(var);transform=transform)
 end
 
 @generated function likelihood_derivatives(model,subject,x0,y0,
-                                           ::Val{var};
-                                           transform=false) where var
+                                           v::Val{var}, args...;
+                                           transform=false, kwargs...) where var
   if var == :η
     ex = quote
-
-      # should refactor this
-      obstimes = [obs.time for obs in subject.observations]
-      isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-      derived = derivedfun(m,subject,args...;kwargs...)
-      _, derived_dist = derived(obstimes) # the second component is distributions
-
-      f = function (η)
-        _η = η
-        _y0 = (η = _η,)
-        likelihood(model, subject, x0, _y0)
-      end
-
+      f = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;kwargs...)
+      f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
+                                                extended_return = true,kwargs...)
+      x, vals, derived_dist = f_extended(y0.η)
       # Do this all in one go
       derived_dist, f(y0.η), ForwardDiff.gradient(f,y0.η), ForwardDiff.hessian(f,y0.η)
     end
   elseif var == :θ
     ex = quote
-
-      # should refactor this
-      obstimes = [obs.time for obs in subject.observations]
-      isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-      derived = derivedfun(m,subject,args...;kwargs...)
-      _, derived_dist = derived(obstimes) # the second component is distributions
-
-      f = function (θ)
-        _x0 = (θ = x0.θ, Ω = x0.Ω, σ = x0.σ) # should do the other variables as well
-        likelihood(model, subject, _x0, y0)
-      end
-
+      f = generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
+      f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v, args...;
+                                                extended_return = true,kwargs...)
+      x, vals, derived_dist = f_extended(x0.θ)
+      @show f(x0.θ)
+      @show ForwardDiff.gradient(f,x0.θ)
       # Do this all in one go
       derived_dist, f(x0.θ), ForwardDiff.gradient(f,x0.θ), ForwardDiff.hessian(f,x0.θ)
     end
