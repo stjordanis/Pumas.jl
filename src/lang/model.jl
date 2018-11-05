@@ -276,7 +276,6 @@ function pre(m::PKPDModel, subject::Subject, param, rfx)
   m.pre(param, rfx, subject.covariates)
 end
 
-
 """
 In named tuple nt, replace the value x.var by y
 """
@@ -300,28 +299,14 @@ end
 @generated function likelihood_derivatives(model,subject,x0,y0,
                                            v::Val{var}, args...;
                                            transform=false, kwargs...) where var
-  if var == :η
-    ex = quote
-      f = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;kwargs...)
-      f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
-                                                extended_return = true,kwargs...)
-      x, vals, derived_dist = f_extended(y0.η)
-      # Do this all in one go
-      derived_dist, f(y0.η), ForwardDiff.gradient(f,y0.η), ForwardDiff.hessian(f,y0.η)
-    end
-  elseif var == :θ
-    ex = quote
-      f = generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
-      f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v, args...;
-                                                extended_return = true,kwargs...)
-      x, vals, derived_dist = f_extended(x0.θ)
-      @show f(x0.θ)
-      @show ForwardDiff.gradient(f,x0.θ)
-      # Do this all in one go
-      derived_dist, f(x0.θ), ForwardDiff.gradient(f,x0.θ), ForwardDiff.hessian(f,x0.θ)
-    end
-  else
-    error("Only θ and η supported right now")
+  var ∉ fieldnames(x0) ∪ fieldnames(y0) && error("Variable name not recognized")
+  valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
+  quote
+    f = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;kwargs...)
+    f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
+                                              extended_return = true,kwargs...)
+    x, vals, derived_dist = f_extended($valex)
+    # Do this all in one go
+    derived_dist, f($valex), ForwardDiff.gradient(f,$valex), ForwardDiff.hessian(f,$valex)
   end
-  ex
 end
