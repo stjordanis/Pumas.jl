@@ -122,3 +122,5 @@ fun = test_likelihood(model)
 fun = test_likelihood(model_ip)
 @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-7
 @test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
+
+PuMaS.likelihood_derivatives(model,subject,x0,y0,:θ)

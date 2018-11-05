@@ -270,3 +270,51 @@ and debugging.
 function pre(m::PKPDModel, subject::Subject, param, rfx)
   m.pre(param, rfx, subject.covariates)
 end
+
+function likelihood_derivatives(model,subject,x0,y0,var::Symbol,transform=false)
+  likelihood_derivatives(model,subject,x0,y0,Val(var);transform=transform)
+end
+
+@generated function likelihood_derivatives(model,subject,x0,y0,
+                                           ::Val{var};
+                                           transform=false) where var
+  if var == :η
+    ex = quote
+
+      # should refactor this
+      obstimes = [obs.time for obs in subject.observations]
+      isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+      derived = derivedfun(m,subject,args...;kwargs...)
+      _, derived_dist = derived(obstimes) # the second component is distributions
+
+      f = function (η)
+        _η = η
+        _y0 = (η = _η,)
+        likelihood(model, subject, x0, _y0)
+      end
+
+      # Do this all in one go
+      derived_dist, f(y0.η), ForwardDiff.gradient(f,y0.η), ForwardDiff.hessian(f,y0.η)
+    end
+  elseif var == :θ
+    ex = quote
+
+      # should refactor this
+      obstimes = [obs.time for obs in subject.observations]
+      isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+      derived = derivedfun(m,subject,args...;kwargs...)
+      _, derived_dist = derived(obstimes) # the second component is distributions
+
+      f = function (θ)
+        _x0 = (θ = x0.θ, Ω = x0.Ω, σ = x0.σ) # should do the other variables as well
+        likelihood(model, subject, _x0, y0)
+      end
+
+      # Do this all in one go
+      derived_dist, f(x0.θ), ForwardDiff.gradient(f,x0.θ), ForwardDiff.hessian(f,x0.θ)
+    end
+  else
+    error("Only θ and η supported right now")
+  end
+  ex
+end
