@@ -91,8 +91,7 @@ Random.seed!(0); y0 = init_random(model, x0)
 function test_obs(model)
     function (θ)
         _x0 = (θ = θ, Ω = x0.Ω, σ = x0.σ)
-        _y0 = (η = eltype(θ).(y0.η),)
-        sim = simobs(model, subject, _x0, _y0; abstol=1e-14, reltol=1e-14)
+        sim = simobs(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
         sim[:cmax]
     end
 end
@@ -110,8 +109,7 @@ fun = test_obs(model_ip)
 function test_likelihood(model)
     function (θ)
         _x0 = (θ = θ, Ω = x0.Ω, σ = x0.σ)
-        _y0 = (η = eltype(θ).(y0.η),)
-        likelihood(model, subject, _x0, _y0; abstol=1e-14, reltol=1e-14)
+        likelihood(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
     end
 end
 
