@@ -298,7 +298,7 @@ end
 
 @generated function likelihood_derivatives(model,subject,x0,y0,
                                            v::Val{var}, args...;
-                                           hessian_requred = true,
+                                           hessian_required = true,
                                            transform=false, kwargs...) where var
   var ∉ fieldnames(x0) ∪ fieldnames(y0) && error("Variable name not recognized")
   valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
@@ -307,7 +307,7 @@ end
     f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
                                               extended_return = true,kwargs...)
     x, vals, derived_dist = f_extended($valex)
-    if $hessian_required
+    if hessian_required
       result = DiffResults.HessianResult($valex)
       result = ForwardDiff.hessian!(result, f, $valex)
       return derived_dist, DiffResults.value(result), DiffResults.gradient(result), DiffResults.hessian(result)
