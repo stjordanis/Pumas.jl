@@ -22,18 +22,13 @@ for m in (:linear, :log_linear)
   @inferred aumc(conc[idx], t[idx], method=m)
 end
 
-for i = 0:23
-  test_auc[i+1] = auc(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], method=:linear)[2]
-  test_aumc[i+1] = aumc(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], method=:linear)[2]
-  @test_nowarn auc(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], method=:log_linear)
-  @test_nowarn aumc(conc[16*i+1:16*i+16], t[16*i+1:16*i+16], method=:log_linear)
-end
-
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
   aucs = auc(conc[idx], t[idx], method=:linear)
   aumcs = aumc(conc[idx], t[idx], method=:linear)
+  @test_nowarn auc(conc[idx], t[idx], method=:log_linear)
+  @test_nowarn aumc(conc[idx], t[idx], method=:log_linear)
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   if i in fails
