@@ -414,7 +414,6 @@ macro model(expr)
   MacroTools.prewalk(expr) do ex
     ex isa LineNumberNode && return nothing
     ex isa Expr && ex.head == :block && return ex
-    islinenum(ex) && return nothing
     @assert ex isa Expr && ex.head == :macrocall
     if ex.args[1] == Symbol("@param")
       extract_params!(vars, params, ex.args[3:end]...)
