@@ -307,7 +307,7 @@ end
     f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
                                               extended_return = true,kwargs...)
     x, vals, derived_dist = f_extended($valex)
-    if hessian_required
+    if $hessian_required
       result = DiffResults.HessianResult($valex)
       result = ForwardDiff.hessian!(result, f, $valex)
       return derived_dist, DiffResults.value(result), DiffResults.gradient(result), DiffResults.hessian(result)
