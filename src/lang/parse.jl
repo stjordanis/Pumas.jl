@@ -442,7 +442,7 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@init")
       # Add in @vars
       ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
-      extract_defs!(vars,ode_init, ex.args[3:end]...)
+      extract_defs!(vars,ode_init, ex.args[3:end])
     elseif ex.args[1] == Symbol("@dynamics")
       # Add in @vars only if not an analytical solution
       if !(typeof(ex.args[3]) <: Symbol)
