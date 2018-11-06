@@ -35,7 +35,7 @@ end
 var_def(tupvar, inddict::AbstractDict) = var_def(tupvar, keys(inddict))
 
 
-function extract_params!(vars, params, exprs...)
+function extract_params!(vars, params, exprs)
   # should be called on an expression wrapped in a @param
   # expr can be:
   #  a block
@@ -43,16 +43,16 @@ function extract_params!(vars, params, exprs...)
   #    a = 1
   #  a domain
   #    a ∈ RealDomain()
-  for expr in exprs
+  if exprs isa Expr && exprs.head == :block
+    _exprs = exprs.args
+  else
+    _exprs = (exprs,)
+  end
+
+  for expr in _exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    if expr.head == :block
-      for ex in expr.args
-        if !islinenum(ex)
-          extract_params!(vars, params, ex)
-        end
-      end
-    elseif expr.head == :call && expr.args[1] in (:∈, :in)
+    if expr.head == :call && expr.args[1] in (:∈, :in)
       p = expr.args[2]
       p in vars && error("Variable $p already defined")
       push!(vars,p)
@@ -72,7 +72,7 @@ function param_obj(params)
   :(ParamSet($(esc(nt_expr(params)))))
 end
 
-function extract_randoms!(vars, randoms, exprs...)
+function extract_randoms!(vars, randoms, exprs)
   # should be called on an expression wrapped in a @random
   # expr can be:
   #  a block
@@ -80,15 +80,17 @@ function extract_randoms!(vars, randoms, exprs...)
   #    a = 1
   #  a random var
   #    a ~ Normal(0,1)
-  for expr in exprs
+
+  if exprs isa Expr && exprs.head == :block
+    _exprs = exprs.args
+  else
+    _exprs = (exprs,)
+  end
+
+  for expr in _exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    if expr.head == :block
-      for ex in expr.args
-        islinenum(ex) && continue
-        extract_randoms!(vars,randoms, ex)
-      end
-    elseif expr.head == :call && expr.args[1] == :~
+    if expr.head == :call && expr.args[1] == :~
       p = expr.args[2]
       p in vars && error("Variable $p already defined")
       push!(vars,p)
@@ -123,14 +125,21 @@ function extract_syms!(vars, subvars, syms)
   end
 end
 
-function extract_pre!(vars, prevars, exprs...)
+function extract_pre!(vars, prevars, exprs)
   # should be called on an expression wrapped in a @pre
   # expr can be:
   #  a block
   #  an assignment
   #    a = 1
+
+  if exprs isa Expr && exprs.head == :block
+    _exprs = exprs.args
+  else
+    _exprs = (exprs,)
+  end
+
   newexpr = Expr(:block)
-  for expr in exprs
+  for expr in _exprs
     MacroTools.prewalk(expr) do ex
       if ex isa Expr && ((iseq = ex.head == :(=)) || ex.head == :(:=)) && length(ex.args) == 2
         p = ex.args[1]
@@ -295,21 +304,23 @@ function dynamics_obj(odename::Symbol, pre, odevars, eqs, isstatic)
 end
 
 
-function extract_defs!(vars, defsdict, exprs...)
+function extract_defs!(vars, defsdict, exprs)
   # should be called on an expression wrapped in a @derived
   # expr can be:
   #  a block
   #  an assignment
   #    a = 1
-  for expr in exprs
+
+  if exprs isa Expr && exprs.head == :block
+    _exprs = exprs.args
+  else
+    _exprs = (exprs,)
+  end
+
+  for expr in _exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    if expr.head == :block
-      for ex in expr.args
-        islinenum(ex) && continue
-        extract_defs!(vars, defsdict, ex)
-      end
-    elseif expr.head == :(=)
+    if expr.head == :(=)
       p = expr.args[1]
       p in vars && error("Variable $p already defined")
       push!(vars,p)
@@ -411,18 +422,21 @@ macro model(expr)
 
   isstatic = true
   odeexpr = :()
-  MacroTools.prewalk(expr) do ex
-    ex isa LineNumberNode && return nothing
-    ex isa Expr && ex.head == :block && return ex
+  lnndict = Dict{Symbol,LineNumberNode}()
+  for (i,ex) in enumerate(expr.args)
+
+    if ex isa LineNumberNode
+      continue
+    end
     @assert ex isa Expr && ex.head == :macrocall
     if ex.args[1] == Symbol("@param")
-      extract_params!(vars, params, ex.args[3:end]...)
+      extract_params!(vars, params, ex.args[3])
     elseif ex.args[1] == Symbol("@random")
-      extract_randoms!(vars, randoms, ex.args[3:end]...)
+      extract_randoms!(vars, randoms, ex.args[3])
     elseif ex.args[1] == Symbol("@covariates")
       extract_syms!(vars, covariates, ex.args[3:end])
     elseif ex.args[1] == Symbol("@pre")
-      preexpr = extract_pre!(vars,prevars,ex.args[3:end]...)
+      preexpr = extract_pre!(vars,prevars,ex.args[3])
     elseif ex.args[1] == Symbol("@vars")
       vars_ = ex.args[3:end]
     elseif ex.args[1] == Symbol("@init")
@@ -444,14 +458,14 @@ macro model(expr)
     else
       error("Invalid macro $(ex.args[1])")
     end
-    return nothing
+    #return nothing
   end
 
   prevars = union(prevars, keys(params), keys(randoms), covariates)
 
-  quote
+  ex = quote
     x = PKPDModel(
-                  $(param_obj(params)),
+    $(param_obj(params)),
     $(random_obj(randoms,params)),
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
     $(init_obj(ode_init,odevars[1],prevars,isstatic)),
@@ -467,4 +481,6 @@ macro model(expr)
     end
     x
   end
+  ex.args[1] = __source__
+  ex
 end
