@@ -123,4 +123,4 @@ fun = test_conditional_loglikelihood(model_ip)
 
 dists, val, grad, hes = PuMaS.conditional_loglikelihood_derivatives(model_ip,subject,x0,y0,:θ)
 
-PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0)
+PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
