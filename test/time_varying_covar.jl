@@ -1,4 +1,4 @@
-using PuMaS, LabelledArrays
+using PuMaS, StaticArrays
 
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
@@ -27,15 +27,15 @@ function col_f(p,rfx,cov)
     V  = p.θ[3] * exp(rfx.η[2]))
 end
 
-@SLVector OneCompartmentVector Float64 [Depot,Central]
+#@SLVector OneCompartmentVector Float64 [Depot,Central]
 
 function init_f(col,t0)
-    OneCompartmentVector(0.0,0.0)
+    @SVector [0.0,0.0]
 end
 
 function onecompartment_f(u,p,t)
-    OneCompartmentVector(-p.Ka(t)*u[1],
-                          p.Ka(t)*u[1] - (p.CL/p.V)*u[2])
+    @SVector [-p.Ka(t)*u[1],
+               p.Ka(t)*u[1] - (p.CL/p.V)*u[2]]
 end
 prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 

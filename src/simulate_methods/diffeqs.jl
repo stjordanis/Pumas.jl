@@ -1,4 +1,4 @@
-function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=true, alg=Tsit5(), kwargs...)
+function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=true, alg=AutoTsit5(Rosenbrock23()), kwargs...)
   prob = typeof(m.prob) <: DiffEqBase.AbstractJumpProblem ? m.prob.prob : m.prob
   tspan = prob.tspan
   col = prob.p
