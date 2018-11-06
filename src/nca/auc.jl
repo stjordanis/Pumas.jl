@@ -12,10 +12,14 @@ end
     auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
 
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
-rule.
+rule. If log-linear trapezoidal is not appropriate for the given data, it will
+fall back to the linear trapezoidal rule.
 """
 @inline function auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
   Δt = t₂ - t₁
+  # we know that C₂ and C₁ must be non-negative, so we need to check C₁=0,
+  # C₂=0, or C₁ = C₂, and fall back to the linear trapezoidal rule.
+  C₁ == C₂ || C₁ == zero(C₁) || C₂ == zero(C₂) && return auclinear(C₁, C₂, t₁, t₂)
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
   return (Δt * ΔC) / lg
@@ -42,10 +46,14 @@ end
     aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
-by log-linear trapezoidal rule.
+by log-linear trapezoidal rule. If log-linear trapezoidal is not appropriate
+for the given data, it will fall back to the linear trapezoidal rule.
 """
 @inline function aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
   Δt = t₂ - t₁
+  # we know that C₂ and C₁ must be non-negative, so we need to check C₁=0,
+  # C₂=0, or C₁ = C₂, and fall back to the linear trapezoidal rule.
+  C₁ == C₂ || C₁ == zero(C₁) || C₂ == zero(C₂) && return aumclinear(C₁, C₂, t₁, t₂)
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
 end
@@ -59,7 +67,7 @@ Extrapolate the first moment to the infinite.
 
 function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
               auctype::Symbol=:AUClast, method=nothing, concblq=nothing, # TODO: concblq
-              missingconc=:drop, check=true, linear, log, inf)
+              missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
   if check
     checkconctime(conc, time)
     conc, time = cleanmissingconc(conc, time)
@@ -69,26 +77,34 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
   lo, hi = interval
   lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
   lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
-  λz, points, maxrsq, outlier = find_lambda(conc, time)
+  lambdaz === nothing && (lambdaz = find_lambdaz(conc, time, check=false, idxs=idxs))
+  # TODO: handle `auclinlog` with IV bolus.
+  #
+  # `C0` is the concentration at time zero if the route of administration is IV
+  # (intranvenous). If concentration at time zero is not measured after the IV
+  # bolus, a linear back-extrapolation is done to get the intercept which
+  # represents concentration at time zero (`C0`)
+  #
   # TODO: data interpolation/data extrapolation
-  #concstart = interpextrapconc(conc, time, lo, lambdaz=λz, interpmethod=method, extrapmethod=auctype, check=false)
+  #concstart = interpextrapconc(conc, time, lo, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
   idx1 = findfirst(x->x>=lo, time)
   idx2 = findlast(x->x<=hi, time)
   # auc of the first interval
   auc = linear(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1])
   if isfinite(hi)
-    #concend = interpextrapconc(conc, time, hi, lambdaz=λz, interpmethod=method, extrapmethod=auctype, check=false)
+    #concend = interpextrapconc(conc, time, hi, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
   end
 
   _clast, tlast = ctlast(conc, time, check=false)
   clast == nothing && (clast = _clast)
   if clast == -one(eltype(conc))
-    return all(isequal(0), conc) ? (zero(auc), zero(auc), λz) : error("Unknown error with NA tlast but non-BLQ concentrations")
+    return all(isequal(0), conc) ? (zero(auc), zero(auc), lambdaz) : error("Unknown error with missing `tlast` but non-BLQ concentrations")
   end
 
   # Compute the AUxC
-  # Include the first point after `tlast` if it exists and we are computing AUCall # TODO: not sure what is going on here.
-  auctype === :AUCall && tlast > hi && (idx2 = idx2 + 1)
+  # Include the first point after `tlast` if it exists and we are computing AUCall
+  # do not support :AUCall for now
+  # auctype === :AUCall && tlast > hi && (idx2 = idx2 + 1)
   if method === :linear
     for i in idx1+1:idx2-1
       auc += linear(conc[i], conc[i+1], time[i], time[i+1])
@@ -104,8 +120,8 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
   else
     throw(ArgumentError("method must be either :linear or :log_linear"))
   end
-  aucinf2 = inf(clast, tlast, λz)
-  return auc, auc+aucinf2, λz
+  aucinf2 = inf(clast, tlast, lambdaz)
+  return auc, auc+aucinf2, lambdaz
 end
 
 """
@@ -127,24 +143,41 @@ AUC_0_inf, λz)`.
 """
 aumc(conc, time; kwargs...) = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
 
-function find_lambda(concentration::Vector{<:Real}, t::Vector{<:Real}; threshold=10)
+fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
+
+function find_lambdaz(conc::Vector{<:Real}, time::Vector{<:Real}; threshold=10, check=true, idxs=nothing)
+  check && checkconctime(conc, time)
   maxrsq = 0.0
   λ = 0.0
   points = 2
   outlier = false
-  for i in 2:min(length(t)-1, threshold)
-    x = t[end-i:end]
-    y = log.(concentration[end-i:end])
-    model = lm(hcat(fill!(similar(x), 1), x), y)
-    rsq = r²(model)
-    if rsq > maxrsq
-      maxrsq = rsq
-      λ = coef(model)[2]
-      points = i+1
+  cmax, cmaxidx = findmax(conc)
+  n = length(time)
+  if idxs === nothing
+    m = min(n-1, threshold, n-cmaxidx-1)
+    m < 2 && throw(ArgumentError("lambdaz must be calculated from at least three data points after Cmax"))
+    for i in 2:m
+      x = time[end-i:end]
+      y = conc[end-i:end]
+      model = fitlog(x, y)
+      rsq = r²(model)
+      if rsq > maxrsq
+        maxrsq = rsq
+        λ = coef(model)[2]
+        points = i+1
+      end
     end
+  else
+    length(idxs) < 3 && throw(ArgumentError("lambdaz must be calculated from at least three data points"))
+    x = time[idxs]
+    y = conc[idxs]
+    model = fitlog(x, y)
+    λ = coef(model)[2]
   end
   if λ ≥ 0
     outlier = true
+    @warn "The estimated slope is not negative, got $λ"
   end
-  -λ, points, maxrsq, outlier
+  #-λ, points, maxrsq, outlier
+  return -λ
 end

@@ -16,11 +16,15 @@ correct_aumc = Float64.(data[:AUMCINF_obs])
 test_auc = rand(24,)
 test_aumc = rand(24,)
 
+idx = 1:16
+
 for m in (:linear, :log_linear)
-  idx = 1:16
   @inferred auc(conc[idx], t[idx], method=m)
   @inferred aumc(conc[idx], t[idx], method=m)
 end
+
+@test find_lambdaz(conc[idx], t[idx], idxs=12:16) == find_lambdaz(conc[idx], t[idx])
+@test find_lambdaz(conc[idx], t[idx], idxs=12:16) ≈ data[:Lambda_z][1] atol=1e-6
 
 fails = (6, 9)
 for i in 1:24
