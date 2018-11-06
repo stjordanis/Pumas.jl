@@ -265,16 +265,17 @@ function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; exte
   end
 end
 
-struct Laplace 
+struct Laplace
 end
 
 function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
-    cl = conditional_likelihood_derivatives(m, subject, x0, y0, :η, args...;kwargs...)
-    g_ita = -cl[1] - logpdf(Ω, y0.η)
-    m_ita = -cl[2] + inv(var(Ω))*y0.η
-    w_ita = -cl[3] + inv(var(Ω))
-    -g_ita + ((length(x0)/2)*log(2*pi)) -0.5*(log(abs(w_ita)))
+    dists, val, grad, hes = conditional_loglikelihood_derivatives(m,
+                                         subject, x0, y0, :η, args...;kwargs...)
+    g = -val - logpdf(Ω, y0.η)
+    m = -grad + inv(cov(Ω))*y0.η
+    W = -hes + inv(cov(Ω))
+    -g + ((length(x0)/2)*log(2*pi)) -0.5*(log(norm(W))) + 0.5*m'*W*m
 end
 
 """
@@ -300,15 +301,18 @@ function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
   f = function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
-    likelihood(model, subject, _x0, _y0, args...; kwargs...)
+    conditional_loglikelihood(model, subject, _x0, _y0, args...; kwargs...)
   end
 end
 
-function likelihood_derivatives(model,subject,x0,y0,var::Symbol,transform=false)
-  likelihood_derivatives(model,subject,x0,y0,Val(var);transform=transform)
+function conditional_loglikelihood_derivatives(model,subject,x0,y0,var::Symbol,transform=false,
+                                args...; kwargs...)
+  conditional_loglikelihood_derivatives(model,subject,x0,y0,Val(var),args...;
+                         transform=transform,
+                         kwargs...)
 end
 
-@generated function likelihood_derivatives(model,subject,x0,y0,
+@generated function conditional_loglikelihood_derivatives(model,subject,x0,y0,
                                            v::Val{var}, args...;
                                            hessian_required = true,
                                            transform=false, kwargs...) where var

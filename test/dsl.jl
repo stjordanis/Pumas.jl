@@ -4,7 +4,7 @@ using PuMaS, Test, Random, LabelledArrays
 # Read the data# Read the data
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
-# Cut off the `t=0` pre-dose observation as it throws likelihood calculations
+# Cut off the `t=0` pre-dose observation as it throws conditional_loglikelihood calculations
 # off the scale (variance of the simulated distribution is too small).
 for subject in data.subjects
     obs1 = subject.observations[1]
@@ -107,7 +107,7 @@ sol2 = solve(mobj,subject,x0,y0)
 
 @test sol1[10].Central ≈ sol2[10].Central
 
-@test likelihood(mdsl,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=5e-3
+@test conditional_loglikelihood(mdsl,subject,x0,y0) ≈ conditional_loglikelihood(mobj,subject,x0,y0) rtol=5e-3
 
 Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
 Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
@@ -132,7 +132,7 @@ prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,prob,derived_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
-@test likelihood(mobj_iip,subject,x0,y0) ≈ likelihood(mobj,subject,x0,y0) rtol=5e-3
+@test conditional_loglikelihood(mobj_iip,subject,x0,y0) ≈ conditional_loglikelihood(mobj,subject,x0,y0) rtol=5e-3
 
 @test (Random.seed!(1); simobs(mobj_iip,subject,x0,y0)[:dv]) ≈
       (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv]) rtol=1e-4
@@ -169,4 +169,4 @@ y0 = init_random(mdsl, x0)
 
 @test solve(mdsl,subject,x0,y0) === nothing
 @test simobs(mdsl,subject,x0,y0) != nothing
-@test likelihood(mdsl,subject,x0,y0) == -Inf # since real-valued observations
+@test conditional_loglikelihood(mdsl,subject,x0,y0) == -Inf # since real-valued observations
