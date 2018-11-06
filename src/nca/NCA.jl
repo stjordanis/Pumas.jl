@@ -7,6 +7,6 @@ using GLM
 include("utils.jl")
 include("auc.jl")
 
-export AUC, AUMC
+export auc, aumc
 
 end
