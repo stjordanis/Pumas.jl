@@ -127,12 +127,12 @@ AUC_0_inf, λz)`.
 """
 aumc(conc, time; kwargs...) = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
 
-function find_lambda(concentration::Vector{<:Real}, t::Vector{<:Real})
+function find_lambda(concentration::Vector{<:Real}, t::Vector{<:Real}; threshold=10)
   maxrsq = 0.0
   λ = 0.0
   points = 2
   outlier = false
-  for i in 2:length(t)-1
+  for i in 2:min(length(t)-1, threshold)
     x = t[end-i:end]
     y = log.(concentration[end-i:end])
     model = lm(hcat(fill!(similar(x), 1), x), y)
