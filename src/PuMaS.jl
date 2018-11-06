@@ -35,4 +35,5 @@ export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, likelihood, pre, simpost
 export example_nmtran_data
+export @model
 end # module

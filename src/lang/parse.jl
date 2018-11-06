@@ -2,8 +2,6 @@ using DataStructures
 using MacroTools
 using ModelingToolkit
 
-export @model
-
 islinenum(x) = x isa LineNumberNode
 function nt_expr(set, prefix=nothing)
   t = :(())
@@ -48,7 +46,6 @@ function extract_params!(vars, params, exprs...)
   for expr in exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    expr = MacroTools.striplines(expr)
     if expr.head == :block
       for ex in expr.args
         if !islinenum(ex)
@@ -86,7 +83,6 @@ function extract_randoms!(vars, randoms, exprs...)
   for expr in exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    expr = MacroTools.striplines(expr)
     if expr.head == :block
       for ex in expr.args
         islinenum(ex) && continue
@@ -308,7 +304,6 @@ function extract_defs!(vars, defsdict, exprs...)
   for expr in exprs
     expr isa LineNumberNode && continue
     @assert expr isa Expr
-    expr = MacroTools.striplines(expr)
     if expr.head == :block
       for ex in expr.args
         islinenum(ex) && continue
@@ -327,10 +322,9 @@ end
 
 function extract_randvars!(vars, randvars, distvars, postexpr, expr)
   @assert expr isa Expr
-  expr = MacroTools.striplines(expr)
   if expr.head == :block
     for ex in expr.args
-      #islinenum(expr) && continue
+      islinenum(ex) && continue
       extract_randvars!(vars, randvars, distvars, postexpr, ex)
     end
   elseif ((iseq = expr.head == :(=)) || expr.head == :(:=)) && length(expr.args) == 2
