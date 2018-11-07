@@ -96,10 +96,9 @@ function test_obs(model)
     end
 end
 
-# Static vectors currently breaks due to type conversion error
 fun = test_obs(model)
-@test_broken FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
-@test_broken FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
+@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
+@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
 
 fun = test_obs(model_ip)
 @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
@@ -114,8 +113,8 @@ function test_conditional_loglikelihood(model)
 end
 
 fun = test_conditional_loglikelihood(model)
-@test_broken FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
-@test_broken FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
+@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-6
+@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
 
 fun = test_conditional_loglikelihood(model_ip)
 @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-7

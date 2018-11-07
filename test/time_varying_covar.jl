@@ -27,7 +27,7 @@ function col_f(p,rfx,cov)
     V  = p.θ[3] * exp(rfx.η[2]))
 end
 
-#@SLVector OneCompartmentVector Float64 [Depot,Central]
+#OneCompartmentVector = @SLVector Float64 (:Depot,:Central)
 
 function init_f(col,t0)
     @SVector [0.0,0.0]
