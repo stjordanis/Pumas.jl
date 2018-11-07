@@ -63,3 +63,12 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
     throw(ArgumentError("missingconc must be a number or :drop"))
   end
 end
+
+# use -1 to denote missing as after checking conc is strictly great than 0
+function ctlast(conc, time; check=true)
+  check && checkconctime(conc, time)
+  # now we assume the data is checked
+  all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(idx))
+  @inbounds idx = findlast(x->!(ismissing(x) || x==0), conc)
+  return conc[idx], time[idx]
+end
