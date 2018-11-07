@@ -233,7 +233,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     for p in odevars
       push!(vecexpr, ode_init[p])
     end
-    uType = SLVector{length(odevars),Float64,(odevars...,)}
+    uType = SLArray{Tuple{length(odevars)},1,(odevars...,),Float64}
     typeexpr = :($uType())
     append!(typeexpr.args,vecexpr)
     quote
