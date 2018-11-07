@@ -233,11 +233,10 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     for p in odevars
       push!(vecexpr, ode_init[p])
     end
-    tname = gensym()
-    typeexpr = :($tname())
+    uType = SLVector{length(odevars),Float64,(odevars...,)}
+    typeexpr = :($uType())
     append!(typeexpr.args,vecexpr)
     quote
-      @SLVector $tname Float64 [$(odevars...)]
       function (_pre,t)
         $(var_def(:_pre, prevars))
         $(esc(typeexpr))

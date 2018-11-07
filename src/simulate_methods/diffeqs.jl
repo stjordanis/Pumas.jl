@@ -106,7 +106,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
         dose!(integrator,integrator.u,cur_ev,bioav,last_restart)
         counter += 1
       elseif cur_ev.evid >= 3
-        if typeof(integrator.u) <: Union{Number,FieldVector,SArray}
+        if typeof(integrator.u) <: Union{Number,FieldVector,SArray,SLVector}
           integrator.u = zero(integrator.u)
         else
           integrator.u .= 0
@@ -115,7 +115,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
         last_restart[] = integrator.t
         f.f.rates_on = false
 
-        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
+        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray,SLVector}
           f.f.rates = zero(f.f.rates)
         else
           f.f.rates .= 0
@@ -128,7 +128,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           # This is triggered at the start of a steady-state event
           ss_mode[] = true
 
-          if typeof(f.f.rates) <: Union{Number,SArray,FieldVector}
+          if typeof(f.f.rates) <: Union{Number,SArray,SLVector,FieldVector}
             f.f.rates = zero(f.f.rates)
           else
             f.f.rates .= 0
@@ -171,7 +171,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
             ss_mode[] = false
             post_steady_state[] = true
 
-            if typeof(f.f.rates) <: Union{Number,SArray,FieldVector}
+            if typeof(f.f.rates) <: Union{Number,SArray,SLVector,FieldVector}
               f.f.rates = zero(f.f.rates)
             else
               f.f.rates .= 0
@@ -181,7 +181,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
             ProbType <: DiffEqBase.SDEProblem && (integrator.W.save_everystep=true)
 
             if cur_ev.ss == 2
-              if typeof(integrator.u) <: Union{SArray,Number,FieldVector}
+              if typeof(integrator.u) <: Union{SArray,SLVector,Number,FieldVector}
                 integrator.u += integrator.sol.u[end]
               else
                 integrator.u .+= integrator.sol.u[end]
@@ -197,7 +197,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
               ss_dropoff_counter[] = start_k
             else # amt = 0, turn off rates
 
-              if typeof(f.f.rates) <: Union{Number,SArray,FieldVector}
+              if typeof(f.f.rates) <: Union{Number,SArray,SLVector,FieldVector}
                 f.f.rates = StaticArrays.setindex(f.f.rates,0.0,cur_ev.cmt)
               else
                 f.f.rates[cur_ev.cmt] = 0
@@ -223,7 +223,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
             #add_tstop!(integrator,ss_end[])
           end
         elseif integrator.t == ss_rate_end[] && cur_ev.amt != 0 # amt==0 means constant
-          if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
+          if typeof(f.f.rates) <: Union{Number,FieldVector,SArray,SLVector}
             f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
           else
             f.f.rates[cur_ev.cmt] -= cur_ev.rate
@@ -252,7 +252,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
 
       ss_event = events[ss_event_counter[]]
       if ss_event.amt != 0
-        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray}
+        if typeof(f.f.rates) <: Union{Number,FieldVector,SArray,SLVector}
           f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[ss_event.cmt]-ss_event.rate,ss_event.cmt)
         else
           f.f.rates[ss_event.cmt] -= ss_event.rate
@@ -287,7 +287,7 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
   end
 end
 
-function dose!(integrator,u::Union{SArray,FieldVector},cur_ev,bioav,last_restart)
+function dose!(integrator,u::Union{SArray,SLVector,FieldVector},cur_ev,bioav,last_restart)
 
   if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
     f = integrator.integrator.f
@@ -329,7 +329,7 @@ function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
   end
 end
 
-function ss_dose!(integrator,u::Union{SArray,FieldVector},cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+function ss_dose!(integrator,u::Union{SArray,SLVector,FieldVector},cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
 
   if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
     f = integrator.integrator.f

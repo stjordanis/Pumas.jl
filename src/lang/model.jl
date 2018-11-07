@@ -292,7 +292,7 @@ end
 """
 In named tuple nt, replace the value x.var by y
 """
-@generated function setindex(x::NamedTuple,y,v::Val)
+@generated function Base.setindex(x::NamedTuple,y,v::Val)
   k = first(v.parameters)
   k ∉ x.names ? :x : :( (x..., $k=y) )
 end
