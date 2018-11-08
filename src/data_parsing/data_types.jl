@@ -33,6 +33,7 @@ function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
   show(io, mime, Text(summary(o)))
 end
 
+abstract type AbstractEvent end
 """
     Event
 
@@ -65,7 +66,7 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T,T2,T3} # Split parameters for dual numbers
+struct Event{T,T2,T3} <: AbstractEvent
   amt::T
   time::T2
   evid::Int8
@@ -81,15 +82,38 @@ end
 Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
                                     Int8(0), 0.0, time, Int8(1))
 
-Base.isless(a::Event,b::Event) = isless(a.time,b.time)
-Base.isless(a::Event,b::Number) = isless(a.time,b)
-Base.isless(a::Number,b::Event) = isless(a,b.time)
+"""
+  EventProxy
+
+A proxy `Event` object with updated `time`, `rate` and `duration`.
+Created by the solvers when non-default "magic arguments" (lags,bioav,rate,duration)
+changes the properties of an event. In particular, the updated quantities can all be
+dual numbers when doing derivative calculations.
+"""
+struct EventProxy{E<:Event,tType,rType,dType} <: AbstractEvent
+  ev::E # reference to the original event
+  time::tType
+  rate::rType
+  duration::dType
+end
+Base.propertynames(proxy::EventProxy) = propertynames(proxy.ev)
+function Base.getproperty(proxy::EventProxy, name::Symbol)
+  if name in fieldnames(EventProxy)
+    getfield(proxy, name)
+  else
+    getproperty(proxy.ev, name)
+  end
+end
+
+Base.isless(a::AbstractEvent,b::AbstractEvent) = isless(a.time,b.time)
+Base.isless(a::AbstractEvent,b::Number) = isless(a.time,b)
+Base.isless(a::Number,b::AbstractEvent) = isless(a,b.time)
 
 ### Display
 _evid_index = Dict(-1 => "End of infusion", 0 => "Observation", 1 => "Dose",
                    2 => "Other", 3 => "Reset", 4 => "Reset and dose")
-Base.summary(e::Event) = "$(_evid_index[e.evid]) event"
-function Base.show(io::IO, e::Event)
+Base.summary(e::AbstractEvent) = "$(_evid_index[e.evid]) event"
+function Base.show(io::IO, e::AbstractEvent)
   println(io, summary(e))
   println(io, "  dose amount = $(e.amt)")
   println(io, "  dose time = $(e.time)")
@@ -115,8 +139,8 @@ function Base.show(io::IO, e::Event)
     println(io, "  end of infusion")
   end
 end
-TreeViews.hastreeview(::Event) = true
-function TreeViews.treelabel(io::IO, e::Event, mime::MIME"text/plain")
+TreeViews.hastreeview(::AbstractEvent) = true
+function TreeViews.treelabel(io::IO, e::AbstractEvent, mime::MIME"text/plain")
   show(io, mime, Text(summary(e)))
 end
 
