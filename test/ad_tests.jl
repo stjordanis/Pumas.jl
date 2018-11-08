@@ -9,7 +9,7 @@ FD_hessian = function (f, x)
     FD_jacobian(grad_fun, x, Val{:central}, eltype(x), Val{false})
 end
 
-@testset "Derivatives" begin
+@testset "Derivatives w.r.t regular parameters" begin
     data = process_nmtran(example_nmtran_data("data1"),
                         [:sex,:wt,:etn])
     subject = data.subjects[1]
@@ -129,7 +129,7 @@ end
     PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
 end
 
-@testset "Magic arguments" begin
+@testset "Magic argument - lags" begin
     # Test 3 of template_model_ev_system.jl
     mlag = @model begin
         @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
@@ -163,6 +163,49 @@ end
     test_fun = function(θ)
         _x0 = (θ = θ,)
         sim = simobs(mlag, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+        sim[:cmax]
+    end
+
+    grad_FD = FD_gradient(test_fun, θ0)
+    @test_broken grad_AD = AD_gradient(test_fun, θ0)
+    # @show grad_FD[4]
+    # @show grad_AD[4]
+end
+
+@testset "Magic argument - bioav" begin
+    # Test 5 of template_model_ev_system.jl
+    mbioav = @model begin
+        @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+        @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    
+        @pre begin
+            Ka = θ[1]
+            CL = θ[2]*exp(η[1])
+            V  = θ[3]*exp(η[2])
+            bioav = θ[4]
+        end
+    
+        @dynamics begin
+            Depot'   = -Ka*Depot
+            Central' =  Ka*Depot - (CL/V)*Central
+        end
+    
+        @derived begin
+            cp = @. Central / V
+            cmax = maximum(cp)
+        end
+    end
+
+    subject = process_nmtran(example_nmtran_data("event_data/data5"),
+                         [], [:cp])[1]
+
+    θ0 = [1.5, 1.0, 30.0, 0.412]
+    x0 = (θ = θ0,)
+    y0 = (η = [0.0,0.0],)
+
+    test_fun = function(θ)
+        _x0 = (θ = θ,)
+        sim = simobs(mbioav, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
         sim[:cmax]
     end
 
