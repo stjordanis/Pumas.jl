@@ -1,4 +1,4 @@
-using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random
+using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays
 
 AD_gradient = ForwardDiff.gradient
 AD_hessian = ForwardDiff.hessian
@@ -65,16 +65,15 @@ function col_f(p,rfx,cov)
      V  = p.θ[3] * exp(rfx.η[2]),
      σ = p.σ)
 end
-init_f(col,t0) = [0.0,0.0]
+init_f(col,t0) = @LArray [0.0, 0.0] (:Depot, :Central)
 function onecompartment_f(du,u,p,t)
-    Depot, Central = u # TODO: use field access after LabelledArray fix
-    cp = Central/p.V
-    du[1] = -p.Ka*Depot
-    du[2] = p.Ka*Depot - p.CL*cp
+    cp = u.Central/p.V
+    du.Depot = -p.Ka*u.Depot
+    du.Central = p.Ka*u.Depot - p.CL*cp
 end
 prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
-    central = map(x->x[2], sol) # TODO: use field access after LabelledArray fix
+    central = map(x->x.Central, sol)
     _conc = @. central / col.V
     _cmax = maximum(_conc)
     _dv = @. Normal(_conc, _conc*col.σ)
@@ -113,13 +112,17 @@ function test_conditional_loglikelihood(model)
 end
 
 fun = test_conditional_loglikelihood(model)
-@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-6
-@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
+grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    model,subject,x0,y0,:θ,abstol=1e-14,reltol=1e-14)
+@test grad_FD ≈ grad_AD atol=2e-6
+@test hes_FD ≈ hes_AD atol=5e-3
 
 fun = test_conditional_loglikelihood(model_ip)
-@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-7
-@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
-
-dists, val, grad, hes = PuMaS.conditional_loglikelihood_derivatives(model_ip,subject,x0,y0,:θ)
+grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    model_ip,subject,x0,y0,:θ,abstol=1e-14, reltol=1e-14)
+@test grad_FD ≈ grad_AD atol=2e-6
+@test hes_FD ≈ hes_AD atol=5e-3
 
 PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
