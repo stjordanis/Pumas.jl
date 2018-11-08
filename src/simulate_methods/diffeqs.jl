@@ -63,7 +63,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   ss_max_iters = 1000
 
   lags,bioav,rate,duration = get_magic_args(p,u0,t0)
-  events = adjust_event_timings(datai.events,lags,bioav,rate,duration)
+  events = adjust_event(datai.events,lags,bioav,rate,duration)
 
   tstops = sorted_approx_unique(events)
   counter::Int = 1

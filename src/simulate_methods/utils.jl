@@ -1,41 +1,53 @@
 _cmt_value(ev::Event, var::Number) = var
 _cmt_value(ev::Event, var) = var[ev.cmt]
-function adjust_event_timings(events::AbstractVector{Event},args...)
-  out = collect(adjust_event_timings(ev, args...) for ev in events)
+function create_event_proxy(ev::Event,lags,bioav,rate,duration)
+  if rate != 0
+    _rate = rate
+    _duration = ev.amt
+    _duration /= _cmt_value(ev, rate)
+    _duration *= _cmt_value(ev, bioav)
+  elseif duration != 0
+    _duration = _cmt_value(ev, duration)
+    _rate = ev.amt/_duration
+    _rate *= _cmt_value(ev, bioav)
+  else # both are zero
+    _rate = ev.rate
+    _duration = ev.amt/ev.rate
+    _duration *= _cmt_value(ev, bioav)
+  end
+
+  if ev.rate_dir == -1
+    time = ev.base_time + _duration
+  else
+    time = ev.base_time
+  end
+
+  time += _cmt_value(ev, lags)
+  EventProxy(ev, time, _rate, _duration)
+end
+
+"""
+  adjust_event(event,lags,bioav,rate,duration) -> AbstractEvent
+  adjust_event(events,lags,bioav,rate,duration) -> AbstractEvent[]
+
+Adjust the event(s) with the "magic arguments" lags, bioav, rate
+and duration. Returns either the original event or an `EventProxy`
+if modified. If given a list of events, the output event list will
+be sorted.
+"""
+function adjust_event(events::AbstractVector{Event},args...)
+  out = collect(adjust_event(ev, args...) for ev in events)
   sort!(out)
 end
-function adjust_event_timings(ev::Event,lags,bioav,rate_input,duration_input)
+function adjust_event(ev::Event,lags,bioav,rate_input,duration_input)
   rate = _cmt_value(ev, rate_input)
   duration = _cmt_value(ev, duration_input)
   @assert rate == 0 || duration == 0
 
   if ev.amt != 0
-    if rate != 0
-      _rate = rate
-      _duration = ev.amt
-      _duration /= _cmt_value(ev, rate)
-      _duration *= _cmt_value(ev, bioav)
-    elseif duration != 0
-      _duration = _cmt_value(ev, duration)
-      _rate = ev.amt/_duration
-      _rate *= _cmt_value(ev, bioav)
-    else # both are zero
-      _rate = ev.rate
-      _duration = ev.amt/ev.rate
-      _duration *= _cmt_value(ev, bioav)
-    end
-
-    if ev.rate_dir == -1
-      time = ev.base_time + _duration
-    else
-      time = ev.base_time
-    end
-
-    time += _cmt_value(ev, lags)
-    Event(ev.amt, time, ev.evid, ev.cmt, _rate, _duration, ev.ss, ev.ii,
-          ev.base_time, ev.rate_dir)
+    create_event_proxy(ev,lags,bioav,rate,duration)
   else
-    ev # deep copy instead?
+    ev
   end
 end
 
