@@ -73,7 +73,7 @@ function onecompartment_f(du,u,p,t)
 end
 prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
-    central = map(x->x.Central, sol) # TODO: use field access after LabelledArray fix
+    central = map(x->x.Central, sol)
     _conc = @. central / col.V
     _cmax = maximum(_conc)
     _dv = @. Normal(_conc, _conc*col.σ)
@@ -113,14 +113,16 @@ end
 
 fun = test_conditional_loglikelihood(model)
 grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(model,subject,x0,y0,:θ)
-@test grad_FD ≈ grad_AD atol=1e-5
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    model,subject,x0,y0,:θ,abstol=1e-14,reltol=1e-14)
+@test grad_FD ≈ grad_AD atol=2e-6
 @test hes_FD ≈ hes_AD atol=5e-3
 
 fun = test_conditional_loglikelihood(model_ip)
 grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(model_ip,subject,x0,y0,:θ)
-@test grad_FD ≈ grad_AD atol=1e-5
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    model_ip,subject,x0,y0,:θ,abstol=1e-14, reltol=1e-14)
+@test grad_FD ≈ grad_AD atol=2e-6
 @test hes_FD ≈ hes_AD atol=5e-3
 
 PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
