@@ -112,13 +112,15 @@ function test_conditional_loglikelihood(model)
 end
 
 fun = test_conditional_loglikelihood(model)
-@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-6
-@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
+grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(model,subject,x0,y0,:θ)
+@test grad_FD ≈ grad_AD atol=1e-5
+@test hes_FD ≈ hes_AD atol=5e-3
 
 fun = test_conditional_loglikelihood(model_ip)
-@test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=2e-7
-@test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=5e-3
-
-dists, val, grad, hes = PuMaS.conditional_loglikelihood_derivatives(model_ip,subject,x0,y0,:θ)
+grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
+_, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(model_ip,subject,x0,y0,:θ)
+@test grad_FD ≈ grad_AD atol=1e-5
+@test hes_FD ≈ hes_AD atol=5e-3
 
 PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
