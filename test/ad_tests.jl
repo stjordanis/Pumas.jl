@@ -1,4 +1,4 @@
-using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random
+using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays
 
 AD_gradient = ForwardDiff.gradient
 AD_hessian = ForwardDiff.hessian
@@ -65,16 +65,15 @@ function col_f(p,rfx,cov)
      V  = p.θ[3] * exp(rfx.η[2]),
      σ = p.σ)
 end
-init_f(col,t0) = [0.0,0.0]
+init_f(col,t0) = @LArray [0.0, 0.0] (:Depot, :Central)
 function onecompartment_f(du,u,p,t)
-    Depot, Central = u # TODO: use field access after LabelledArray fix
-    cp = Central/p.V
-    du[1] = -p.Ka*Depot
-    du[2] = p.Ka*Depot - p.CL*cp
+    cp = u.Central/p.V
+    du.Depot = -p.Ka*u.Depot
+    du.Central = p.Ka*u.Depot - p.CL*cp
 end
 prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
-    central = map(x->x[2], sol) # TODO: use field access after LabelledArray fix
+    central = map(x->x.Central, sol) # TODO: use field access after LabelledArray fix
     _conc = @. central / col.V
     _cmax = maximum(_conc)
     _dv = @. Normal(_conc, _conc*col.σ)
