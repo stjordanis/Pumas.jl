@@ -12,10 +12,12 @@ const Numeric = Union{AbstractVector{<:Number}, Number}
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
-include("lang/params.jl")
-include("lang/model.jl")
-include("lang/randoms.jl")
-include("lang/parse.jl")
+include("dsl/model_macro.jl")
+
+include("models/params.jl")
+include("models/model_api.jl")
+include("models/likelihoods.jl")
+include("models/randoms.jl")
 
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
