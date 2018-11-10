@@ -32,7 +32,7 @@ mdsl = @model begin
     @dynamics ImmediateAbsorptionModel
 
     @derived begin
-        dv ~ @. Normal(Central,Σ)
+        dv ~ @. Normal(Central,Central*sqrt(Σ))
     end
 end
 
