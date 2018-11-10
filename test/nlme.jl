@@ -11,9 +11,9 @@ end
 
 mdsl = @model begin
     @param begin
-        θ ∈ [0.5]
-        Ω ∈ fill(0.04, 1, 1)
-        Σ ∈ fill(.1, 1, 1)
+        θ ∈ ConstDomain(0.5)
+        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        Σ ∈ PSDDomain(Matrix{Float64}(fill(.1, 1, 1)))
     end
 
     @random begin
@@ -28,6 +28,8 @@ mdsl = @model begin
     @vars begin
         conc = Central / V
     end
+
+    @dynamics ImmediateAbsorptionModel
 
     @derived begin
         dv ~ @. Normal(Central,Σ)
