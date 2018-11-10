@@ -13,7 +13,7 @@ mdsl = @model begin
     @param begin
         θ ∈ ConstDomain(0.5)
         Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ PSDDomain(Matrix{Float64}(fill(.1, 1, 1)))
+        Σ ∈ ConstDomain(0.1)
     end
 
     @random begin
