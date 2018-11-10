@@ -1,6 +1,8 @@
 using PuMaS, SafeTestsets
 
 @time begin
+@time @safetestset "NLME" begin
+    include("nlme.jl") end
 @time @safetestset "Duplicate Example Check" begin
     include("duplicate_example.jl") end
 @time @safetestset "Parsing Tests" begin

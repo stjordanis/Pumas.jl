@@ -44,5 +44,7 @@ subject = data.subjects[1]
 cl = conditional_loglikelihood(mdsl,subject,x0,y0)
 ml = marginal_loglikelihood(mdsl,subject,x0,y0,Laplace())
 
+@test isapprox(ml, 56.810343602063618, rtol = 1e-6)
+
 
 
