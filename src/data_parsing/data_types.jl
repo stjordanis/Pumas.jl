@@ -10,10 +10,9 @@ Fields
 - `val`: value of measurement; this will typically be a named tuple.
 - `cmt`: Compartment from which measurement was taken
 """
-struct Observation{T,V,C}
+struct Observation{T,V}
   time::T
   val::V
-  cmt::C
 end
 Base.summary(::Observation) = "Observation"
 function Base.show(io::IO, o::Observation)

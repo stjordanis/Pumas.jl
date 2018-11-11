@@ -66,8 +66,9 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv])
   dv_idx = [ data[dv][idx_obs] for dv in dvs]
 
   obs_dvs = Tdv === Nothing ? nothing : map((x...) -> Tdv(x), dv_idx...)
-  obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
-  observations = Observation.(obs_times, obs_dvs, obs_cmts)
+  # cmt handling should be reversed: it should give it the appropriate name given cmt
+  # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
+  observations = Observation.(obs_times, obs_dvs)
 
   ## Covariates
   #  TODO: allow non-constant covariates
@@ -119,7 +120,7 @@ end
 build_observation_list(obs::AbstractVector{<:Observation}) = obs
 function build_observation_list(obs::AbstractDataFrame)
   isempty(obs) && return Observation[]
-  cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
+  #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
   time = obs[:time]
   vars = setdiff(names(obs), (:time, :cmt))
   if isa(time, Unitful.Time)
@@ -128,8 +129,7 @@ function build_observation_list(obs::AbstractDataFrame)
     time = float(time)
   end
   return Observation.(time,
-                      NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))),
-                      cmt)
+                      NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
 end
 
 build_event_list(evs::AbstractVector{<:Event}) = evs
