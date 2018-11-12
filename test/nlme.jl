@@ -42,6 +42,6 @@ y0 = init_random(mdsl, x0)
 subject = data.subjects[1]
 
 cl = conditional_loglikelihood(mdsl,subject,x0,y0)
-ml = sum(subject -> marginal_loglikelihood(mdsl,subject,x0,y0,Laplace()), data.subjects)
+ml = sum(subject -> marginal_loglikelihood_nonmem(mdsl,subject,x0,y0,Laplace()), data.subjects)
 
 @test_broken ml ≈ 56.810343602063618 rtol = 1e-6

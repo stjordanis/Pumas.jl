@@ -43,6 +43,8 @@ function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; exte
   end
 end
 
+
+
 struct Laplace
 end
 
@@ -57,7 +59,7 @@ function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx::
 end
 
 marginal_loglikelihood_nonmem(m, subject, x0, args...; kwargs...) =
-    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) - length(x0)*log(2*pi)
+    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) - length(subject.observations)*log(2*pi)
 
 
 """
