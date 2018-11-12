@@ -46,15 +46,19 @@ end
 struct Laplace
 end
 
-function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx=Laplace(), args...; kwargs...)
+function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
     dists, val, grad, hes = conditional_loglikelihood_derivatives(m,
                                          subject, x0, y0, :η, args...;kwargs...)
     g = -val - logpdf(Ω, y0.η)
     m = -grad + inv(cov(Ω))*y0.η
     W = -hes + inv(cov(Ω))
-    -g + ((length(x0)/2)*log(2*pi)) -0.5*(log(norm(W))) + 0.5*m'*W*m
+    -g - logdet(W)/2 + m'*(W\m)/2
 end
+
+marginal_loglikelihood_nonmem(m, subject, x0, args...; kwargs...) =
+    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) - length(x0)*log(2*pi)
+
 
 """
 In named tuple nt, replace the value x.var by y
