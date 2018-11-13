@@ -43,23 +43,23 @@ function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; exte
   end
 end
 
-function peanalized_conditional_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, args...;kwargs...)
+function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0, y0, args...;kwargs...)
   Ω = m.random(x0).dists.η
   val = conditional_loglikelihood(m,subject, x0, y0, args...;kwargs...)
-  g = -val - logpdf(Ω, y0.η)
+  -val - logpdf(Ω, y0.η)
 end
 
 struct Laplace end
 
-function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
+function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
     g, m, W = conditional_loglikelihood_derivatives(m,subject, x0, y0, :η, args...;kwargs...)
     p = LinearAlgebra.checksquare(W) # Returns the dimensions
-    -g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
+    g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
 end
 
-marginal_loglikelihood_nonmem(m, subject, x0, args...; kwargs...) =
-    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) + length(subject.observations)*log(2*pi)
+marginal_nll_nonmem(m, subject, x0, args...; kwargs...) =
+    2marginal_nll(m, subject, x0, args...;kwargs...) - length(subject.observations)*log(2pi)
 
 
 """
@@ -74,7 +74,7 @@ function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
   f = function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
-    peanalized_conditional_loglikelihood(model, subject, _x0, _y0, args...; kwargs...)
+    penalized_conditional_nll(model, subject, _x0, _y0, args...; kwargs...)
   end
 end
 
