@@ -53,14 +53,13 @@ struct Laplace end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
-    g, m, W = conditional_ll_derivatives(m,subject, x0, y0, :η, args...;kwargs...)
+    g, m, W = ll_derivatives(penalized_conditional_nll,m,subject, x0, y0, :η, args...;kwargs...)
     p = LinearAlgebra.checksquare(W) # Returns the dimensions
     g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
 end
 
-marginal_nll_nonmem(m, subject, x0, args...; kwargs...) =
-    2marginal_nll(m, subject, x0, args...;kwargs...) - length(subject.observations)*log(2pi)
-
+marginal_nll_nonmem(m, subject, x0, y0, args...; kwargs...) =
+    2marginal_nll(m, subject, x0, y0, args...;kwargs...) - length(subject.observations)*log(2pi)
 
 """
 In named tuple nt, replace the value x.var by y
@@ -70,29 +69,29 @@ In named tuple nt, replace the value x.var by y
   k ∉ x.names ? :x : :( (x..., $k=y) )
 end
 
-function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
+function generate_enclosed_likelihood(ll,model,subject,x0,y0,v, args...; kwargs...)
   function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
-    penalized_conditional_nll(model, subject, _x0, _y0, args...; kwargs...)
+    ll(model, subject, _x0, _y0, args...; kwargs...)
   end
 end
 
-function conditional_ll_derivatives(model,subject,x0,y0,var::Symbol,transform=false,
+function ll_derivatives(ll,model,subject,x0,y0,var::Symbol,transform=false,
                                 args...; kwargs...)
-  conditional_ll_derivatives(model,subject,x0,y0,Val(var),args...;
+  ll_derivatives(ll,model,subject,x0,y0,Val(var),args...;
                          transform=transform,
                          kwargs...)
 end
 
-@generated function conditional_ll_derivatives(model,subject,x0,y0,
+@generated function ll_derivatives(ll,model,subject,x0,y0,
                                            v::Val{var}, args...;
                                            hessian_required = true,
                                            transform=false, kwargs...) where var
   var ∉ fieldnames(x0) ∪ fieldnames(y0) && error("Variable name not recognized")
   valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
   quote
-    f = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;kwargs...)
+    f = generate_enclosed_likelihood(ll,model,subject,x0,y0,v, args...; kwargs...)
     if hessian_required
       result = DiffResults.HessianResult($valex)
       result = ForwardDiff.hessian!(result, f, $valex)

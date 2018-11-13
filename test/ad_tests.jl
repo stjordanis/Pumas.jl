@@ -114,19 +114,19 @@ end
 
     fun = test_conditional_ll(model)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    _, _, grad_AD, hes_AD = PuMaS.conditional_ll_derivatives(
+    _, grad_AD, hes_AD = PuMaS.ll_derivatives(conditional_ll,
         model,subject,x0,y0,:θ,abstol=1e-14,reltol=1e-14)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD ≈ hes_AD atol=5e-3
 
     fun = test_conditional_ll(model_ip)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    _, _, grad_AD, hes_AD = PuMaS.conditional_ll_derivatives(
+    _, grad_AD, hes_AD = PuMaS.ll_derivatives(conditional_ll,
         model_ip,subject,x0,y0,:θ,abstol=1e-14, reltol=1e-14)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD ≈ hes_AD atol=5e-3
 
-    PuMaS.marginal_loglikelihood(model_ip,subject,x0,y0,PuMaS.Laplace())
+    PuMaS.marginal_nll(model_ip,subject,x0,y0,PuMaS.Laplace())
 end
 
 @testset "Magic argument - lags" begin
@@ -134,19 +134,19 @@ end
     mlag = @model begin
         @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
-    
+
         @pre begin
             Ka = θ[1]
             CL = θ[2]*exp(η[1])
             V  = θ[3]*exp(η[2])
             lags = θ[4]
         end
-    
+
         @dynamics begin
             Depot'   = -Ka*Depot
             Central' =  Ka*Depot - (CL/V)*Central
         end
-    
+
         @derived begin
             cp = @. Central / V
             cmax = maximum(cp)
@@ -177,19 +177,19 @@ end
     mbioav = @model begin
         @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
-    
+
         @pre begin
             Ka = θ[1]
             CL = θ[2]*exp(η[1])
             V  = θ[3]*exp(η[2])
             bioav = θ[4]
         end
-    
+
         @dynamics begin
             Depot'   = -Ka*Depot
             Central' =  Ka*Depot - (CL/V)*Central
         end
-    
+
         @derived begin
             cp = @. Central / V
             cmax = maximum(cp)
