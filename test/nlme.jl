@@ -31,29 +31,14 @@ mdsl = @model begin
 end
 
 x0 = init_param(mdsl)
-y0 = init_random(mdsl, x0)
 
-subject = data.subjects[1]
-
-cl = conditional_loglikelihood(mdsl,subject,x0,y0)
-ml = sum(subject -> marginal_loglikelihood(mdsl,subject,x0,y0,Laplace()), data.subjects)
-
-length(data.subjects)
 using Optim
-function f(η,subject)
-  PuMaS.peanalized_conditional_loglikelihood(mdsl,subject, x0, (η=η,))
-end
-
+f(η,subject) = PuMaS.peanalized_conditional_loglikelihood(mdsl,subject, x0, (η=η,))
 ηstar = [Optim.optimize(η -> f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
+@test ηstar ≈ [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361] atol = 1e-3
+
+η0_mll = sum(subject -> marginal_loglikelihood(mdsl,subject,x0,(η=[0.0],),Laplace()), data.subjects)
+@test_broken η0_mll = 57.19397077905644
+
 ml = sum(i -> -PuMaS.marginal_loglikelihood_nonmem(mdsl,data[i],x0,(η=[ηstar[i]],),Laplace()), 1:10)
-
-
-
-
-
-
-
-
-
-
 @test_broken ml ≈ 56.810343602063618 rtol = 1e-6
