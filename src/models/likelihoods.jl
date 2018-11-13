@@ -13,7 +13,7 @@ end
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
 
 """
-    likelihood(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    conditional_ll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the full log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
