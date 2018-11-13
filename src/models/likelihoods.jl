@@ -43,23 +43,23 @@ function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; exte
   end
 end
 
-
-
-struct Laplace
+function peanalized_conditional_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, args...;kwargs...)
+  Ω = m.random(x0).dists.η
+  val = conditional_loglikelihood(m,subject, x0, y0, args...;kwargs...)
+  g = -val - logpdf(Ω, y0.η)
 end
+
+struct Laplace end
 
 function marginal_loglikelihood(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
-    dists, val, grad, hes = conditional_loglikelihood_derivatives(m,
-                                         subject, x0, y0, :η, args...;kwargs...)
-    g = -val - logpdf(Ω, y0.η)
-    m = -grad + inv(cov(Ω))*y0.η
-    W = -hes + inv(cov(Ω))
-    -g - logdet(W)/2 + m'*(W\m)/2
+    g, m, W = conditional_loglikelihood_derivatives(m,subject, x0, y0, :η, args...;kwargs...)
+    p = LinearAlgebra.checksquare(W) # Returns the dimensions
+    -g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
 end
 
 marginal_loglikelihood_nonmem(m, subject, x0, args...; kwargs...) =
-    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) - length(subject.observations)*log(2*pi)
+    -2 * marginal_loglikelihood(m, subject, x0, args...;kwargs...) + length(subject.observations)*log(2*pi)
 
 
 """
@@ -74,7 +74,7 @@ function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
   f = function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
-    conditional_loglikelihood(model, subject, _x0, _y0, args...; kwargs...)
+    peanalized_conditional_loglikelihood(model, subject, _x0, _y0, args...; kwargs...)
   end
 end
 
@@ -93,17 +93,14 @@ end
   valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
   quote
     f = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;kwargs...)
-    f_extended = generate_enclosed_likelihood(model,subject,x0,y0,v,args...;
-                                              extended_return = true,kwargs...)
-    x, vals, derived_dist = f_extended($valex)
     if hessian_required
       result = DiffResults.HessianResult($valex)
       result = ForwardDiff.hessian!(result, f, $valex)
-      return derived_dist, DiffResults.value(result), DiffResults.gradient(result), DiffResults.hessian(result)
+      return DiffResults.value(result), DiffResults.gradient(result), DiffResults.hessian(result)
     else
       result = DiffResults.GradientResult($valex)
       result = ForwardDiff.gradient!(result, f, $valex)
-      return derived_dist, DiffResults.value(result), DiffResults.gradient(result)
+      return DiffResults.value(result), DiffResults.gradient(result)
     end
   end
 end
