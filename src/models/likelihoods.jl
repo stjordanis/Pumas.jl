@@ -19,7 +19,7 @@ Compute the full log-likelihood of model `m` for `subject` with parameters `para
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-function conditional_loglikelihood(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
+function conditional_ll(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
   derived = derivedfun(m,subject,args...;kwargs...)
@@ -45,7 +45,7 @@ end
 
 function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0, y0, args...;kwargs...)
   Ω = m.random(x0).dists.η
-  val = conditional_loglikelihood(m,subject, x0, y0, args...;kwargs...)
+  val = conditional_ll(m,subject, x0, y0, args...;kwargs...)
   -val - logpdf(Ω, y0.η)
 end
 
@@ -53,7 +53,7 @@ struct Laplace end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
-    g, m, W = conditional_loglikelihood_derivatives(m,subject, x0, y0, :η, args...;kwargs...)
+    g, m, W = conditional_ll_derivatives(m,subject, x0, y0, :η, args...;kwargs...)
     p = LinearAlgebra.checksquare(W) # Returns the dimensions
     g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
 end
@@ -71,21 +71,21 @@ In named tuple nt, replace the value x.var by y
 end
 
 function generate_enclosed_likelihood(model,subject,x0,y0,v, args...; kwargs...)
-  f = function (z)
+  function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
     penalized_conditional_nll(model, subject, _x0, _y0, args...; kwargs...)
   end
 end
 
-function conditional_loglikelihood_derivatives(model,subject,x0,y0,var::Symbol,transform=false,
+function conditional_ll_derivatives(model,subject,x0,y0,var::Symbol,transform=false,
                                 args...; kwargs...)
-  conditional_loglikelihood_derivatives(model,subject,x0,y0,Val(var),args...;
+  conditional_ll_derivatives(model,subject,x0,y0,Val(var),args...;
                          transform=transform,
                          kwargs...)
 end
 
-@generated function conditional_loglikelihood_derivatives(model,subject,x0,y0,
+@generated function conditional_ll_derivatives(model,subject,x0,y0,
                                            v::Val{var}, args...;
                                            hessian_required = true,
                                            transform=false, kwargs...) where var

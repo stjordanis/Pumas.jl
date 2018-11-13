@@ -89,5 +89,5 @@ x0 = (θ = θ,
     Σ_dv = 0.04,
     Σ_pddv = 1)
 @test_throws ArgumentError simobs(model, population[1], x0)
-@test_throws ArgumentError conditional_loglikelihood(model, population[1])
+@test_throws ArgumentError conditional_ll(model, population[1])
 @test_nowarn simobs(model, population[1], x0,obstimes=0.1:0.1:300.0)

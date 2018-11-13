@@ -13,7 +13,7 @@ end
     data = process_nmtran(example_nmtran_data("data1"),
                         [:sex,:wt,:etn])
     subject = data.subjects[1]
-    # Cut off the `t=0` pre-dose observation as it throws conditional_loglikelihood calculations
+    # Cut off the `t=0` pre-dose observation as it throws conditional_ll calculations
     # off the scale (variance of the simulated distribution is too small).
     for subject in data.subjects
         obs1 = subject.observations[1]
@@ -104,24 +104,24 @@ end
     @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
     @test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
 
-    # Test gradient and hessian of the total log conditional_loglikelihood w.r.t. θ
-    function test_conditional_loglikelihood(model)
+    # Test gradient and hessian of the total log conditional_ll w.r.t. θ
+    function test_conditional_ll(model)
         function (θ)
             _x0 = (θ = θ, Ω = x0.Ω, σ = x0.σ)
-            conditional_loglikelihood(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+            conditional_ll(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
         end
     end
 
-    fun = test_conditional_loglikelihood(model)
+    fun = test_conditional_ll(model)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    _, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    _, _, grad_AD, hes_AD = PuMaS.conditional_ll_derivatives(
         model,subject,x0,y0,:θ,abstol=1e-14,reltol=1e-14)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD ≈ hes_AD atol=5e-3
 
-    fun = test_conditional_loglikelihood(model_ip)
+    fun = test_conditional_ll(model_ip)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    _, _, grad_AD, hes_AD = PuMaS.conditional_loglikelihood_derivatives(
+    _, _, grad_AD, hes_AD = PuMaS.conditional_ll_derivatives(
         model_ip,subject,x0,y0,:θ,abstol=1e-14, reltol=1e-14)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD ≈ hes_AD atol=5e-3
