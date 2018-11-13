@@ -12,15 +12,17 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=tru
   fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
   ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
-  # figure out callbacks and whatnot
-  tstops,cb = ith_subject_cb(col,subject,u0,tspan[1],typeof(prob),save_discont)
+  # figure out callbacks and convert type for tspan if necessary
+  tstops,cb = ith_subject_cb(col,subject,Tu0,tspan[1],typeof(prob),save_discont)
+  Tt = promote_type(numtype(tstops), numtype(tspan))
+  tspan = Tt.(tspan)
   prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
   # Remake problem of correct type
   inplace = !(u0 isa StaticArray)
   new_f = make_function(prob,fd,inplace)
 
-  _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0)
+  _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
 
   sol = solve(_prob,alg,args...;
               save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
@@ -152,7 +154,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           ss_overlap_duration[] = mod(_duration,cur_ev.ii)
           ss_ii[] = cur_ev.ii
           ss_end[] = integrator.t + cur_ev.ii
-          cur_ev.rate > 0 && (ss_rate_multiplier[] = 1 + (_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii))
+          cur_ev.rate > 0 && (ss_rate_multiplier[] = 1 + round((_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii)))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_cache .= integrator.u
           ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)

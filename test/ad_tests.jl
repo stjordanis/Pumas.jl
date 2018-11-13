@@ -169,9 +169,8 @@ end
     end
 
     grad_FD = FD_gradient(test_fun, θ0)
-    @test_broken grad_AD = AD_gradient(test_fun, θ0)
-    # @show grad_FD[4]
-    # @show grad_AD[4]
+    grad_AD = AD_gradient(test_fun, θ0)
+    @test_broken grad_FD[4] ≈ grad_AD[4] # is NaN
 end
 
 @testset "Magic argument - bioav" begin
@@ -212,7 +211,6 @@ end
     end
 
     grad_FD = FD_gradient(test_fun, θ0)
-    @test_broken grad_AD = AD_gradient(test_fun, θ0)
-    # @show grad_FD[4]
-    # @show grad_AD[4]
+    grad_AD = AD_gradient(test_fun, θ0)
+    @test_broken grad_FD[4] ≈ grad_AD[4] # is NaN
 end
