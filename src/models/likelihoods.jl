@@ -53,13 +53,14 @@ struct Laplace end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
     Ω = m.random(x0).dists.η
-    g, m, W = ll_derivatives(penalized_conditional_nll,m,subject, x0, y0, :η, args...;kwargs...)
+    res = ll_derivatives(penalized_conditional_nll,m,subject, x0, y0, :η, args...;kwargs...)
+    g, m, W = DiffResults.value(res),DiffResults.gradient(res),DiffResults.hessian(res)
     p = LinearAlgebra.checksquare(W) # Returns the dimensions
     g - (p*log(2π) - logdet(W) + dot(m,W\m))/2
 end
 
 marginal_nll_nonmem(m, subject, x0, y0, args...; kwargs...) =
-    2marginal_nll(m, subject, x0, y0, args...;kwargs...) - length(subject.observations)*log(2pi)
+    2marginal_nll(m, subject, x0, y0, args...;kwargs...) - length(subject.observations)*log(2π)
 
 """
 In named tuple nt, replace the value x.var by y
@@ -77,17 +78,14 @@ function generate_enclosed_likelihood(ll,model,subject,x0,y0,v, args...; kwargs.
   end
 end
 
-function ll_derivatives(ll,model,subject,x0,y0,var::Symbol,transform=false,
-                                args...; kwargs...)
-  ll_derivatives(ll,model,subject,x0,y0,Val(var),args...;
-                         transform=transform,
-                         kwargs...)
+function ll_derivatives(ll,model,subject,x0,y0,var::Symbol,args...; kwargs...)
+  ll_derivatives(ll,model,subject,x0,y0,Val(var),args...;kwargs...)
 end
 
 @generated function ll_derivatives(ll,model,subject,x0,y0,
-                                           v::Val{var}, args...;
-                                           hessian_required = true,
-                                           transform=false, kwargs...) where var
+                                   v::Val{var}, args...;
+                                   hessian_required = true,
+                                   transform=false, kwargs...) where var
   var ∉ fieldnames(x0) ∪ fieldnames(y0) && error("Variable name not recognized")
   valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
   quote
@@ -95,11 +93,11 @@ end
     if hessian_required
       result = DiffResults.HessianResult($valex)
       result = ForwardDiff.hessian!(result, f, $valex)
-      return DiffResults.value(result), DiffResults.gradient(result), DiffResults.hessian(result)
+      return result
     else
       result = DiffResults.GradientResult($valex)
       result = ForwardDiff.gradient!(result, f, $valex)
-      return DiffResults.value(result), DiffResults.gradient(result)
+      return result
     end
   end
 end
