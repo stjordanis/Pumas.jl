@@ -1,4 +1,4 @@
-#ID,AMT,DOSE,TIME,DV,EVID,WT,SEX
+#id,amt,dose,time,dv,evid,WT,SEX
 1,4.02,4.02,0,.,1,79.6,0
 1,.,4.02,0,0.74,0,79.6,0
 1,.,4.02,0.25,2.84,0,79.6,0
