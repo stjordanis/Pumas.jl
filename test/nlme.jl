@@ -2,7 +2,7 @@ using Test
 using PuMaS
 
 data = process_nmtran(example_nmtran_data("sim_data_model1"))
-theopp = process_nmtran(example_nmtran_data("THEOPP"))
+theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"))
 
 mdsl = @model begin
     @param begin
