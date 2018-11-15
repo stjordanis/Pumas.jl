@@ -1,5 +1,5 @@
 using Test
-using PuMaS
+using PuMaS, LinearAlgebra
 
 data = process_nmtran(example_nmtran_data("sim_data_model1"))
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"))
