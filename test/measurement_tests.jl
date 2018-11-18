@@ -178,3 +178,50 @@ end
     err = sim_ms[:cmax].err
     @test err ≈ err_manual atol=1e-2
 end
+
+@testset "Analytic solution" begin
+    # Analytic model
+    model = @model begin
+        @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+        @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    
+        @pre begin
+            Ka = θ[1]
+            CL = θ[2]*exp(η[1])
+            V  = θ[3]*exp(η[2])
+        end
+    
+        @dynamics OneCompartmentModel
+    
+        @derived begin
+            cp = @. Central / V
+            cmax = maximum(cp)
+        end
+    end
+
+    # Initial data
+    θ0 = [1.5, 1.0, 30.0]
+    x0 = (θ = θ0,)
+    y0 = (η = [0.0,0.0],)
+
+    # Introduce measurement uncertainty to θ[1] (Ka)
+    θ_ms = θ0 .± [0.2, 0.0, 0.0]
+    x0_ms = (θ=θ_ms,)
+    sol = solve(model, subject, x0_ms, y0; abstol=1e-14, reltol=1e-14)
+    @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
+
+    # Compare with manual tracking of uncertainties
+    θ_plus = θ0 .+ [0.2, 0.0, 0.0]
+    θ_minus = θ0 .- [0.2, 0.0, 0.0]
+    x0_plus = (θ=θ_plus,)
+    x0_minus = (θ=θ_minus,)
+    sim = simobs(model, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+    sim_plus = simobs(model, subject, x0_plus, y0; abstol=1e-14, reltol=1e-14)
+    sim_minus = simobs(model, subject, x0_minus, y0; abstol=1e-14, reltol=1e-14)
+    ## This is only a crude estimate
+    err_manual = max(abs(sim[:cmax] - sim_plus[:cmax]), abs(sim[:cmax] - sim_minus[:cmax]))
+
+    sim_ms = simobs(model, subject, x0_ms, y0; abstol=1e-14, reltol=1e-14)
+    err = sim_ms[:cmax].err
+    @test err ≈ err_manual rtol=5e-2
+end
