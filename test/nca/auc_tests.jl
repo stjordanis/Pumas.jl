@@ -1,5 +1,6 @@
 using PuMaS.NCA, Test, CSV
 using PuMaS
+using Random
 
 root = joinpath(dirname(pathof(PuMaS)), "..")
 data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
@@ -21,6 +22,7 @@ idx = 1:16
 for m in (:linear, :log_linear)
   @inferred auc(conc[idx], t[idx], method=m)
   @inferred aumc(conc[idx], t[idx], method=m)
+  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=:linear)
 end
 
 @test find_lambdaz(conc[idx], t[idx], idxs=12:16) == find_lambdaz(conc[idx], t[idx])
