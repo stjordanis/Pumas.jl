@@ -19,10 +19,12 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-for m in (:linear, :log_linear)
+for m in (:linear, :linuplogdown)
   @inferred auc(conc[idx], t[idx], method=m)
   @inferred aumc(conc[idx], t[idx], method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=:linear)
+  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.))
+  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
 end
 
 @test find_lambdaz(conc[idx], t[idx], idxs=12:16) == find_lambdaz(conc[idx], t[idx])
@@ -33,8 +35,8 @@ for i in 1:24
   idx = 16(i-1)+1:16*i
   aucs = auc(conc[idx], t[idx], method=:linear)
   aumcs = aumc(conc[idx], t[idx], method=:linear)
-  @test_nowarn auc(conc[idx], t[idx], method=:log_linear)
-  @test_nowarn aumc(conc[idx], t[idx], method=:log_linear)
+  @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
+  @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   if i in fails

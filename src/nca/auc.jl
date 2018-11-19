@@ -65,8 +65,8 @@ Extrapolate the first moment to the infinite.
 """
 @inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
-function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
-              auctype::Symbol=:AUClast, method=nothing, concblq=nothing, # TODO: concblq
+@inline function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
+              auctype::Symbol=:AUCall, method=nothing, concblq=nothing, # TODO: concblq
               missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
   if check
     checkconctime(conc, time)
@@ -85,14 +85,31 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
   # bolus, a linear back-extrapolation is done to get the intercept which
   # represents concentration at time zero (`C0`)
   #
-  # TODO: data interpolation/data extrapolation
-  #concstart = interpextrapconc(conc, time, lo, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
-  idx1 = findfirst(x->x>=lo, time)
-  idx2 = findlast(x->x<=hi, time)
-  # auc of the first interval
-  auc = linear(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1])
+  concstart = interpextrapconc(conc, time, lo, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
+  idx1, idx2 = let lo = lo, hi = hi
+    (findfirst(x->x>=lo, time),
+     findlast(x->x<=hi, time))
+  end
+  # auc of the bounary intervals
+  __auc = linear(concstart, conc[idx1], lo, time[idx1])
+  #__auc = conc[idx1]
+  auc::typeof(__auc) = __auc
+  if conc[idx1] != concstart
+    auc = linear(concstart, conc[idx], lo, time[idx1])
+    int_idxs = idx1+1:idx2-1
+  else
+    auc = linear(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1])
+    int_idxs = idx1+1:idx2-1
+  end
   if isfinite(hi)
-    #concend = interpextrapconc(conc, time, hi, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
+    concend = interpextrapconc(conc, time, hi, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
+    if conc[idx2] != concend
+      if method === :linear || (method === :linuplogdown && concend ≥ conc[idx2]) # increasing
+        auc += linear(conc[idx2], concend, time[idx2], hi)
+      else
+        auc += log(conc[idx2], concend, time[idx2], hi)
+      end
+    end
   end
 
   _clast, tlast = ctlast(conc, time, check=false)
@@ -106,11 +123,11 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
   # do not support :AUCall for now
   # auctype === :AUCall && tlast > hi && (idx2 = idx2 + 1)
   if method === :linear
-    for i in idx1+1:idx2-1
+    for i in int_idxs
       auc += linear(conc[i], conc[i+1], time[i], time[i+1])
     end
-  elseif method === :log_linear
-    for i in idx1+1:idx2-1
+  elseif method === :linuplogdown
+    for i in int_idxs
       if conc[i] ≥ conc[i-1] # increasing
         auc += linear(conc[i], conc[i+1], time[i], time[i+1])
       else
@@ -118,7 +135,7 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
       end
     end
   else
-    throw(ArgumentError("method must be either :linear or :log_linear"))
+    throw(ArgumentError("method must be either :linear or :linuplogdown"))
   end
   aucinf2 = inf(clast, tlast, lambdaz)
   return auc, auc+aucinf2, lambdaz
@@ -128,7 +145,7 @@ end
     auc(concentration::Vector{<:Real}, time::Vector{<:Real}; method::Symbol, kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
-:linear)` or by log-linear trapezoidal rule `(method = :log_linear)`. It
+:linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 returns a tuple in the form of `(AUC_0_last, AUC_0_inf, λz)`.
 """
 auc(conc, time; kwargs...) = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
@@ -138,7 +155,7 @@ auc(conc, time; kwargs...) = _auc(conc, time, linear=auclinear, log=auclog, inf=
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
-`(method = :log_linear)`. It returns a tuple in the form of `(AUC_0_last,
+`(method = :linuplogdown)`. It returns a tuple in the form of `(AUC_0_last,
 AUC_0_inf, λz)`.
 """
 aumc(conc, time; kwargs...) = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)

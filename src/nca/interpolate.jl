@@ -36,7 +36,7 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
   _, tlast = ctlast(conc, time, check=false)
-  !(interpmethod in (:linear, :linearuplogdown)) && throw(ArgumentError("Interpolation method must be :linear or :linearuplogdown"))
+  !(interpmethod in (:linear, :linuplogdown)) && throw(ArgumentError("Interpolation method must be :linear or :linuplogdown"))
   if timeout < first(time)
     return concorigin
   elseif timeout > tlast
@@ -76,7 +76,7 @@ function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=not
   end
   clast, tlast = clast === nothing ? ctlast(conc, time) : (clast, ctlast(conc, time)[end])
   !(extrapmethod in (:AUCinf, :AUCall)) &&
-    throw(ArgumentError("extrap.method must be one of AUCinf or AUCall"))
+    throw(ArgumentError("extrapmethod must be one of AUCinf or AUCall"))
   if timeout <= tlast
     throw(ArgumentError("extrapolateconc can only work beyond Tlast, please use interpextrapconc to combine both interpolation and extrapolation"))
   else
