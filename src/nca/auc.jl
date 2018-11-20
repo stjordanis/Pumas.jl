@@ -95,7 +95,7 @@ function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
     #concend = interpextrapconc(conc, time, hi, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
   end
 
-  _clast, tlast = ctlast(conc, time, check=false)
+  _clast, tlast = _ctlast(conc, time, check=false)
   clast == nothing && (clast = _clast)
   if clast == -one(eltype(conc))
     return all(isequal(0), conc) ? (zero(auc), zero(auc), lambdaz) : error("Unknown error with missing `tlast` but non-BLQ concentrations")
