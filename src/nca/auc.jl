@@ -66,14 +66,14 @@ Extrapolate the first moment to the infinite.
 @inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
 @inline function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
-              auctype::Symbol=:AUCall, method=nothing, concblq=nothing, # TODO: concblq
-              missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
+                      method=nothing, concblq=nothing, # TODO: concblq
+                      missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
   if check
     checkconctime(conc, time)
     conc, time = cleanmissingconc(conc, time)
   end
   interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
-  auctype === :AUCinf && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
+  #auctype === :AUCinf && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
   lo, hi = interval
   lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
   lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
@@ -85,14 +85,14 @@ Extrapolate the first moment to the infinite.
   # bolus, a linear back-extrapolation is done to get the intercept which
   # represents concentration at time zero (`C0`)
   #
-  concstart = interpextrapconc(conc, time, lo, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
+  concstart = interpextrapconc(conc, time, lo, check=false, lambdaz=lambdaz,
+                               interpmethod=method, extrapmethod=:AUCinf)
   idx1, idx2 = let lo = lo, hi = hi
     (findfirst(x->x>=lo, time),
      findlast(x->x<=hi, time))
   end
   # auc of the bounary intervals
   __auc = linear(concstart, conc[idx1], lo, time[idx1])
-  #__auc = conc[idx1]
   auc::typeof(__auc) = __auc
   if conc[idx1] != concstart
     auc = linear(concstart, conc[idx], lo, time[idx1])
@@ -102,7 +102,8 @@ Extrapolate the first moment to the infinite.
     int_idxs = idx1+1:idx2-1
   end
   if isfinite(hi)
-    concend = interpextrapconc(conc, time, hi, lambdaz=lambdaz, interpmethod=method, extrapmethod=auctype, check=false)
+    concend = interpextrapconc(conc, time, hi, check=false, lambdaz=lambdaz,
+                               interpmethod=method, extrapmethod=:AUCinf)
     if conc[idx2] != concend
       if method === :linear || (method === :linuplogdown && concend ≥ conc[idx2]) # increasing
         auc += linear(conc[idx2], concend, time[idx2], hi)
@@ -112,8 +113,7 @@ Extrapolate the first moment to the infinite.
     end
   end
 
-  _clast, tlast = ctlast(conc, time, check=false)
-  clast == nothing && (clast = _clast)
+  clast, tlast = clast == nothing ? ctlast(conc, time, check=false) : (clast, ctlast(conc, time, check=false)[2])
   if clast == -one(eltype(conc))
     return all(isequal(0), conc) ? (zero(auc), zero(auc), lambdaz) : error("Unknown error with missing `tlast` but non-BLQ concentrations")
   end
@@ -137,28 +137,34 @@ Extrapolate the first moment to the infinite.
   else
     throw(ArgumentError("method must be either :linear or :linuplogdown"))
   end
-  aucinf2 = inf(clast, tlast, lambdaz)
-  return auc, auc+aucinf2, lambdaz
+  aucinf′ = inf(clast, tlast, lambdaz)
+  return auc, auc+aucinf′, lambdaz
 end
 
 """
-    auc(concentration::Vector{<:Real}, time::Vector{<:Real}; method::Symbol, kwargs...)
+  auc(concentration::Vector{<:Real}, time::Vector{<:Real}; method::Symbol, interval=(0, Inf), kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
-returns a tuple in the form of `(AUC_0_last, AUC_0_inf, λz)`.
+returns a tuple in the form of ``(AUCₜ₀ᵗ¹, AUCₜ₀ᵗ¹+AUCₜ₁^∞, λz)``.
 """
-auc(conc, time; kwargs...) = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
+function auc(conc, time; kwargs...)
+  auc1, auc2, λz = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
+  return (auc_t0_t1=auc1, auc_t0_t1_inf=auc2, lambdaz=λz)
+end
 
 """
-    aumc(concentration::Vector{<:Real}, time::Vector{<:Real}; method::Symbol, kwargs...)
+  aumc(concentration::Vector{<:Real}, time::Vector{<:Real}; method::Symbol, interval=(0, Inf) kwargs...)
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
-`(method = :linuplogdown)`. It returns a tuple in the form of `(AUC_0_last,
-AUC_0_inf, λz)`.
+`(method = :linuplogdown)`. It returns a tuple in the form of `(AUMCₜ₀ᵗ¹,
+AUMCₜ₀ᵗ¹+AUMCₜ₁^∞, λz)`.
 """
-aumc(conc, time; kwargs...) = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
+function aumc(conc, time; kwargs...)
+  aumc1, aumc2, λz = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
+  return (aumc_t0_t1=aumc1, aumc_t0_t1_inf=aumc2, lambdaz=λz)
+end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
