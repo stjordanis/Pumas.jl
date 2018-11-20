@@ -27,8 +27,8 @@ for m in (:linear, :linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
 end
 
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16) == find_lambdaz(conc[idx], t[idx])
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16) ≈ data[:Lambda_z][1] atol=1e-6
+@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] == find_lambdaz(conc[idx], t[idx])[1]
+@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
 
 fails = (6, 9)
 for i in 1:24

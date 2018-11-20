@@ -77,7 +77,7 @@ Extrapolate the first moment to the infinite.
   lo, hi = interval
   lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
   lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
-  lambdaz === nothing && (lambdaz = find_lambdaz(conc, time, check=false, idxs=idxs))
+  lambdaz === nothing && (lambdaz = find_lambdaz(conc, time, check=false, idxs=idxs)[1])
   # TODO: handle `auclinlog` with IV bolus.
   #
   # `C0` is the concentration at time zero if the route of administration is IV
@@ -162,9 +162,19 @@ aumc(conc, time; kwargs...) = _auc(conc, time, linear=aumclinear, log=aumclog, i
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
-function find_lambdaz(conc::Vector{<:Real}, time::Vector{<:Real}; threshold=10, check=true, idxs=nothing)
-  check && checkconctime(conc, time)
-  maxrsq = 0.0
+"""
+  find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing,
+  missingconc=:drop) -> (lambdaz, points, r2)
+
+Calculate ``λz``, ``r^2``, and the number of data points from the profile used
+in the determination of ``λz``.
+"""
+function find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing, missingconc=:drop) #TODO: better name
+  if check
+    checkconctime(conc, time)
+    conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=false)
+  end
+  maxr2 = 0.0
   λ = 0.0
   points = 2
   outlier = false
@@ -177,24 +187,25 @@ function find_lambdaz(conc::Vector{<:Real}, time::Vector{<:Real}; threshold=10, 
       x = time[end-i:end]
       y = conc[end-i:end]
       model = fitlog(x, y)
-      rsq = r²(model)
-      if rsq > maxrsq
-        maxrsq = rsq
+      r2 = r²(model)
+      if r2 > maxr2
+        maxr2 = r2
         λ = coef(model)[2]
         points = i+1
       end
     end
   else
-    length(idxs) < 3 && throw(ArgumentError("lambdaz must be calculated from at least three data points"))
+    points = length(idxs)
+    points < 3 && throw(ArgumentError("lambdaz must be calculated from at least three data points"))
     x = time[idxs]
     y = conc[idxs]
     model = fitlog(x, y)
     λ = coef(model)[2]
+    r2 = r²(model)
   end
   if λ ≥ 0
     outlier = true
     @warn "The estimated slope is not negative, got $λ"
   end
-  #-λ, points, maxrsq, outlier
-  return -λ
+  return (lambdaz=-λ, points=points, r2=r2)
 end
