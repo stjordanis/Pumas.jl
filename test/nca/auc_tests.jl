@@ -18,9 +18,16 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-ctlast(conc[idx], t[idx]) === (clast = conc[idx][end], tlast = t[idx][end])
-ctmax(conc[idx], t[idx]) === (cmax = conc[idx][1], tmax = t[idx][1])
-ctmax(conc[idx], t[idx], interval=(2,Inf)) === (cmax = conc[idx][7], tmax = t[idx][7])
+@test ctlast(zeros(5), 1:5) === (clast = missing, tlast = missing)
+@test ctlast(1:5, 1:5) === (clast = 5, tlast = 5)
+@test ctlast(conc[idx], t[idx]) === (clast = conc[idx][end], tlast = t[idx][end])
+arr = [missing, 1, 2, 3, missing]
+@test ctlast(arr, 1:5) === (clast = 3, tlast = 4)
+@test ctmax(arr, 1:5) === (cmax = 3, tmax = 4)
+@test ctmax(conc[idx], t[idx]) === (cmax = conc[idx][1], tmax = t[idx][1])
+@test ctmax(conc[idx], t[idx], interval=(2,Inf)) === (cmax = conc[idx][7], tmax = t[idx][7])
+@test ctmax(conc[idx], t[idx], interval=(24.,Inf)) === (cmax = conc[idx][end], tmax = t[idx][end])
+@test_throws ArgumentError ctmax(conc[idx], t[idx], interval=(100,Inf))
 
 for m in (:linear, :log_linear)
   @inferred auc(conc[idx], t[idx], method=m)

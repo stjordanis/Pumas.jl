@@ -71,7 +71,7 @@ Calculate `clast` and `tlast`.
 """
 function ctlast(conc, time; check=true)
   clast, tlast = _ctlast(conc, time, check=check)
-  clast == -one(eltype(conc)) && return missing, missing
+  clast == -one(eltype(conc)) && (clast = missing; tlast = missing)
   return (clast=clast, tlast=tlast)
 end
 
@@ -80,10 +80,9 @@ end
 function _ctlast(conc, time; check=true)
   if check
     checkconctime(conc, time)
-    conc, time = cleanmissingconc(conc, time, check=false)
   end
   # now we assume the data is checked
-  all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(idx))
+  all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(time))
   @inbounds idx = findlast(x->!(ismissing(x) || x==0), conc)
   return conc[idx], time[idx]
 end
@@ -95,23 +94,23 @@ Calculate ``C_{max}_{t_1}^{t_2}`` and ``T_{max}_{t_1}^{t_2}``
 """
 @inline function ctmax(conc, time; interval=(0.,Inf), check=true)
   if interval === (0., Inf)
-    val, idx = _maximum(conc, eachindex(conc))
+    val, idx = conc_maximum(conc, eachindex(conc))
     return (cmax=val, tmax=time[idx])
   end
   check && checkconctime(conc, time)
   @assert interval[1] < interval[2] "t0 must be less than t1"
+  interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
   idx1, idx2 = let (lo, hi)=interval
     findfirst(t->t>=lo, time),
     findlast( t->t<=hi, time)
   end
-  val, idx = _maximum(conc, idx1:idx2)
+  val, idx = conc_maximum(conc, idx1:idx2)
   return (cmax=val, tmax=time[idx])
 end
 
-@inline function _maximum(conc, idxs)
-  length(idxs) == 1 && return conc[1], 1
-  idx = idxs[1]
-  val = conc[idx]
+@inline function conc_maximum(conc, idxs)
+  idx = -1
+  val = -one(Base.nonmissingtype(eltype(conc)))
   for i in idxs
     if !ismissing(conc[i])
       val < conc[i] && (val = conc[i]; idx=i)
