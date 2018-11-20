@@ -93,23 +93,29 @@ end
 
 Calculate ``C_{max}_{t_1}^{t_2}`` and ``T_{max}_{t_1}^{t_2}``
 """
-function ctmax(conc, time; interval=(0.,Inf), check=true)
+@inline function ctmax(conc, time; interval=(0.,Inf), check=true)
   if interval === (0., Inf)
-    idx = 1
-    val = conc[idx]
-    @inbounds for i in eachindex(conc)
-      if !ismissing(conc[i])
-        val > conc[i] && (val = conc[i]; idx=1)
-      end
-    end
+    val, idx = _maximum(conc, eachindex(conc))
     return (cmax=val, tmax=time[idx])
   end
   check && checkconctime(conc, time)
   @assert interval[1] < interval[2] "t0 must be less than t1"
-  idx1, idx2 = let lo, hi=interval
+  idx1, idx2 = let (lo, hi)=interval
     findfirst(t->t>=lo, time),
     findlast( t->t<=hi, time)
   end
-  cmax = maximum(skipmissing(@view conc[idx1:idx2]))
-  return (cmax=cmax, tmax=time[idx2])
+  val, idx = _maximum(conc, idx1:idx2)
+  return (cmax=val, tmax=time[idx])
+end
+
+@inline function _maximum(conc, idxs)
+  length(idxs) == 1 && return conc[1], 1
+  idx = idxs[1]
+  val = conc[idx]
+  for i in idxs
+    if !ismissing(conc[i])
+      val < conc[i] && (val = conc[i]; idx=i)
+    end
+  end
+  return val, idx
 end
