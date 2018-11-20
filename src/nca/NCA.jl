@@ -7,6 +7,6 @@ using GLM
 include("utils.jl")
 include("auc.jl")
 
-export auc, aumc, find_lambdaz
+export auc, aumc, find_lambdaz, ctlast, ctmax
 
 end

@@ -64,11 +64,52 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   end
 end
 
-# use -1 to denote missing as after checking conc is strictly great than 0
+"""
+  ctlast(conc, time; interval=(0.,Inf), check=true) -> (clast, tlast)
+
+Calculate `clast` and `tlast`.
+"""
 function ctlast(conc, time; check=true)
-  check && checkconctime(conc, time)
+  clast, tlast = _ctlast(conc, time, check=check)
+  clast == -one(eltype(conc)) && return missing, missing
+  return (clast=clast, tlast=tlast)
+end
+
+# This function uses ``-1`` to denote missing as after checking `conc` is
+# strictly great than ``0``.
+function _ctlast(conc, time; check=true)
+  if check
+    checkconctime(conc, time)
+    conc, time = cleanmissingconc(conc, time, check=false)
+  end
   # now we assume the data is checked
   all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(idx))
   @inbounds idx = findlast(x->!(ismissing(x) || x==0), conc)
   return conc[idx], time[idx]
+end
+
+"""
+  ctmax(conc, time; interval=(0.,Inf), check=true) -> (cmax, tmax)
+
+Calculate ``C_{max}_{t_1}^{t_2}`` and ``T_{max}_{t_1}^{t_2}``
+"""
+function ctmax(conc, time; interval=(0.,Inf), check=true)
+  if interval === (0., Inf)
+    idx = 1
+    val = conc[idx]
+    @inbounds for i in eachindex(conc)
+      if !ismissing(conc[i])
+        val > conc[i] && (val = conc[i]; idx=1)
+      end
+    end
+    return (cmax=val, tmax=time[idx])
+  end
+  check && checkconctime(conc, time)
+  @assert interval[1] < interval[2] "t0 must be less than t1"
+  idx1, idx2 = let lo, hi=interval
+    findfirst(t->t>=lo, time),
+    findlast( t->t<=hi, time)
+  end
+  cmax = maximum(skipmissing(@view conc[idx1:idx2]))
+  return (cmax=cmax, tmax=time[idx2])
 end

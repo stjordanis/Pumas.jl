@@ -18,6 +18,9 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
+ctlast(conc[idx], t[idx]) === (clast = conc[idx][end], tlast = t[idx][end])
+ctmax(conc[idx], t[idx]) === (cmax = conc[idx][1], tmax = t[idx][1])
+
 for m in (:linear, :log_linear)
   @inferred auc(conc[idx], t[idx], method=m)
   @inferred aumc(conc[idx], t[idx], method=m)
