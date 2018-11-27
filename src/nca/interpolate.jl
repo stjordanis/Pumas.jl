@@ -8,7 +8,7 @@ function interpextrapconc(conc, time, timeout; lambdaz=nothing,
   end
   extrapmethod === nothing && (extrapmethod=:AUCinf)
   lambdaz == nothing && (lambdaz = find_lambdaz(conc, time; kwargs...)[1])
-  clast, tlast = _ctlast(conc, time, check=false)
+  clast, tlast = _ctlast(conc, time, llq=llq, check=false)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
   for i in eachindex(out)
@@ -36,7 +36,7 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
   concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
-  _, tlast = ctlast(conc, time, check=false)
+  _, tlast = _ctlast(conc, time, llq=llq, check=false)
   !(interpmethod in (:linear, :linuplogdown)) && throw(ArgumentError("Interpolation method must be :linear or :linuplogdown"))
   if timeout < first(time)
     return concorigin
@@ -66,13 +66,14 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
   end
 end
 
-function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=nothing, extrapmethod=:AUCinf,
-                         missingconc=:drop, concblq=nothing, check=true, kwargs...)
+function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=nothing, extrapmethod=nothing,
+                         missingconc=nothing, concblq=nothing, llq=nothing, check=true, kwargs...)
   if check
     checkconctime(conc, time) # TODO: blq
     conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=false)
   end
-  clast, tlast = clast === nothing ? _ctlast(conc, time) : (clast, _ctlast(conc, time)[end])
+  __ctlast = _ctlast(conc, time, llq=llq, check=false)
+  clast, tlast = clast == nothing ? __ctlast : (clast, __ctlast[2])
   !(extrapmethod === :AUCinf) &&
     throw(ArgumentError("extrapmethod must be one of AUCinf"))
   if timeout <= tlast

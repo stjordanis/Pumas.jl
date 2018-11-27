@@ -109,25 +109,27 @@ function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=no
 end
 
 """
-  ctlast(conc, time; interval=(0.,Inf), check=true) -> (clast, tlast)
+  ctlast(conc, time; llq=0, check=true) -> (clast, tlast)
 
 Calculate `clast` and `tlast`.
 """
-function ctlast(conc, time; check=true)
-  clast, tlast = _ctlast(conc, time, check=check)
+function ctlast(conc, time; kwargs...)
+  clast, tlast = _ctlast(conc, time; kwargs...)
   clast == -one(eltype(conc)) && (clast = missing; tlast = missing)
   return (clast=clast, tlast=tlast)
 end
 
 # This function uses ``-1`` to denote missing as after checking `conc` is
 # strictly great than ``0``.
-function _ctlast(conc, time; check=true)
+function _ctlast(conc, time; llq=nothing, check=true)
   if check
     checkconctime(conc, time)
   end
+  llq = zero(eltype(conc))
   # now we assume the data is checked
-  all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(time))
-  @inbounds idx = findlast(x->!(ismissing(x) || x==0), conc)
+  f = x->(ismissing(x) || x<=llq)
+  all(f, conc) && return -one(eltype(conc)), -one(eltype(time))
+  @inbounds idx = findlast(!f, conc)
   return conc[idx], time[idx]
 end
 

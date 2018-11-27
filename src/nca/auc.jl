@@ -112,7 +112,8 @@ Extrapolate the first moment to the infinite.
     end
   end
 
-  clast, tlast = clast == nothing ? _ctlast(conc, time, check=false) : (clast, _ctlast(conc, time, check=false)[2])
+  __ctlast = _ctlast(conc, time, llq=llq, check=false)
+  clast, tlast = clast == nothing ? __ctlast : (clast, __ctlast[2])
   if clast == -one(eltype(conc))
     return all(isequal(0), conc) ? (zero(auc), zero(auc), lambdaz) : error("Unknown error with missing `tlast` but non-BLQ concentrations")
   end
