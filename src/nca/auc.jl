@@ -185,7 +185,7 @@ function find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing, missin
   λ = 0.0
   points = 2
   outlier = false
-  cmax, cmaxidx = findmax(conc)
+  _, cmaxidx = conc_maximum(conc, eachindex(conc))
   n = length(time)
   if idxs === nothing
     m = min(n-1, threshold, n-cmaxidx-1)
