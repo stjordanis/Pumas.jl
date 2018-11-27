@@ -12,10 +12,12 @@ const Numeric = Union{AbstractVector{<:Number}, Number}
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
-include("lang/params.jl")
-include("lang/model.jl")
-include("lang/randoms.jl")
-include("lang/parse.jl")
+include("dsl/model_macro.jl")
+
+include("models/params.jl")
+include("models/model_api.jl")
+include("models/likelihoods.jl")
+include("models/randoms.jl")
 
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
@@ -34,7 +36,7 @@ example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*fi
 export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, pre, simpost
-export conditional_loglikelihood
+export conditional_ll, ll_derivatives, marginal_loglikelihood
 export example_nmtran_data
 export @model
 end # module

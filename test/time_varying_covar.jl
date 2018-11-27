@@ -6,7 +6,7 @@ data = process_nmtran(example_nmtran_data("data1"),
 for subject in data.subjects
     obs1 = subject.observations[1]
     if obs1.time == 0
-        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val, obs1.cmt)
+        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val)
     end
 end
 
