@@ -43,6 +43,8 @@ function extract_params!(vars, params, exprs)
   #    a = 1
   #  a domain
   #    a ∈ RealDomain()
+  #  a random variable 
+  #    a ~ Normal()
   if exprs isa Expr && exprs.head == :block
     _exprs = exprs.args
   else
@@ -62,6 +64,11 @@ function extract_params!(vars, params, exprs)
       p in vars && error("Variable $p already defined")
       push!(vars,p)
       params[p] = :(ConstDomain($(expr.args[2])))
+    elseif expr.head == :call && expr.args[1] == :~
+      p = expr.args[2]
+      p in vars && error("Variable $p already defined")
+      push!(vars,p)
+      params[p] = expr.args[3]
     else
       error("Invalid @param expression: $expr")
     end
@@ -111,7 +118,7 @@ function random_obj(randoms, params)
   quote
     function (_param)
       $(var_def(:_param, params))
-      RandomEffectSet($(esc(nt_expr(randoms))))
+      ParamSet($(esc(nt_expr(randoms))))
     end
   end
 end

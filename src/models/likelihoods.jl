@@ -44,7 +44,7 @@ function conditional_ll(m::PKPDModel, subject::Subject, args...; extended_return
 end
 
 function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0, y0, args...;kwargs...)
-  Ω = m.random(x0).dists.η
+  Ω = m.random(x0).params.η
   val = conditional_ll(m,subject, x0, y0, args...;kwargs...)
   -val - logpdf(Ω, y0.η)
 end
@@ -52,7 +52,7 @@ end
 struct Laplace end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::Laplace=Laplace(), args...; kwargs...)
-    Ω = m.random(x0).dists.η
+    Ω = m.random(x0).params.η
     res = ll_derivatives(penalized_conditional_nll,m,subject, x0, y0, :η, args...;kwargs...)
     g, m, W = DiffResults.value(res),DiffResults.gradient(res),DiffResults.hessian(res)
     p = LinearAlgebra.checksquare(W) # Returns the dimensions

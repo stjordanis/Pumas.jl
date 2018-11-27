@@ -4,7 +4,7 @@
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
 - `data`: a `Population` object
-- `random`: a mapping from a named tuple of parameters -> `RandomEffectSet`
+- `random`: a mapping from a named tuple of parameters -> `DistSet`
 - `pre`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
 - `derived`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
