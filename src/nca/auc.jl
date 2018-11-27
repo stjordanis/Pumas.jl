@@ -137,7 +137,9 @@ Extrapolate the first moment to the infinite.
     throw(ArgumentError("method must be either :linear or :linuplogdown"))
   end
   aucinf′ = inf(clast, tlast, lambdaz)
-  return auc, auc+aucinf′, lambdaz
+  aucinf  = auc+aucinf′
+  extrap_percent = aucinf′/aucinf * 100
+  return auc, aucinf, lambdaz, extrap_percent
 end
 
 """
@@ -148,8 +150,8 @@ Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 returns a tuple in the form of ``(AUCₜ₀ᵗ¹, AUCₜ₀ᵗ¹+AUCₜ₁^∞, λz)``.
 """
 function auc(conc, time; kwargs...)
-  auc1, auc2, λz = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
-  return (auc_t0_t1=auc1, auc_t0_t1_inf=auc2, lambdaz=λz)
+  auc1, auc2, λz, extrap_percent = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
+  return (auc_t0_t1=auc1, auc_t0_t1_inf=auc2, lambdaz=λz, auc_extrap_percent=extrap_percent)
 end
 
 """
@@ -161,8 +163,8 @@ trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
 AUMCₜ₀ᵗ¹+AUMCₜ₁^∞, λz)`.
 """
 function aumc(conc, time; kwargs...)
-  aumc1, aumc2, λz = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
-  return (aumc_t0_t1=aumc1, aumc_t0_t1_inf=aumc2, lambdaz=λz)
+  aumc1, aumc2, λz, extrap_percent = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
+  return (aumc_t0_t1=aumc1, aumc_t0_t1_inf=aumc2, lambdaz=λz, aumc_extrap_percent=extrap_percent)
 end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
