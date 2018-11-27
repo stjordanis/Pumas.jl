@@ -64,7 +64,7 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   end
 end
 
-function cleanblq(conc′, time′; llq=zero(eltype(conc)), concblq=nothing, missingconc=:drop, check=true)
+function cleanblq(conc′, time′; llq=zero(eltype(conc)), concblq=:keep, missingconc=:drop, check=true)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   tfirst = first(time)
   if ismissing(tfirst) || (tlast = _ctlast(conc, time)[2]) == -one(tlast)
