@@ -66,11 +66,10 @@ Extrapolate the first moment to the infinite.
 @inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
 @inline function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
-                      method=nothing, concblq=nothing, # TODO: concblq
-                      missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
+              method=nothing, concblq=:keep, llq=zero(eltype(conc)),
+              missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
   if check
-    checkconctime(conc, time)
-    conc, time = cleanmissingconc(conc, time)
+    conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
   end
   interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
   #auctype === :AUCinf && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
