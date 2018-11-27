@@ -30,7 +30,7 @@ arr = [missing, 1, 2, 3, missing]
 @test ctmax(conc[idx], t[idx], interval=(24.,Inf)) === (cmax = conc[idx][end], tmax = t[idx][end])
 @test_throws ArgumentError ctmax(conc[idx], t[idx], interval=(100,Inf))
 
-for m in (:linear, :log_linear)
+for m in (:linear, :linuplogdown)
   @inferred auc(conc[idx], t[idx], method=m)
   @inferred aumc(conc[idx], t[idx], method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=:linear)
