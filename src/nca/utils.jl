@@ -64,41 +64,42 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   end
 end
 
-function cleanblq(conc, time, concblq=nothing, missingconc=:drop, check=true)
-  conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=check)
+function cleanblq(conc′, time′; llq=zero(eltype(conc)), concblq=nothing, missingconc=:drop, check=true)
+  conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   tfirst = first(time)
-  if isallmissing(tfirst)
+  if ismissing(tfirst) || (tlast = _ctlast(conc, time)[2]) == -one(tlast)
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
     tfirst = last(time)
     tlast = tfirst + one(tfirst)
-  else
-    _, tlast = ctlast(conc, time)
   end
   for n in (:first, :middle, :last)
     if n === :first
-      mask = iszero.(conc)
+      mask = let tfirst=tfirst, llq=llq
+        f = (c, t)-> t ≤ tfirst && c ≤ llq
+        f.(conc, time)
+      end
     elseif n === :middle
-      mask = let tfirst=tfirst, tlast=tlast
-        f = (c,t)->(tfirst < t && t < tlast && iszero(c))
+      mask = let tfirst=tfirst, tlast=tlast, llq=llq
+        f = (c,t)-> tfirst < t < tlast && c ≤ llq
         f.(conc, time)
       end
     else # :last
       mask = let tlast=tlast
-        f = (c,t) -> tlast <= t && iszero(c)
+        f = (c,t) -> tlast <= t && c ≤ llq
         f.(conc, time)
       end
     end
     rule = concblq isa Dict ? concblq[n] : concblq
     if rule === :keep
       # do nothing
-      return conc, time
     elseif rule === :drop
       conc = conc[.!mask]
       time = time[.!mask]
     elseif rule isa Number
+      conc === conc′ && (conc = deepcopy(conc)) # if it aliases with the original array, then copy
       conc[mask] .= rule
     else
-      throw(ArgumentError("Unknown BLQ rule: $rule"))
+      throw(ArgumentError("Unknown BLQ rule: $(repr(rule))"))
     end
   end
   conc, time
