@@ -66,8 +66,8 @@ Extrapolate the first moment to the infinite.
 @inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
 @inline function _auc(conc, time; interval=(0,Inf), clast=nothing, lambdaz=nothing,
-              method=nothing, concblq=:keep, llq=zero(eltype(conc)),
-              missingconc=:drop, check=true, linear, log, inf, idxs=nothing)
+                      method=nothing, concblq=nothing, llq=nothing,
+                      missingconc=nothing, check=true, linear, log, inf, idxs=nothing)
   if check
     conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
   end
@@ -85,7 +85,7 @@ Extrapolate the first moment to the infinite.
   # represents concentration at time zero (`C0`)
   #
   concstart = interpextrapconc(conc, time, lo, check=false, lambdaz=lambdaz,
-                               interpmethod=method, extrapmethod=:AUCinf)
+                               interpmethod=method, extrapmethod=:AUCinf, llq=llq)
   idx1, idx2 = let lo = lo, hi = hi
     (findfirst(x->x>=lo, time),
      findlast(x->x<=hi, time))
@@ -102,7 +102,7 @@ Extrapolate the first moment to the infinite.
   end
   if isfinite(hi)
     concend = interpextrapconc(conc, time, hi, check=false, lambdaz=lambdaz,
-                               interpmethod=method, extrapmethod=:AUCinf)
+                               interpmethod=method, extrapmethod=:AUCinf, llq=llq)
     if conc[idx2] != concend
       if method === :linear || (method === :linuplogdown && concend ≥ conc[idx2]) # increasing
         auc += linear(conc[idx2], concend, time[idx2], hi)

@@ -1,11 +1,12 @@
 function interpextrapconc(conc, time, timeout; lambdaz=nothing,
                           clast=nothing, interpmethod=nothing,
-                          extrapmethod=:AUCinf, concblq=nothing,
-                          missingconc=:drop, check=true, kwargs...)
+                          extrapmethod=nothing, concblq=nothing,
+                          missingconc=nothing, check=true,
+                          concorigin=nothing, llq=nothing, kwargs...)
   if check
-    checkconctime(conc, time) # TODO: blq
-    conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=false)
+    conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
   end
+  extrapmethod === nothing && (extrapmethod=:AUCinf)
   lambdaz == nothing && (lambdaz = find_lambdaz(conc, time; kwargs...)[1])
   clast, tlast = _ctlast(conc, time, check=false)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
@@ -15,7 +16,7 @@ function interpextrapconc(conc, time, timeout; lambdaz=nothing,
       @warn warning("Interpolation/extrapolation time is missing at the $(i)th index")
     elseif timeout[i] <= tlast
       _out = interpolateconc(conc, time, timeout[i], interpmethod=interpmethod,
-                      concblq=concblq, missingconc=missingconc, check=false)
+                      concblq=concblq, missingconc=missingconc, concorigin=concorigin, check=false)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     else
       _out = extrapolateconc(conc, time, timeout[i], extrapmethod=extrapmethod, lambdaz=lambdaz,
@@ -27,12 +28,12 @@ function interpextrapconc(conc, time, timeout; lambdaz=nothing,
 end
 
 function interpolateconc(conc, time, timeout::Number; interpmethod,
-                         concblq=nothing, missingconc=:drop, concorigin=0, check=true)
+                         concblq=nothing, missingconc=nothing, concorigin=nothing,
+                         llq=nothing, check=true)
   if check
-    checkconctime(conc, time)
-    cleanmissingconc(conc, time, check=false, missingconc=missingconc)
-    #cleanconcblq(...)
+    conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
   end
+  concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
   _, tlast = ctlast(conc, time, check=false)
@@ -69,7 +70,7 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
 end
 
 function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=nothing, extrapmethod=:AUCinf,
-                         missingconc=:drop, concblq=nothing, check=true)
+                         missingconc=:drop, concblq=nothing, check=true, kwargs...)
   if check
     checkconctime(conc, time) # TODO: blq
     conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=false)

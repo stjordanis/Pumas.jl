@@ -33,8 +33,9 @@ function checkconctime(conc, time=nothing; monotonictime=true)
   return
 end
 
-function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
+function cleanmissingconc(conc, time, args...; missingconc=nothing, check=true)
   check && checkconctime(conc, time)
+  missingconc === nothing && (missingconc = :drop)
   E = eltype(conc)
   T = Base.nonmissingtype(E)
   n = count(ismissing, conc)
@@ -64,8 +65,10 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   end
 end
 
-function cleanblq(conc′, time′; llq=zero(eltype(conc)), concblq=:keep, missingconc=:drop, check=true)
+function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
+  llq === nothing && (llq = zero(eltype(conc)))
+  concblq === nothing && (concblq = :keep)
   tfirst = first(time)
   if ismissing(tfirst) || (tlast = _ctlast(conc, time)[2]) == -one(tlast)
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
