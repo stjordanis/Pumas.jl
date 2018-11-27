@@ -8,6 +8,6 @@ include("utils.jl")
 include("interpolate.jl")
 include("auc.jl")
 
-export auc, aumc, find_lambdaz, ctlast, ctmax
+export auc, aumc, find_lambdaz, ctlast, ctmax, thalf
 
 end

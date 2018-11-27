@@ -164,3 +164,8 @@ end
   end
   return val, idx
 end
+
+function thalf(conc, time; lambdaz=nothing, kwargs...)
+  ln2 = log(2)
+  lambdaz === nothing ? ln2/find_lambdaz(conc, time; kwargs...)[1] : ln2/lambdaz
+end

@@ -47,6 +47,7 @@ end
 
 @test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] == find_lambdaz(conc[idx], t[idx])[1]
 @test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
+@test log(2)/find_lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
 
 fails = (6, 9)
 for i in 1:24
