@@ -42,24 +42,21 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
     return concorigin
   elseif timeout > tlast
     throw(ArgumentError("interpolateconc can only works through Tlast, please use interpextrapconc to combine both interpolation and extrapolation"))
-  elseif (idx=searchsortedfirst(time, timeout)) != len+1 # if there is an exact time match
-    return conc[idx]
+  elseif (idx2=searchsortedfirst(time, timeout)) != len+1 && time[idx2] == timeout # if there is an exact time match
+    return conc[idx2]
   else
-    idx1 = findlast( t->t<=timeout, time)
-    idx2 = idx1 + 1
-    idx2 > len && error("something went wrong, please file a bug report")
-    #idx2 = findfirst(t->timeout<=t, time)
-    time1 = time[idx1]; time2 = conc[idx2]
+    idx1 = idx2 - 1
+    time1 = time[idx1]; time2 = time[idx2]
     conc1 = conc[idx1]; conc2 = conc[idx2]
-    if (interpmethod === :linear || interpmethod === :linuplogdown) &&
+    if interpmethod === :linear || (interpmethod === :linuplogdown &&
       (conc1 <= 0 || conc2 <= 0) ||
-        (conc1 <= conc2)
+        (conc1 <= conc2))
       # Do linear interpolation if:
       #   linear interpolation is selected or
       #   lin up/log down interpolation is selected and
       #     one concentration is 0 or
       #     the concentrations are equal
-      return conc1+(timeout-time1)/(time2-time1)*(conc2-conc1)
+      return conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1)
     elseif interpmethod === :linuplogdown
       return exp(log(conc1)+(timeout-time1)/(time2-time1)*(log(conc2)-log(conc1)))
     else
