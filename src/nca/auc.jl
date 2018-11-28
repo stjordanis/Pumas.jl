@@ -150,9 +150,11 @@ Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 returns a tuple in the form of ``(AUCₜ₀ᵗ¹, AUCₜ₀ᵗ¹+AUCₜ₁^∞, λz)``.
 """
-function auc(conc, time; kwargs...)
+function auc(conc, time; dose::T=nothing, kwargs...) where T
   auc1, auc2, λz, extrap_percent = _auc(conc, time, linear=auclinear, log=auclog, inf=aucinf; kwargs...)
-  return (auc_t0_t1=auc1, auc_t0_t1_inf=auc2, lambdaz=λz, auc_extrap_percent=extrap_percent)
+  _sol = (auc_t0_t1=auc1, auc_t0_t1_inf=auc2, lambdaz=λz, auc_extrap_percent=extrap_percent)
+  sol = T===Nothing ? _sol : (_sol..., auc_t0_t1_dn=auc1/dose, auc_t0_t1_inf_dn=auc2/dose)
+  return sol
 end
 
 """
@@ -163,9 +165,11 @@ trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
 `(method = :linuplogdown)`. It returns a tuple in the form of `(AUMCₜ₀ᵗ¹,
 AUMCₜ₀ᵗ¹+AUMCₜ₁^∞, λz)`.
 """
-function aumc(conc, time; kwargs...)
+function aumc(conc, time; dose::T=nothing, kwargs...) where T
   aumc1, aumc2, λz, extrap_percent = _auc(conc, time, linear=aumclinear, log=aumclog, inf=aumcinf; kwargs...)
-  return (aumc_t0_t1=aumc1, aumc_t0_t1_inf=aumc2, lambdaz=λz, aumc_extrap_percent=extrap_percent)
+  _sol = (aumc_t0_t1=aumc1, aumc_t0_t1_inf=aumc2, lambdaz=λz, aumc_extrap_percent=extrap_percent)
+  sol = T===Nothing ? _sol : (_sol..., aumc_t0_t1_dn=aumc1/dose, aumc_t0_t1_inf_dn=aumc2/dose)
+  return sol
 end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))

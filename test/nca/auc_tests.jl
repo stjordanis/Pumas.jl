@@ -7,6 +7,7 @@ data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
+dose = Float64.(data[:AMT_IV])[1:16:end]
 
 data = CSV.read("$root/examples/nca_test_data/Final_Parameters_Pivoted.csv")
 
@@ -52,10 +53,14 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  aucs = auc(conc[idx], t[idx], method=:linear)
-  aumcs = aumc(conc[idx], t[idx], method=:linear)
+  aucs = auc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  aumcs = aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
   @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
+  @test aucs[5] == aucs[1]/dose[i]
+  @test aucs[6] == aucs[2]/dose[i]
+  @test aumcs[5] == aumcs[1]/dose[i]
+  @test aumcs[6] == aumcs[2]/dose[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   if i in fails
