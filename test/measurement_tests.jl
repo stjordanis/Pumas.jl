@@ -69,7 +69,7 @@ end
     p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
-    rfx_f(p) = RandomEffectSet((η=MvNormal(p.Ω),))
+    rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
     function col_f(p,rfx,cov)
         (Ka = p.θ[1],
         CL = p.θ[2] * ((cov.wt/70)^0.75) * (p.θ[4]^cov.sex) * exp(rfx.η[1]),

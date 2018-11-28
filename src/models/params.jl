@@ -3,6 +3,8 @@ export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain, PDiagDomain
 
 abstract type Domain end
 
+Domain(d::Domain) = d
+
 """
     @param x = val
     @param x ∈ ConstDomain(val)
@@ -155,18 +157,29 @@ function unpack(v, d::PDiagDomain)
   PDMats.PDiagMat(collect(v))
 end
 
-
+# domains of random variables
+function Domain(d::MvNormal)
+  n = length(d)
+  VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
+end
+function Domain(d::ContinuousUnivariateDistribution)
+  RealDomain(minimum(d), maximum(d), median(d))
+end
 
 
 struct ParamSet{T}
   params::T
 end
-init(p::ParamSet) = map(init, p.params)
-packlen(p::ParamSet) = sum(packlen, p.params)
 
-pack_upper(p::ParamSet) = pack_upper!(Array{Float64}(packlen(p)),p)
-pack_lower(p::ParamSet) = pack_lower!(Array{Float64}(packlen(p)),p)
-pack(p::ParamSet, x)  = pack!(Array{numtype(x)}(packlen(p)), p, x)
+
+domains(p::ParamSet) = map(Domain, p.params)
+
+init(p::ParamSet) = map(init, domains(p))
+packlen(p::ParamSet) = sum(packlen, domains(p))
+
+pack_upper(p::ParamSet) = pack_upper!(Array{Float64}(packlen(p)),domains(p))
+pack_lower(p::ParamSet) = pack_lower!(Array{Float64}(packlen(p)),domains(p))
+pack(p::ParamSet, x)  = pack!(Array{numtype(x)}(packlen(p)), domains(p), x)
 pack_init(p::ParamSet)  = pack(p, init(p))
 
 function pack_upper!(v, p::ParamSet)
@@ -209,3 +222,5 @@ function unpack(v, p::ParamSet)
     unpack(vv,pp)
   end
 end
+
+Base.rand(p::ParamSet) = map(rand, p.params)

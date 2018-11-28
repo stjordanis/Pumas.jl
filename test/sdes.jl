@@ -8,7 +8,7 @@ using PuMaS, Test, StochasticDiffEq
 
 p = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
-  RandomEffectSet((η=MvNormal(p.Ω),))
+  ParamSet((η=MvNormal(p.Ω),))
 end
 
 function pre_f(params, randoms, covars)
