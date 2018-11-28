@@ -76,7 +76,7 @@ Extrapolate the first moment to the infinite.
   lo, hi = interval
   lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
   lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
-  lambdaz === nothing && (lambdaz = find_lambdaz(conc, time, check=false, idxs=idxs)[1])
+  lambdaz === nothing && (lambdaz = lambdaz(conc, time, check=false, idxs=idxs)[1])
   # TODO: handle `auclinlog` with IV bolus.
   #
   # `C0` is the concentration at time zero if the route of administration is IV
@@ -175,19 +175,17 @@ end
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
 """
-  find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing,
+  lambdaz(conc, time; threshold=10, check=true, idxs=nothing,
   missingconc=:drop) -> (lambdaz, points, r2)
 
 Calculate ``λz``, ``r^2``, and the number of data points from the profile used
 in the determination of ``λz``.
 """
-function find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing, missingconc=:drop) #TODO: better name
-  if check
-    checkconctime(conc, time)
-    conc, time = cleanmissingconc(conc, time, missingconc=missingconc, check=false)
-  end
+function lambdaz(nca::NCAdata; threshold=10, idxs=nothing, kwargs...)
+  !(nca.lambdaz === nothing) && return (nca.lambdaz, nca.points, nca.r2)
+  conc, time = nca.conc, nca.time
   maxr2 = 0.0
-  λ = 0.0
+  lambdaz = 0.0
   points = 2
   outlier = false
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
@@ -202,8 +200,8 @@ function find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing, missin
       r2 = r²(model)
       if r2 > maxr2
         maxr2 = r2
-        λ = coef(model)[2]
-        points = i+1
+        nca.lambdaz = coef(model)[2]
+        nca.points = i+1
       end
     end
   else
@@ -219,5 +217,8 @@ function find_lambdaz(conc, time; threshold=10, check=true, idxs=nothing, missin
     outlier = true
     @warn "The estimated slope is not negative, got $λ"
   end
-  return (lambdaz=-λ, points=points, r2=r2)
+  nca.lambdaz=-λ
+  nca.points=points
+  nca.r2=r2
+  return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
 end

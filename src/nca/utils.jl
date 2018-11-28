@@ -33,7 +33,7 @@ function checkconctime(conc, time=nothing; monotonictime=true)
   return
 end
 
-function cleanmissingconc(conc, time, args...; missingconc=nothing, check=true)
+function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   check && checkconctime(conc, time)
   missingconc === nothing && (missingconc = :drop)
   E = eltype(conc)
@@ -65,7 +65,7 @@ function cleanmissingconc(conc, time, args...; missingconc=nothing, check=true)
   end
 end
 
-function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true)
+function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   llq === nothing && (llq = zero(eltype(conc)))
   concblq === nothing && (concblq = :keep)

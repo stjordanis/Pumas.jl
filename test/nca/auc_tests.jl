@@ -33,7 +33,7 @@ arr = [missing, 1, 2, 3, missing]
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
-@test find_lambdaz(yli, collect(x), idxs=10:20)[1] ≈ find_lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
+@test lambdaz(yli, collect(x), idxs=10:20)[1] ≈ lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
 
 for m in (:linear, :linuplogdown)
   @inferred auc(conc[idx], t[idx], method=m)
@@ -43,12 +43,12 @@ for m in (:linear, :linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
   x = 0:.1:50
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
-  @test find_lambdaz(y, x)[1] ≈ find_lambdaz(conc[idx], t[idx])[1]
+  @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
 end
 
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] == find_lambdaz(conc[idx], t[idx])[1]
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
-@test log(2)/find_lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
+@test lambdaz(conc[idx], t[idx], idxs=12:16)[1] == lambdaz(conc[idx], t[idx])[1]
+@test lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
+@test log(2)/lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
 
 fails = (6, 9)
 for i in 1:24

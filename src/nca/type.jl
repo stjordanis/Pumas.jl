@@ -1,17 +1,19 @@
-mutable struct NCAdata{C,T,AUC,AUMC,Z,D}
+mutable struct NCAdata{C,T,AUC,AUMC,D,Z,F}
   conc::C
   time::T
   maxidx::Int
   lastidx::Int
+  dose::Union{Nothing,D}
+  lambdaz::Union{Nothing,Z}
+  r2::Union{Nothing,F}
+  points::Union{Nothing,Int}
   auc_inf::Union{Nothing,AUC}
   auc_last::Union{Nothing,AUC}
   aumc_inf::Union{Nothing,AUMC}
   aumc_last::Union{Nothing,AUMC}
-  lambdaz::Union{Nothing,Z}
-  dose::Union{Nothing,D}
 end
 
-function NCAdata(conc′, time′, dose=nothing; clean=true, kwargs...)
+function NCAdata(conc′, time′; dose=nothing, clean=true, lambdaz=nothing, kwargs...)
   conc, time = clean ? cleanblq(conc′, time′; kwargs...) : (conc′, time′)
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time)
@@ -19,17 +21,20 @@ function NCAdata(conc′, time′, dose=nothing; clean=true, kwargs...)
   unittime = oneunit(eltype(time))
   auc_proto = unitconc * unittime
   aumc_proto = auc_proto * unittime
+  r2_proto = unittime/unitconc*false
+  # TODO: check units
   lambdaz_proto = inv(unittime)
   NCAdata{typeof(conc), typeof(time),
           typeof(auc_proto), typeof(aumc_proto),
-          typeof(lambdaz_proto), typeof(dose)}(
-            conc, time, maxidx, lastidx,
+          typeof(dose), typeof(lambdaz_proto),
+          typeof(r2_proto)}(
+            conc, time, maxidx, lastidx, dose, lambdaz,
               ntuple(i->nothing, 6)...)
 end
 
 # now, it only shows the types
 showunits(nca::NCAdata, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCAdata{C,T,AUC,AUMC,Z,D}, indent=0) where {C,T,AUC,AUMC,Z,D}
+function showunits(io::IO, ::NCAdata{C,T,AUC,AUMC,D,Z,F}, indent=0) where {C,T,AUC,AUMC,D,Z,F}
   conct = nameof(eltype(C))
   timet = nameof(eltype(T))
   pad   = " "^indent

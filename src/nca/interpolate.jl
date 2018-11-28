@@ -7,7 +7,7 @@ function interpextrapconc(conc, time, timeout; lambdaz=nothing,
     conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
   end
   extrapmethod === nothing && (extrapmethod=:AUCinf)
-  lambdaz == nothing && (lambdaz = find_lambdaz(conc, time; kwargs...)[1])
+  lambdaz == nothing && (lambdaz = lambdaz(conc, time; kwargs...)[1])
   clast, tlast = _ctlast(conc, time, llq=llq, check=false)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
