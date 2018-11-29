@@ -67,15 +67,19 @@ end
 
 function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
+  isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
   concblq === nothing && (concblq = :keep)
-  tfirst = first(time)
-  lastidx = ctlast_idx(conc, time)
-  tlast = time[lastidx]
-  if ismissing(tfirst) || lastidx == -1
+  concblq === :keep && (return conc, time)
+  firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
+  if firstidx == -1
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
     tfirst = last(time)
     tlast = tfirst + one(tfirst)
+  else
+    tfirst = time[firstidx]
+    lastidx = ctlast_idx(conc, time, llq=llq, check=false)
+    tlast = time[lastidx]
   end
   for n in (:first, :middle, :last)
     if n === :first
@@ -107,5 +111,5 @@ function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=no
       throw(ArgumentError("Unknown BLQ rule: $(repr(rule))"))
     end
   end
-  conc, time
+  return conc, time
 end

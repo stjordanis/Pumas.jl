@@ -1,40 +1,65 @@
 """
-  ctlast(conc, time; llq=0, check=true) -> (clast, tlast)
+  clast(nca::NCAdata)
 
-Calculate `clast` and `tlast`.
+Calculate `clast`
 """
-function ctlast(conc, time; kwargs...)
-  idx = _ctlast(conc, time; kwargs...)
-  idx === -1 && (clast = missing; tlast = missing)
-  clast, tlast = conc[idx], time[idx]
-  return (clast=clast, tlast=tlast)
+function clast(nca::NCAdata; kwargs...)
+  idx = nca.lastidx
+  return idx === -1 ? missing : nca.conc[idx]
+end
+
+"""
+  tlast(nca::NCAdata)
+
+Calculate `tlast`
+"""
+function tlast(nca::NCAdata; kwargs...)
+  idx = nca.lastidx
+  return idx === -1 ? missing : nca.time[idx]
 end
 
 # This function uses ``-1`` to denote missing as after checking `conc` is
 # strictly great than ``0``.
 function ctlast_idx(conc, time; llq=nothing, check=true)
-  if check
-    checkconctime(conc, time)
-  end
-  llq = zero(eltype(conc))
+  check && checkconctime(conc, time)
+  llq === nothing && (llq = zero(eltype(conc)))
   # now we assume the data is checked
   f = x->(ismissing(x) || x<=llq)
-  all(f, conc) && return -1
   @inbounds idx = findlast(!f, conc)
+  idx === nothing && (idx = -1)
+  return idx
+end
+
+function ctfirst_idx(conc, time; llq=nothing, check=true)
+  check && checkconctime(conc, time)
+  llq === nothing && (llq = zero(eltype(conc)))
+  # now we assume the data is checked
+  f = x->(ismissing(x) || x<=llq)
+  @inbounds idx = findfirst(!f, conc)
+  idx === nothing && (idx = -1)
   return idx
 end
 
 """
-  ctmax(conc, time; interval=(0.,Inf), check=true) -> (cmax, tmax)
+  tmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
 
-Calculate ``C_{max}_{t_1}^{t_2}`` and ``T_{max}_{t_1}^{t_2}``
+Calculate ``T_{max}_{t_1}^{t_2}``
 """
-@inline function ctmax(conc, time; interval=(0.,Inf), check=true)
+tmax(nca::NCAdata; kwargs...) = ctmax(nca; kwargs...)[2]
+
+"""
+  cmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
+
+Calculate ``C_{max}_{t_1}^{t_2}``
+"""
+cmax(nca::NCAdata; kwargs...) = ctmax(nca; kwargs...)[1]
+
+@inline function ctmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
+  conc, time = nca.conc, nca.time
   if interval === (0., Inf)
     val, idx = conc_maximum(conc, eachindex(conc))
     return (cmax=val, tmax=time[idx])
   end
-  check && checkconctime(conc, time)
   @assert interval[1] < interval[2] "t0 must be less than t1"
   interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
   idx1, idx2 = let (lo, hi)=interval
@@ -56,7 +81,9 @@ end
   return val, idx
 end
 
-function thalf(conc, time; lambdaz=nothing, kwargs...)
-  ln2 = log(2)
-  lambdaz === nothing ? ln2/lambdaz(conc, time; kwargs...)[1] : ln2/lambdaz
-end
+"""
+  thalf(nca::NCAdata; kwargs...)
+
+Calculate half life time.
+"""
+thalf(nca::NCAdata; kwargs...) = log(2)/lambdaz(nca; kwargs...)[1]

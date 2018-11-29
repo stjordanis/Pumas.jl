@@ -11,9 +11,10 @@ include("auc.jl")
 include("simple.jl")
 
 export NCAdata, showunits
-export auc, aumc, lambdaz, ctlast, ctmax, thalf
+export auc, aumc, lambdaz,
+       clast, tlast, cmax, tmax, thalf
 
-for f in (:lambdaz,)
+for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf)
   @eval $f(conc, time, args...; kwargs...) = $f(NCAdata(conc, time, args...; kwargs...); kwargs...)
 end
 

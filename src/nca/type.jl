@@ -13,10 +13,11 @@ mutable struct NCAdata{C,T,AUC,AUMC,D,Z,F}
   aumc_last::Union{Nothing,AUMC}
 end
 
-function NCAdata(conc′, time′; dose=nothing, clean=true, lambdaz=nothing, kwargs...)
+function NCAdata(conc′, time′; dose=nothing, clean=true, lambdaz=nothing,
+                 llq=nothing, kwargs...)
   conc, time = clean ? cleanblq(conc′, time′; kwargs...) : (conc′, time′)
   _, maxidx = conc_maximum(conc, eachindex(conc))
-  lastidx = ctlast_idx(conc, time)
+  lastidx = ctlast_idx(conc, time, llq=llq, check=false)
   unitconc = oneunit(eltype(conc))
   unittime = oneunit(eltype(time))
   auc_proto = unitconc * unittime

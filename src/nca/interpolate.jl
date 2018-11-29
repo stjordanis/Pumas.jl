@@ -1,25 +1,22 @@
-function interpextrapconc(conc, time, timeout; lambdaz=nothing,
-                          clast=nothing, interpmethod=nothing,
+function interpextrapconc(nca::NCAdata, timeout;                           clast=nothing, interpmethod=nothing,
                           extrapmethod=nothing, concblq=nothing,
                           missingconc=nothing, check=true,
                           concorigin=nothing, llq=nothing, kwargs...)
-  if check
-    conc, time = cleanblq(conc, time, concblq=concblq, llq=llq, missingconc=missingconc)
-  end
+  conc, time = nca.conc, nca.time
   extrapmethod === nothing && (extrapmethod=:AUCinf)
-  lambdaz == nothing && (lambdaz = lambdaz(conc, time; kwargs...)[1])
-  clast, tlast = _ctlast(conc, time, llq=llq, check=false)
+  λz = lambdaz(nca; kwargs...)[1]
+  tlast = time[nca.lastidx]
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
   for i in eachindex(out)
     if ismissing(out[i])
       @warn warning("Interpolation/extrapolation time is missing at the $(i)th index")
     elseif timeout[i] <= tlast
-      _out = interpolateconc(conc, time, timeout[i], interpmethod=interpmethod,
+      _out = interpolateconc(nca, timeout[i], interpmethod=interpmethod,
                       concblq=concblq, missingconc=missingconc, concorigin=concorigin, check=false)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     else
-      _out = extrapolateconc(conc, time, timeout[i], extrapmethod=extrapmethod, lambdaz=lambdaz,
+      _out = extrapolateconc(conc, time, timeout[i], extrapmethod=extrapmethod, λz=λz,
                       concblq=concblq, missingconc=missingconc, check=false)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     end
@@ -66,7 +63,7 @@ function interpolateconc(conc, time, timeout::Number; interpmethod,
   end
 end
 
-function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=nothing, extrapmethod=nothing,
+function extrapolateconc(conc, time, timeout::Number; λz=nothing, clast=nothing, extrapmethod=nothing,
                          missingconc=nothing, concblq=nothing, llq=nothing, check=true, kwargs...)
   if check
     checkconctime(conc, time) # TODO: blq
@@ -81,7 +78,7 @@ function extrapolateconc(conc, time, timeout::Number; lambdaz=nothing, clast=not
   else
     if extrapmethod === :AUCinf
       # If AUCinf is requested, extrapolate using the half-life
-      return clast*exp(-lambdaz*(timeout - tlast))
+      return clast*exp(-λz*(timeout - tlast))
     #elseif extrapmethod === :AUCall && tlast == (maxtime=maximum(time))
     #  # If AUCall is requested and there are no BLQ at the end, we are already
     #  # certain that we are after Tlast, so the answer is 0.

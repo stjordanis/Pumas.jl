@@ -20,15 +20,15 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-@test ctlast(zeros(5), 1:5) === (clast = missing, tlast = missing)
-@test ctlast(1:5, 1:5) === (clast = 5, tlast = 5)
-@test ctlast(conc[idx], t[idx]) === (clast = conc[idx][end], tlast = t[idx][end])
+@test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
+@test (clast(1:5, 1:5), tlast(1:5, 1:5)) === (5, 5)
+@test (clast(conc[idx], t[idx]), tlast(conc[idx], t[idx])) === (conc[idx][end], t[idx][end])
 arr = [missing, 1, 2, 3, missing]
-@test ctlast(arr, 1:5) === (clast = 3, tlast = 4)
-@test ctmax(arr, 1:5) === (cmax = 3, tmax = 4)
-@test ctmax(conc[idx], t[idx]) === (cmax = conc[idx][1], tmax = t[idx][1])
-@test ctmax(conc[idx], t[idx], interval=(2,Inf)) === (cmax = conc[idx][7], tmax = t[idx][7])
-@test ctmax(conc[idx], t[idx], interval=(24.,Inf)) === (cmax = conc[idx][end], tmax = t[idx][end])
+@test (clast(arr, 1:5), tlast(arr, 1:5)) === (3, 4)
+@test (cmax(arr, 1:5), tmax(arr, 1:5)) === (3, 4)
+@test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
+@test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
+@test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
 @test_throws ArgumentError ctmax(conc[idx], t[idx], interval=(100,Inf))
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
