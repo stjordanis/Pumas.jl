@@ -1,7 +1,5 @@
-function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmethod=nothing,
-                          extrapmethod=nothing, kwargs...)
+function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmethod=nothing, kwargs...)
   conc, time = nca.conc, nca.time
-  extrapmethod === nothing && (extrapmethod=:AUCinf)
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
@@ -12,7 +10,7 @@ function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmetho
       _out = interpolateconc(nca, timeout[i], interpmethod=interpmethod, concorigin=concorigin)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     else
-      _out = extrapolateconc(nca, timeout[i], extrapmethod=extrapmethod)
+      _out = extrapolateconc(nca, timeout[i])
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     end
   end
@@ -45,19 +43,19 @@ function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin
   end
 end
 
-function extrapolateconc(nca::NCAdata, timeout::Number; extrapmethod, kwargs...)
+function extrapolateconc(nca::NCAdata, timeout::Number; kwargs...)
   conc, time = nca.conc, nca.time
   λz = lambdaz(nca; kwargs...)[1]
   _tlast = tlast(nca)
   _clast = clast(nca)
-  !(extrapmethod === :AUCinf) &&
-    throw(ArgumentError("extrapmethod must be one of AUCinf"))
+  #!(extrapmethod === :AUCinf) &&
+    #throw(ArgumentError("extrapmethod must be one of AUCinf"))
   if timeout <= _tlast
     throw(ArgumentError("extrapolateconc can only work beyond Tlast, please use interpextrapconc to combine both interpolation and extrapolation"))
   else
-    if extrapmethod === :AUCinf
+    #if extrapmethod === :AUCinf
       # If AUCinf is requested, extrapolate using the half-life
-      return _clast*exp(-λz*(timeout - _tlast))
+    return _clast*exp(-λz*(timeout - _tlast))
     #elseif extrapmethod === :AUCall && tlast == (maxtime=maximum(time))
     #  # If AUCall is requested and there are no BLQ at the end, we are already
     #  # certain that we are after Tlast, so the answer is 0.
@@ -81,6 +79,6 @@ function extrapolateconc(nca::NCAdata, timeout::Number; extrapmethod, kwargs...)
     #else
     #  error("Invalid extrap.method caught too late (seeing this error indicates a software bug)")
     #  return nothing
-    end
+    #end
   end
 end

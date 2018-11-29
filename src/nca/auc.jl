@@ -74,7 +74,7 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:linear, linear, log, inf, kwargs...)
+function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
@@ -90,7 +90,7 @@ end
     # bolus, a linear back-extrapolation is done to get the intercept which
     # represents concentration at time zero (`C0`)
     #
-    concstart = interpextrapconc(nca, lo, interpmethod=method, extrapmethod=:AUCinf)
+    concstart = interpextrapconc(nca, lo, interpmethod=method, kwargs...)
     idx1, idx2 = let lo = lo, hi = hi
       findfirst(x->x>=lo, time),
       findlast( x->x<=hi, time)
@@ -111,7 +111,7 @@ end
     int_idxs = idx1+1:idx2-1
   end
   if isfinite(hi)
-    concend = interpextrapconc(nca, hi, interpmethod=method, extrapmethod=:AUCinf)
+    concend = interpextrapconc(nca, hi, interpmethod=method, kwargs...)
     if conc[idx2] != concend
       auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log)
     end
@@ -120,7 +120,7 @@ end
   _clast = clast(nca)
   _tlast = tlast(nca)
   if ismissing(_clast)
-    if all(x<-x<=nca.llq, conc)
+    if all(x->x<=nca.llq, conc)
       return zero(auc)
     else
       error("Unknown error with missing `tlast` but non-BLQ concentrations")
@@ -227,11 +227,11 @@ fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 Calculate ``λz``, ``r^2``, and the number of data points from the profile used
 in the determination of ``λz``.
 """
-function lambdaz(nca::NCAdata; threshold=10, idxs=nothing, kwargs...)
+function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; threshold=10, idxs=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   !(nca.lambdaz === nothing) && return (nca.lambdaz, nca.points, nca.r2)
   conc, time = nca.conc, nca.time
-  maxr2 = 0.0
-  lambdaz = 0.0
+  maxr2::F = oneunit(F)*false
+  λ::Z = oneunit(Z)*false
   points = 2
   outlier = false
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
@@ -266,5 +266,5 @@ function lambdaz(nca::NCAdata; threshold=10, idxs=nothing, kwargs...)
   nca.lambdaz=-λ
   nca.points=points
   nca.r2=r2
-  return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
+  return (lambdaz=-λ, points=points, r2=r2)
 end
