@@ -90,7 +90,7 @@ function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:l
     # bolus, a linear back-extrapolation is done to get the intercept which
     # represents concentration at time zero (`C0`)
     #
-    concstart = interpextrapconc(nca, lo, interpmethod=method, kwargs...)
+    concstart = interpextrapconc(nca, lo; interpmethod=method, kwargs...)
     idx1, idx2 = let lo = lo, hi = hi
       findfirst(x->x>=lo, time),
       findlast( x->x<=hi, time)
@@ -111,7 +111,7 @@ function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:l
     int_idxs = idx1+1:idx2-1
   end
   if isfinite(hi)
-    concend = interpextrapconc(nca, hi, interpmethod=method, kwargs...)
+    concend = interpextrapconc(nca, hi; interpmethod=method, kwargs...)
     if conc[idx2] != concend
       auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log)
     end
@@ -183,7 +183,7 @@ function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
 end
 
 """
-  aumc(nca::NCAdata; method::Symbol, interval=(0, Inf) kwargs...)
+  aumc(nca::NCAdata; method::Symbol, interval=(0, Inf), kwargs...)
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
