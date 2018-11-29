@@ -200,8 +200,8 @@ function lambdaz(nca::NCAdata; threshold=10, idxs=nothing, kwargs...)
       r2 = r²(model)
       if r2 > maxr2
         maxr2 = r2
-        nca.lambdaz = coef(model)[2]
-        nca.points = i+1
+        λ = coef(model)[2]
+        points = i+1
       end
     end
   else

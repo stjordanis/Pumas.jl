@@ -29,7 +29,7 @@ arr = [missing, 1, 2, 3, missing]
 @test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
-@test_throws ArgumentError ctmax(conc[idx], t[idx], interval=(100,Inf))
+@test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)

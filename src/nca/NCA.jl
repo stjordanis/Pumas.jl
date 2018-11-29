@@ -14,8 +14,8 @@ export NCAdata, showunits
 export auc, aumc, lambdaz,
        clast, tlast, cmax, tmax, thalf
 
-for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf)
-  @eval $f(conc, time, args...; kwargs...) = $f(NCAdata(conc, time, args...; kwargs...); kwargs...)
+for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf, :interpextrapconc)
+  @eval $f(conc, time, args...; kwargs...) = $f(NCAdata(conc, time; kwargs...), args...; kwargs...)
 end
 
 end
