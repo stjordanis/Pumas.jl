@@ -35,7 +35,7 @@ ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test lambdaz(yli, collect(x), idxs=10:20)[1] ≈ lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
 
-for m in (:linear, :linuplogdown)
+for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred auc(conc[idx], t[idx], method=m)
   @test_broken @inferred aumc(conc[idx], t[idx], method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)

@@ -25,7 +25,7 @@ function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
   _tlast = tlast(nca)
-  !(interpmethod in (:linear, :linuplogdown)) && throw(ArgumentError("Interpolation method must be :linear or :linuplogdown"))
+  !(interpmethod in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("Interpolation method must be :linear, :linuplogdown or :linlog"))
   if timeout < first(time)
     return concorigin
   elseif timeout > _tlast
@@ -36,20 +36,11 @@ function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin
     idx1 = idx2 - 1
     time1 = time[idx1]; time2 = time[idx2]
     conc1 = conc[idx1]; conc2 = conc[idx2]
-    if interpmethod === :linear || (interpmethod === :linuplogdown &&
-      (conc1 <= 0 || conc2 <= 0) ||
-        (conc1 <= conc2))
-      # Do linear interpolation if:
-      #   linear interpolation is selected or
-      #   lin up/log down interpolation is selected and
-      #     one concentration is 0 or
-      #     the concentrations are equal
+    m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, interpmethod)
+    if m === Linear
       return conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1)
-    elseif interpmethod === :linuplogdown
-      return exp(log(conc1)+(timeout-time1)/(time2-time1)*(log(conc2)-log(conc1)))
     else
-      error("You should never see this error. Please report this as a bug with a reproducible example.")
-      return nothing
+      return exp(log(conc1)+(timeout-time1)/(time2-time1)*(log(conc2)-log(conc1)))
     end
   end
 end

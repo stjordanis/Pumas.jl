@@ -12,14 +12,10 @@ end
     auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
 
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
-rule. If log-linear trapezoidal is not appropriate for the given data, it will
-fall back to the linear trapezoidal rule.
+rule.
 """
 @inline function auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
   Δt = t₂ - t₁
-  # we know that C₂ and C₁ must be non-negative, so we need to check C₁=0,
-  # C₂=0, or C₁ = C₂, and fall back to the linear trapezoidal rule.
-  C₁ == C₂ || C₁ == zero(C₁) || C₂ == zero(C₂) && return auclinear(C₁, C₂, t₁, t₂)
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
   return (Δt * ΔC) / lg
@@ -46,14 +42,10 @@ end
     aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
-by log-linear trapezoidal rule. If log-linear trapezoidal is not appropriate
-for the given data, it will fall back to the linear trapezoidal rule.
+by log-linear trapezoidal rule.
 """
 @inline function aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
   Δt = t₂ - t₁
-  # we know that C₂ and C₁ must be non-negative, so we need to check C₁=0,
-  # C₂=0, or C₁ = C₂, and fall back to the linear trapezoidal rule.
-  C₁ == C₂ || C₁ == zero(C₁) || C₂ == zero(C₂) && return aumclinear(C₁, C₂, t₁, t₂)
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
 end
@@ -65,8 +57,26 @@ Extrapolate the first moment to the infinite.
 """
 @inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
+@enum AUCmethod Linear Log
+
+function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
+  if method === :linear ||
+    (method === :linuplogdown && c2>=c1) && (method === :linlog && maxidx)
+    return Linear
+  else
+    c1 <= zero(c1) || c2 <= zero(c2) && return Linear
+    return Log
+  end
+end
+
+function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
+  m = choosescheme(c1, c2, t1, t2, i, maxidx, method)
+  return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
+end
+
 @inline function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
+  !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     #auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
@@ -82,8 +92,8 @@ Extrapolate the first moment to the infinite.
     #
     concstart = interpextrapconc(nca, lo, interpmethod=method, extrapmethod=:AUCinf)
     idx1, idx2 = let lo = lo, hi = hi
-      (findfirst(x->x>=lo, time),
-       findlast(x->x<=hi, time))
+      findfirst(x->x>=lo, time),
+      findlast( x->x<=hi, time)
     end
   else
     idx1, idx2 = firstindex(time), lastindex(time)
@@ -94,20 +104,16 @@ Extrapolate the first moment to the infinite.
   __auc = linear(concstart, conc[idx1], lo, time[idx1])
   auc::_auctype(nca, auctype) = __auc
   if conc[idx1] != concstart
-    auc = linear(concstart, conc[idx], lo, time[idx1])
+    auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
   else
-    auc = linear(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1])
+    auc = intervalauc(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1], idx1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
   end
   if isfinite(hi)
     concend = interpextrapconc(nca, hi, interpmethod=method, extrapmethod=:AUCinf)
     if conc[idx2] != concend
-      if method === :linear || (method === :linuplogdown && concend ≥ conc[idx2]) # increasing
-        auc += linear(conc[idx2], concend, time[idx2], hi)
-      else
-        auc += log(conc[idx2], concend, time[idx2], hi)
-      end
+      auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log)
     end
   end
 
@@ -125,20 +131,8 @@ Extrapolate the first moment to the infinite.
   # Include the first point after `tlast` if it exists and we are computing AUCall
   # do not support :AUCall for now
   # auctype === :AUCall && tlast > hi && (idx2 = idx2 + 1)
-  if method === :linear
-    for i in int_idxs
-      auc += linear(conc[i], conc[i+1], time[i], time[i+1])
-    end
-  elseif method === :linuplogdown
-    for i in int_idxs
-      if conc[i] ≥ conc[i-1] # increasing
-        auc += linear(conc[i], conc[i+1], time[i], time[i+1])
-      else
-        auc += log(conc[i], conc[i+1], time[i], time[i+1])
-      end
-    end
-  else
-    throw(ArgumentError("method must be either :linear or :linuplogdown"))
+  for i in int_idxs
+    auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
 
   # cache results
