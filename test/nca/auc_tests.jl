@@ -36,9 +36,9 @@ yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test lambdaz(yli, collect(x), idxs=10:20)[1] ≈ lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
 
 for m in (:linear, :linuplogdown)
-  @inferred auc(conc[idx], t[idx], method=m)
-  @inferred aumc(conc[idx], t[idx], method=m)
-  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=:linear)
+  @test_broken @inferred auc(conc[idx], t[idx], method=m)
+  @test_broken @inferred aumc(conc[idx], t[idx], method=m)
+  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
   @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.))
   @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
   x = 0:.1:50
@@ -53,25 +53,28 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  aucs = auc(conc[idx], t[idx], dose=dose[i], method=:linear)
-  aumcs = aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  nca = NCAdata(conc[idx], t[idx], dose=dose[i])
+  aucs = auc(nca, method=:linear)
+  @test aucs === auc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  aumcs = aumc(nca, method=:linear)
+  @test aumcs === aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
   @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
-  @test aucs[5] == aucs[1]/dose[i]
-  @test aucs[6] == aucs[2]/dose[i]
-  @test aumcs[5] == aumcs[1]/dose[i]
-  @test aumcs[6] == aumcs[2]/dose[i]
+  @test aucs[2] == aucs[1]/dose[i]
+  @test aumcs[2] == aumcs[1]/dose[i]
+  if i in fails
+    @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
+    @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+  else
+    @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
+    @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+  end
+  aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
+  aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)
+  @test aucs[2] == aucs[1]/dose[i]
+  @test aumcs[2] == aumcs[1]/dose[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
-  if i in fails
-    @test_broken data[:AUCINF_obs][i] ≈ aucs[2] atol = 1e-6
-    @test_broken data[:AUMCINF_obs][i] ≈ aumcs[2] atol = 1e-6
-    @test_broken data[:Lambda_z][i] ≈ aucs[3] atol = 1e-6
-    @test_broken data[:Lambda_z][i] ≈ aumcs[3] atol = 1e-6
-  else
-    @test data[:AUCINF_obs][i] ≈ aucs[2] atol = 1e-6
-    @test data[:AUMCINF_obs][i] ≈ aumcs[2] atol = 1e-6
-    @test data[:Lambda_z][i] ≈ aucs[3] atol = 1e-6
-    @test data[:Lambda_z][i] ≈ aumcs[3] atol = 1e-6
-  end
 end

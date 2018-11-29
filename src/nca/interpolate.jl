@@ -2,7 +2,7 @@ function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmetho
                           extrapmethod=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   extrapmethod === nothing && (extrapmethod=:AUCinf)
-  _tlast = tlast(time)
+  _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
   for i in eachindex(out)
@@ -24,7 +24,7 @@ function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin
   concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
-  _tlast = tlast(tlast)
+  _tlast = tlast(nca)
   !(interpmethod in (:linear, :linuplogdown)) && throw(ArgumentError("Interpolation method must be :linear or :linuplogdown"))
   if timeout < first(time)
     return concorigin
@@ -57,8 +57,8 @@ end
 function extrapolateconc(nca::NCAdata, timeout::Number; extrapmethod, kwargs...)
   conc, time = nca.conc, nca.time
   λz = lambdaz(nca; kwargs...)[1]
-  _tlast = tlast(time)
-  _clast = clast(conc)
+  _tlast = tlast(nca)
+  _clast = clast(nca)
   !(extrapmethod === :AUCinf) &&
     throw(ArgumentError("extrapmethod must be one of AUCinf"))
   if timeout <= _tlast
