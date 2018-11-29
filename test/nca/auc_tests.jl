@@ -77,4 +77,6 @@ for i in 1:24
   @test aumcs[2] == aumcs[1]/dose[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
+  @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
+  @test auc_extrap_percent(nca) === auc_extrap_percent(conc[idx], t[idx])
 end

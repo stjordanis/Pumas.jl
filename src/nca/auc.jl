@@ -220,7 +220,7 @@ function auc_extrap_percent(nca::NCAdata; kwargs...)
 end
 
 function aumc_extrap_percent(nca::NCAdata; kwargs...)
-  auc(nca; auctype=:AUMCinf, kwargs...)
+  aumc(nca; auctype=:AUMCinf, kwargs...)
   (nca.aumc_inf-nca.aumc_last)/nca.aumc_inf * 100
 end
 
