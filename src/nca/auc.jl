@@ -78,8 +78,8 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
   conc, time = nca.conc, nca.time
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
+    auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
-    #auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
     lo, hi = interval
     lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
     lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
@@ -101,10 +101,10 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
     concstart = conc[idx1]
   end
   # auc of the bounary intervals
-  if conc[idx1] != concstart
+  if time[idx1] != lo # if the interpolation point does not hit the exact data point
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
-    int_idxs = idx1+1:idx2-1
-  else
+    int_idxs = idx1:idx2-1
+  else # we compute the first interval in the data
     auc = intervalauc(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1], idx1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
   end
@@ -165,14 +165,12 @@ calculates AUC and normalized AUC if `dose` is provided.
 """
 function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
   dose = nca.dose
-  # fast return
   sol = nothing
-  if auctype === :AUCinf
+  auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
+  if auctype === :AUCinf && interval === nothing # if we can use the cached result
     nca.auc_inf === nothing || (sol = nca.auc_inf)
   elseif auctype === :AUClast
     !(nca.auc_last === nothing) && interval === nothing && (sol = nca.auc_last)
-  else
-    throw(ArgumentError("auctype must be either :AUCinf or :AUClast"))
   end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
@@ -190,14 +188,12 @@ provided.
 """
 function aumc(nca::NCAdata; auctype=:AUMCinf, interval=nothing, kwargs...)
   dose = nca.dose
-  # fast return
   sol = nothing
-  if auctype === :AUMCinf
+  auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
+  if auctype === :AUMCinf && interval === nothing # if we can use the cached result
     nca.aumc_inf === nothing || (sol = nca.aumc_inf)
   elseif auctype === :AUMClast
     !(nca.aumc_last === nothing) && interval === nothing && (sol = nca.aumc_last)
-  else
-    throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast"))
   end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)

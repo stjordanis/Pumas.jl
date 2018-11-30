@@ -39,8 +39,11 @@ for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred auc(conc[idx], t[idx], method=m)
   @test_broken @inferred aumc(conc[idx], t[idx], method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
-  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.))
-  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
+  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
+  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
+  # test interval
+  @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
+  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:AUClast) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:AUClast)
   x = 0:.1:50
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
   @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
