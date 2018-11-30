@@ -78,7 +78,10 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
   conc, time = nca.conc, nca.time
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
-    auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2]) && @warn "Requesting AUCinf when the end of the interval is not Inf"
+    if auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2])
+      #@warn "Requesting AUCinf when the end of the interval is not Inf"
+      auctype = auctype === :AUCinf ? :AUClast : :AUMClast
+    end
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
     lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
