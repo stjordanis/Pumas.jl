@@ -74,7 +74,7 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:linear, linear, log, inf, kwargs...)
+function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
@@ -102,7 +102,6 @@ function _auc(nca::NCAdata; interval=nothing, auctype::Symbol, method::Symbol=:l
   end
   # auc of the bounary intervals
   __auc = linear(concstart, conc[idx1], lo, time[idx1])
-  auc::_auctype(nca, auctype) = __auc
   if conc[idx1] != concstart
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
