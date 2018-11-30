@@ -101,7 +101,6 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
     concstart = conc[idx1]
   end
   # auc of the bounary intervals
-  __auc = linear(concstart, conc[idx1], lo, time[idx1])
   if conc[idx1] != concstart
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
@@ -162,7 +161,7 @@ end
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
-calculates AUC and normalized AUC if `does` is provided.
+calculates AUC and normalized AUC if `dose` is provided.
 """
 function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
   dose = nca.dose
@@ -186,7 +185,7 @@ end
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
-`(method = :linuplogdown)`. It calculates AUC and normalized AUC if `does` is
+`(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
 provided.
 """
 function aumc(nca::NCAdata; auctype=:AUMCinf, interval=nothing, kwargs...)
