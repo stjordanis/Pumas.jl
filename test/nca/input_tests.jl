@@ -41,3 +41,5 @@ conc, t = NCA.cleanblq(ones(6), 1:6, concblq=:drop)
 conc, t = NCA.cleanblq([0,1,1,3,0], 1:5, concblq=Dict(:first=>:drop, :middle=>:keep, :last=>:drop))
 @test conc == [1,1,3]
 @test t == 2:4
+
+@test_nowarn show(NCAdata([1,2,3.], 1:3))

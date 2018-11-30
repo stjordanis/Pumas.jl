@@ -20,58 +20,66 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-@test ctlast(zeros(5), 1:5) === (clast = missing, tlast = missing)
-@test ctlast(1:5, 1:5) === (clast = 5, tlast = 5)
-@test ctlast(conc[idx], t[idx]) === (clast = conc[idx][end], tlast = t[idx][end])
+@test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
+@test (clast(1:5, 1:5), tlast(1:5, 1:5)) === (5, 5)
+@test (clast(conc[idx], t[idx]), tlast(conc[idx], t[idx])) === (conc[idx][end], t[idx][end])
 arr = [missing, 1, 2, 3, missing]
-@test ctlast(arr, 1:5) === (clast = 3, tlast = 4)
-@test ctmax(arr, 1:5) === (cmax = 3, tmax = 4)
-@test ctmax(conc[idx], t[idx]) === (cmax = conc[idx][1], tmax = t[idx][1])
-@test ctmax(conc[idx], t[idx], interval=(2,Inf)) === (cmax = conc[idx][7], tmax = t[idx][7])
-@test ctmax(conc[idx], t[idx], interval=(24.,Inf)) === (cmax = conc[idx][end], tmax = t[idx][end])
-@test_throws ArgumentError ctmax(conc[idx], t[idx], interval=(100,Inf))
+@test (clast(arr, 1:5), tlast(arr, 1:5)) === (3, 4)
+@test (cmax(arr, 1:5), tmax(arr, 1:5)) === (3, 4)
+@test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
+@test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
+@test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
+@test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
-@test find_lambdaz(yli, collect(x), idxs=10:20)[1] ≈ find_lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
+@test lambdaz(yli, collect(x), idxs=10:20)[1] ≈ lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
 
-for m in (:linear, :linuplogdown)
-  @inferred auc(conc[idx], t[idx], method=m)
-  @inferred aumc(conc[idx], t[idx], method=m)
-  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=:linear)
-  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.))
-  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.))
+for m in (:linear, :linuplogdown, :linlog)
+  @test_broken @inferred auc(conc[idx], t[idx], method=m)
+  @test_broken @inferred aumc(conc[idx], t[idx], method=m)
+  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
+  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
+  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
+  # test interval
+  @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
+  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:AUClast) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:AUClast)
   x = 0:.1:50
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
-  @test find_lambdaz(y, x)[1] ≈ find_lambdaz(conc[idx], t[idx])[1]
+  @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
 end
 
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] == find_lambdaz(conc[idx], t[idx])[1]
-@test find_lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
-@test log(2)/find_lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
+@test lambdaz(conc[idx], t[idx], idxs=12:16)[1] == lambdaz(conc[idx], t[idx])[1]
+@test lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
+@test log(2)/lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
 
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  aucs = auc(conc[idx], t[idx], dose=dose[i], method=:linear)
-  aumcs = aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  nca = NCAdata(conc[idx], t[idx], dose=dose[i])
+  aucs = auc(nca, method=:linear)
+  @test aucs === auc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  aumcs = aumc(nca, method=:linear)
+  @test aumcs === aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
   @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
-  @test aucs[5] == aucs[1]/dose[i]
-  @test aucs[6] == aucs[2]/dose[i]
-  @test aumcs[5] == aumcs[1]/dose[i]
-  @test aumcs[6] == aumcs[2]/dose[i]
+  @test aucs[2] == aucs[1]/dose[i]
+  @test aumcs[2] == aumcs[1]/dose[i]
+  if i in fails
+    @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
+    @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+  else
+    @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
+    @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+  end
+  aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
+  aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)
+  @test aucs[2] == aucs[1]/dose[i]
+  @test aumcs[2] == aumcs[1]/dose[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
-  if i in fails
-    @test_broken data[:AUCINF_obs][i] ≈ aucs[2] atol = 1e-6
-    @test_broken data[:AUMCINF_obs][i] ≈ aumcs[2] atol = 1e-6
-    @test_broken data[:Lambda_z][i] ≈ aucs[3] atol = 1e-6
-    @test_broken data[:Lambda_z][i] ≈ aumcs[3] atol = 1e-6
-  else
-    @test data[:AUCINF_obs][i] ≈ aucs[2] atol = 1e-6
-    @test data[:AUMCINF_obs][i] ≈ aumcs[2] atol = 1e-6
-    @test data[:Lambda_z][i] ≈ aucs[3] atol = 1e-6
-    @test data[:Lambda_z][i] ≈ aumcs[3] atol = 1e-6
-  end
+  @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
+  @test auc_extrap_percent(nca) === auc_extrap_percent(conc[idx], t[idx])
 end
