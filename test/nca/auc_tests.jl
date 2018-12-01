@@ -20,6 +20,8 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
+nca = NCAdata(conc[idx], t[idx])
+
 @test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
 @test (clast(1:5, 1:5), tlast(1:5, 1:5)) === (5, 5)
 @test (clast(conc[idx], t[idx]), tlast(conc[idx], t[idx])) === (conc[idx][end], t[idx][end])
@@ -30,6 +32,8 @@ arr = [missing, 1, 2, 3, missing]
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=2)[2] === conc[idx][end]/2
+@test cmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [cmax(nca, interval=(24.,Inf)), cmax(nca, interval=(10.,Inf))]
+@test tmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [tmax(nca, interval=(24.,Inf)), tmax(nca, interval=(10.,Inf))]
 @test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
@@ -45,6 +49,8 @@ for m in (:linear, :linuplogdown, :linlog)
   # test interval
   aucinf = auc(conc[idx], t[idx])
   aumcinf = aumc(conc[idx], t[idx])
+  @test auc(conc[idx], t[idx], interval=[(0,Inf), (0,Inf), (0,Inf)]) == [aucinf for i in 1:3]
+  @test aumc(conc[idx], t[idx], interval=[(0,Inf), (0,Inf), (0,Inf)]) == [aumcinf for i in 1:3]
   @test auc(conc[idx], t[idx], interval=(0,Inf)) === aucinf
   @test aumc(conc[idx], t[idx], interval=(0,Inf)) === aumcinf
   @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
@@ -67,7 +73,6 @@ for m in (:linear, :linuplogdown, :linlog)
   @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
 end
 
-nca = NCAdata(conc[idx], t[idx])
 @test @inferred(lambdaz(nca, idxs=12:16))[1] == lambdaz(conc[idx], t[idx])[1]
 @test log(2)/lambdaz(conc[idx], t[idx])[1] === thalf(nca)
 @test lambdaz(nca, slopetimes=t[10:13])[1] == lambdaz(conc[idx], t[idx], idxs=10:13)[1]

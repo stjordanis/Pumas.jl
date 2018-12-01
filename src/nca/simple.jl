@@ -45,17 +45,33 @@ end
 
 Calculate ``T_{max}_{t_1}^{t_2}``
 """
-tmax(nca::NCAdata; kwargs...) = ctmax(nca; kwargs...)[2]
+function tmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
+  if interval isa Tuple
+    return ctmax(nca; interval=interval, kwargs...)[2]
+  else
+    f = let nca=nca, kwargs=kwargs
+      i -> ctmax(nca; interval=i, kwargs...)[2]
+    end
+    map(f, interval)
+  end
+end
 
 """
   cmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCAdata; kwargs...)
+function cmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
   dose = nca.dose
-  sol = ctmax(nca; kwargs...)[1]
-  dose === nothing ? sol : (sol, sol/dose)
+  if interval isa Tuple
+    sol = ctmax(nca; interval=interval, kwargs...)[1]
+  else
+    f = let nca=nca, kwargs=kwargs
+      i -> ctmax(nca; interval=i, kwargs...)[1]
+    end
+    sol = map(f, interval)
+  end
+  dose === nothing ? sol : (sol, sol./dose)
 end
 
 @inline function ctmax(nca::NCAdata; interval=(0.,Inf), kwargs...)

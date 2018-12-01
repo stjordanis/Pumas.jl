@@ -178,7 +178,20 @@ Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 calculates AUC and normalized AUC if `dose` is provided.
 """
-function auc(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; auctype=:AUCinf, interval=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
+  if interval isa Tuple || interval === nothing
+    return auc_nokwarg(nca, auctype, interval; kwargs...)
+  elseif interval isa AbstractArray
+    f = let nca=nca, auctype=auctype, kwargs=kwargs
+      i->auc_nokwarg(nca, auctype, i; kwargs...)
+    end
+    return map(f, interval)
+  else
+    error("interval must be a tuple or an array of tuples")
+  end
+end
+
+@inline function auc_nokwarg(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
   auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
@@ -201,7 +214,21 @@ trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
 `(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
 provided.
 """
-function aumc(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; auctype=:AUMCinf, interval=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
+  if interval isa Tuple || interval === nothing
+    return aumc_nokwarg(nca, auctype, interval; kwargs...)
+  elseif interval isa AbstractArray
+    f = let nca=nca, auctype=auctype, kwargs=kwargs
+      i->aumc_nokwarg(nca, auctype, i; kwargs...)
+    end
+    return map(f, interval)
+  else
+    error("interval must be a tuple or an array of tuples")
+  end
+end
+
+@inline function aumc_nokwarg(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, auctype,
+                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
   auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
