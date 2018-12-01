@@ -105,6 +105,9 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
     lo, hi = first(time), last(time)
     concstart = conc[idx1]
   end
+  # assert the type here because we know that `auc` won't be `missing`
+  __auc = linear(concstart, conc[idx1], lo, time[idx1])
+  auc::_auctype(nca, auctype) = __auc
   # auc of the bounary intervals
   if time[idx1] != lo # if the interpolation point does not hit the exact data point
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
@@ -175,7 +178,7 @@ Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 calculates AUC and normalized AUC if `dose` is provided.
 """
-function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
+function auc(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; auctype=:AUCinf, interval=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
   auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
@@ -187,7 +190,7 @@ function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
   end
-  return dose === nothing ? sol : (sol, sol/dose)
+  return D === Nothing ? sol : (sol, sol/dose) # if dose is not nothing, normalize AUC
 end
 
 """
@@ -198,7 +201,7 @@ trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
 `(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
 provided.
 """
-function aumc(nca::NCAdata; auctype=:AUMCinf, interval=nothing, kwargs...)
+function aumc(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; auctype=:AUMCinf, interval=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
   auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
@@ -210,8 +213,7 @@ function aumc(nca::NCAdata; auctype=:AUMCinf, interval=nothing, kwargs...)
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)
   end
-
-  return dose === nothing ? sol : (sol, sol/dose)
+  return D === Nothing ? sol : (sol, sol/dose) # if dose is not nothing, normalize AUMC
 end
 
 function auc_extrap_percent(nca::NCAdata; kwargs...)
@@ -227,14 +229,15 @@ end
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
 """
-  lambdaz(conc, time; threshold=10, check=true, idxs=nothing,
-  missingconc=:drop) -> (lambdaz, points, r2)
+  lambdaz(conc, time; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
 
-Calculate ``λz``, ``r^2``, and the number of data points from the profile used
-in the determination of ``λz``.
+Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
+in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; threshold=10, idxs=nothing, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
-  !(nca.lambdaz === nothing) && return (nca.lambdaz, nca.points, nca.r2)
+function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
+                 threshold=10, idxs=nothing, kwargs...
+                )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N}
+  !(nca.lambdaz === nothing) && return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
   conc, time = nca.conc, nca.time
   maxr2::F = oneunit(F)*false
   λ::Z = oneunit(Z)*false

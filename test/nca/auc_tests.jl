@@ -37,8 +37,8 @@ yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test lambdaz(yli, collect(x), idxs=10:20)[1] ≈ lambdaz(ylg, collect(x), idxs=10:20)[1] atol=1e-2
 
 for m in (:linear, :linuplogdown, :linlog)
-  @test_broken @inferred auc(conc[idx], t[idx], method=m)
-  @test_broken @inferred aumc(conc[idx], t[idx], method=m)
+  @inferred auc(conc[idx], t[idx], method=m)
+  @inferred aumc(conc[idx], t[idx], method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
   @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
   @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
@@ -67,7 +67,7 @@ for m in (:linear, :linuplogdown, :linlog)
   @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
 end
 
-@test lambdaz(conc[idx], t[idx], idxs=12:16)[1] == lambdaz(conc[idx], t[idx])[1]
+@test @inferred(lambdaz(conc[idx], t[idx], idxs=12:16))[1] == lambdaz(conc[idx], t[idx])[1]
 @test lambdaz(conc[idx], t[idx], idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
 @test log(2)/lambdaz(conc[idx], t[idx])[1] === thalf(conc[idx], t[idx])
 
