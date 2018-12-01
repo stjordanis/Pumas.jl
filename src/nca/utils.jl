@@ -65,12 +65,12 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   end
 end
 
-function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+@inline function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
-  concblq === nothing && (concblq = :keep)
-  concblq === :keep && (return conc, time)
+  concblq === nothing && (concblq = :drop)
+  concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
   if firstidx == -1
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
@@ -93,7 +93,7 @@ function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=no
         f.(conc, time)
       end
     else # :last
-      mask = let tlast=tlast
+      mask = let tlast=tlast, llq=llq
         f = (c,t) -> tlast <= t && c ≤ llq
         f.(conc, time)
       end
