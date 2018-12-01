@@ -52,7 +52,11 @@ tmax(nca::NCAdata; kwargs...) = ctmax(nca; kwargs...)[2]
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-cmax(nca::NCAdata; kwargs...) = ctmax(nca; kwargs...)[1]
+function cmax(nca::NCAdata; kwargs...)
+  dose = nca.dose
+  sol = ctmax(nca; kwargs...)[1]
+  dose === nothing ? sol : (sol, sol/dose)
+end
 
 @inline function ctmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
   conc, time = nca.conc, nca.time
