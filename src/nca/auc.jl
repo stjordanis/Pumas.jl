@@ -141,7 +141,7 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
     auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
   if isaucinf
-    λz = lambdaz(nca; kwargs...)[1]
+    λz = lambdaz(nca; recompute=false, kwargs...)[1]
     aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
   else
     aucinf′= zero(auc)
@@ -229,15 +229,18 @@ end
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
 """
-  lambdaz(conc, time; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
+  lambdaz(nca::NCAdata; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
 
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
 function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
-                 threshold=10, idxs=nothing, kwargs...
+                 threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
                 )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N}
-  !(nca.lambdaz === nothing) && return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
+  if !(nca.lambdaz === nothing) && !recompute
+    return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
+  end
+  !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
   maxr2::F = oneunit(F)*false
   λ::Z = oneunit(Z)*false
@@ -245,7 +248,7 @@ function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
   outlier = false
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
   n = length(time)
-  if idxs === nothing
+  if slopetimes === nothing && idxs === nothing
     m = min(n-1, threshold, n-cmaxidx-1)
     m < 2 && throw(ArgumentError("lambdaz must be calculated from at least three data points after Cmax"))
     for i in 2:m
@@ -260,8 +263,10 @@ function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
       end
     end
   else
-    points = length(idxs)
+    points = idxs === nothing ? length(slopetimes) : length(idxs)
     points < 3 && throw(ArgumentError("lambdaz must be calculated from at least three data points"))
+    idxs === nothing && (idxs = findall(x->x in slopetimes, time))
+    length(idxs) != points && throw(ArgumentError("elements slopetimes must occur in nca.time"))
     x = time[idxs]
     y = conc[idxs]
     model = fitlog(x, y)

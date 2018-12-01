@@ -45,7 +45,7 @@ end
 
 function extrapolateconc(nca::NCAdata, timeout::Number; kwargs...)
   conc, time = nca.conc, nca.time
-  λz = lambdaz(nca; kwargs...)[1]
+  λz = lambdaz(nca; recompute=false, kwargs...)[1]
   _tlast = tlast(nca)
   _clast = clast(nca)
   #!(extrapmethod === :AUCinf) &&

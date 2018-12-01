@@ -90,4 +90,4 @@ end
 
 Calculate half life time.
 """
-thalf(nca::NCAdata; kwargs...) = log(2)/lambdaz(nca; kwargs...)[1]
+thalf(nca::NCAdata; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs...)[1]
