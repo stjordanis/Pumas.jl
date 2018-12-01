@@ -76,11 +76,13 @@ end
 
 function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
+  isaucinf = auctype in (:AUMCinf, :AUCinf)
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
-    if auctype in (:AUCinf, :AUMCinf) && isfinite(interval[2])
+    if isaucinf && isfinite(interval[2])
       #@warn "Requesting AUCinf when the end of the interval is not Inf"
       auctype = auctype === :AUCinf ? :AUClast : :AUMClast
+      isaucinf = false
     end
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
@@ -135,27 +137,34 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
   for i in int_idxs
     auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
+  if isaucinf
+    λz = lambdaz(nca; kwargs...)[1]
+    aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
+  else
+    aucinf′= zero(auc)
+  end
 
   # cache results
-  if auctype === :AUMCinf || auctype === :AUCinf
-    λz = lambdaz(nca; kwargs...)[1]
-    aucinf′ = inf(_clast, _tlast, λz)
-    if auctype === :AUCinf
-      nca.auc_last = auc
-      auc += aucinf′
-      nca.auc_inf = auc
+  if interval == nothing # only cache when interval is nothing
+    if isaucinf
+      if auctype === :AUCinf
+        nca.auc_last = auc
+        nca.auc_inf = auc + aucinf′
+      else
+        nca.aumc_last = auc
+        nca.aumc_inf = auc + aucinf′
+      end
     else
-      nca.aumc_last = auc
-      auc += aucinf′
-      nca.aumc_inf = auc
-    end
-  elseif interval === nothing
-    if auctype === :AUClast
-      nca.auc_last = auc
-    else
-      nca.aumc_last = auc
+      if auctype === :AUClast
+        nca.auc_last = auc
+      else
+        nca.aumc_last = auc
+      end
     end
   end
+
+  auc += aucinf′ # add the infinite back
+
   return auc
 end
 

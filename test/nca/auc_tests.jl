@@ -42,8 +42,25 @@ for m in (:linear, :linuplogdown, :linlog)
   @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
   @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
   # test interval
+  aucinf = auc(conc[idx], t[idx])
+  aumcinf = aumc(conc[idx], t[idx])
+  @test auc(conc[idx], t[idx], interval=(0,Inf)) === aucinf
+  @test aumc(conc[idx], t[idx], interval=(0,Inf)) === aumcinf
   @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
   @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:AUClast) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:AUClast)
+
+  auc10_in = auc(conc[idx], t[idx], interval=(0,23)) - auc(conc[idx], t[idx], interval=(10,23))
+  auc10_ex = auc(conc[idx], t[idx], interval=(0,50)) - auc(conc[idx], t[idx], interval=(10,50))
+  auc10  = auc(conc[idx], t[idx], interval=(0,10))
+  @test auc10_in ≈ auc10 ≈ auc10_ex
+  aumc10_in = aumc(conc[idx], t[idx], interval=(0,23)) - aumc(conc[idx], t[idx], interval=(10,23))
+  aumc10_ex = aumc(conc[idx], t[idx], interval=(0,50)) - aumc(conc[idx], t[idx], interval=(10,50))
+  aumc10  = aumc(conc[idx], t[idx], interval=(0,10))
+  @test aumc10_in ≈ aumc10 ≈ aumc10_ex
+
+  aucinf_ = auc(conc[idx], t[idx], interval=(0,21)) + auc(conc[idx], t[idx], interval=(21, Inf))
+  @test aucinf ≈ aucinf
+
   x = 0:.1:50
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
   @test lambdaz(y, x)[1] ≈ lambdaz(conc[idx], t[idx])[1]
