@@ -28,3 +28,18 @@ conc, t = NCA.cleanmissingconc([1,2,missing,4], 1:4, missingconc=100)
 @test conc == [1,2,100,4]
 @test eltype(conc) === Int
 @test t === 1:4
+
+conc, t = NCA.cleanblq(zeros(6), 1:6, concblq=:drop)
+@test isempty(conc)
+@test isempty(t)
+conc, t = NCA.cleanblq(zeros(6), 1:6, concblq=:keep)
+@test conc == zeros(6)
+@test t == 1:6
+conc, t = NCA.cleanblq(ones(6), 1:6, concblq=:drop)
+@test conc == ones(6)
+@test t == 1:6
+conc, t = NCA.cleanblq([0,1,1,3,0], 1:5, concblq=Dict(:first=>:drop, :middle=>:keep, :last=>:drop))
+@test conc == [1,1,3]
+@test t == 2:4
+
+@test_nowarn show(NCAdata([1,2,3.], 1:3))

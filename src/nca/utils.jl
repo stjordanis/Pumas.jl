@@ -33,8 +33,9 @@ function checkconctime(conc, time=nothing; monotonictime=true)
   return
 end
 
-function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
+function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   check && checkconctime(conc, time)
+  missingconc === nothing && (missingconc = :drop)
   E = eltype(conc)
   T = Base.nonmissingtype(E)
   n = count(ismissing, conc)
@@ -64,57 +65,51 @@ function cleanmissingconc(conc, time, args...; missingconc=:drop, check=true)
   end
 end
 
-"""
-  ctlast(conc, time; interval=(0.,Inf), check=true) -> (clast, tlast)
-
-Calculate `clast` and `tlast`.
-"""
-function ctlast(conc, time; check=true)
-  clast, tlast = _ctlast(conc, time, check=check)
-  clast == -one(eltype(conc)) && (clast = missing; tlast = missing)
-  return (clast=clast, tlast=tlast)
-end
-
-# This function uses ``-1`` to denote missing as after checking `conc` is
-# strictly great than ``0``.
-function _ctlast(conc, time; check=true)
-  if check
-    checkconctime(conc, time)
+@inline function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+  conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
+  isempty(conc) && return conc, time
+  llq === nothing && (llq = zero(eltype(conc)))
+  concblq === nothing && (concblq = :drop)
+  concblq === :keep && return conc, time
+  firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
+  if firstidx == -1
+    # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
+    tfirst = last(time)
+    tlast = tfirst + one(tfirst)
+  else
+    tfirst = time[firstidx]
+    lastidx = ctlast_idx(conc, time, llq=llq, check=false)
+    tlast = time[lastidx]
   end
-  # now we assume the data is checked
-  all(x->(ismissing(x) || x==0), conc) && return -one(eltype(conc)), -one(eltype(time))
-  @inbounds idx = findlast(x->!(ismissing(x) || x==0), conc)
-  return conc[idx], time[idx]
-end
-
-"""
-  ctmax(conc, time; interval=(0.,Inf), check=true) -> (cmax, tmax)
-
-Calculate ``C_{max}_{t_1}^{t_2}`` and ``T_{max}_{t_1}^{t_2}``
-"""
-@inline function ctmax(conc, time; interval=(0.,Inf), check=true)
-  if interval === (0., Inf)
-    val, idx = conc_maximum(conc, eachindex(conc))
-    return (cmax=val, tmax=time[idx])
-  end
-  check && checkconctime(conc, time)
-  @assert interval[1] < interval[2] "t0 must be less than t1"
-  interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
-  idx1, idx2 = let (lo, hi)=interval
-    findfirst(t->t>=lo, time),
-    findlast( t->t<=hi, time)
-  end
-  val, idx = conc_maximum(conc, idx1:idx2)
-  return (cmax=val, tmax=time[idx])
-end
-
-@inline function conc_maximum(conc, idxs)
-  idx = -1
-  val = -one(Base.nonmissingtype(eltype(conc)))
-  for i in idxs
-    if !ismissing(conc[i])
-      val < conc[i] && (val = conc[i]; idx=i)
+  for n in (:first, :middle, :last)
+    if n === :first
+      mask = let tfirst=tfirst, llq=llq
+        f = (c, t)-> t ≤ tfirst && c ≤ llq
+        f.(conc, time)
+      end
+    elseif n === :middle
+      mask = let tfirst=tfirst, tlast=tlast, llq=llq
+        f = (c,t)-> tfirst < t < tlast && c ≤ llq
+        f.(conc, time)
+      end
+    else # :last
+      mask = let tlast=tlast, llq=llq
+        f = (c,t) -> tlast <= t && c ≤ llq
+        f.(conc, time)
+      end
+    end
+    rule = concblq isa Dict ? concblq[n] : concblq
+    if rule === :keep
+      # do nothing
+    elseif rule === :drop
+      conc = conc[.!mask]
+      time = time[.!mask]
+    elseif rule isa Number
+      conc === conc′ && (conc = deepcopy(conc)) # if it aliases with the original array, then copy
+      conc[mask] .= rule
+    else
+      throw(ArgumentError("Unknown BLQ rule: $(repr(rule))"))
     end
   end
-  return val, idx
+  return conc, time
 end
