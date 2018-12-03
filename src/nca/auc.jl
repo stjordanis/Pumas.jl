@@ -1,20 +1,20 @@
 """
-    auclinear(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+    auclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
 
 Compute area under the curve (AUC) in an interval by linear trapezoidal rule.
 """
-@inline function auclinear(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+@inline function auclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   return ((C₁ + C₂) * Δt) / 2
 end
 
 """
-    auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+    auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
 
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
 rule.
 """
-@inline function auclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+@inline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
@@ -29,22 +29,22 @@ Extrapolate concentration to the infinite.
 @inline aucinf(clast, tlast, lambdaz) = clast/lambdaz
 
 """
-    aumclinear(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+    aumclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
 by linear trapezoidal rule.
 """
-@inline function aumclinear(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+@inline function aumclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   return auclinear(C₁*t₁, C₂*t₂, t₁, t₂)
 end
 
 """
-    aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+    aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
 by log-linear trapezoidal rule.
 """
-@inline function aumclog(C₁::Real, C₂::Real, t₁::Real, t₂::Real)
+@inline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
@@ -271,6 +271,9 @@ function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
   conc, time = nca.conc, nca.time
   maxr2::F = oneunit(F)*false
   λ::Z = oneunit(Z)*false
+  NoUnitEltype = typeof(one(Z))
+  time′ = reinterpret(NoUnitEltype, time)
+  conc′ = reinterpret(NoUnitEltype, conc)
   points = 2
   outlier = false
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
@@ -279,13 +282,13 @@ function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
     m = min(n-1, threshold, n-cmaxidx-1)
     m < 2 && throw(ArgumentError("lambdaz must be calculated from at least three data points after Cmax"))
     for i in 2:m
-      x = time[end-i:end]
-      y = conc[end-i:end]
+      x = time′[end-i:end]
+      y = conc′[end-i:end]
       model = fitlog(x, y)
-      r2 = r²(model)
+      r2 = oneunit(F) * r²(model)
       if r2 > maxr2
         maxr2 = r2
-        λ = coef(model)[2]
+        λ = oneunit(Z) * coef(model)[2]
         points = i+1
       end
     end
@@ -294,13 +297,13 @@ function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
     points < 3 && throw(ArgumentError("lambdaz must be calculated from at least three data points"))
     idxs === nothing && (idxs = findall(x->x in slopetimes, time))
     length(idxs) != points && throw(ArgumentError("elements slopetimes must occur in nca.time"))
-    x = time[idxs]
-    y = conc[idxs]
+    x = time′[idxs]
+    y = conc′[idxs]
     model = fitlog(x, y)
-    λ = coef(model)[2]
-    r2 = r²(model)
+    λ  = oneunit(Z) * coef(model)[2]
+    r2 = oneunit(F) * r²(model)
   end
-  if λ ≥ 0
+  if λ ≥ zero(λ)
     outlier = true
     @warn "The estimated slope is not negative, got $λ"
   end

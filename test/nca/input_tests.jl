@@ -1,4 +1,4 @@
-using PuMaS.NCA, Test
+using PuMaS.NCA, Test, Unitful
 
 @test_nowarn NCA.checkconctime([1,2,3,4], 1:4)
 @test_nowarn NCA.checkconctime([1,2,missing,4], 1:4)
@@ -42,4 +42,4 @@ conc, t = NCA.cleanblq([0,1,1,3,0], 1:5, concblq=Dict(:first=>:drop, :middle=>:k
 @test conc == [1,1,3]
 @test t == 2:4
 
-@test_nowarn show(NCAdata([1,2,3.], 1:3))
+@test_nowarn show(NCAdata([1,2,3.]*u"mg/L", (1:3)*u"hr"))

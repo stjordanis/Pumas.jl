@@ -11,7 +11,7 @@ function checkconctime(conc, time=nothing; monotonictime=true)
     throw(ArgumentError("Concentration data must be numeric and an array"))
   elseif isallmissing
     @warn "All concentration data is missing"
-  elseif any(x -> x<0, skipmissing(conc))
+  elseif any(x -> x<zero(x), skipmissing(conc))
     @warn "Negative concentrations found"
   end
   # check time

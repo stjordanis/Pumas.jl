@@ -92,7 +92,7 @@ end
 
 @inline function conc_maximum(conc, idxs)
   idx = -1
-  val = -one(Base.nonmissingtype(eltype(conc)))
+  val = -oneunit(Base.nonmissingtype(eltype(conc)))
   for i in idxs
     if !ismissing(conc[i])
       val < conc[i] && (val = conc[i]; idx=i)
