@@ -60,3 +60,20 @@ function Base.show(io::IO, nca::NCAdata)
   println(io, "NCAdata:")
   showunits(io, nca, 2)
 end
+
+function ncasummary(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+  D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
+  clast′ = clast(nca; kwargs...)
+  tlast′ = tlast(nca; kwargs...)
+  tmax′  = tmax(nca; kwargs...)
+  cmax′  = cmax(nca; kwargs...)
+  λz     = lambdaz(nca; kwargs...)
+  thalf′ = thalf(nca; kwargs...)
+  auc′   = auc(nca; kwargs...)
+  aucp   = auc_extrap_percent(nca; kwargs...)
+  aumc′  = aumc(nca; kwargs...)
+  aumcp  = aumc_extrap_percent(nca; kwargs...)
+  (clast=clast′, tlast=tlast′, tmax=tmax′, cmax=cmax′,
+   lambdaz=λz, thalf=thalf′, auc=auc′, auc_extrap_percent=aucp,
+   aumc=aumc′, aumc_extrap_percent=aumcp)
+end
