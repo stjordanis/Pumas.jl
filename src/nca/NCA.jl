@@ -12,7 +12,7 @@ include("simple.jl")
 
 export NCAdata, showunits
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-       clast, tlast, cmax, tmax, thalf
+       clast, tlast, cmax, tmax, thalf, clf, vss, vz
 
 for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent)
