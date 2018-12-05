@@ -3,6 +3,7 @@ module NCA
 using Reexport
 using GLM
 @reexport using DataFrames
+using Pkg, Dates, Printf
 
 include("utils.jl")
 include("type.jl")
@@ -12,8 +13,8 @@ include("simple.jl")
 
 export NCAdata, showunits
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-       clast, tlast, cmax, tmax, thalf,
-       ncasummary
+       clast, tlast, cmax, tmax, thalf
+export NCAReport
 
 for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent)

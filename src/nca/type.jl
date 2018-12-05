@@ -61,19 +61,52 @@ function Base.show(io::IO, nca::NCAdata)
   showunits(io, nca, 2)
 end
 
-function ncasummary(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+# Summary and report
+struct NCAReport{S,V}
+  settings::S
+  values::V
+end
+
+function NCAReport(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
+  # TODO: Summarize settings
+  settings = nothing
+
+  # Calculate summary values
   clast′ = clast(nca; kwargs...)
   tlast′ = tlast(nca; kwargs...)
   tmax′  = tmax(nca; kwargs...)
   cmax′  = cmax(nca; kwargs...)
-  λz     = lambdaz(nca; kwargs...)
+  λz     = lambdaz(nca; kwargs...)[1]
   thalf′ = thalf(nca; kwargs...)
   auc′   = auc(nca; kwargs...)
   aucp   = auc_extrap_percent(nca; kwargs...)
   aumc′  = aumc(nca; kwargs...)
   aumcp  = aumc_extrap_percent(nca; kwargs...)
-  (clast=clast′, tlast=tlast′, tmax=tmax′, cmax=cmax′,
+  values = (clast=clast′, tlast=tlast′, tmax=tmax′, cmax=cmax′,
    lambdaz=λz, thalf=thalf′, auc=auc′, auc_extrap_percent=aucp,
    aumc=aumc′, aumc_extrap_percent=aumcp)
+  
+  NCAReport(settings, values)
+end
+
+Base.summary(::NCAReport) = "NCAReport"
+function Base.show(io::IO, ::MIME"text/plain", report::NCAReport)
+  println(io, "# Noncompartmental Analysis Report")
+  println(io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
+  println(io, "Julia version " * string(VERSION))
+  println(io, "")
+  println(io, "Date and Time: " * Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS"))
+  println(io, "")
+
+  println(io, "## Calculation Setting")
+  # TODO
+  println(io, "")
+
+  println(io, "## Calculated Values")
+  println(io, "|         Name         |    Value   |")
+  println(io, "|----------------------|------------|")
+  for entry in pairs(report.values)
+    @printf(io, "| %-20s | %10f |\n", entry[1], entry[2])
+  end
 end
