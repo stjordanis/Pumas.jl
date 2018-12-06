@@ -9,7 +9,7 @@ conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 dose = Float64.(data[:AMT_IV])[1:16:end]
 
-data = CSV.read("$root/examples/nca_test_data/Final_Parameters_Pivoted.csv")
+data = CSV.read("$root/examples/nca_test_data/dapa_IV_sol.csv")
 
 correct_auc = Float64.(data[:AUCINF_obs])
 correct_auc_last = Float64.(data[:AUClast])
@@ -96,10 +96,14 @@ for i in 1:24
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
+    @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
     @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
+    @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
   aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
   aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)

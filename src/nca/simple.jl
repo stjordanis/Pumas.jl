@@ -92,7 +92,7 @@ end
 
 @inline function conc_maximum(conc, idxs)
   idx = -1
-  val = -one(Base.nonmissingtype(eltype(conc)))
+  val = -oneunit(Base.nonmissingtype(eltype(conc)))
   for i in idxs
     if !ismissing(conc[i])
       val < conc[i] && (val = conc[i]; idx=i)
@@ -107,3 +107,42 @@ end
 Calculate half life time.
 """
 thalf(nca::NCAdata; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs...)[1]
+
+"""
+  clf(nca::NCAdata; kwargs...)
+
+Calculate total drug clearance divided by the bioavailability (F), which is just the
+inverse of the dose normalized ``AUC_0^\\inf``.
+"""
+function clf(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+  if D === Nothing
+    throw(ArgumentError("Dose must be known to compute CLF"))
+  end
+  inv(auc(nca; kwargs...)[2])
+end
+
+"""
+  vss(nca::NCAdata; kwargs...)
+
+Calculate apparent volume of distribution at equilibrium for IV bolus doses.
+``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalized `AUMC` and `AUC`.
+"""
+function vss(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+  if D === Nothing
+    throw(ArgumentError("Dose must be known to compute V_ss"))
+  end
+  aumc(nca; kwargs...)[2] / (auc(nca; kwargs...)[2])^2
+end
+
+"""
+  vz(nca::NCAdata; kwargs...)
+
+Calculate the volume of distribution during the terminal phase.
+``V_z = 1/(AUC_0^\\inf\\lambda_z)`` for dose normalized `AUC`.
+"""
+function vz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+  if D === Nothing
+    throw(ArgumentError("Dose must be known to compute V_z"))
+  end
+  inv(auc(nca; kwargs...)[2] * lambdaz(nca; recompute=false, kwargs...)[1])
+end

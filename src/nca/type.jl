@@ -1,3 +1,5 @@
+using Unitful
+
 mutable struct NCAdata{C,T,AUC,AUMC,D,Z,F,N}
   conc::C
   time::T
@@ -42,18 +44,30 @@ function _auctype(::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, auc=:AUCinf) where {C,T,AUC,A
   end
 end
 
-# now, it only shows the types
 showunits(nca::NCAdata, args...) = showunits(stdout, nca, args...)
 function showunits(io::IO, ::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N}
-  conct = nameof(eltype(C))
-  timet = nameof(eltype(T))
   pad   = " "^indent
+  if eltype(C) <: Quantity
+    conct = string(unit(eltype(C)))
+    timet = string(unit(eltype(T)))
+    AUCt  = string(unit(AUC))
+    AUMCt = string(unit(AUMC))
+    Zt    = string(unit(Z))
+    Dt    = D === Nothing ? D : string(unit(D))
+  else
+    conct = nameof(eltype(C))
+    timet = nameof(eltype(T))
+    AUCt  = AUC
+    AUMCt = AUMC
+    Zt    = Z
+    Dt    = D
+  end
   println(io, "$(pad)concentration: $conct")
   println(io, "$(pad)time:          $timet")
-  println(io, "$(pad)auc:           $AUC")
-  println(io, "$(pad)aumc:          $AUMC")
-  println(io, "$(pad)λz:            $Z")
-  print(  io, "$(pad)dose:          $D")
+  println(io, "$(pad)auc:           $AUCt")
+  println(io, "$(pad)aumc:          $AUMCt")
+  println(io, "$(pad)λz:            $Zt")
+  print(  io, "$(pad)dose:          $Dt")
 end
 
 function Base.show(io::IO, nca::NCAdata)
