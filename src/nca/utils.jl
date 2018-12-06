@@ -114,4 +114,4 @@ end
   return conc, time
 end
 
-normalize(x::Number, d::Dose) = @inbounds x/d.second[2]
+normalize(x::Number, d::NCAdose) = x/d.amt

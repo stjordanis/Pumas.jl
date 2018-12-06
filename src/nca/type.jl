@@ -1,7 +1,21 @@
 using Unitful
 
 @enum Formulation IV EV
-const Dose = Pair{Int,Tuple{Formulation,T}} where T
+
+
+"""
+  NCAdose
+
+`NCAdose` takes the following arguments
+- `idx`: the integer index of the dose. E.g. `time[idx]` is the time of the dose.
+- `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
+- `amt`: The amount of dosage
+"""
+struct NCAdose{T}
+  idx::Int
+  formulation::Formulation
+  amt::T
+end
 
 mutable struct NCAdata{C,T,AUC,AUMC,D,Z,F,N}
   conc::C

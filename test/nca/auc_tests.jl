@@ -31,7 +31,7 @@ arr = [missing, 1, 2, 3, missing]
 @test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
-@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=(1=>(NCA.IV, 2)))[2] === conc[idx][end]/2
+@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=NCAdose(1, NCA.IV, 2))[2] === conc[idx][end]/2
 @test cmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [cmax(nca, interval=(24.,Inf)), cmax(nca, interval=(10.,Inf))]
 @test tmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [tmax(nca, interval=(24.,Inf)), tmax(nca, interval=(10.,Inf))]
 @test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
@@ -82,7 +82,7 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  dose = (1=>(NCA.IV, doses[i]))
+  dose = NCAdose(1, NCA.IV, doses[i])
   nca = NCAdata(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
   @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)

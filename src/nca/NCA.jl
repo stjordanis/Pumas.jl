@@ -10,7 +10,8 @@ include("interpolate.jl")
 include("auc.jl")
 include("simple.jl")
 
-export NCAdata, showunits
+export NCAdata, NCAdose, showunits
+export parse_ncadata
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
        clast, tlast, cmax, tmax, thalf, clf, vss, vz
 
