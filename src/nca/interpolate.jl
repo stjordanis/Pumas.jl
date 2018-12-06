@@ -1,4 +1,4 @@
-function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmethod=nothing, kwargs...)
+function interpextrapconc(nca::NCAData, timeout; concorigin=nothing, interpmethod=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
@@ -17,7 +17,7 @@ function interpextrapconc(nca::NCAdata, timeout; concorigin=nothing, interpmetho
   return out
 end
 
-function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin=nothing, kwargs...)
+function interpolateconc(nca::NCAData, timeout::Number; interpmethod, concorigin=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
@@ -43,7 +43,7 @@ function interpolateconc(nca::NCAdata, timeout::Number; interpmethod, concorigin
   end
 end
 
-function extrapolateconc(nca::NCAdata, timeout::Number; kwargs...)
+function extrapolateconc(nca::NCAData, timeout::Number; kwargs...)
   conc, time = nca.conc, nca.time
   λz = lambdaz(nca; recompute=false, kwargs...)[1]
   _tlast = tlast(nca)
