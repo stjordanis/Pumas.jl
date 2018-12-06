@@ -21,7 +21,7 @@ test_aumc = rand(24,)
 idx = 1:16
 
 nca = NCAdata(conc[idx], t[idx])
-@test_logs (:warn, "`dose` is not provided. No dependent quantities will be calculated") NCAReport(nca)
+@test_logs (:warn, "`dose` is not provided. No dependent quantities will be calculated") NCAreport(nca)
 
 @test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
 @test (clast(1:5, 1:5), tlast(1:5, 1:5)) === (5, 5)
@@ -109,5 +109,5 @@ for i in 1:24
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
   @test auc_extrap_percent(nca) === auc_extrap_percent(conc[idx], t[idx])
-  @test_nowarn NCAReport(nca)
+  @test_nowarn NCAreport(nca)
 end

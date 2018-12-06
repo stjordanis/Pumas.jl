@@ -62,12 +62,12 @@ function Base.show(io::IO, nca::NCAdata)
 end
 
 # Summary and report
-struct NCAReport{S,V}
+struct NCAreport{S,V}
   settings::S
   values::V
 end
 
-function NCAReport(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function NCAreport(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
   settings = nothing
@@ -87,11 +87,11 @@ function NCAReport(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC
    lambdaz=λz, thalf=thalf′, auc=auc′, auc_extrap_percent=aucp,
    aumc=aumc′, aumc_extrap_percent=aumcp)
   
-  NCAReport(settings, values)
+  NCAreport(settings, values)
 end
 
-Base.summary(::NCAReport) = "NCAReport"
-function Base.show(io::IO, ::MIME"text/plain", report::NCAReport)
+Base.summary(::NCAreport) = "NCAreport"
+function Base.show(io::IO, ::MIME"text/plain", report::NCAreport)
   println(io, "# Noncompartmental Analysis Report")
   println(io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
   println(io, "Julia version " * string(VERSION))

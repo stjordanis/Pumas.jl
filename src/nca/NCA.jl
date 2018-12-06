@@ -14,7 +14,7 @@ include("simple.jl")
 export NCAdata, showunits
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
        clast, tlast, cmax, tmax, thalf
-export NCAReport
+export NCAreport
 
 for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent)
