@@ -21,8 +21,8 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, amt=:amt, 
     length(dose_idx) == 1 && (dose_idx = dose_idx[1])
     normalized_dose_idx = (idx[1] + 1) .- dose_idx
     formulation = formulations[dose_idx[1]] == iv ? IV : EV
-    doses = NCAdose.(normalized_dose_idx, Ref(formulation), amts[dose_idx])
-    data  = NCAdata(concs[idx], times[idx]; dose=doses, kwargs...)
+    doses = NCADose.(normalized_dose_idx, Ref(formulation), amts[dose_idx])
+    data  = NCAData(concs[idx], times[idx]; dose=doses, kwargs...)
     NCASubject(id, data)
   end
   return NCAPopulation(ncas)

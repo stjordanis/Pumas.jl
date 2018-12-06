@@ -74,7 +74,7 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
+function _auc(nca::NCAData; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
   isaucinf = auctype in (:AUMCinf, :AUCinf)
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
@@ -172,13 +172,13 @@ function _auc(nca::NCAdata; interval=nothing, auctype, method=:linear, linear, l
 end
 
 """
-  auc(nca::NCAdata; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
+  auc(nca::NCAData; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 calculates AUC and normalized AUC if `dose` is provided.
 """
-function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
+function auc(nca::NCAData; auctype=:AUCinf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
     return auc_nokwarg(nca, auctype, interval; kwargs...)
   elseif interval isa AbstractArray
@@ -191,7 +191,7 @@ function auc(nca::NCAdata; auctype=:AUCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+@inline function auc_nokwarg(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
   auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
@@ -207,7 +207,7 @@ end
 end
 
 """
-  aumc(nca::NCAdata; method::Symbol, interval=(0, Inf), kwargs...)
+  aumc(nca::NCAData; method::Symbol, interval=(0, Inf), kwargs...)
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
@@ -227,7 +227,7 @@ function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, auctype,
+@inline function aumc_nokwarg(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auctype,
                               interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
@@ -243,12 +243,12 @@ end
   return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize(sol, dose)) # if dose is not nothing, normalize AUMC
 end
 
-function auc_extrap_percent(nca::NCAdata; kwargs...)
+function auc_extrap_percent(nca::NCAData; kwargs...)
   auc(nca; auctype=:AUCinf, kwargs...)
   (nca.auc_inf-nca.auc_last)/nca.auc_inf * 100
 end
 
-function aumc_extrap_percent(nca::NCAdata; kwargs...)
+function aumc_extrap_percent(nca::NCAData; kwargs...)
   aumc(nca; auctype=:AUMCinf, kwargs...)
   (nca.aumc_inf-nca.aumc_last)/nca.aumc_inf * 100
 end
@@ -256,12 +256,12 @@ end
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
 """
-  lambdaz(nca::NCAdata; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
+  lambdaz(nca::NCAData; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
 
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCAdata{C,T,AUC,AUMC,D,Z,F,N};
+function lambdaz(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
                 )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N}
   if !(nca.lambdaz === nothing) && !recompute

@@ -117,4 +117,4 @@ end
   return conc, time
 end
 
-normalize(x::Number, d::NCAdose) = x/d.amt
+normalize(x::Number, d::NCADose) = x/d.amt

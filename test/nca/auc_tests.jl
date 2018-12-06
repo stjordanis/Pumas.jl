@@ -12,7 +12,7 @@ conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 doses = Float64.(data[:AMT_IV])[1:16:end]
 
-data = CSV.read("$root/examples/nca_test_data/dapa_IV_sol.csv")
+data = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_sol"))
 
 correct_auc = Float64.(data[:AUCINF_obs])
 correct_auc_last = Float64.(data[:AUClast])
@@ -23,7 +23,8 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-nca = NCAdata(conc[idx], t[idx])
+nca = NCAData(conc[idx], t[idx])
+@test_logs (:warn, "`dose` is not provided. No dependent quantities will be calculated") NCAReport(nca)
 
 @test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
 @test (clast(1:5, 1:5), tlast(1:5, 1:5)) === (5, 5)
@@ -34,7 +35,7 @@ arr = [missing, 1, 2, 3, missing]
 @test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
-@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=NCAdose(1, NCA.IV, 2))[2] === conc[idx][end]/2
+@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=NCADose(1, NCA.IV, 2))[2] === conc[idx][end]/2
 @test cmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [cmax(nca, interval=(24.,Inf)), cmax(nca, interval=(10.,Inf))]
 @test tmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [tmax(nca, interval=(24.,Inf)), tmax(nca, interval=(10.,Inf))]
 @test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
@@ -85,8 +86,8 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  dose = NCAdose(1, NCA.IV, doses[i])
-  nca = NCAdata(conc[idx], t[idx], dose=dose)
+  dose = NCADose(1, NCA.IV, doses[i])
+  nca = NCAData(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
   @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)
   aumcs = aumc(nca, method=:linear)
@@ -116,4 +117,5 @@ for i in 1:24
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
   @test auc_extrap_percent(nca) === auc_extrap_percent(conc[idx], t[idx])
+  @test_nowarn NCAReport(nca)
 end
