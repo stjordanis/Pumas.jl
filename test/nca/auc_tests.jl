@@ -95,10 +95,14 @@ for i in 1:24
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
+    @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
     @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
+    @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
   aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
   aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)
