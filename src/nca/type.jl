@@ -64,20 +64,21 @@ end
 showunits(nca::NCAdata, args...) = showunits(stdout, nca, args...)
 function showunits(io::IO, ::NCAdata{C,T,AUC,AUMC,D,Z,F,N}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N}
   pad   = " "^indent
+  doseT = D <: AbstractArray ? eltype(D).parameters[1] : D.parameters[1]
   if eltype(C) <: Quantity
     conct = string(unit(eltype(C)))
     timet = string(unit(eltype(T)))
     AUCt  = string(unit(AUC))
     AUMCt = string(unit(AUMC))
     Zt    = string(unit(Z))
-    Dt    = D === Nothing ? D : string(unit(D))
+    Dt    = D === Nothing ? D : string(unit(doseT))
   else
     conct = nameof(eltype(C))
     timet = nameof(eltype(T))
     AUCt  = AUC
     AUMCt = AUMC
     Zt    = Z
-    Dt    = D
+    Dt    = doseT
   end
   println(io, "$(pad)concentration: $conct")
   println(io, "$(pad)time:          $timet")
@@ -91,3 +92,21 @@ function Base.show(io::IO, nca::NCAdata)
   println(io, "NCAdata:")
   showunits(io, nca, 2)
 end
+
+struct NCASubject{T<:NCAdata}
+  id::Int
+  data::T
+end
+function Base.show(io::IO, n::NCASubject)
+  println(io, "NCAsubject:")
+  println(io, "  ID: $(n.id)")
+  showunits(io, n.data, 4)
+end
+
+struct NCAPopulation{T<:NCASubject} <: AbstractVector{T}
+  subjects::Vector{T}
+end
+
+Base.size(n::NCAPopulation) = size(n.subjects)
+Base.getindex(n::NCAPopulation, I...) = getindex(n.subjects, I...)
+Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)

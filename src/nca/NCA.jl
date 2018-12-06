@@ -19,6 +19,8 @@ export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
 for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent)
   @eval $f(conc, time, args...; kwargs...) = $f(NCAdata(conc, time; kwargs...), args...; kwargs...)
+  @eval $f(n::NCASubject, args...; kwargs...) = $f(n.data, args...; kwargs...)
+  @eval $f(n::NCAPopulation, args...; kwargs...) = map(n->$f(n, args...; kwargs...), n)
 end
 
 end
