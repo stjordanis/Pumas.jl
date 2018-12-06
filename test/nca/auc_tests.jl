@@ -9,7 +9,7 @@ conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 dose = Float64.(data[:AMT_IV])[1:16:end]
 
-data = CSV.read("$root/examples/nca_test_data/Final_Parameters_Pivoted.csv")
+data = CSV.read("$root/examples/nca_test_data/dapa_IV_sol.csv")
 
 correct_auc = Float64.(data[:AUCINF_obs])
 correct_auc_last = Float64.(data[:AUClast])
