@@ -5,6 +5,7 @@ using GLM
 @reexport using DataFrames
 
 include("type.jl")
+include("data_parsing.jl")
 include("utils.jl")
 include("interpolate.jl")
 include("auc.jl")

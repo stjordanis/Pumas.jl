@@ -2,8 +2,10 @@ using PuMaS.NCA, Test, CSV
 using PuMaS
 using Random
 
-root = joinpath(dirname(pathof(PuMaS)), "..")
-data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
+file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
+data = CSV.read(file)
+
+@test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
