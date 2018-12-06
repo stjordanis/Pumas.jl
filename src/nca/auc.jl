@@ -203,7 +203,7 @@ end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
   end
-  return D === Nothing ? sol : (auc=sol, auc_dn=sol/dose) # if dose is not nothing, normalize AUC
+  return D === Nothing ? sol : (auc=sol, auc_dn=normalize(sol, dose)) # if dose is not nothing, normalize AUC
 end
 
 """
@@ -240,7 +240,7 @@ end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)
   end
-  return D === Nothing ? sol : (aumc=sol, aumc_dn=sol/dose) # if dose is not nothing, normalize AUMC
+  return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize(sol, dose)) # if dose is not nothing, normalize AUMC
 end
 
 function auc_extrap_percent(nca::NCAdata; kwargs...)

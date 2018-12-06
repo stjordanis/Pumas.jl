@@ -7,7 +7,7 @@ data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
-dose = Float64.(data[:AMT_IV])[1:16:end]
+doses = Float64.(data[:AMT_IV])[1:16:end]
 
 data = CSV.read("$root/examples/nca_test_data/dapa_IV_sol.csv")
 
@@ -31,7 +31,7 @@ arr = [missing, 1, 2, 3, missing]
 @test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
-@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=2)[2] === conc[idx][end]/2
+@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=(1=>(NCA.IV, 2)))[2] === conc[idx][end]/2
 @test cmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [cmax(nca, interval=(24.,Inf)), cmax(nca, interval=(10.,Inf))]
 @test tmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [tmax(nca, interval=(24.,Inf)), tmax(nca, interval=(10.,Inf))]
 @test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
@@ -82,15 +82,16 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  nca = NCAdata(conc[idx], t[idx], dose=dose[i])
+  dose = (1=>(NCA.IV, doses[i]))
+  nca = NCAdata(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
-  @test aucs === auc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)
   aumcs = aumc(nca, method=:linear)
-  @test aumcs === aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  @test aumcs === aumc(conc[idx], t[idx], dose=dose, method=:linear)
   @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
-  @test aucs[2] == aucs[1]/dose[i]
-  @test aumcs[2] == aumcs[1]/dose[i]
+  @test aucs[2] == aucs[1]/doses[i]
+  @test aumcs[2] == aumcs[1]/doses[i]
   if i in fails
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
@@ -104,10 +105,10 @@ for i in 1:24
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
-  aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
-  aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)
-  @test aucs[2] == aucs[1]/dose[i]
-  @test aumcs[2] == aumcs[1]/dose[i]
+  aucs = auc(nca, dose=dose, method=:linear, auctype=:AUClast)
+  aumcs = aumc(nca, dose=dose, method=:linear, auctype=:AUMClast)
+  @test aucs[2] == aucs[1]/doses[i]
+  @test aumcs[2] == aumcs[1]/doses[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])

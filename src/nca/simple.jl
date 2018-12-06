@@ -71,7 +71,7 @@ function cmax(nca::NCAdata; interval=(0.,Inf), kwargs...)
     end
     sol = map(f, interval)
   end
-  dose === nothing ? sol : map(s->(cmax=s, cmax_dn=s/dose), sol)
+  dose === nothing ? sol : map(s->(cmax=s, cmax_dn=normalize(s, dose)), sol)
 end
 
 @inline function ctmax(nca::NCAdata; interval=(0.,Inf), kwargs...)

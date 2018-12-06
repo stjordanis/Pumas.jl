@@ -4,8 +4,8 @@ using Reexport
 using GLM
 @reexport using DataFrames
 
-include("utils.jl")
 include("type.jl")
+include("utils.jl")
 include("interpolate.jl")
 include("auc.jl")
 include("simple.jl")

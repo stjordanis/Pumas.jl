@@ -1,11 +1,14 @@
 using Unitful
 
+@enum Formulation IV EV
+const Dose = Pair{Int,Tuple{Formulation,T}} where T
+
 mutable struct NCAdata{C,T,AUC,AUMC,D,Z,F,N}
   conc::C
   time::T
   maxidx::Int
   lastidx::Int
-  dose::Union{Nothing,D}
+  dose::D
   lambdaz::Union{Nothing,Z}
   llq::N
   r2::Union{Nothing,F}
