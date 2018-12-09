@@ -33,8 +33,8 @@ end
 
 x0 = init_param(mdsl)
 
-f(η,subject) = PuMaS.penalized_conditional_nll(mdsl,subject, x0, (η=η,))
-ηstar = [Optim.optimize(η -> f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
+mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(mdsl,subject, x0, (η=η,))
+ηstar = [Optim.optimize(η -> mdsl_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
 @test ηstar ≈ [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361] atol = 1e-3
 
 η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(mdsl,subject,x0,(η=[0.0],),Laplace()), data.subjects)
@@ -45,6 +45,7 @@ ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl,data[i],x0,(η=[ηstar[i]],),Laplac
 
 function full_ll(θ)
   _x0 = (θ=θ,Ω=[0.04],Σ=0.1)
+  ηstar = [Optim.optimize(η -> mdsl_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
   sum(i -> PuMaS.marginal_nll_nonmem(mdsl,data[i],_x0,(η=[ηstar[i]],),Laplace()), 1:10)
 end
 
@@ -258,7 +259,7 @@ theopmodel_laplace = @model begin
         conc = Central / V
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
         dv ~ @. Normal(conc,sqrt(σ_add))
@@ -275,7 +276,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            )
 
 f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, x0, (η=η,))
-ηstar = [Optim.optimize(η -> f(η,theopp[i]),rand(2),BFGS()).minimizer for i in 1:length(theopp)]
+ηstar = [Optim.optimize(η -> f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
 #@test ηstar ≈  atol = 1e-3
 
 η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
@@ -289,6 +290,7 @@ laplace_obj = 123.76439574418291
 function full_ll(θ)
   _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
              σ_add = 0.388)
+  ηstar = [Optim.optimize(η -> mdsl_f(η,data[i]),zeros(2),BFGS()).minimizer[1] for i in 1:10]
   sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
       _x0,(η=ηstar[i],),Laplace()), 1:10)
 end
