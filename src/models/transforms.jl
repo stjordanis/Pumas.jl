@@ -152,6 +152,8 @@ function Distributions.logpdf(d::InverseWishart, C::Cholesky)
     sum((-df-i)*log(C.UL[i,i]) for i = 1:p) - 0.5 * tr(C \ Matrix(d.Ψ)) - d.c0
 end
 
+Distributions.MvNormal(μ::AbstractVector, c::Cholesky) = Distributions.MvNormal(μ, PDMat(c))
+Distributions.MvNormal(c::Cholesky) = Distributions.MvNormal(PDMat(c))
 
 totransform(p::ParamSet) = as(map(totransform, p.params))
 totransform(d::ConstDomain) = ConstantTransform(d.val)
