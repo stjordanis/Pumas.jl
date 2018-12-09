@@ -6,7 +6,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"))
 
 mdsl = @model begin
     @param begin
-        θ ∈ ConstDomain(0.5)
+        θ ∈ VectorDomain(1,init=[0.5])
         Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
         Σ ∈ ConstDomain(0.1)
     end
@@ -16,7 +16,7 @@ mdsl = @model begin
     end
 
     @pre begin
-        CL = θ * exp(η[1])
+        CL = θ[1] * exp(η[1])
         V  = 1.0
     end
 
@@ -43,6 +43,13 @@ f(η,subject) = PuMaS.penalized_conditional_nll(mdsl,subject, x0, (η=η,))
 
 ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl,data[i],x0,(η=[ηstar[i]],),Laplace()), 1:10)
 @test ml ≈ 56.810343602063618 rtol = 1e-6
+
+function full_ll(θ)
+  _x0 = (θ=θ,Ω=[0.04],Σ=0.1)
+  sum(i -> PuMaS.marginal_nll_nonmem(mdsl,data[i],_x0,(η=[ηstar[i]],),Laplace()), 1:10)
+end
+
+Optim.optimize(full_ll,[0.5],BFGS())
 
 # Theophylline model
 
