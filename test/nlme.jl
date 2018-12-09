@@ -1,8 +1,8 @@
 using Test
-using PuMaS, LinearAlgebra
+using PuMaS, LinearAlgebra, Optim
 
 data = process_nmtran(example_nmtran_data("sim_data_model1"))
-theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"))
+theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
 mdsl = @model begin
     @param begin
@@ -33,7 +33,6 @@ end
 
 x0 = init_param(mdsl)
 
-using Optim
 f(η,subject) = PuMaS.penalized_conditional_nll(mdsl,subject, x0, (η=η,))
 ηstar = [Optim.optimize(η -> f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
 @test ηstar ≈ [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361] atol = 1e-3
@@ -275,7 +274,31 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            #σ_prop = 0.3
            )
 
+f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, x0, (η=η,))
+ηstar = [Optim.optimize(η -> f(η,theopp[i]),rand(2),BFGS()).minimizer for i in 1:length(theopp)]
+#@test ηstar ≈  atol = 1e-3
+
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
+#@test η0_mll ≈
+
+ml = sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],x0,(η=ηstar[i],),Laplace()), 1:length(theopp))
+#@test ml ≈ rtol = 1e-6
+
 laplace_obj = 123.76439574418291
+
+function full_ll(θ)
+  _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
+             σ_add = 0.388)
+  sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
+      _x0,(η=ηstar[i],),Laplace()), 1:10)
+end
+
+Optim.optimize(full_ll,[2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+           0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+           0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+           1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+           ],BFGS())
+
 laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                            8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
                            3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
