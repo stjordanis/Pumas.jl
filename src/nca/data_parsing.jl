@@ -1,7 +1,8 @@
 using CSV, DataFrames
 
 parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
-function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, amt=:amt, formulation=:formulation, iv="IV", kwargs...)
+function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
+                       amt=:amt, formulation=:formulation, iv="IV", kwargs...)
   local ids, times, concs, amts, formulations
   try
     ids   = df[id]
@@ -13,15 +14,22 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, amt=:amt, 
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
+  sortvars = occasion === nothing ? id : (id, occasion)
+  iss = issorted(df, sortvars)
+  # we need to use a stable sort because we want to preserve the order of `time`
+  sortedf = iss ? df : sorted(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
   uids = unique(ids)
   idx  = -1
   ncas = map(uids) do id
-    idx = findfirst(isequal(id), ids):findlast(isequal(id), ids) # id's range
+    # id's range, and we know that it is sorted
+    idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
+    # we already sorted by occasions, so we don't have to think about it now.
     dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
+    length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")
     length(dose_idx) == 1 && (dose_idx = dose_idx[1])
-    normalized_dose_idx = (idx[1] + 1) .- dose_idx
+    relative_dose_idx = dose_idx .- (idx[1] - 1)
     formulation = formulations[dose_idx[1]] == iv ? IV : EV
-    doses = NCADose.(normalized_dose_idx, Ref(formulation), amts[dose_idx])
+    doses = NCADose.(relative_dose_idx, Ref(formulation), amts[dose_idx])
     NCASubject(concs[idx], times[idx]; id=id, dose=doses, kwargs...)
   end
   return NCAPopulation(ncas)

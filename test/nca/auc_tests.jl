@@ -5,8 +5,14 @@ using Random
 file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
 data = CSV.read(file)
 
+multiple_doses_file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL")
+mdata = CSV.read(multiple_doses_file)
+
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
 @test_nowarn auc(ncapop)
+
+mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC)
+@test_broken auc(mncapop)
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
