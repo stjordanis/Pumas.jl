@@ -67,23 +67,21 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T,T2,T3,TI,TSI,F} <: AbstractEvent
+struct Event{T,T2,T3} <: AbstractEvent
   amt::T
   time::T2
-  evid::TSI
-  cmt::TI
+  evid::Int8
+  cmt::Int
   rate::T
   duration::T
-  ss::TSI
+  ss::Int8
   ii::T3
   base_time::T2 # So that this is kept after modifications to duration and rate
-  rate_dir::TSI
-  formulation::F
+  rate_dir::Int8
 end
 
 Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
                                     Int8(0), 0.0, time, Int8(1), nothing)
-Event(amt, time, evid, f::Formulation) = Event(amt, time, (nothing for i in 1:8)..., f)
 
 """
   EventProxy

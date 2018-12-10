@@ -80,8 +80,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
     ## Events
     idx_evt = filter(1:m) do i
       data[id][i] == uid &&
-        data[evid][i] != 0 &&
-          !ismissing(data[amt][i])
+        data[evid][i] != 0
     end
     events = Event[]
 
@@ -107,11 +106,11 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
           # ev event record. Bioavailability fractions do not apply
           # to these doses.
 
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1), nothing))
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1)))
         else
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1), nothing))
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1)))
           if _rate != 0 && _ss == 0
-            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1), nothing))
+            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1)))
           end
         end
         t += _ii

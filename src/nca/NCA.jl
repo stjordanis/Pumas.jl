@@ -4,6 +4,7 @@ using Reexport
 using GLM
 @reexport using DataFrames
 using Pkg, Dates, Printf
+import ..PuMaS: Formulation, IV, EV
 
 include("type.jl")
 include("data_parsing.jl")

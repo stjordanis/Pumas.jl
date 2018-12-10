@@ -1,7 +1,5 @@
 using Unitful
 
-@enum Formulation IV EV
-
 """
   NCADose
 
