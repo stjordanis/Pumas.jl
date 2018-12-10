@@ -1,15 +1,3 @@
-"""
-_likelihood(err, obs)
-
-Computes the log-likelihood between the err and obs, only using err terms that
-also have observations, and assuming the Dirac distribution for any err terms
-that are numbers.
-"""
-function _likelihood(err::T, obs) where {T}
-  syms =  fieldnames(T) ∩ fieldnames(typeof(obs.val))
-  sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
-end
-
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
 
 """
@@ -29,9 +17,9 @@ function conditional_ll(m::PKPDModel, subject::Subject, args...; extended_return
   idx = 1
   x = sum(subject.observations) do obs
     if eltype(derived_dist) <: Array
-      l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
+      l = _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs)
     else
-      l = _likelihood(derived_dist, obs)
+      l = _lpdf(derived_dist, obs)
     end
     idx += 1
     return l
