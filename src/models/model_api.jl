@@ -138,7 +138,7 @@ _lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
 function derivedfun(m::PKPDModel, subject::Subject,
                     param = init_param(m),
                     rfx=rand_random(m, param),
-                    args...; continuity=:left,kwargs...)
+                    args...; continuity=:right,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
@@ -188,7 +188,7 @@ function simobs(m::PKPDModel, subject::Subject,
                 param = init_param(m),
                 rfx=rand_random(m, param),
                 args...;
-                continuity=:left,
+                continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   if :saveat in keys(kwargs)
