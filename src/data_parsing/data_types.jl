@@ -1,3 +1,4 @@
+using ..NCA: NCAData
 ## Types
 
 """
@@ -242,7 +243,9 @@ Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
   println(io, "  Events: ", length(subject.events))
-  println(io, "  Observations: ", length(subject.observations))
+  obs = subject.observations
+  obs isa NCAData && (show(io, obs); return nothing)
+  println(io, "  Observations: ",  length(obs))
   println(io, "  Covariates: ")
   subject.covariates !== nothing &&
   foreach(kv -> println(io, string("    ", kv[1], ": ", kv[2])),
