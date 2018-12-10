@@ -1,5 +1,3 @@
-using ..NCA: NCAData
-
 Base.iterate(A::Population)    = iterate(A.subjects)
 Base.iterate(A::Population, i) = iterate(A.subjects, i)
 
@@ -109,11 +107,11 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
           # ev event record. Bioavailability fractions do not apply
           # to these doses.
 
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1)))
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1), nothing))
         else
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1)))
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1), nothing))
           if _rate != 0 && _ss == 0
-            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1)))
+            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1), nothing))
           end
         end
         t += _ii
@@ -126,7 +124,6 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   Population(subjects)
 end
 build_observation_list(obs::AbstractVector{<:Observation}) = obs
-build_observation_list(obs::NCAData) = obs
 function build_observation_list(obs::AbstractDataFrame)
   isempty(obs) && return Observation[]
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1

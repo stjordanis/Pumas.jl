@@ -1,4 +1,3 @@
-using ..NCA: NCAData
 ## Types
 
 """
@@ -27,6 +26,13 @@ TreeViews.hastreeview(::Observation) = true
 function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
   show(io, mime, Text(summary(o)))
 end
+
+"""
+    Formulation
+
+Type of formulations. There are IV (intravenous) and EV (extravascular).
+"""
+@enum Formulation IV EV
 
 abstract type AbstractEvent end
 """
@@ -61,21 +67,23 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T,T2,T3} <: AbstractEvent
+struct Event{T,T2,T3,TI,TSI,F} <: AbstractEvent
   amt::T
   time::T2
-  evid::Int8
-  cmt::Int
+  evid::TSI
+  cmt::TI
   rate::T
   duration::T
-  ss::Int8
+  ss::TSI
   ii::T3
   base_time::T2 # So that this is kept after modifications to duration and rate
-  rate_dir::Int8
+  rate_dir::TSI
+  formulation::F
 end
 
 Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
-                                    Int8(0), 0.0, time, Int8(1))
+                                    Int8(0), 0.0, time, Int8(1), nothing)
+Event(amt, time, evid, f::Formulation) = Event(amt, time, (nothing for i in 1:8)..., f)
 
 """
   EventProxy
@@ -244,7 +252,6 @@ function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
   println(io, "  Events: ", length(subject.events))
   obs = subject.observations
-  obs isa NCAData && (show(io, obs); return nothing)
   println(io, "  Observations: ",  length(obs))
   println(io, "  Covariates: ")
   subject.covariates !== nothing &&
