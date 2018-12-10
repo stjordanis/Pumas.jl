@@ -14,7 +14,8 @@ struct NCADose{T}
   amt::T
 end
 
-mutable struct NCAData{C,T,AUC,AUMC,D,Z,F,N}
+mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N}
+  id::Int
   conc::C
   time::T
   maxidx::Int
@@ -30,7 +31,7 @@ mutable struct NCAData{C,T,AUC,AUMC,D,Z,F,N}
   aumc_last::Union{Nothing,AUMC}
 end
 
-function NCAData(conc′, time′; dose=nothing, llq=nothing, clean=true, lambdaz=nothing, kwargs...)
+function NCASubject(conc′, time′; id=1, dose=nothing, llq=nothing, clean=true, lambdaz=nothing, kwargs...)
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
@@ -42,15 +43,15 @@ function NCAData(conc′, time′; dose=nothing, llq=nothing, clean=true, lambda
   r2_proto = unittime/unitconc*false
   # TODO: check units
   lambdaz_proto = inv(unittime)
-  NCAData{typeof(conc), typeof(time),
+  NCASubject{typeof(conc), typeof(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose), typeof(lambdaz_proto),
-          typeof(r2_proto), typeof(llq)}(
+          typeof(r2_proto), typeof(llq)}(id,
             conc, time, maxidx, lastidx, dose, lambdaz, llq,
               ntuple(i->nothing, 6)...)
 end
 
-function _auctype(::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N}
+function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N}
   if auc in (:AUClast, :AUCinf)
     return AUC
   else
@@ -58,8 +59,8 @@ function _auctype(::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auc=:AUCinf) where {C,T,AUC,A
   end
 end
 
-showunits(nca::NCAData, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCAData{C,T,AUC,AUMC,D,Z,F,N}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N}
+showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
+function showunits(io::IO, ::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[1]
@@ -91,19 +92,10 @@ function showunits(io::IO, ::NCAData{C,T,AUC,AUMC,D,Z,F,N}, indent=0) where {C,T
   print(  io, "$(pad)dose:          $Dt")
 end
 
-function Base.show(io::IO, nca::NCAData)
-  println(io, "NCAData:")
-  showunits(io, nca, 2)
-end
-
-struct NCASubject{T<:NCAData}
-  id::Int
-  data::T
-end
 function Base.show(io::IO, n::NCASubject)
   println(io, "NCASubject:")
   println(io, "  ID: $(n.id)")
-  showunits(io, n.data, 4)
+  showunits(io, n, 4)
 end
 
 struct NCAPopulation{T<:NCASubject} <: AbstractVector{T}
@@ -120,7 +112,7 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
   settings = nothing

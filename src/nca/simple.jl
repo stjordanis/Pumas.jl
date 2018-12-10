@@ -1,19 +1,19 @@
 """
-  clast(nca::NCAData)
+  clast(nca::NCASubject)
 
 Calculate `clast`
 """
-function clast(nca::NCAData; kwargs...)
+function clast(nca::NCASubject; kwargs...)
   idx = nca.lastidx
   return idx === -1 ? missing : nca.conc[idx]
 end
 
 """
-  tlast(nca::NCAData)
+  tlast(nca::NCASubject)
 
 Calculate `tlast`
 """
-function tlast(nca::NCAData; kwargs...)
+function tlast(nca::NCASubject; kwargs...)
   idx = nca.lastidx
   return idx === -1 ? missing : nca.time[idx]
 end
@@ -41,11 +41,11 @@ function ctfirst_idx(conc, time; llq=nothing, check=true)
 end
 
 """
-  tmax(nca::NCAData; interval=(0.,Inf), kwargs...)
+  tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
 
 Calculate ``T_{max}_{t_1}^{t_2}``
 """
-function tmax(nca::NCAData; interval=(0.,Inf), kwargs...)
+function tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
   if interval isa Tuple
     return ctmax(nca; interval=interval, kwargs...)[2]
   else
@@ -57,11 +57,11 @@ function tmax(nca::NCAData; interval=(0.,Inf), kwargs...)
 end
 
 """
-  cmax(nca::NCAData; interval=(0.,Inf), kwargs...)
+  cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCAData; interval=(0.,Inf), kwargs...)
+function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
   dose = nca.dose
   if interval isa Tuple
     sol = ctmax(nca; interval=interval, kwargs...)[1]
@@ -74,7 +74,7 @@ function cmax(nca::NCAData; interval=(0.,Inf), kwargs...)
   dose === nothing ? sol : map(s->(cmax=s, cmax_dn=normalize(s, dose)), sol)
 end
 
-@inline function ctmax(nca::NCAData; interval=(0.,Inf), kwargs...)
+@inline function ctmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
   conc, time = nca.conc, nca.time
   if interval === (0., Inf)
     val, idx = conc_maximum(conc, eachindex(conc))
@@ -102,19 +102,19 @@ end
 end
 
 """
-  thalf(nca::NCAData; kwargs...)
+  thalf(nca::NCASubject; kwargs...)
 
 Calculate half life time.
 """
-thalf(nca::NCAData; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs...)[1]
+thalf(nca::NCASubject; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs...)[1]
 
 """
-  clf(nca::NCAData; kwargs...)
+  clf(nca::NCASubject; kwargs...)
 
 Calculate total drug clearance divided by the bioavailability (F), which is just the
 inverse of the dose normalized ``AUC_0^\\inf``.
 """
-function clf(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function clf(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute CLF"))
   end
@@ -122,12 +122,12 @@ function clf(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,
 end
 
 """
-  vss(nca::NCAData; kwargs...)
+  vss(nca::NCASubject; kwargs...)
 
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 ``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalized `AUMC` and `AUC`.
 """
-function vss(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function vss(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_ss"))
   end
@@ -135,12 +135,12 @@ function vss(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,
 end
 
 """
-  vz(nca::NCAData; kwargs...)
+  vz(nca::NCASubject; kwargs...)
 
 Calculate the volume of distribution during the terminal phase.
 ``V_z = 1/(AUC_0^\\inf\\lambda_z)`` for dose normalized `AUC`.
 """
-function vz(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_z"))
   end

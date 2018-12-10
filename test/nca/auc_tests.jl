@@ -23,7 +23,7 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-nca = NCAData(conc[idx], t[idx])
+nca = NCASubject(conc[idx], t[idx])
 @test_logs (:warn, "`dose` is not provided. No dependent quantities will be calculated") NCAReport(nca)
 
 @test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
@@ -87,7 +87,7 @@ fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
   dose = NCADose(1, NCA.IV, doses[i])
-  nca = NCAData(conc[idx], t[idx], dose=dose)
+  nca = NCASubject(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
   @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)
   aumcs = aumc(nca, method=:linear)
