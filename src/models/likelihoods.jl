@@ -17,9 +17,9 @@ function conditional_ll(m::PKPDModel, subject::Subject, args...; extended_return
   idx = 1
   x = sum(subject.observations) do obs
     if eltype(derived_dist) <: Array
-      l = _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs)
+      l = _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs.val)
     else
-      l = _lpdf(derived_dist, obs)
+      l = _lpdf(derived_dist, obs.val)
     end
     idx += 1
     return l
