@@ -74,6 +74,9 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
+#function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
+#end
+
 function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
   isaucinf = auctype in (:AUMCinf, :AUCinf)

@@ -118,3 +118,27 @@ end
 end
 
 normalize(x::Number, d::NCADose) = x/d.amt
+
+Base.@propagate_inbounds function ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N},
+                                          i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
+  @boundscheck begin
+    m = length(nca.dose)
+    1 <= i <= m-1 || throw(BoundsError(nca.dose, i+1)) # TODO: better error message
+  end
+  dose = nca.dose
+  conc, time = nca.conc, nca.time
+  idxs = dose[i].idx:dose[i+1].idx-1
+  return @views remakesubject(nca,
+                              conc[idxs],
+                              time[idxs])
+end
+
+remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, conc, time) where {C,T,AUC,AUMC,D,Z,F,N} =
+  NCASubject{C,T,AUC,AUMC,D,Z,F,N}(
+             nca.id,
+             conc,         time,
+             nca.maxidx,   nca.lastidx,
+             nca.dose,
+             nca.lambdaz,  nca.llq, nca.r2, nca.points,
+             nca.auc_inf,  nca.auc_last,
+             nca.aumc_inf, nca.aumc_last)
