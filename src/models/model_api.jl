@@ -145,9 +145,7 @@ function derivedfun(m::PKPDModel, subject::Subject,
 end
 
 function derivedfun(m::PKPDModel, col, sol; continuity=:left)
-  if sol isa PKPDAnalyticalSolution
-    derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
-  elseif sol === nothing
+  if sol === nothing
     derived = obstimes -> m.derived(col,nothing,obstimes)
   else
     derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
