@@ -136,7 +136,8 @@ The log pdf: this differs from `Distributions.logdpf` definintion in a couple of
 - if `d` is a `NamedTuple` of distributions, and `x` is a `NamedTuple` of observations, it computes the sum of the observed variables.
 """
 _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
-_lpdf(d::Distributions.Sampleable,x) = x === missing || isnan(x) ? zval(d) : logpdf(d,x)
+_lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
+_lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   syms =  fieldnames(T) ∩ fieldnames(S)
   sum(map((d,x) -> _lpdf(d,x), (getproperty(ds,x) for x in syms), (getproperty(xs,x) for x in syms)))

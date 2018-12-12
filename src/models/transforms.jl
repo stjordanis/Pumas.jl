@@ -122,4 +122,5 @@ end
 totransform(d::PSDDomain) = PSDCholeskyFactor(size(d.init,1))
 
 totransform(d::Distribution) = totransform(Domain(d))
+totransform(d::MvNormal) = as(Array, length(d))
 totransform(c::Constrained) = totransform(c.domain)

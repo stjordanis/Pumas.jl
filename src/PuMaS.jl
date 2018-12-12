@@ -2,7 +2,7 @@ module PuMaS
 
 using DiffEqBase, DiffEqMonteCarlo, Reexport,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
-      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults
+      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
@@ -16,8 +16,8 @@ include("dsl/model_macro.jl")
 
 include("models/params.jl")
 include("models/model_api.jl")
-include("models/likelihoods.jl")
 include("models/transforms.jl")
+include("models/likelihoods.jl")
 
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
