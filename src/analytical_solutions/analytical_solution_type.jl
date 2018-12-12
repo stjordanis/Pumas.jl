@@ -12,12 +12,15 @@ end
 
 function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing,continuity=:right)
   i = searchsortedfirst(sol.t,t) - 1
-  if i < length(sol.t) && t == sol.t[i+1] # at a dose time: apply dose if continuity==:right
-    res = sol.u[i+1]
-    continuity == :right && (res += sol.doses[i+1])
+  if i < length(sol.t) && t == sol.t[i+1] && continuity == :right
+    # If at a dose time and using right continuity, return the saved value
+    # with dose appled.
+    res = sol.u[i+1] + sol.doses[i+1]
   elseif i == 0
+    # If before any saved time points, return the initial value.
     res = sol.prob.u0
   else
+    # In all other cases, propagate from the last saved time point.
     t0 = sol.t[i]
     u0 = sol.u[i]
     dose = sol.doses[i]
