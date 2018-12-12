@@ -60,16 +60,16 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T,T2,T3} <: AbstractEvent
+struct Event{T,T2,T3,R,D,B} <: AbstractEvent
   amt::T
   time::T2
   evid::Int8
   cmt::Int
-  rate::T
-  duration::T
+  rate::R
+  duration::D
   ss::Int8
   ii::T3
-  base_time::T2 # So that this is kept after modifications to duration and rate
+  base_time::B # So that this is kept after modifications to duration and rate
   rate_dir::Int8
 end
 
@@ -153,28 +153,22 @@ mutable struct DosageRegimen
                          addl::Number,
                          rate::Number,
                          ss::Number)
-    amt = isa(amt, Unitful.Mass) ?
-    convert(Float64, getfield(uconvert.(u"mg", amt), :val)) :
-    float(amt)
-    time = isa(time, Unitful.Time) ?
-    convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
-    float(time)
+    amt = float(amt)
+    time = float(time)
     cmt = convert(Int, cmt)
     evid = convert(Int8, evid)
-    ii = isa(ii, Unitful.Time) ?
-    convert(Float64, getfield(uconvert.(u"hr", ii), :val)) :
-    float(ii)
+    ii = float(ii)
     addl = convert(Int, addl)
-    rate = convert(Float64, rate)
     ss = convert(Int8, ss)
-    amt > 0 || throw(ArgumentError("amt must be non-negative"))
-    time ≥ 0 || throw(ArgumentError("time must be non-negative"))
+    rate = float(rate)
+    amt > zero(amt) || throw(ArgumentError("amt must be non-negative"))
+    time ≥ zero(time) || throw(ArgumentError("time must be non-negative"))
     evid == 0 && throw(ArgumentError("observations are not allowed"))
     evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
-    ii ≥ 0 || throw(ArgumentError("ii must be non-negative"))
-    addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
-    addl > 0 && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
-    rate ∈ -2:0 || rate .> 0 || throw(ArgumentError("rate is invalid"))
+    ii ≥ zero(ii) || throw(ArgumentError("ii must be non-negative"))
+    addl ≥ zero(addl) || throw(ArgumentError("addl must be non-negative"))
+    addl > zero(addl) && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
+    rate ∈ -2:0 || rate .> zero(rate) || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
     return new(DataFrame(time = time, cmt = cmt, amt = amt,
                          evid = evid, ii = ii, addl = addl,
@@ -184,7 +178,7 @@ mutable struct DosageRegimen
                 time::Numeric = 0,
                 cmt::Numeric  = 1,
                 evid::Numeric = 1,
-                ii::Numeric   = 0,
+                ii::Numeric   = zero(time),
                 addl::Numeric = 0,
                 rate::Numeric = 0,
                 ss::Numeric   = 0) =

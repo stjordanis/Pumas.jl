@@ -1,9 +1,14 @@
 function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args...; kwargs...)
   f = m.prob
 
-  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-  Ttspan = T.(tspan)
-  Tu0    = T.(u0)
+  if numtype(col) <: ForwardDiff.Dual || numtype(u0) <: ForwardDiff.Dual || numtype(tspan) <: ForwardDiff.Dual
+    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+    Tu0 = convert.(T,u0)
+    Ttspan = convert.(T,tspan)
+  else
+    Tu0 = map(float, u0)
+    Ttspan = map(float, tspan)
+  end
 
   prob = PKPDAnalyticalProblem{false}(f, Tu0, Ttspan)
   ss = prob.ss

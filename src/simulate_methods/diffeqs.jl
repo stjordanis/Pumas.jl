@@ -5,8 +5,12 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=tru
   u0 = prob.u0
 
   # Promotion to handle Dual numbers
-  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
-  Tu0 = convert.(T,u0)
+  if numtype(col) <: ForwardDiff.Dual || numtype(u0) <: ForwardDiff.Dual || numtype(tspan) <: ForwardDiff.Dual
+    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
+    Tu0 = convert.(T,u0)
+  else
+    Tu0 = map(float, u0)
+  end
 
   # build a "modified" problem using DiffEqWrapper
   fd = DiffEqWrapper(prob.f.f, 0, zero(u0))
