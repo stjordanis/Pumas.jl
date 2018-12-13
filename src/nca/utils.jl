@@ -136,7 +136,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUM
   end
   return @views remakesubject(nca,
                               conc[idxs],
-                              time[idxs],
+                              time[idxs].-time[idxs[1]],
                               dose[i])
 end
 
