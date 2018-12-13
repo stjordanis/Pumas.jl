@@ -33,6 +33,7 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     # the time array for the i-th subject
     subjtime = @view times[idx]
     if length(dose_idx) == 1
+      dose_idx = dose_idx[1]
       dose_time = subjtime[dose_idx[1]]
     else
       dose_time = similar(times, Base.nonmissingtype(eltype(times)), length(dose_idx))

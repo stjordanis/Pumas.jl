@@ -74,7 +74,7 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
   dose = nca.dose
   map(eachindex(dose)) do i
     subj = subject_at_ithdose(nca, i)
@@ -199,7 +199,7 @@ function auc(nca::NCASubject; auctype=:AUCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+@inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   dose = nca.dose
   sol = nothing
   auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
@@ -237,8 +237,8 @@ function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, auctype,
-                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+@inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype,
+                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   dose = nca.dose
   sol = nothing
   if !(D <: AbstractArray)
@@ -273,9 +273,9 @@ fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N};
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N}
+                )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N,I}
   if !(nca.lambdaz === nothing) && !recompute
     return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
   end

@@ -114,7 +114,7 @@ thalf(nca::NCASubject; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs.
 Calculate total drug clearance divided by the bioavailability (F), which is just the
 inverse of the dose normalized ``AUC_0^\\inf``.
 """
-function clf(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function clf(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute CLF"))
   end
@@ -127,7 +127,7 @@ end
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 ``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalized `AUMC` and `AUC`.
 """
-function vss(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function vss(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_ss"))
   end
@@ -140,7 +140,7 @@ end
 Calculate the volume of distribution during the terminal phase.
 ``V_z = 1/(AUC_0^\\inf\\lambda_z)`` for dose normalized `AUC`.
 """
-function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
+function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_z"))
   end

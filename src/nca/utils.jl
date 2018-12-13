@@ -119,31 +119,34 @@ end
 
 normalize(x::Number, d::NCADose) = x/d.amt
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N},
-                                          i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
-  m = length(nca.dose)
+Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
+  m = length(dose)
   @boundscheck begin
-    1 <= i <= m || throw(BoundsError(nca.dose, i))
+    1 <= i <= m || throw(BoundsError(dose, i))
   end
-  dose = nca.dose
-  conc, time = nca.conc, nca.time
   idx1 = searchsortedfirst(time, dose[i].time)
   idxs = if i === m
-    idx1:length(conc)
+    idx1:length(time)
   else
     idx2 = searchsortedfirst(time, dose[i+1].time)-1
     idx1:idx2
   end
-  return @views remakesubject(nca,
-                              conc[idxs],
-                              time[idxs].-time[idxs[1]],
-                              dose[i])
+  return idxs
 end
 
-function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N}
-  _, maxidx = conc_maximum(conc, eachindex(conc))
-  lastidx = ctlast_idx(conc, time; llq=nca.llq, check=false)
-  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N}(
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I},
+                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+  conc = nca.conc[i]
+  time = nca.time[i]
+  maxidx = nca.maxidx[i]
+  lastidx = nca.lastidx[i]
+  dose = nca.dose[i]
+  # TODO: caching
+  #lambdaz = nca.lambdaz[i]
+  #r2 = nca.r2[i]
+  #point = nca.point[i]
+  #NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),typeof(lambdaz),typeof(r2),N,eltype(I)}(
+  NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),eltype(Z),eltype(F),N,eltype(I)}(
                nca.id,
                conc,    time,
                maxidx,  lastidx,
@@ -152,3 +155,16 @@ function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}, conc, time, dose) 
                nothing, nothing,
                nothing, nothing)
 end
+
+#function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N,I}
+#  _, maxidx = conc_maximum(conc, eachindex(conc))
+#  lastidx = ctlast_idx(conc, time; llq=nca.llq, check=false)
+#  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N,I}(
+#               nca.id,
+#               conc,    time,
+#               maxidx,  lastidx,
+#               dose,
+#               nothing, nca.llq, nothing, nothing,
+#               nothing, nothing,
+#               nothing, nothing)
+#end
