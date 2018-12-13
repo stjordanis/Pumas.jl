@@ -130,16 +130,14 @@ zval(d::Distributions.Normal{T}) where {T} = zero(T)
 function derivedfun(m::PKPDModel, subject::Subject,
                     param = init_param(m),
                     rfx=rand_random(m, param),
-                    args...; continuity=:left,kwargs...)
+                    args...; continuity=:right,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
 end
 
 function derivedfun(m::PKPDModel, col, sol; continuity=:left)
-  if sol isa PKPDAnalyticalSolution
-    derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
-  elseif sol === nothing
+  if sol === nothing
     derived = obstimes -> m.derived(col,nothing,obstimes)
   else
     derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
@@ -180,7 +178,7 @@ function simobs(m::PKPDModel, subject::Subject,
                 param = init_param(m),
                 rfx=rand_random(m, param),
                 args...;
-                continuity=:left,
+                continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   if :saveat in keys(kwargs)
