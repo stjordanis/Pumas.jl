@@ -4,15 +4,18 @@ using Unitful
   NCADose
 
 `NCADose` takes the following arguments
-- `idx`: the integer index of the dose. E.g. `time[idx]` is the time of the dose.
+- `time`: time of the dose
 - `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
 - `amt`: The amount of dosage
 """
-struct NCADose{T}
-  idx::Int
+struct NCADose{T,A}
+  time::T
   formulation::Formulation
-  amt::T
+  amt::A
 end
+
+# NCADose should behave like a scalar in broadcast
+Broadcast.broadcastable(x::NCADose) = Ref(x)
 
 mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N}
   id::Int

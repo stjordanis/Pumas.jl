@@ -26,10 +26,22 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     # we already sorted by occasions, so we don't have to think about it now.
     dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
     length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")
-    length(dose_idx) == 1 && (dose_idx = dose_idx[1])
-    relative_dose_idx = dose_idx .- (idx[1] - 1)
+    # We want to use time instead of an integer index here, because later we
+    # need to remove BLQ and missing data, so that an index number will no
+    # longer be valid.
+    #
+    # the time array for the i-th subject
+    subjtime = @view times[idx]
+    if length(dose_idx) == 1
+      dose_time = subjtime[dose_idx[1]]
+    else
+      dose_time = similar(times, Base.nonmissingtype(eltype(times)), length(dose_idx))
+      for (n,i) in enumerate(dose_idx)
+        dose_time[n] = subjtime[i]
+      end
+    end
     formulation = formulations[dose_idx[1]] == iv ? IV : EV
-    doses = NCADose.(relative_dose_idx, Ref(formulation), amts[dose_idx])
+    doses = NCADose.(dose_time, Ref(formulation), amts[dose_idx])
     NCASubject(concs[idx], times[idx]; id=id, dose=doses, kwargs...)
   end
   return NCAPopulation(ncas)
