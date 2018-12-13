@@ -36,7 +36,7 @@ using PuMaS, SafeTestsets
 @time @safetestset "Physical Measurements Tests" begin
      include("measurement_tests.jl") end
 @time @safetestset "NLME" begin
-   include("nlme.jl") end
+   include("nlme/runtests.jl") end
 @time @safetestset "Error Handling" begin
      include("error_handling.jl") end
 #=
