@@ -127,25 +127,6 @@ sample(d) = d
 zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
-"""
-_lpdf(d,x)
-
-The log pdf: this differs from `Distributions.logdpf` definintion in a couple of ways:
-- if `d` is a non-distribution it assumes the Dirac distribution.
-- if `x` is `NaN` or `Missing`, it returns 0.
-- if `d` is a `NamedTuple` of distributions, and `x` is a `NamedTuple` of observations, it computes the sum of the observed variables.
-"""
-_lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
-_lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
-_lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
-function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-  syms =  fieldnames(T) ∩ fieldnames(S)
-  sum(map((d,x) -> _lpdf(d,x), (getproperty(ds,x) for x in syms), (getproperty(xs,x) for x in syms)))
-end
-
-
-
-
 function derivedfun(m::PKPDModel, subject::Subject,
                     param = init_param(m),
                     rfx=rand_random(m, param),
