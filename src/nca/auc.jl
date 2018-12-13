@@ -74,8 +74,13 @@ function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-#function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
-#end
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N}
+  dose = nca.dose
+  map(eachindex(dose)) do i
+    subj = subject_at_ithdose(nca, i)
+    _auc(subj; kwargs...)
+  end
+end
 
 function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
   conc, time = nca.conc, nca.time
@@ -198,15 +203,17 @@ end
   dose = nca.dose
   sol = nothing
   auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
-  if auctype === :AUCinf && interval === nothing # if we can use the cached result
-    nca.auc_inf === nothing || (sol = nca.auc_inf)
-  elseif auctype === :AUClast
-    !(nca.auc_last === nothing) && interval === nothing && (sol = nca.auc_last)
+  if !(D <: AbstractArray)
+    if auctype === :AUCinf && interval === nothing # if we can use the cached result
+      nca.auc_inf === nothing || (sol = nca.auc_inf)
+    elseif auctype === :AUClast
+      !(nca.auc_last === nothing) && interval === nothing && (sol = nca.auc_last)
+    end
   end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
   end
-  return D === Nothing ? sol : (auc=sol, auc_dn=normalize(sol, dose)) # if dose is not nothing, normalize AUC
+  return D === Nothing ? sol : (auc=sol, auc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUC
 end
 
 """
@@ -234,16 +241,18 @@ end
                               interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
   dose = nca.dose
   sol = nothing
-  auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
-  if auctype === :AUMCinf && interval === nothing # if we can use the cached result
-    nca.aumc_inf === nothing || (sol = nca.aumc_inf)
-  elseif auctype === :AUMClast
-    !(nca.aumc_last === nothing) && interval === nothing && (sol = nca.aumc_last)
+  if !(D <: AbstractArray)
+    auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
+    if auctype === :AUMCinf && interval === nothing # if we can use the cached result
+      nca.aumc_inf === nothing || (sol = nca.aumc_inf)
+    elseif auctype === :AUMClast
+      !(nca.aumc_last === nothing) && interval === nothing && (sol = nca.aumc_last)
+    end
   end
   if sol === nothing
     sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)
   end
-  return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize(sol, dose)) # if dose is not nothing, normalize AUMC
+  return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUMC
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
