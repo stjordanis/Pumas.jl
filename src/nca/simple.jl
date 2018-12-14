@@ -116,7 +116,7 @@ end
 
 Calculate half life time.
 """
-thalf(nca::NCASubject; kwargs...) = log(2)/lambdaz(nca; recompute=false, kwargs...)[1]
+thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs...)[1]
 
 """
   clf(nca::NCASubject; kwargs...)

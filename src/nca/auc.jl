@@ -256,13 +256,15 @@ end
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
-  auc(nca; auctype=:AUCinf, kwargs...)
-  (nca.auc_inf-nca.auc_last)/nca.auc_inf * 100
+  aucinf  = auc(nca; auctype=:AUCinf, kwargs...)[1]
+  auclast = auc(nca; auctype=:AUClast, kwargs...)[1]
+  @. (aucinf-auclast)/aucinf * 100
 end
 
 function aumc_extrap_percent(nca::NCASubject; kwargs...)
-  aumc(nca; auctype=:AUMCinf, kwargs...)
-  (nca.aumc_inf-nca.aumc_last)/nca.aumc_inf * 100
+  aumcinf  = aumc(nca; auctype=:AUMCinf, kwargs...)[1]
+  aumclast = aumc(nca; auctype=:AUMClast, kwargs...)[1]
+  @. (aumcinf-aumclast)/aumcinf * 100
 end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
