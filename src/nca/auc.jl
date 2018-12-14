@@ -267,6 +267,15 @@ end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+  obj = map(eachindex(nca.dose)) do i
+    subj = subject_at_ithdose(nca, i)
+    lambdaz(subj; kwargs...)
+  end
+  λ, points, r2 = (map(x->x[i], obj) for i in 1:3)
+  (lambdaz=λ, points=points, r2=r2)
+end
+
 """
   lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
 

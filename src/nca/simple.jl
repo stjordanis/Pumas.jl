@@ -1,3 +1,13 @@
+for f in (:clast, :tlast)
+  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+    idx = nca.lastidx
+    obj = map(eachindex(nca.dose)) do i
+      subj = subject_at_ithdose(nca, i)
+      $f(subj; kwargs...)
+    end
+  end
+end
+
 """
   clast(nca::NCASubject)
 
@@ -118,7 +128,7 @@ function clf(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute CLF"))
   end
-  inv(auc(nca; kwargs...)[2])
+  map(inv, auc(nca; kwargs...)[2])
 end
 
 """
@@ -131,7 +141,7 @@ function vss(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_ss"))
   end
-  aumc(nca; kwargs...)[2] / (auc(nca; kwargs...)[2])^2
+  aumc(nca; kwargs...)[2] ./ (auc(nca; kwargs...)[2]).^2
 end
 
 """
@@ -144,5 +154,7 @@ function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,A
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_z"))
   end
-  inv(auc(nca; kwargs...)[2] * lambdaz(nca; recompute=false, kwargs...)[1])
+  aucinf = auc(nca; kwargs...)[2]
+  λ = lambdaz(nca; recompute=false, kwargs...)[1]
+  @. inv(aucinf * λ)
 end
