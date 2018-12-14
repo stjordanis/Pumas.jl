@@ -128,7 +128,7 @@ end
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD ≈ hes_AD atol=5e-3
 
-    PuMaS.marginal_nll(model_ip,subject,x0,y0,PuMaS.Laplace())
+    PuMaS.marginal_nll(model_ip,subject,x0,PuMaS.Laplace())
 end
 
 @testset "Magic argument - lags" begin
