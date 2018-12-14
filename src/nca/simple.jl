@@ -1,4 +1,4 @@
-for f in (:clast, :tlast)
+for f in (:clast, :tlast, :cmax, :tmax)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
