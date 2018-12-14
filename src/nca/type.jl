@@ -50,7 +50,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
     ct = let time=time, dose=dose
       map(eachindex(dose)) do i
         idxs = ithdoseidxs(time, dose, i)
-        @view(conc[idxs]), @view(time[idxs])
+        conc[idxs], time[idxs].-time[idxs[1]]
       end
     end
     conc = map(x->x[1], ct)
