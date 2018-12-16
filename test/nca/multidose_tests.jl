@@ -6,4 +6,4 @@ mdata = CSV.read(multiple_doses_file)
 
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC)
 
-cmax(mncapop)
+@test_nowarn bioavailability(mncapop)

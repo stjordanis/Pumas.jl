@@ -158,3 +158,26 @@ function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,A
   λ = lambdaz(nca; recompute=false, kwargs...)[1]
   @. inv(aucinf * λ)
 end
+
+"""
+  bioavailability(nca::NCASubject; kwargs...)
+
+Bioavailability is the ratio of two AUC values.
+``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
+"""
+function bioavailability(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  multidose = D <: AbstractArray
+  # TODO: what will happen if we only have IV or EV?
+  multidose || return one(AUC) # unitless
+  # initialize
+  auc_0_inf_po = auc_0_inf_iv = zero(eltype(AUC))/oneunit(first(nca.dose).amt) # normalized
+  map(eachindex(nca.dose)) do idx
+    subj = subject_at_ithdose(nca, idx)
+    if subj.dose.formulation === IV
+      auc_0_inf_iv += auc(subj; auctype=:AUCinf, kwargs...)[2]
+    else
+      auc_0_inf_po += auc(subj; auctype=:AUCinf, kwargs...)[2]
+    end
+  end
+  return auc_0_inf_po/auc_0_inf_iv
+end
