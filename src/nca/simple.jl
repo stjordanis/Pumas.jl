@@ -174,9 +174,9 @@ function bioavailability(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) whe
   map(eachindex(nca.dose)) do idx
     subj = subject_at_ithdose(nca, idx)
     if subj.dose.formulation === IV
-      auc_0_inf_iv += auc(subj; auctype=:AUCinf, kwargs...)[2]
+      auc_0_inf_iv += auc(subj; auctype=:inf, kwargs...)[2]
     else
-      auc_0_inf_po += auc(subj; auctype=:AUCinf, kwargs...)[2]
+      auc_0_inf_po += auc(subj; auctype=:inf, kwargs...)[2]
     end
   end
   return auc_0_inf_po/auc_0_inf_iv

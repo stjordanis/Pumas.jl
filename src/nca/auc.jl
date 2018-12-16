@@ -186,7 +186,7 @@ Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
 calculates AUC and normalized AUC if `dose` is provided.
 """
-function auc(nca::NCASubject; auctype=:AUCinf, interval=nothing, kwargs...)
+function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
     return auc_nokwarg(nca, auctype, interval; kwargs...)
   elseif interval isa AbstractArray
@@ -202,7 +202,8 @@ end
 @inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   dose = nca.dose
   sol = nothing
-  auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
+  auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :inf or :last for auc"))
+  auctype = Symbol("AUC$auctype")
   if !(D <: AbstractArray)
     if auctype === :AUCinf && interval === nothing # if we can use the cached result
       nca.auc_inf === nothing || (sol = nca.auc_inf)
@@ -224,7 +225,7 @@ trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
 `(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
 provided.
 """
-function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
+function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
     return aumc_nokwarg(nca, auctype, interval; kwargs...)
   elseif interval isa AbstractArray
@@ -242,7 +243,8 @@ end
   dose = nca.dose
   sol = nothing
   if !(D <: AbstractArray)
-    auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
+    auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
+    auctype = Symbol("AUMC$auctype")
     if auctype === :AUMCinf && interval === nothing # if we can use the cached result
       nca.aumc_inf === nothing || (sol = nca.aumc_inf)
     elseif auctype === :AUMClast
@@ -256,14 +258,14 @@ end
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
-  aucinf  = auc(nca; auctype=:AUCinf, kwargs...)[1]
-  auclast = auc(nca; auctype=:AUClast, kwargs...)[1]
+  aucinf  = auc(nca; auctype=:inf, kwargs...)[1]
+  auclast = auc(nca; auctype=:last, kwargs...)[1]
   @. (aucinf-auclast)/aucinf * 100
 end
 
 function aumc_extrap_percent(nca::NCASubject; kwargs...)
-  aumcinf  = aumc(nca; auctype=:AUMCinf, kwargs...)[1]
-  aumclast = aumc(nca; auctype=:AUMClast, kwargs...)[1]
+  aumcinf  = aumc(nca; auctype=:inf, kwargs...)[1]
+  aumclast = aumc(nca; auctype=:last, kwargs...)[1]
   @. (aumcinf-aumclast)/aumcinf * 100
 end
 

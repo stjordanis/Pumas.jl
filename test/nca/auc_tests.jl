@@ -51,8 +51,8 @@ for m in (:linear, :linuplogdown, :linlog)
   @inferred auc( _nca, method=m)
   @inferred aumc(_nca, method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
-  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
-  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
+  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:last)
+  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:last)
   # test interval
   aucinf = auc(conc[idx], t[idx])
   aumcinf = aumc(conc[idx], t[idx])
@@ -61,7 +61,7 @@ for m in (:linear, :linuplogdown, :linlog)
   @test auc(conc[idx], t[idx], interval=(0,Inf)) === aucinf
   @test aumc(conc[idx], t[idx], interval=(0,Inf)) === aumcinf
   @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
-  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:AUClast) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:AUClast)
+  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:last) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:last)
 
   auc10_in = auc(conc[idx], t[idx], interval=(0,23)) - auc(conc[idx], t[idx], interval=(10,23))
   auc10_ex = auc(conc[idx], t[idx], interval=(0,50)) - auc(conc[idx], t[idx], interval=(10,50))
@@ -114,8 +114,8 @@ for i in 1:24
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
-  aucs = auc(nca, dose=dose, method=:linear, auctype=:AUClast)
-  aumcs = aumc(nca, dose=dose, method=:linear, auctype=:AUMClast)
+  aucs = auc(nca, dose=dose, method=:linear, auctype=:last)
+  aumcs = aumc(nca, dose=dose, method=:linear, auctype=:last)
   @test aucs[2] == aucs[1]/doses[i]
   @test aumcs[2] == aumcs[1]/doses[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
