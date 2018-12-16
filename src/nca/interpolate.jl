@@ -7,10 +7,10 @@ function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, interpme
     if ismissing(out[i])
       @warn warning("Interpolation/extrapolation time is missing at the $(i)th index")
     elseif timeout[i] <= _tlast
-      _out = interpolateconc(nca, timeout[i], interpmethod=interpmethod, concorigin=concorigin)
+      _out = interpolateconc(nca, timeout[i]; interpmethod=interpmethod, concorigin=concorigin, kwargs...)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     else
-      _out = extrapolateconc(nca, timeout[i])
+      _out = extrapolateconc(nca, timeout[i]; kwargs...)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     end
   end
@@ -47,7 +47,7 @@ function extrapolateconc(nca::NCASubject, timeout::Number; kwargs...)
   conc, time = nca.conc, nca.time
   λz = lambdaz(nca; recompute=false, kwargs...)[1]
   _tlast = tlast(nca)
-  _clast = clast(nca)
+  _clast = clast(nca; kwargs...)
   #!(extrapmethod === :AUCinf) &&
     #throw(ArgumentError("extrapmethod must be one of AUCinf"))
   if timeout <= _tlast

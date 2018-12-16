@@ -131,7 +131,7 @@ function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear
     end
   end
 
-  _clast = clast(nca)
+  _clast = clast(nca; kwargs...)
   _tlast = tlast(nca)
   if ismissing(_clast)
     if all(x->x<=nca.llq, conc)

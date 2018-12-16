@@ -12,4 +12,3 @@ mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, fo
 @test_nowarn mrt(mncapop; auctype=:inf)
 @test_nowarn mrt(mncapop; auctype=:last)
 @test_nowarn mat(mncapop)
-@test_nowarn clast_pred(mncapop)

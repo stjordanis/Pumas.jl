@@ -99,20 +99,27 @@ for i in 1:24
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
   @test aucs[2] == aucs[1]/doses[i]
   @test aumcs[2] == aumcs[1]/doses[i]
+  ncap = NCASubject(conc[idx], t[idx], dose=dose)
+  aucps = auc(ncap, method=:linear, pred=true)
+  aumcps = aumc(ncap, method=:linear, pred=true)
   if i in fails
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test_broken data[:AUCINF_pred][i] ≈ aucps[1] atol = 1e-6
+    @test_broken data[:AUMCINF_pred][i] ≈ aumcps[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
     @test_broken data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
-    @test_broken data[:Clast_pred][i] ≈ clast_pred(nca) atol = 1e-6
+    @test_broken data[:Clast_pred][i] ≈ clast(nca, pred=true) atol = 1e-6
     @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
     @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test data[:AUCINF_pred][i] ≈ aucps[1] atol = 1e-6
+    @test data[:AUMCINF_pred][i] ≈ aumcps[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
     @test data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
-    @test data[:Clast_pred][i] ≈ clast_pred(nca) atol = 1e-6
+    @test data[:Clast_pred][i] ≈ clast(nca, pred=true) atol = 1e-6
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
