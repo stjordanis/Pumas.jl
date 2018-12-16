@@ -99,9 +99,8 @@ for i in 1:24
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
   @test aucs[2] == aucs[1]/doses[i]
   @test aumcs[2] == aumcs[1]/doses[i]
-  ncap = NCASubject(conc[idx], t[idx], dose=dose)
-  aucps = auc(ncap, method=:linear, pred=true)
-  aumcps = aumc(ncap, method=:linear, pred=true)
+  aucps = auc(nca, method=:linear, pred=true)
+  aumcps = aumc(nca, method=:linear, pred=true)
   if i in fails
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6

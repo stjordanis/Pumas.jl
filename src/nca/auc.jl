@@ -14,7 +14,7 @@ end
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
 rule.
 """
-@inline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
@@ -44,7 +44,7 @@ end
 Compute area under the first moment of the concentration (AUMC) in an interval
 by log-linear trapezoidal rule.
 """
-@inline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
@@ -59,7 +59,7 @@ Extrapolate the first moment to the infinite.
 
 @enum AUCmethod Linear Log
 
-function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
+@inline function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
   if method === :linear ||
     (method === :linuplogdown && c2>=c1) && (method === :linlog && maxidx)
     return Linear
@@ -69,28 +69,42 @@ function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
   end
 end
 
-function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
+@inline function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
   m = choosescheme(c1, c2, t1, t2, i, maxidx, method)
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
   dose = nca.dose
   map(eachindex(dose)) do i
     subj = subject_at_ithdose(nca, i)
-    _auc(subj; kwargs...)
+    _auc(subj, args...; kwargs...)
   end
 end
 
-function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, interval, linear, log, inf;
+              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  # fast return
+  if interval === nothing
+    if auctype === :inf
+      _clast = clast(nca; kwargs...)
+      _tlast = tlast(nca)
+      aucinf′ = inf(_clast, _tlast, lambdaz(nca; kwargs...)[1])
+      isauc && !(nca.auc_last === nothing) && return (nca.auc_last + aucinf′)::AUC
+      !isauc && !(nca.aumc_last === nothing) && return (nca.aumc_last + aucinf′)::AUMC
+    elseif auctype === :last
+      isauc && !(nca.auc_last === nothing) && return nca.auc_last::AUC
+      !isauc && !(nca.aumc_last === nothing) && return nca.aumc_last::AUMC
+    end
+  end
   conc, time = nca.conc, nca.time
-  isaucinf = auctype in (:AUMCinf, :AUCinf)
+  auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :inf or :last"))
+  isinf = auctype === :inf
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
-    if isaucinf && isfinite(interval[2])
-      #@warn "Requesting AUCinf when the end of the interval is not Inf"
-      auctype = auctype === :AUCinf ? :AUClast : :AUMClast
-      isaucinf = false
+    if isinf && isfinite(interval[2])
+      auctype === :inf && (auctype = :last)
+      isinf = false
     end
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
@@ -148,7 +162,7 @@ function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear
   for i in int_idxs
     auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
-  if isaucinf
+  if isinf
     λz = lambdaz(nca; recompute=false, kwargs...)[1]
     aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
   else
@@ -157,20 +171,10 @@ function _auc(nca::NCASubject; interval=nothing, auctype, method=:linear, linear
 
   # cache results
   if interval == nothing # only cache when interval is nothing
-    if isaucinf
-      if auctype === :AUCinf
-        nca.auc_last = auc
-        nca.auc_inf = auc + aucinf′
-      else
-        nca.aumc_last = auc
-        nca.aumc_inf = auc + aucinf′
-      end
+    if isauc
+      nca.auc_last = auc
     else
-      if auctype === :AUClast
-        nca.auc_last = auc
-      else
-        nca.aumc_last = auc
-      end
+      nca.aumc_last = auc
     end
   end
 
@@ -202,18 +206,7 @@ end
 @inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   dose = nca.dose
   sol = nothing
-  auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :inf or :last for auc"))
-  auctype = Symbol("AUC$auctype")
-  if !(D <: AbstractArray)
-    if auctype === :AUCinf && interval === nothing # if we can use the cached result
-      nca.auc_inf === nothing || (sol = nca.auc_inf)
-    elseif auctype === :AUClast
-      !(nca.auc_last === nothing) && interval === nothing && (sol = nca.auc_last)
-    end
-  end
-  if sol === nothing
-    sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
-  end
+  sol = _auc(nca, interval, auclinear, auclog, aucinf; auctype=auctype, isauc=true, kwargs...)
   return D === Nothing ? sol : (auc=sol, auc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUC
 end
 
@@ -241,19 +234,7 @@ end
 @inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype,
                               interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   dose = nca.dose
-  sol = nothing
-  if !(D <: AbstractArray)
-    auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
-    auctype = Symbol("AUMC$auctype")
-    if auctype === :AUMCinf && interval === nothing # if we can use the cached result
-      nca.aumc_inf === nothing || (sol = nca.aumc_inf)
-    elseif auctype === :AUMClast
-      !(nca.aumc_last === nothing) && interval === nothing && (sol = nca.aumc_last)
-    end
-  end
-  if sol === nothing
-    sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)
-  end
+  sol = _auc(nca, interval, aumclinear, aumclog, aumcinf; auctype=auctype, isauc=false, kwargs...)
   return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUMC
 end
 

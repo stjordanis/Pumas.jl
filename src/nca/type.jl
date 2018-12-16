@@ -30,9 +30,7 @@ mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}
   r2::Union{Nothing,F}
   intercept::Union{Nothing,F}
   points::Union{Nothing,Int}
-  auc_inf::Union{Nothing,AUC}
   auc_last::Union{Nothing,AUC}
-  aumc_inf::Union{Nothing,AUMC}
   aumc_last::Union{Nothing,AUMC}
 end
 
@@ -64,7 +62,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx)}(id,
                         conc, time, maxidx, lastidx, dose, lambdaz, llq,
-                          ntuple(i->nothing, 7)...)
+                          ntuple(i->nothing, 5)...)
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
@@ -73,7 +71,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
           typeof(dose), typeof(lambdaz_proto),
           typeof(r2_proto), typeof(llq), typeof(lastidx)}(id,
             conc, time, maxidx, lastidx, dose, lambdaz, llq,
-              ntuple(i->nothing, 7)...)
+              ntuple(i->nothing, 5)...)
 end
 
 function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I}
