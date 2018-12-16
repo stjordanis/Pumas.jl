@@ -3,7 +3,9 @@ using PuMaS
 
 multiple_doses_file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL")
 mdata = CSV.read(multiple_doses_file)
+msol = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
 
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC)
 
 @test_nowarn bioavailability(mncapop)
+@test all(vcat(tlag(mncapop)...) .=== float.(msol[:Tlag]))

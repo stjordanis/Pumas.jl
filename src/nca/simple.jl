@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :cmax, :tmax)
+for f in (:clast, :tlast, :cmax, :tmax, :tlag)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
@@ -180,4 +180,16 @@ function bioavailability(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) whe
     end
   end
   return auc_0_inf_po/auc_0_inf_iv
+end
+
+"""
+  tlag(nca::NCASubject; kwargs...)
+
+The time prior to the first increase in concentration.
+"""
+function tlag(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute tlag"))
+  nca.dose.formulation === IV && return missing
+  idx = findfirst(c->c > nca.llq, nca.conc)
+  return nca.time[idx]
 end
