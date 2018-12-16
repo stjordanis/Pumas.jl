@@ -17,12 +17,12 @@ export NCASubject, NCAPopulation, NCADose, showunits
 export parse_ncadata
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
        clast, tlast, cmax, tmax, thalf, clf, vss, vz, bioavailability,
-       tlag
+       tlag, mrt
 export NCAReport
 
 for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
-          :bioavailability, :tlag)
+          :bioavailability, :tlag, :mrt)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...)
   @eval $f(n::NCAPopulation, args...; kwargs...) = map(n->$f(n, args...; kwargs...), n)
 end

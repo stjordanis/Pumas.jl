@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :cmax, :tmax, :tlag)
+for f in (:clast, :tlast, :cmax, :tmax, :tlag, :mrt)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
@@ -192,4 +192,20 @@ function tlag(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC
   nca.dose.formulation === IV && return missing
   idx = findfirst(c->c > nca.llq, nca.conc)
   return nca.time[idx]
+end
+
+"""
+  mrt(nca::NCASubject; kwargs...)
+
+Mean residence time from the time of dosing to the time of the last measurable
+concentration.
+
+IV infusion:
+  ``AUMC/AUC - TI/2`` not implemented yet.
+non-infusion:
+  ``AUMC/AUC``
+"""
+function mrt(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute mrt"))
+  aumc(nca; kwargs...)[1] / auc(nca; kwargs...)[1]
 end
