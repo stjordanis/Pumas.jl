@@ -104,6 +104,7 @@ for i in 1:24
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
     @test_broken data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
+    @test_broken data[:Clast_pred][i] ≈ clast_pred(nca) atol = 1e-6
     @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
@@ -111,6 +112,7 @@ for i in 1:24
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
     @test data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
+    @test data[:Clast_pred][i] ≈ clast_pred(nca) atol = 1e-6
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end

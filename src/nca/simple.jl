@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :cmax, :tmax, :tlag, :mrt)
+for f in (:clast, :tlast, :cmax, :tmax, :tlag, :mrt, :clast_pred)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
@@ -16,6 +16,16 @@ Calculate `clast`
 function clast(nca::NCASubject; kwargs...)
   idx = nca.lastidx
   return idx === -1 ? missing : nca.conc[idx]
+end
+
+"""
+  clast_pred(nca::NCASubject; kwargs...)
+
+Predicted concentration value at ``T_last`` by regression of terminal phase.
+"""
+function clast_pred(nca::NCASubject; kwargs...)
+  λz, intercept, _, _ = lambdaz(nca)
+  exp(intercept - λz*tlast(nca))
 end
 
 """

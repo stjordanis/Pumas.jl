@@ -16,11 +16,11 @@ include("simple.jl")
 export NCASubject, NCAPopulation, NCADose, showunits
 export parse_ncadata
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-       clast, tlast, cmax, tmax, thalf, clf, vss, vz, bioavailability,
-       tlag, mrt, mat
+       clast, clast_pred, tlast, cmax, tmax, thalf, clf, vss, vz,
+       bioavailability, tlag, mrt, mat
 export NCAReport
 
-for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf, :clf, :vss, :vz,
+for f in (:lambdaz, :cmax, :tmax, :clast, :clast_pred, :tlast, :thalf, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
           :bioavailability, :tlag, :mrt, :mat)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...)
