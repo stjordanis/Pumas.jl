@@ -151,7 +151,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUM
                conc,    time,
                maxidx,  lastidx,
                dose,
-               nothing, nca.llq, nothing, nothing,
+               nothing, nca.llq, nothing, nothing, nothing,
                nothing, nothing,
                nothing, nothing)
 end

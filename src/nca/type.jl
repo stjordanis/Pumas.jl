@@ -17,6 +17,7 @@ end
 # NCADose should behave like a scalar in broadcast
 Broadcast.broadcastable(x::NCADose) = Ref(x)
 
+# any changes in here must be reflected to ./simple.jl, too
 mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}
   id::Int
   conc::C
@@ -27,6 +28,7 @@ mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}
   lambdaz::Union{Nothing,Z}
   llq::N
   r2::Union{Nothing,F}
+  intercept::Union{Nothing,F}
   points::Union{Nothing,Int}
   auc_inf::Union{Nothing,AUC}
   auc_last::Union{Nothing,AUC}
@@ -62,7 +64,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx)}(id,
                         conc, time, maxidx, lastidx, dose, lambdaz, llq,
-                          ntuple(i->nothing, 6)...)
+                          ntuple(i->nothing, 7)...)
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
@@ -71,7 +73,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
           typeof(dose), typeof(lambdaz_proto),
           typeof(r2_proto), typeof(llq), typeof(lastidx)}(id,
             conc, time, maxidx, lastidx, dose, lambdaz, llq,
-              ntuple(i->nothing, 6)...)
+              ntuple(i->nothing, 7)...)
 end
 
 function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I}

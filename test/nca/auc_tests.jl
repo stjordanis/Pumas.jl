@@ -8,12 +8,6 @@ data = CSV.read(file)
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
 @test_nowarn auc(ncapop)
 
-multiple_doses_file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL")
-mdata = CSV.read(multiple_doses_file)
-
-mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC)
-#@test_nowarn auc(mncapop)
-
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 doses = Float64.(data[:AMT_IV])[1:16:end]
@@ -109,12 +103,14 @@ for i in 1:24
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test_broken data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
     @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
     @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end

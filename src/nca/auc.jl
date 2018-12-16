@@ -274,8 +274,8 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,
     subj = subject_at_ithdose(nca, i)
     lambdaz(subj; kwargs...)
   end
-  λ, points, r2 = (map(x->x[i], obj) for i in 1:3)
-  (lambdaz=λ, points=points, r2=r2)
+  λ, intercept, points, r2 = (map(x->x[i], obj) for i in 1:4)
+  (lambdaz=λ, intercept=intercept, points=points, r2=r2)
 end
 
 """
@@ -286,9 +286,9 @@ in the determination of ``ΛZ``.
 """
 function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N,I}
+                )::NamedTuple{(:lambdaz, :intercept, :points, :r2),Tuple{Z,F,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N,I}
   if !(nca.lambdaz === nothing) && !recompute
-    return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
+    return (lambdaz=nca.lambdaz, intercept=nca.intercept, points=nca.points, r2=nca.r2)
   end
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
@@ -312,6 +312,7 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
       if r2 > maxr2
         maxr2 = r2
         λ = oneunit(Z) * coef(model)[2]
+        intercept = coef(model)[1]
         points = i+1
       end
     end
@@ -323,7 +324,8 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
     x = time′[idxs]
     y = conc′[idxs]
     model = fitlog(x, y)
-    λ  = oneunit(Z) * coef(model)[2]
+    λ = oneunit(Z) * coef(model)[2]
+    intercept = coef(model)[1]
     r2 = oneunit(F) * r²(model)
   end
   if λ ≥ zero(λ)
@@ -333,5 +335,6 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
   nca.lambdaz=-λ
   nca.points=points
   nca.r2=maxr2
-  return (lambdaz=-λ, points=points, r2=maxr2)
+  nca.intercept=intercept
+  return (lambdaz=-λ, intercept=intercept, points=points, r2=maxr2)
 end
