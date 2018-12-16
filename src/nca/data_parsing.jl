@@ -41,8 +41,8 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
         dose_time[n] = subjtime[i]
       end
     end
-    formulation = formulations[dose_idx[1]] == iv ? IV : EV
-    doses = NCADose.(dose_time, Ref(formulation), amts[dose_idx])
+    formulation = map(i -> formulations[i] == iv ? IV : EV, dose_idx)
+    doses = NCADose.(dose_time, formulation, amts[dose_idx])
     NCASubject(concs[idx], times[idx]; id=id, dose=doses, kwargs...)
   end
   return NCAPopulation(ncas)
