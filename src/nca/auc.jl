@@ -332,6 +332,6 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
   end
   nca.lambdaz=-λ
   nca.points=points
-  nca.r2=r2
-  return (lambdaz=-λ, points=points, r2=r2)
+  nca.r2=maxr2
+  return (lambdaz=-λ, points=points, r2=maxr2)
 end
