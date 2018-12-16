@@ -11,3 +11,4 @@ mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, fo
 @test all(vcat(tlag(mncapop)...) .=== float.(msol[:Tlag]))
 @test_nowarn mrt(mncapop; auctype=:inf)
 @test_nowarn mrt(mncapop; auctype=:last)
+@test_nowarn mat(mncapop)

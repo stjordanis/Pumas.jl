@@ -209,3 +209,25 @@ function mrt(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,
   D === Nothing && throw(ArgumentError("Dose must be known to compute mrt"))
   aumc(nca; kwargs...)[1] / auc(nca; kwargs...)[1]
 end
+
+"""
+  mat(nca::NCASubject; kwargs...)
+
+Mean absorption time:
+``MAT = MRT_po - MRT_iv``
+"""
+function mat(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  # dose is checked in `mrt`, so we don't need to check it in `mat`
+  multidose = D <: AbstractArray
+  multidose || error("Need more than one type of dose to calculate MAT")
+  mrt_po = mrt_iv = zero(eltype(eltype(T)))
+  for idx in eachindex(nca.dose)
+    subj = subject_at_ithdose(nca, idx)
+    if subj.dose.formulation === IV
+      mrt_iv += mrt(subj; kwargs...)
+    else
+      mrt_po += mrt(subj; kwargs...)
+    end
+  end # end for
+  mrt_po - mrt_iv
+end
