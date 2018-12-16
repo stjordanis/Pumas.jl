@@ -189,6 +189,34 @@ function bioavailability(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, ithdose::Integ
 end
 
 """
+  cl(nca::NCASubject, ithdose=nothing; kwargs...)
+
+Total drug clearance
+"""
+function cl(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, ithdose=nothing; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute CL"))
+  _clf = clf(nca; kwargs...)
+  dose = nca.dose
+  if D <: NCADose # single dose
+    dose.formulation === IV || return missing
+    bioav = one(AUC)
+    return bioav*_clf
+  else # multiple doses
+    ithdose === nothing && throw(ArgumentError("`ithdose` must be provided for computing CL"))
+    _bioav = bioavailability(nca, ithdose)
+    map(eachindex(dose)) do idx
+      subj = subject_at_ithdose(nca, idx)
+      formulation = subj.dose.formulation
+      if idx == ithdose
+        formulation === IV || throw(ArgumentError("the formulation of `ithdose` must be IV"))
+      end
+      bioav = formulation === IV ? one(eltype(AUC)) : bioav
+      bioav*_clf[idx]
+    end # end multidoses
+  end # end if
+end
+
+"""
   tlag(nca::NCASubject; kwargs...)
 
 The time prior to the first increase in concentration.
