@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex)
+for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex, :swing)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     obj = map(eachindex(nca.dose)) do i
       subj = subject_at_ithdose(nca, i)
@@ -338,4 +338,14 @@ Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-Lambda_z*Tau))`
 function accumulationindex(nca::NCASubject; kwargs...)
   tmp = -lambdaz(nca; recompute=false, kwargs...)[1]*tau(nca)
   inv(oneunit(tmp)-exp(tmp))
+end
+
+"""
+  swing(nca::NCASubject; kwargs...)
+
+  ``swing = (C_{max}-C_{min})/C_{min}``
+"""
+function swing(nca::NCASubject; kwargs...)
+  _cmin = cmin(nca)
+  (cmax(nca)[1] - _cmin) ./ _cmin
 end
