@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :cmax, :tmax, :tlag, :mrt)
+for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :tlag, :mrt)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
@@ -89,6 +89,28 @@ function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
   dose === nothing ? sol : map(s->(cmax=s, cmax_dn=normalize(s, dose)), sol)
 end
 
+"""
+  cmin(nca::NCASubject; kwargs...)
+
+Calculate minimum observed concentration
+"""
+function cmin(nca::NCASubject; kwargs...)
+  conc, time = nca.conc, nca.time
+  val, _ = conc_maximum(conc, eachindex(conc), true)
+  return val
+end
+
+"""
+  tmin(nca::NCASubject; kwargs...)
+
+Calculate time of minimum observed concentration
+"""
+function tmin(nca::NCASubject; kwargs...)
+  conc, time = nca.conc, nca.time
+  _, idx = conc_maximum(conc, eachindex(conc), true)
+  return time[idx]
+end
+
 @inline function ctmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
   conc, time = nca.conc, nca.time
   if interval === (0., Inf)
@@ -105,12 +127,17 @@ end
   return (cmax=val, tmax=time[idx])
 end
 
-@inline function conc_maximum(conc, idxs)
-  idx = -1
+@inline function conc_maximum(conc, idxs, min::Bool=false)
+  idx = 1
   val = -oneunit(Base.nonmissingtype(eltype(conc)))
+  min && (val *= -Inf)
   for i in idxs
     if !ismissing(conc[i])
-      val < conc[i] && (val = conc[i]; idx=i)
+      if min
+        val > conc[i] && (val = conc[i]; idx=i)
+      else
+        val < conc[i] && (val = conc[i]; idx=i)
+      end
     end
   end
   return val, idx
@@ -264,4 +291,26 @@ function mat(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,
     end
   end # end for
   mrt_po - mrt_iv
+end
+
+"""
+  tau(nca::NCASubject)
+
+Dosing interval. For multiple dosing only.
+"""
+function tau(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  D <: NCADose && return missing
+  dose = nca.dose
+  return dose[end].time-dose[end-1].time
+end
+
+"""
+  cavg(nca::NCASubject)
+
+Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
+"""
+function cavg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+  D <: NCADose && return missing
+  subj = subject_at_ithdose(nca, 1)
+  auc(subj; auctype=:last, kwargs...)[1]/tau(nca; kwargs...)
 end

@@ -13,3 +13,5 @@ mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, fo
 @test_nowarn mrt(mncapop; auctype=:last)
 @test_nowarn mat(mncapop)
 @test_nowarn cl(mncapop, 1)
+@test tmin(mncapop[1])[1] == 20
+@test cmin(mncapop[1])[end] == mncapop[1].conc[end][end]
