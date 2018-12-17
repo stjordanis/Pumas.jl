@@ -1,4 +1,4 @@
-for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau)
+for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
     obj = map(eachindex(nca.dose)) do i
       subj = subject_at_ithdose(nca, i)
@@ -22,7 +22,7 @@ Calculate `clast`
 """
 function clast(nca::NCASubject; pred=false, kwargs...)
   if pred
-    λz, intercept, _, _ = lambdaz(nca)
+    λz, intercept, _, _ = lambdaz(nca; recompute=false, kwargs...)
     return exp(intercept - λz*tlast(nca))
   else
     idx = nca.lastidx
@@ -323,6 +323,19 @@ function cavg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC
 end
 
 """
-  fluctation(nca::NCASubject)
+  fluctation(nca::NCASubject; kwargs...)
+
+Peak trough fluctuation over one dosing interval at steady state.
+``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}``
 """
-fluctation(nca::NCASubject) = 100*(cmax(nca)[1] - cmin(nca))/cavg(nca)
+fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca)[1] - cmin(nca))/cavg(nca; kwargs...)
+
+"""
+  accumulationindex(nca::NCASubject; kwargs...)
+
+Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-Lambda_z*Tau))``.
+"""
+function accumulationindex(nca::NCASubject; kwargs...)
+  tmp = -lambdaz(nca; recompute=false, kwargs...)[1]*tau(nca)
+  inv(oneunit(tmp)-exp(tmp))
+end

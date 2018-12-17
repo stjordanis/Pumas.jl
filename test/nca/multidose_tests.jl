@@ -16,3 +16,4 @@ mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, fo
 @test tmin(mncapop[1])[1] == 20
 @test cmin(mncapop[1])[end] == mncapop[1].conc[end][end]
 @test fluctation(mncapop[1]) == 100 .*(cmax(mncapop[1])[1] .- cmin(mncapop[1]))./cavg(mncapop[1])
+@test accumulationindex(mncapop[1]) == inv.(1 .-exp.(-lambdaz(mncapop[1])[1].*tau(mncapop[1])))
