@@ -155,7 +155,6 @@ end
 Distributions.MvNormal(μ::AbstractVector, c::Cholesky) = Distributions.MvNormal(μ, PDMat(c))
 Distributions.MvNormal(c::Cholesky) = Distributions.MvNormal(PDMat(c))
 
-totransform(p::ParamSet) = as(map(totransform, p.params))
 totransform(d::ConstDomain) = ConstantTransform(d.val)
 function totransform(d::RealDomain)
   if d.lower == -Inf
@@ -183,3 +182,5 @@ totransform(d::PDiagDomain) = PDiagTransform(length(d.init.diag))
 totransform(d::Distribution) = totransform(Domain(d))
 totransform(d::MvNormal) = as(Array, length(d))
 totransform(c::Constrained) = totransform(c.domain)
+
+totransform(p::ParamSet) = as(map(totransform, p.params))
