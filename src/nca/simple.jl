@@ -1,11 +1,18 @@
-for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :tlag, :mrt)
+for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau)
   @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
-    idx = nca.lastidx
     obj = map(eachindex(nca.dose)) do i
       subj = subject_at_ithdose(nca, i)
       $f(subj; kwargs...)
     end
   end
+end
+
+function cmax(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+  obj = map(eachindex(nca.dose)) do i
+    subj = subject_at_ithdose(nca, i)
+    cmax(subj; kwargs...)
+  end
+  (cmax=map(x->x[1], obj), cmax_dn=map(x->x[2], obj))
 end
 
 """
@@ -299,7 +306,7 @@ end
 Dosing interval. For multiple dosing only.
 """
 function tau(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
-  D <: NCADose && return missing
+  D <: NCADose && return tlast(nca; kwargs...)-nca.dose.time
   dose = nca.dose
   return dose[end].time-dose[end-1].time
 end
@@ -310,7 +317,12 @@ end
 Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
 """
 function cavg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
-  D <: NCADose && return missing
+  D <: NCADose && return auc(nca; auctype=:last, kwargs...)[1]/tau(nca; kwargs...)
   subj = subject_at_ithdose(nca, 1)
   auc(subj; auctype=:last, kwargs...)[1]/tau(nca; kwargs...)
 end
+
+"""
+  fluctation(nca::NCASubject)
+"""
+fluctation(nca::NCASubject) = 100*(cmax(nca)[1] - cmin(nca))/cavg(nca)
