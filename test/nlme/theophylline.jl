@@ -237,31 +237,33 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
 # Elapsed estimation time in seconds:     0.23
 # Elapsed covariance time in seconds:     0.17
 
-theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
-ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
-#@test ηstar ≈  atol = 1e-3
-
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
-#@test η0_mll ≈
-
-ml = sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],x0,(η=ηstar[i],),Laplace()), 1:length(theopp))
-#@test ml ≈ rtol = 1e-6
-
-laplace_obj = 123.76439574418291
-
-function full_ll(θ)
-  _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
-             σ_add = 0.388)
+@test_broken begin
+  theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
   ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
-  sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
-      _x0,(η=ηstar[i],),Laplace()), 1:10)
-end
+  #@test ηstar ≈  atol = 1e-3
 
-Optim.optimize(full_ll,[2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-           0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-           0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-           1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-           ],BFGS())
+  η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
+  #@test η0_mll ≈
+
+  ml = sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],x0,(η=ηstar[i],),Laplace()), 1:length(theopp))
+  #@test ml ≈ rtol = 1e-6
+
+  laplace_obj = 123.76439574418291
+
+  function full_ll(θ)
+    _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
+               σ_add = 0.388)
+    ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
+    sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
+        _x0,(η=ηstar[i],),Laplace()), 1:10)
+  end
+
+  Optim.optimize(full_ll,[2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+             0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+             ],BFGS())
+end
 
 # run6.mod Laplace with interaction, diagonal omega and additive + proportional error , $COV = sandwich matrix
 # method = laplacei
