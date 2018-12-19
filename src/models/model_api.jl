@@ -106,9 +106,7 @@ function _solve(m::PKPDModel, subject, col, args...;
     tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
     tspan = float.(tspan_tmp)
   end
-  @show tspan
   u0  = m.init(col, tspan[1])
-  @show u0
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
