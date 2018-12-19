@@ -32,6 +32,8 @@ using PuMaS, SafeTestsets
 include("nca/runtests.jl")
 @time @safetestset "Automatic Differentiation Tests" begin
      include("ad_tests.jl") end
+@time @safetestset "Unit Handling Tests" begin
+     include("unit_handling_tests.jl") end
 @time @safetestset "Physical Measurements Tests" begin
      include("measurement_tests.jl") end
 include("nlme/runtests.jl")
