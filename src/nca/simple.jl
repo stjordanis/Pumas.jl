@@ -199,12 +199,12 @@ function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,A
 end
 
 """
-  bioavailability(nca::NCASubject, ithdose::Integer; kwargs...)
+  bioav(nca::NCASubject, ithdose::Integer; kwargs...)
 
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
-function bioavailability(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, ithdose::Integer; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+function bioav(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, ithdose::Integer; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
   multidose = D <: AbstractArray
   # if there is only a single dose
   multidose || return missing
@@ -233,19 +233,19 @@ function cl(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, ithdose=nothing; kwargs...)
   dose = nca.dose
   if D <: NCADose # single dose
     dose.formulation === IV || return missing
-    bioav = one(AUC)
-    return bioav*_clf
+    _bioav = one(AUC)
+    return _bioav*_clf
   else # multiple doses
     ithdose === nothing && throw(ArgumentError("`ithdose` must be provided for computing CL"))
-    _bioav = bioavailability(nca, ithdose)
+    _bioav = bioav(nca, ithdose)
     map(eachindex(dose)) do idx
       subj = subject_at_ithdose(nca, idx)
       formulation = subj.dose.formulation
       if idx == ithdose
         formulation === IV || throw(ArgumentError("the formulation of `ithdose` must be IV"))
       end
-      bioav = formulation === IV ? one(eltype(AUC)) : bioav
-      bioav*_clf[idx]
+      _bioav = formulation === IV ? one(eltype(AUC)) : _bioav
+      _bioav*_clf[idx]
     end # end multidoses
   end # end if
 end
