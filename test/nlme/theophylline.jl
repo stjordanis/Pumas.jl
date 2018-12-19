@@ -1,48 +1,7 @@
 using Test
-using PuMaS, LinearAlgebra
+using PuMaS, LinearAlgebra, Optim
 
-data = process_nmtran(example_nmtran_data("sim_data_model1"))
-theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"))
-
-mdsl = @model begin
-    @param begin
-        θ ∈ ConstDomain(0.5)
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ ConstDomain(0.1)
-    end
-
-    @random begin
-        η ~ MvNormal(Ω)
-    end
-
-    @pre begin
-        CL = θ * exp(η[1])
-        V  = 1.0
-    end
-
-    @vars begin
-        conc = Central / V
-    end
-
-    @dynamics ImmediateAbsorptionModel
-
-    @derived begin
-        dv ~ @. Normal(conc,conc*sqrt(Σ)+eps())
-    end
-end
-
-x0 = init_param(mdsl)
-
-using Optim
-f(η,subject) = PuMaS.penalized_conditional_nll(mdsl,subject, x0, (η=η,))
-ηstar = [Optim.optimize(η -> f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-@test ηstar ≈ [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361] atol = 1e-3
-
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(mdsl,subject,x0,(η=[0.0],),Laplace()), data.subjects)
-@test η0_mll ≈ 57.19397077905644
-
-ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl,data[i],x0,(η=[ηstar[i]],),Laplace()), 1:10)
-@test ml ≈ 56.810343602063618 rtol = 1e-6
+theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
 # Theophylline model
 
@@ -252,7 +211,7 @@ theopmodel_laplace = @model begin
         conc = Central / V
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
         dv ~ @. Normal(conc,sqrt(σ_add))
@@ -268,18 +227,43 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            #σ_prop = 0.3
            )
 
-laplace_obj = 123.76439574418291
 laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-                           8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-                           3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-                           2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-                           ],
-                           Ω_11  = 1.59600E+00,
-                           Ω_21  = 0.00000E+00,
-                           Ω_22  = 2.27638E-01,
-                           σ_add = 5.14457E-01)
+                          8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+                          3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+                          2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+                          ],
+                          Ω = PDMat(diagm(0 => [1.596,2.27638e-01])),
+                          σ_add = 5.14457E-01)
 # Elapsed estimation time in seconds:     0.23
 # Elapsed covariance time in seconds:     0.17
+
+@test_broken begin
+  theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
+  ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
+  #@test ηstar ≈  atol = 1e-3
+
+  η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
+  #@test η0_mll ≈
+
+  ml = sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],x0,(η=ηstar[i],),Laplace()), 1:length(theopp))
+  #@test ml ≈ rtol = 1e-6
+
+  laplace_obj = 123.76439574418291
+
+  function full_ll(θ)
+    _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
+               σ_add = 0.388)
+    ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
+    sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
+        _x0,(η=ηstar[i],),Laplace()), 1:10)
+  end
+
+  Optim.optimize(full_ll,[2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+             0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+             ],BFGS())
+end
 
 # run6.mod Laplace with interaction, diagonal omega and additive + proportional error , $COV = sandwich matrix
 # method = laplacei

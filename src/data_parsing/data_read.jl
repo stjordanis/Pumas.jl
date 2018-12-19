@@ -154,9 +154,9 @@ function build_event_list(regimen::DosageRegimen)
     for j = 0:addl  # addl==0 means just once
       _ss = iszero(j) ? ss : zero(Int8)
       duration = amt/rate
-      @assert amt != 0 || _ss == 1 || evid == 2
+      @assert amt != zero(amt) || _ss == 1 || evid == 2
       if iszero(amt) && evid != 2
-        @assert rate > 0
+        @assert rate > zero(rate)
         # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
         # Such an event consists of infusion with the stated rate,
         # starting at time −∞, and ending at the time on the dose
@@ -165,7 +165,7 @@ function build_event_list(regimen::DosageRegimen)
         push!(events, Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
       else
         push!(events, Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
-        if rate != 0 && _ss == 0
+        if rate != zero(rate) && _ss == 0
           push!(events, Event(amt, t + duration, Int8(-1), cmt, rate, duration, _ss, ii, t, Int8(-1)))
         end
       end

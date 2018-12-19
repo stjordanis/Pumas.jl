@@ -75,16 +75,16 @@ struct Event{T,T2,T3} <: AbstractEvent
   time::T2
   evid::Int8
   cmt::Int
-  rate::T
-  duration::T
+  rate::T3
+  duration::T2
   ss::Int8
-  ii::T3
+  ii::T2
   base_time::T2 # So that this is kept after modifications to duration and rate
   rate_dir::Int8
 end
 
 Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
-                                    Int8(0), 0.0, time, Int8(1), nothing)
+                                    Int8(0), zero(time), time, Int8(1))
 
 """
   EventProxy
@@ -122,14 +122,14 @@ function Base.show(io::IO, e::AbstractEvent)
   println(io, "  dose amount = $(e.amt)")
   println(io, "  dose time = $(e.time)")
   println(io, "  compartment = $(e.cmt)")
-  if e.rate > 0
+  if e.rate > zero(e.rate)
     println(io, "  rate = $(e.rate)")
     println(io, "  duration = $(e.duration)")
-  elseif e.rate == 0
+  elseif e.rate == zero(e.rate)
     println(io, "  instantaneous")
-  elseif e.rate == -1
+  elseif e.rate == -oneunit(e.rate)
     println(io, "  rate specified by model")
-  elseif e.rate == -2
+  elseif e.rate == -2oneunit(e.rate)
     println(io, "  duration specified by model")
   end
   if e.ss == 1
@@ -163,28 +163,22 @@ mutable struct DosageRegimen
                          addl::Number,
                          rate::Number,
                          ss::Number)
-    amt = isa(amt, Unitful.Mass) ?
-    convert(Float64, getfield(uconvert.(u"mg", amt), :val)) :
-    float(amt)
-    time = isa(time, Unitful.Time) ?
-    convert(Float64, getfield(uconvert.(u"hr", time), :val)) :
-    float(time)
+    amt = float(amt)
+    time = float(time)
     cmt = convert(Int, cmt)
     evid = convert(Int8, evid)
-    ii = isa(ii, Unitful.Time) ?
-    convert(Float64, getfield(uconvert.(u"hr", ii), :val)) :
-    float(ii)
+    ii = float(ii)
     addl = convert(Int, addl)
-    rate = convert(Float64, rate)
+    rate = float(rate)
     ss = convert(Int8, ss)
-    amt > 0 || throw(ArgumentError("amt must be non-negative"))
-    time ≥ 0 || throw(ArgumentError("time must be non-negative"))
+    amt > zero(amt) || throw(ArgumentError("amt must be non-negative"))
+    time ≥ zero(time) || throw(ArgumentError("time must be non-negative"))
     evid == 0 && throw(ArgumentError("observations are not allowed"))
     evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
-    ii ≥ 0 || throw(ArgumentError("ii must be non-negative"))
+    ii ≥ zero(ii) || throw(ArgumentError("ii must be non-negative"))
     addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
-    addl > 0 && ii == 0 && throw(ArgumentError("ii must be positive for addl > 0"))
-    rate ∈ -2:0 || rate .> 0 || throw(ArgumentError("rate is invalid"))
+    addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
+    rate .>= zero(rate) || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
     return new(DataFrame(time = time, cmt = cmt, amt = amt,
                          evid = evid, ii = ii, addl = addl,
@@ -194,9 +188,9 @@ mutable struct DosageRegimen
                 time::Numeric = 0,
                 cmt::Numeric  = 1,
                 evid::Numeric = 1,
-                ii::Numeric   = 0,
+                ii::Numeric   = zero(time),
                 addl::Numeric = 0,
-                rate::Numeric = 0,
+                rate::Numeric = zero(eltype(amt))/oneunit(eltype(time)),
                 ss::Numeric   = 0) =
   DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
                                rate, ss))
@@ -269,6 +263,7 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
 end
 
 function timespan(sub::Subject)
+  @show sub.events
   lo, hi = extrema(evt.time for evt in sub.events)
   if !isempty(sub.observations)
     obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)

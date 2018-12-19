@@ -103,7 +103,8 @@ function _solve(m::PKPDModel, subject, col, args...;
     m.prob isa DiffEqBase.DEProblem &&
     !(m.prob.tspan === (nothing, nothing)) &&
     (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
-    tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+    tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+    tspan = float.(tspan_tmp)
   end
   u0  = m.init(col, tspan[1])
   if m.prob isa ExplicitModel
@@ -127,27 +128,17 @@ sample(d) = d
 zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
-"""
-_lpdf(d,x)
-
-The logpdf. Of a non-distribution it assumes the Dirac distribution.
-"""
-_lpdf(d,x) = d == x ? 0.0 : -Inf
-_lpdf(d::Distributions.Sampleable,x) = logpdf(d,x)
-
 function derivedfun(m::PKPDModel, subject::Subject,
                     param = init_param(m),
                     rfx=rand_random(m, param),
-                    args...; continuity=:left,kwargs...)
+                    args...; continuity=:right,kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
 end
 
 function derivedfun(m::PKPDModel, col, sol; continuity=:left)
-  if sol isa PKPDAnalyticalSolution
-    derived = obstimes -> m.derived(col,sol.(obstimes),obstimes)
-  elseif sol === nothing
+  if sol === nothing
     derived = obstimes -> m.derived(col,nothing,obstimes)
   else
     derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
@@ -188,7 +179,7 @@ function simobs(m::PKPDModel, subject::Subject,
                 param = init_param(m),
                 rfx=rand_random(m, param),
                 args...;
-                continuity=:left,
+                continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
   col = m.pre(param, rfx, subject.covariates)
   if :saveat in keys(kwargs)

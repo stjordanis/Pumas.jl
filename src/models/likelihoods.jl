@@ -1,16 +1,19 @@
-"""
-_likelihood(err, obs)
-
-Computes the log-likelihood between the err and obs, only using err terms that
-also have observations, and assuming the Dirac distribution for any err terms
-that are numbers.
-"""
-function _likelihood(err::T, obs) where {T}
-  syms =  fieldnames(T) ∩ fieldnames(typeof(obs.val))
-  sum(map((d,x) -> isnan(x) ? zval(d) : _lpdf(d,x), (getproperty(err,x) for x in syms), (getproperty(obs.val,x) for x in syms)))
-end
-
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
+
+"""
+_lpdf(d,x)
+
+The log pdf: this differs from `Distributions.logdpf` definintion in a couple of ways:
+- if `d` is a non-distribution it assumes the Dirac distribution.
+- if `x` is `NaN` or `Missing`, it returns 0.
+- if `d` is a `NamedTuple` of distributions, and `x` is a `NamedTuple` of observations, it computes the sum of the observed variables.
+"""
+_lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
+_lpdf(d::Distributions.Sampleable,x) = x === missing || isnan(x) ? zval(d) : logpdf(d,x)
+function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
+  syms =  fieldnames(T) ∩ fieldnames(S)
+  sum(map((d,x) -> _lpdf(d,x), (getproperty(ds,x) for x in syms), (getproperty(xs,x) for x in syms)))
+end
 
 """
     conditional_ll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
@@ -29,9 +32,9 @@ function conditional_ll(m::PKPDModel, subject::Subject, args...; extended_return
   idx = 1
   x = sum(subject.observations) do obs
     if eltype(derived_dist) <: Array
-      l = _likelihood(typ(ntuple(i->derived_dist[i][idx], n)), obs)
+      l = _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs.val)
     else
-      l = _likelihood(derived_dist, obs)
+      l = _lpdf(derived_dist, obs.val)
     end
     idx += 1
     return l
