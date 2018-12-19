@@ -60,7 +60,7 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T,T2,T3,R,D,B} <: AbstractEvent
+struct Event{T,T2,T3} <: AbstractEvent
   amt::T
   time::T2
   evid::Int8

@@ -103,7 +103,8 @@ function _solve(m::PKPDModel, subject, col, args...;
     m.prob isa DiffEqBase.DEProblem &&
     !(m.prob.tspan === (nothing, nothing)) &&
     (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
-    tspan = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+    tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
+    tspan = float.(tspan_tmp)
   end
   @show tspan
   u0  = m.init(col, tspan[1])
