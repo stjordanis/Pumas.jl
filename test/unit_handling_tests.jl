@@ -1,5 +1,5 @@
-using PuMaS
-simeoni = @model begin
+using PuMaS, Test
+umodel = @model begin
   @param begin
     k1 = 1.01u"mg"
     I  = 1u"hr"
@@ -16,4 +16,4 @@ simeoni = @model begin
 end
 evs = DosageRegimen(45u"mg",cmt=1,time=13u"d")
 subject=Subject(id=1,evs=evs)
-@test_nowarn sim=simobs(simeoni,subject,obstimes=0u"d":1u"hr":1u"d",alg=OrdinaryDiffEq.Tsit5())
+@test_nowarn sim=simobs(umodel,subject,obstimes=0u"d":1u"hr":1u"d",alg=OrdinaryDiffEq.Tsit5())
