@@ -7,7 +7,7 @@ data = CSV.read(file)
 
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
 @test_nowarn auc(ncapop)
-@test all(ismissing, bioav(ncapop, 1))
+@test all(ismissing, bioav(ncapop, 1, prefix=false))
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])

@@ -3,7 +3,6 @@ module NCA
 using Reexport
 using GLM
 @reexport using DataFrames
-using LabelledArrays: LArray
 using Pkg, Dates, Printf
 import ..PuMaS: Formulation, IV, EV
 
@@ -27,10 +26,18 @@ for f in (:lambdaz, :cmax, :tmax, :cmin, :tmin, :clast, :tlast, :thalf, :cl, :cl
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...)
-  @eval function $f(pop::NCAPopulation, args...; kwargs...)
-    labels = ((Symbol(:id, subj.id) for subj in pop)...,)
-    params = map(pop->$f(pop, args...; kwargs...), pop)
-    return LArray{labels}(params)
+  @eval function $f(pop::NCAPopulation, args...; prefix=true, kwargs...)
+    if prefix
+      res = map(pop) do subj
+        sol = $f(subj, args...; kwargs...)
+        sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
+      end
+    else
+      res = map(pop) do subj
+        $f(subj, args...; kwargs...)
+      end
+    end
+    return res
   end
 end
 
