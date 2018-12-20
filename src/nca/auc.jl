@@ -82,12 +82,14 @@ end
   end
 end
 
-Base.@propagate_inbounds function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
-  # `points` is initialized to be 0
-  sym === :lambdaz && return !(nca.points[1] === 0)
-  # `auc_last` and `aumc_last` is initialized to be -1
-  sym === :auc     && return !(nca.auc_last[1]  === -one(eltype(AUC)))
-  sym === :aumc    && return !(nca.aumc_last[1] === -one(eltype(AUMC)))
+@inline function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  @inbounds begin
+    # `points` is initialized to 0
+    sym === :lambdaz && return !(nca.points[1] === 0)
+    # `auc_last` and `aumc_last` are initialized to -1
+    sym === :auc     && return !(nca.auc_last[1]  === -one(eltype(AUC)))
+    sym === :aumc    && return !(nca.aumc_last[1] === -one(eltype(AUMC)))
+  end
 end
 
 function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
