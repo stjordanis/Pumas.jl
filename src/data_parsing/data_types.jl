@@ -190,7 +190,7 @@ mutable struct DosageRegimen
                 evid::Numeric = 1,
                 ii::Numeric   = zero(time),
                 addl::Numeric = 0,
-                rate::Numeric = zero(eltype(amt))/oneunit(eltype(time)),
+                rate::Numeric = zero(eltype(amt))./oneunit(eltype(time)),
                 ss::Numeric   = 0) =
   DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
                                rate, ss))
@@ -263,7 +263,6 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
 end
 
 function timespan(sub::Subject)
-  @show sub.events
   lo, hi = extrema(evt.time for evt in sub.events)
   if !isempty(sub.observations)
     obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
