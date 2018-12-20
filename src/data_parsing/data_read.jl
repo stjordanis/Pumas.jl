@@ -89,17 +89,17 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
       _evid = Int8(data[evid][i])
       _amt  = amt  ∈ Names ? float(data[amt][i])  : nothing # can be missing if evid=2
       _addl = addl ∈ Names ? Int(data[addl][i])   : 0
-      _ii   = ii   ∈ Names ? float(data[ii][i])   : 0.0
+      _ii   = ii   ∈ Names ? float(data[ii][i])   : zero(t)
       _cmt  = cmt  ∈ Names ? Int(data[cmt][i])    : 1
-      _rate = rate ∈ Names ? float(data[rate][i]) : 0.0
+      _rate = rate ∈ Names ? float(data[rate][i]) : _amt === nothing ? 0.0 : zero(_amt)/oneunit(t)
       ss′   = ss   ∈ Names ? Int8(data[ss][i])    : Int8(0)
 
       for j = 0:_addl  # addl==0 means just once
         _ss = j == 0 ? ss′ : Int8(0)
         duration = _amt/_rate
-        @assert _amt != 0 || _ss == 1 || _evid == 2
-        if _amt == 0 && _evid != 2
-          @assert _rate > 0
+        @assert _amt != zero(_amt) || _ss == 1 || _evid == 2
+        if _amt == zero(_amt) && _evid != 2
+          @assert _rate > zero(_rate)
           # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
           # Such an event consists of infusion with the stated rate,
           # starting at time −∞, and ending at the time on the dose
