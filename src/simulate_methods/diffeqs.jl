@@ -14,7 +14,7 @@ function _solve_diffeq(m::PKPDModel, subject::Subject, args...; save_discont=tru
   end
 
   # build a "modified" problem using DiffEqWrapper
-  fd = DiffEqWrapper(prob.f.f, 0, zero(u0)./oneunit(first(tspan)))
+  fd = DiffEqWrapper(prob.f.f, 0, zero(u0)./oneunit(eltype(tspan)))
   ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
   # figure out callbacks and convert type for tspan if necessary

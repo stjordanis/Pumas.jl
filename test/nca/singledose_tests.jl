@@ -2,14 +2,18 @@ using PuMaS.NCA, Test, CSV
 using PuMaS
 using Random
 
-root = joinpath(dirname(pathof(PuMaS)), "..")
-data = CSV.read("$root/examples/nca_test_data/dapa_IV.csv")
+file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
+data = CSV.read(file)
+
+ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
+@test_nowarn auc(ncapop)
+@test all(ismissing, bioav(ncapop, 1))
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
-dose = Float64.(data[:AMT_IV])[1:16:end]
+doses = Float64.(data[:AMT_IV])[1:16:end]
 
-data = CSV.read("$root/examples/nca_test_data/dapa_IV_sol.csv")
+data = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_sol"))
 
 correct_auc = Float64.(data[:AUCINF_obs])
 correct_auc_last = Float64.(data[:AUClast])
@@ -20,7 +24,7 @@ test_aumc = rand(24,)
 
 idx = 1:16
 
-nca = NCAData(conc[idx], t[idx])
+nca = NCASubject(conc[idx], t[idx])
 @test_logs (:warn, "`dose` is not provided. No dependent quantities will be calculated") NCAReport(nca)
 
 @test (clast(zeros(5), 1:5), tlast(zeros(5), 1:5)) === (missing, missing)
@@ -32,7 +36,7 @@ arr = [missing, 1, 2, 3, missing]
 @test (cmax(conc[idx], t[idx]), tmax(conc[idx], t[idx])) === (conc[idx][1], t[idx][1])
 @test cmax(conc[idx], t[idx], interval=(2,Inf)) === conc[idx][7]
 @test cmax(conc[idx], t[idx], interval=(24.,Inf)) === conc[idx][end]
-@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=2)[2] === conc[idx][end]/2
+@test cmax(conc[idx], t[idx], interval=(24.,Inf), dose=NCADose(1, NCA.IV, 2))[2] === conc[idx][end]/2
 @test cmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [cmax(nca, interval=(24.,Inf)), cmax(nca, interval=(10.,Inf))]
 @test tmax(conc[idx], t[idx], interval=[(24.,Inf), (10.,Inf)]) == [tmax(nca, interval=(24.,Inf)), tmax(nca, interval=(10.,Inf))]
 @test_throws ArgumentError cmax(conc[idx], t[idx], interval=(100,Inf))
@@ -42,11 +46,14 @@ yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test lambdaz(yli, collect(x), slopetimes=10:20)[1] ≈ lambdaz(ylg, collect(x), slopetimes=10:20)[1] atol=1e-2
 
 for m in (:linear, :linuplogdown, :linlog)
-  @inferred auc(conc[idx], t[idx], method=m)
-  @inferred aumc(conc[idx], t[idx], method=m)
+  @test_broken @inferred auc(conc[idx], t[idx], method=m)
+  @test_broken @inferred aumc(conc[idx], t[idx], method=m)
+  _nca = NCASubject(conc[idx], t[idx])
+  @inferred auc( _nca, method=m)
+  @inferred aumc(_nca, method=m)
   @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500), interpmethod=m)
-  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUClast)
-  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:AUMClast)
+  @test_nowarn auc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:last)
+  @test_nowarn aumc(conc[idx], t[idx], method=m, interval=(0,100.), auctype=:last)
   # test interval
   aucinf = auc(conc[idx], t[idx])
   aumcinf = aumc(conc[idx], t[idx])
@@ -55,7 +62,7 @@ for m in (:linear, :linuplogdown, :linlog)
   @test auc(conc[idx], t[idx], interval=(0,Inf)) === aucinf
   @test aumc(conc[idx], t[idx], interval=(0,Inf)) === aumcinf
   @test auc(conc[2:16], t[2:16], method=m) == auc(conc[idx], t[idx], method=m, interval=(t[2], Inf))
-  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:AUClast) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:AUClast)
+  @test auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf), auctype=:last) == auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:last)
 
   auc10_in = auc(conc[idx], t[idx], interval=(0,23)) - auc(conc[idx], t[idx], interval=(10,23))
   auc10_ex = auc(conc[idx], t[idx], interval=(0,50)) - auc(conc[idx], t[idx], interval=(10,50))
@@ -83,32 +90,43 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  nca = NCAData(conc[idx], t[idx], dose=dose[i])
+  dose = NCADose(1, NCA.IV, doses[i])
+  nca = NCASubject(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
-  @test aucs === auc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)
   aumcs = aumc(nca, method=:linear)
-  @test aumcs === aumc(conc[idx], t[idx], dose=dose[i], method=:linear)
+  @test aumcs === aumc(conc[idx], t[idx], dose=dose, method=:linear)
   @test_nowarn auc(conc[idx], t[idx], method=:linuplogdown)
   @test_nowarn aumc(conc[idx], t[idx], method=:linuplogdown)
-  @test aucs[2] == aucs[1]/dose[i]
-  @test aumcs[2] == aumcs[1]/dose[i]
+  @test aucs[2] == aucs[1]/doses[i]
+  @test aumcs[2] == aumcs[1]/doses[i]
+  aucps = auc(nca, method=:linear, pred=true)
+  aumcps = aumc(nca, method=:linear, pred=true)
   if i in fails
     @test_broken data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test_broken data[:AUCINF_pred][i] ≈ aucps[1] atol = 1e-6
+    @test_broken data[:AUMCINF_pred][i] ≈ aumcps[1] atol = 1e-6
     @test_broken data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test_broken data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
+    @test_broken data[:Clast_pred][i] ≈ clast(nca, pred=true) atol = 1e-6
     @test_broken data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test_broken data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   else
     @test data[:AUCINF_obs][i] ≈ aucs[1] atol = 1e-6
     @test data[:AUMCINF_obs][i] ≈ aumcs[1] atol = 1e-6
+    @test data[:AUCINF_pred][i] ≈ aucps[1] atol = 1e-6
+    @test data[:AUMCINF_pred][i] ≈ aumcps[1] atol = 1e-6
     @test data[:Lambda_z][i] ≈ lambdaz(nca)[1] atol = 1e-6
+    @test data[:Lambda_z_intercept][i] ≈ lambdaz(nca)[2] atol = 1e-6
+    @test data[:Clast_pred][i] ≈ clast(nca, pred=true) atol = 1e-6
     @test data[:Vss_obs][i] ≈ vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ vz(nca) atol = 1e-6
   end
-  aucs = auc(nca, dose=dose[i], method=:linear, auctype=:AUClast)
-  aumcs = aumc(nca, dose=dose[i], method=:linear, auctype=:AUMClast)
-  @test aucs[2] == aucs[1]/dose[i]
-  @test aumcs[2] == aumcs[1]/dose[i]
+  aucs = auc(nca, dose=dose, method=:linear, auctype=:last)
+  aumcs = aumc(nca, dose=dose, method=:linear, auctype=:last)
+  @test aucs[2] == aucs[1]/doses[i]
+  @test aumcs[2] == aumcs[1]/doses[i]
   @test data[:AUClast][i] ≈ aucs[1] atol = 1e-6
   @test data[:AUMClast][i] ≈ aumcs[1] atol = 1e-6
   @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
