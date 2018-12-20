@@ -145,7 +145,7 @@ function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {
   tlast′ = tlast(nca; kwargs...)
   tmax′  = tmax(nca; kwargs...)
   cmax′  = cmax(nca; kwargs...)
-  λz     = lambdaz(nca; kwargs...)[1]
+  λz     = lambdaz(nca; recompute=false, kwargs...)[1]
   thalf′ = thalf(nca; kwargs...)
   auc′   = auc(nca; kwargs...)
   aucp   = auc_extrap_percent(nca; kwargs...)

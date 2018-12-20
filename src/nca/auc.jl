@@ -86,8 +86,8 @@ Base.@propagate_inbounds function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,
   # `points` is initialized to be 0
   sym === :lambdaz && return !(nca.points[1] === 0)
   # `auc_last` and `aumc_last` is initialized to be -1
-  sym === :auc     && return !(nca.auc_last[1]  === -one(AUC))
-  sym === :aumc    && return !(nca.aumc_last[1] === -one(AUMC))
+  sym === :auc     && return !(nca.auc_last[1]  === -one(eltype(AUC)))
+  sym === :aumc    && return !(nca.aumc_last[1] === -one(eltype(AUMC)))
 end
 
 function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
@@ -105,7 +105,7 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, interval, linear, log, 
     if auctype === :inf
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
-      aucinf′ = inf(_clast, _tlast, lambdaz(nca; kwargs...)[1])
+      aucinf′ = inf(_clast, _tlast, lambdaz(nca; recompute=false, kwargs...)[1])
       isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::eltype(AUC)
       !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::eltype(AUMC)
     elseif auctype === :last
@@ -271,7 +271,7 @@ fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
   obj = map(eachindex(nca.dose)) do i
     subj = subject_at_ithdose(nca, i)
-    lambdaz(subj; kwargs...)
+    lambdaz(subj; recompute=false, kwargs...)
   end
   λ, intercept, points, r2 = (map(x->x[i], obj) for i in 1:4)
   (lambdaz=λ, intercept=intercept, points=points, r2=r2)
@@ -288,7 +288,7 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P};
                 )::NamedTuple{(:lambdaz, :intercept, :points, :r2),
                               Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   if iscached(nca, :lambdaz) && !recompute
-    return (lambdaz=nca.lambdaz, intercept=nca.intercept, points=nca.points, r2=nca.r2)
+    return (lambdaz=nca.lambdaz[1], intercept=nca.intercept[1], points=nca.points[1], r2=nca.r2[1])
   end
   _F = eltype(F)
   _Z = eltype(Z)
