@@ -26,18 +26,12 @@ for f in (:lambdaz, :cmax, :tmax, :cmin, :tmin, :clast, :tlast, :thalf, :cl, :cl
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...)
-  @eval function $f(pop::NCAPopulation, args...; prefix=true, kwargs...)
-    if prefix
-      res = map(pop) do subj
-        sol = $f(subj, args...; kwargs...)
-        sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
-      end
-    else
-      res = map(pop) do subj
-        $f(subj, args...; kwargs...)
-      end
+  @eval function $f(pop::NCAPopulation, args...; kwargs...)
+    res = map(pop) do subj
+      sol = $f(subj, args...; kwargs...)
+      sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
     end
-    return res
+    return DataFrame(res)
   end
 end
 

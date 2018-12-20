@@ -8,7 +8,7 @@ msol = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC)
 
 @test_nowarn bioav(mncapop, 1)
-@test all(vcat(tlag(mncapop, prefix=false)...) .=== float.(msol[:Tlag]))
+@test all(vcat(tlag(mncapop)[2]...) .=== float.(msol[:Tlag]))
 @test_nowarn mrt(mncapop; auctype=:inf)
 @test_nowarn mrt(mncapop; auctype=:last)
 @test_nowarn mat(mncapop)
