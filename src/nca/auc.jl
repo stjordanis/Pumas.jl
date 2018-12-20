@@ -74,7 +74,23 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+@inline function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  if auc in (:AUClast, :AUCinf)
+    return eltype(AUC)
+  else
+    return eltype(AUMC)
+  end
+end
+
+Base.@propagate_inbounds function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  # `points` is initialized to be 0
+  sym === :lambdaz && return !(nca.points[1] === 0)
+  # `auc_last` and `aumc_last` is initialized to be -1
+  sym === :auc     && return !(nca.auc_last[1]  === -one(AUC))
+  sym === :aumc    && return !(nca.aumc_last[1] === -one(AUMC))
+end
+
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
   dose = nca.dose
   map(eachindex(dose)) do i
     subj = subject_at_ithdose(nca, i)
@@ -82,19 +98,19 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, args...; kwargs...) where
   end
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, interval, linear, log, inf;
-              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, interval, linear, log, inf;
+              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   # fast return
   if interval === nothing
     if auctype === :inf
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
       aucinf′ = inf(_clast, _tlast, lambdaz(nca; kwargs...)[1])
-      isauc && !(nca.auc_last === nothing) && return (nca.auc_last + aucinf′)::AUC
-      !isauc && !(nca.aumc_last === nothing) && return (nca.aumc_last + aucinf′)::AUMC
+      isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::eltype(AUC)
+      !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::eltype(AUMC)
     elseif auctype === :last
-      isauc && !(nca.auc_last === nothing) && return nca.auc_last::AUC
-      !isauc && !(nca.aumc_last === nothing) && return nca.aumc_last::AUMC
+      isauc  && iscached(nca, :auc)  && return nca.auc_last[1] ::eltype(AUC)
+      !isauc && iscached(nca, :aumc) && return nca.aumc_last[1]::eltype(AUMC)
     end
   end
   conc, time = nca.conc, nca.time
@@ -172,13 +188,13 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, interval, linear, log, in
   # cache results
   if interval == nothing # only cache when interval is nothing
     if isauc
-      nca.auc_last = auc
+      AUC <: AbstractArray  ? nca.auc_last[1] = auc  : nca.auc_last = auc
     else
-      nca.aumc_last = auc
+      AUMC <: AbstractArray ? nca.aumc_last[1] = auc : nca.aumc_last = auc
     end
   end
 
-  auc += aucinf′ # add the infinite back
+  auc += aucinf′ # add the infinite part
 
   return auc
 end
@@ -203,7 +219,7 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+@inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   dose = nca.dose
   sol = nothing
   sol = _auc(nca, interval, auclinear, auclog, aucinf; auctype=auctype, isauc=true, kwargs...)
@@ -231,8 +247,8 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auctype,
-                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+@inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auctype,
+                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   dose = nca.dose
   sol = _auc(nca, interval, aumclinear, aumclog, aumcinf; auctype=auctype, isauc=false, kwargs...)
   return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUMC
@@ -252,7 +268,7 @@ end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
   obj = map(eachindex(nca.dose)) do i
     subj = subject_at_ithdose(nca, i)
     lambdaz(subj; kwargs...)
@@ -267,17 +283,20 @@ end
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::NamedTuple{(:lambdaz, :intercept, :points, :r2),Tuple{Z,F,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N,I}
-  if !(nca.lambdaz === nothing) && !recompute
+                )::NamedTuple{(:lambdaz, :intercept, :points, :r2),
+                              Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  if iscached(nca, :lambdaz) && !recompute
     return (lambdaz=nca.lambdaz, intercept=nca.intercept, points=nca.points, r2=nca.r2)
   end
+  _F = eltype(F)
+  _Z = eltype(Z)
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
-  maxr2::F = oneunit(F)*false
-  λ::Z = oneunit(Z)*false
-  NoUnitEltype = typeof(one(Z))
+  maxr2::_F = oneunit(_F)*false
+  λ::_Z = oneunit(_Z)*false
+  NoUnitEltype = typeof(one(_Z))
   time′ = reinterpret(NoUnitEltype, time)
   conc′ = reinterpret(NoUnitEltype, conc)
   points = 2
@@ -291,10 +310,10 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
       x = time′[end-i:end]
       y = conc′[end-i:end]
       model = fitlog(x, y)
-      r2 = oneunit(F) * r²(model)
+      r2 = oneunit(_F) * r²(model)
       if r2 > maxr2
         maxr2 = r2
-        λ = oneunit(Z) * coef(model)[2]
+        λ = oneunit(_Z) * coef(model)[2]
         intercept = coef(model)[1]
         points = i+1
       end
@@ -307,17 +326,24 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I};
     x = time′[idxs]
     y = conc′[idxs]
     model = fitlog(x, y)
-    λ = oneunit(Z) * coef(model)[2]
+    λ = oneunit(_Z) * coef(model)[2]
     intercept = coef(model)[1]
-    r2 = oneunit(F) * r²(model)
+    r2 = oneunit(_F) * r²(model)
   end
   if λ ≥ zero(λ)
     outlier = true
     @warn "The estimated slope is not negative, got $λ"
   end
-  nca.lambdaz=-λ
-  nca.points=points
-  nca.r2=maxr2
-  nca.intercept=intercept
+  if Z <: AbstractArray
+    nca.lambdaz[1] = -λ
+    nca.points[1] = points
+    nca.r2[1] = maxr2
+    nca.intercept[1] = intercept
+  else
+    nca.lambdaz = -λ
+    nca.points = points
+    nca.r2 = maxr2
+    nca.intercept = intercept
+  end
   return (lambdaz=-λ, intercept=intercept, points=points, r2=maxr2)
 end
