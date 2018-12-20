@@ -134,31 +134,39 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I},
-                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I}
-  conc = nca.conc[i]
-  time = nca.time[i]
-  maxidx = nca.maxidx[i]
-  lastidx = nca.lastidx[i]
-  dose = nca.dose[i]
-  # TODO: caching
-  #lambdaz = nca.lambdaz[i]
-  #r2 = nca.r2[i]
-  #point = nca.point[i]
-  #NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),typeof(lambdaz),typeof(r2),N,eltype(I)}(
-  NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),eltype(Z),eltype(F),N,eltype(I)}(
-               nca.id,
-               conc,    time,
-               maxidx,  lastidx,
-               dose,
-               nothing, nca.llq, nothing, nothing, nothing,
-               nothing, nothing)
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P},
+                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+  m = length(nca.dose)
+  @boundscheck begin
+    1 <= i <= m || throw(BoundsError(nca.dose, i))
+  end
+  @inbounds begin
+    conc = nca.conc[i]
+    time = nca.time[i]
+    maxidx = nca.maxidx[i]
+    lastidx = nca.lastidx[i]
+    dose = nca.dose[i]
+    # TODO: caching
+    lambdaz = view(nca.lambdaz, i)
+    r2 = view(nca.r2, i)
+    intercept = view(nca.intercept, i)
+    points = view(nca.points, i)
+    auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
+    #NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),typeof(lambdaz),typeof(r2),N,eltype(I)}(
+    return NCASubject(
+                 nca.id,
+                 conc,    time,
+                 maxidx,  lastidx,
+                 dose,
+                 lambdaz, nca.llq, r2, intercept, points,
+                 auc, aumc)
+  end
 end
 
-#function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N,I}
+#function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
 #  _, maxidx = conc_maximum(conc, eachindex(conc))
 #  lastidx = ctlast_idx(conc, time; llq=nca.llq, check=false)
-#  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N,I}(
+#  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N,I,P}(
 #               nca.id,
 #               conc,    time,
 #               maxidx,  lastidx,

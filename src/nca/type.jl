@@ -18,32 +18,32 @@ end
 Broadcast.broadcastable(x::NCADose) = Ref(x)
 
 # any changes in here must be reflected to ./simple.jl, too
-mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}
+mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}
   id::Int
   conc::C
   time::T
   maxidx::I
   lastidx::I
   dose::D
-  lambdaz::Union{Nothing,Z}
+  lambdaz::Z
   llq::N
-  r2::Union{Nothing,F}
-  intercept::Union{Nothing,F}
-  points::Union{Nothing,Int}
-  auc_last::Union{Nothing,AUC}
-  aumc_last::Union{Nothing,AUMC}
+  r2::F
+  intercept::F
+  points::P
+  auc_last::AUC
+  aumc_last::AUMC
 end
 
 function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=true, lambdaz=nothing, kwargs...) where T
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
   unitconc = oneunit(eltype(conc))
   unittime = oneunit(eltype(time))
-  llq === nothing && (llq = unitconc*false)
-  auc_proto = unitconc * unittime
+  llq === nothing && (llq = zero(unitconc))
+  auc_proto = -unitconc * unittime
   aumc_proto = auc_proto * unittime
-  r2_proto = unittime/unitconc*false
-  # TODO: check units
-  lambdaz_proto = inv(unittime)
+  intercept = r2_proto = unittime/unitconc
+  _lambdaz = inv(unittime)
+  lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
   multidose = T <: AbstractArray
   if multidose
     n = length(dose)
@@ -60,30 +60,24 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
     return NCASubject{typeof(conc), typeof(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
-                      Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx)}(id,
-                        conc, time, maxidx, lastidx, dose, lambdaz, llq,
-                          ntuple(i->nothing, 5)...)
+                      Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx), Vector{Int}}(id,
+                        conc, time, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
+                        fill(r2_proto, n), fill(intercept, n), fill(0, n),
+                        fill(auc_proto, n), fill(aumc_proto, n))
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
   NCASubject{typeof(conc), typeof(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose), typeof(lambdaz_proto),
-          typeof(r2_proto), typeof(llq), typeof(lastidx)}(id,
-            conc, time, maxidx, lastidx, dose, lambdaz, llq,
-              ntuple(i->nothing, 5)...)
-end
-
-function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I}
-  if auc in (:AUClast, :AUCinf)
-    return AUC
-  else
-    return AUMC
-  end
+          typeof(r2_proto), typeof(llq), typeof(lastidx), Int}(id,
+            conc, time, maxidx, lastidx, dose, lambdaz_proto, llq,
+            r2_proto,  intercept, 0,
+            auc_proto, aumc_proto)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N,I}
+function showunits(io::IO, ::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[2]
@@ -141,7 +135,7 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I}
+function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
   settings = nothing
@@ -151,7 +145,7 @@ function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I}; kwargs...) where {C,
   tlast′ = tlast(nca; kwargs...)
   tmax′  = tmax(nca; kwargs...)
   cmax′  = cmax(nca; kwargs...)
-  λz     = lambdaz(nca; kwargs...)[1]
+  λz     = lambdaz(nca; recompute=false, kwargs...)[1]
   thalf′ = thalf(nca; kwargs...)
   auc′   = auc(nca; kwargs...)
   aucp   = auc_extrap_percent(nca; kwargs...)
