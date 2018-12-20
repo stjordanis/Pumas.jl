@@ -188,9 +188,9 @@ mutable struct DosageRegimen
                 time::Numeric = 0,
                 cmt::Numeric  = 1,
                 evid::Numeric = 1,
-                ii::Numeric   = zero(time),
+                ii::Numeric   = zero.(time),
                 addl::Numeric = 0,
-                rate::Numeric = zero(eltype(amt))./oneunit(eltype(time)),
+                rate::Numeric = zero.(amt)./oneunit.(time),
                 ss::Numeric   = 0) =
   DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
                                rate, ss))
