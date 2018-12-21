@@ -5,9 +5,10 @@ using Random
 file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
 data = CSV.read(file)
 
-ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation)
+ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, iv="IV")
 @test_nowarn auc(ncapop)
 @test all(ismissing, bioav(ncapop, 1)[2])
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
