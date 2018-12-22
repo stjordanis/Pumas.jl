@@ -117,7 +117,12 @@ end
   return conc, time
 end
 
-normalize(x::Number, d::NCADose) = x/d.amt
+@inline normalizedose(x::Number, d::NCADose) = x/d.amt
+normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
+@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
+  return normalizedose(x, subj.dose)
+end
 
 Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   m = length(dose)

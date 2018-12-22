@@ -92,14 +92,6 @@ end
   end
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
-  dose = nca.dose
-  map(eachindex(dose)) do i
-    subj = subject_at_ithdose(nca, i)
-    _auc(subj, args...; kwargs...)
-  end
-end
-
 function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, interval, linear, log, inf;
               auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   # fast return
@@ -205,8 +197,7 @@ end
   auc(nca::NCASubject; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
-:linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
-calculates AUC and normalized AUC if `dose` is provided.
+:linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`.
 """
 function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
@@ -221,11 +212,9 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
-  dose = nca.dose
-  sol = nothing
+@inline function auc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
   sol = _auc(nca, interval, auclinear, auclog, aucinf; auctype=auctype, isauc=true, kwargs...)
-  return D === Nothing ? sol : (auc=sol, auc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUC
+  return sol
 end
 
 """
@@ -233,8 +222,7 @@ end
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
-`(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
-provided.
+`(method = :linuplogdown)`.
 """
 function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
@@ -249,22 +237,20 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auctype,
-                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
-  dose = nca.dose
+@inline function aumc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
   sol = _auc(nca, interval, aumclinear, aumclog, aumcinf; auctype=auctype, isauc=false, kwargs...)
-  return D === Nothing ? sol : (aumc=sol, aumc_dn=normalize.(sol, dose)) # if dose is not nothing, normalize AUMC
+  return sol
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
-  aucinf  = auc(nca; auctype=:inf, kwargs...)[1]
-  auclast = auc(nca; auctype=:last, kwargs...)[1]
+  aucinf  = auc(nca; auctype=:inf, kwargs...)
+  auclast = auc(nca; auctype=:last, kwargs...)
   @. (aucinf-auclast)/aucinf * 100
 end
 
 function aumc_extrap_percent(nca::NCASubject; kwargs...)
-  aumcinf  = aumc(nca; auctype=:inf, kwargs...)[1]
-  aumclast = aumc(nca; auctype=:last, kwargs...)[1]
+  aumcinf  = aumc(nca; auctype=:inf, kwargs...)
+  aumclast = aumc(nca; auctype=:last, kwargs...)
   @. (aumcinf-aumclast)/aumcinf * 100
 end
 
