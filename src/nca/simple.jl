@@ -1,20 +1,3 @@
-for f in (:clast, :tlast, :tmax, :cmin, :tmin, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex, :swing)
-  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
-    obj = map(eachindex(nca.dose)) do i
-      subj = subject_at_ithdose(nca, i)
-      $f(subj; kwargs...)
-    end
-  end
-end
-
-function cmax(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
-  obj = map(eachindex(nca.dose)) do i
-    subj = subject_at_ithdose(nca, i)
-    cmax(subj; kwargs...)
-  end
-  (cmax=map(x->x[1], obj), cmax_dn=map(x->x[2], obj))
-end
-
 """
   clast(nca::NCASubject)
 
@@ -93,7 +76,7 @@ function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
     end
     sol = map(f, interval)
   end
-  dose === nothing ? sol : map(s->(cmax=s, cmax_dn=normalize(s, dose)), sol)
+  sol
 end
 
 """
@@ -161,39 +144,39 @@ thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs
   clf(nca::NCASubject; kwargs...)
 
 Calculate total drug clearance divided by the bioavailability (F), which is just the
-inverse of the dose normalized ``AUC_0^\\inf``.
+inverse of the dose normalizedosed ``AUC_0^\\inf``.
 """
 function clf(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute CLF"))
   end
-  map(inv, auc(nca; kwargs...)[2])
+  map(inv, normalizedose(auc(nca; kwargs...), nca))
 end
 
 """
   vss(nca::NCASubject; kwargs...)
 
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
-``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalized `AUMC` and `AUC`.
+``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalizedosed `AUMC` and `AUC`.
 """
 function vss(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_ss"))
   end
-  aumc(nca; kwargs...)[2] ./ (auc(nca; kwargs...)[2]).^2
+  normalizedose(aumc(nca; kwargs...), nca) ./ (normalizedose(auc(nca; kwargs...), nca)).^2
 end
 
 """
   vz(nca::NCASubject; kwargs...)
 
 Calculate the volume of distribution during the terminal phase.
-``V_z = 1/(AUC_0^\\inf\\lambda_z)`` for dose normalized `AUC`.
+``V_z = 1/(AUC_0^\\inf\\lambda_z)`` for dose normalizedosed `AUC`.
 """
 function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   if D === Nothing
     throw(ArgumentError("Dose must be known to compute V_z"))
   end
-  aucinf = auc(nca; kwargs...)[2]
+  aucinf = normalizedose(auc(nca; kwargs...), nca)
   λ = lambdaz(nca; recompute=false, kwargs...)[1]
   @. inv(aucinf * λ)
 end
@@ -211,13 +194,13 @@ function bioav(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, ithdose::Integer; kwar
   # if we only have IV or EV
   length(unique(getfield.(nca.dose, :formulation))) == 1 && return missing
   # initialize
-  auc_0_inf_po = auc_0_inf_iv = zero(eltype(AUC))/oneunit(first(nca.dose).amt) # normalized
+  auc_0_inf_po = auc_0_inf_iv = zero(eltype(AUC))/oneunit(first(nca.dose).amt) # normalizedosed
   sol = zeros(typeof(auc_0_inf_po), axes(nca.dose))
   refdose = subject_at_ithdose(nca, ithdose)
-  refauc  = auc(refdose; auctype=:inf, kwargs...)[2]
+  refauc  = normalizedose(auc(refdose; auctype=:inf, kwargs...), refdose)
   map(eachindex(nca.dose)) do idx
     subj = subject_at_ithdose(nca, idx)
-    sol[idx] = auc(subj; auctype=:inf, kwargs...)[2]/refauc
+    sol[idx] = normalizedose(auc(subj; auctype=:inf, kwargs...), subj)/refauc
   end
   return sol
 end
@@ -275,7 +258,7 @@ non-infusion:
 """
 function mrt(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
   D === Nothing && throw(ArgumentError("Dose must be known to compute mrt"))
-  aumc(nca; kwargs...)[1] / auc(nca; kwargs...)[1]
+  aumc(nca; kwargs...) / auc(nca; kwargs...)
 end
 
 """
@@ -317,9 +300,9 @@ end
 Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
 """
 function cavg(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
-  D <: NCADose && return auc(nca; auctype=:last, kwargs...)[1]/tau(nca; kwargs...)
+  D <: NCADose && return auc(nca; auctype=:last, kwargs...)/tau(nca; kwargs...)
   subj = subject_at_ithdose(nca, 1)
-  auc(subj; auctype=:last, kwargs...)[1]/tau(nca; kwargs...)
+  auc(subj; auctype=:last, kwargs...)/tau(nca; kwargs...)
 end
 
 """
@@ -328,7 +311,7 @@ end
 Peak trough fluctuation over one dosing interval at steady state.
 ``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}``
 """
-fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca)[1] - cmin(nca))/cavg(nca; kwargs...)
+fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; kwargs...)
 
 """
   accumulationindex(nca::NCASubject; kwargs...)
@@ -347,5 +330,5 @@ end
 """
 function swing(nca::NCASubject; kwargs...)
   _cmin = cmin(nca)
-  (cmax(nca)[1] - _cmin) ./ _cmin
+  (cmax(nca) - _cmin) ./ _cmin
 end
