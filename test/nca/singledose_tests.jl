@@ -127,5 +127,6 @@ for i in 1:24
   @test data[:AUMClast][i] ≈ aumcs atol = 1e-6
   @test aumc_extrap_percent(nca) === aumc_extrap_percent(conc[idx], t[idx])
   @test auc_extrap_percent(nca) === auc_extrap_percent(conc[idx], t[idx])
-  @test_nowarn NCAReport(nca)
+  ncareport = @test_nowarn NCAReport(nca)
+  i == 1 && @test_nowarn display(ncareport)
 end

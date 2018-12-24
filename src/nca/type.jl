@@ -1,4 +1,5 @@
 using Unitful
+using Markdown
 
 """
   NCADose
@@ -144,12 +145,12 @@ function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {
   clast′ = clast(nca; kwargs...)
   tlast′ = tlast(nca; kwargs...)
   tmax′  = tmax(nca; kwargs...)
-  cmax′  = cmax(nca; kwargs...)
-  λz     = lambdaz(nca; recompute=false, kwargs...)
+  cmax′  = cmax(nca; kwargs...)[1]
+  λz     = lambdaz(nca; recompute=false, kwargs...)[1]
   thalf′ = thalf(nca; kwargs...)
-  auc′   = auc(nca; kwargs...)
+  auc′   = auc(nca; kwargs...)[1]
   aucp   = auc_extrap_percent(nca; kwargs...)
-  aumc′  = aumc(nca; kwargs...)
+  aumc′  = aumc(nca; kwargs...)[1]
   aumcp  = aumc_extrap_percent(nca; kwargs...)
   values = (clast=clast′, tlast=tlast′, tmax=tmax′, cmax=cmax′,
    lambdaz=λz, thalf=thalf′, auc=auc′, auc_extrap_percent=aucp,
@@ -159,22 +160,28 @@ function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {
 end
 
 Base.summary(::NCAReport) = "NCAReport"
-function Base.show(io::IO, ::MIME"text/plain", report::NCAReport)
-  println(io, "# Noncompartmental Analysis Report")
-  println(io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
-  println(io, "Julia version " * string(VERSION))
-  println(io, "")
-  println(io, "Date and Time: " * Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS"))
-  println(io, "")
+Base.show(io::IO, report::NCAReport) = show(io, "text/plain", report)
+function Base.show(io::IO, str::AbstractString, report::NCAReport)
+  _io = IOBuffer()
+  println(_io, "# Noncompartmental Analysis Report")
+  println(_io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
+  println(_io, "Julia version " * string(VERSION))
+  println(_io, "")
+  println(_io, "Date and Time: " * Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS"))
+  println(_io, "")
 
-  println(io, "## Calculation Setting")
+  println(_io, "## Calculation Setting")
   # TODO
-  println(io, "")
+  println(_io, "")
 
-  println(io, "## Calculated Values")
-  println(io, "|         Name         |    Value   |")
-  println(io, "|----------------------|------------|")
+  println(_io, "## Calculated Values")
+  println(_io, "|         Name         |    Value   |")
+  println(_io, "|:---------------------|-----------:|")
   for entry in pairs(report.values)
-    @printf(io, "| %-20s | %10f |\n", entry[1], entry[2])
+    _name = string(entry[1])
+    name = replace(_name, "_"=>"\\_") # escape underscore
+    @printf(_io, "| %s | %f |\n", name, entry[2])
   end
+  markdown = Markdown.parse(String(take!(_io)))
+  show(io, str, markdown)
 end
