@@ -212,3 +212,19 @@ end
     end
   end
 end
+
+function FIM(m::PKPDModel, subject::Subject, x0, y0, args...; kwargs...)
+  x, vals, dist = conditional_ll(m,subject, x0, y0, args...;extended_return = true,kwargs...)
+  function mean_var(model, _subject, _x0, _y0, i, args...; kwargs...)
+    x_, vals_, dist_ = conditional_ll(model,_subject, _x0, _y0, args...;extended_return = true,kwargs...)
+    mean(dist_[i]),var(dist_[i])
+  end
+  fim = sum(1:length(subject.observations)) do j
+    r_inv = inv(var(derived_dist[j]))
+    res = ll_derivatives(mean_var,m,subject, x0, y0, :η, j, args...;kwargs...)
+    del_r = res[2]
+    f = res[1]
+    f'*r_inv*f + (r_inv*del_r'*r_inv*del_r)/2
+  end
+  fim
+end
