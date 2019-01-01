@@ -66,11 +66,22 @@ function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTupl
   y0 = TransformVariables.transform(totransform(rfxset), vy0)
   conditional_nll(m,subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
 end
+struct Laplace end
+struct FOCEI end
 
 function penalized_conditional_nll_fn(m::PKPDModel, subject::Subject, x0::NamedTuple, args...;kwargs...)
   y -> penalized_conditional_nll(m, subject, x0, y, args...; kwargs...)
 end
 
+function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::FOCEI=FOCEI(), args...; kwargs...)
+  Ω = m.random(x0).params.η
+  l = conditional_ll(m,subject,x0, y0,args...;kwargs...)
+  w = FIM(m,subject, x0, y0, args...;kwargs...)
+  l - (logdet(Ω) + y0*inv(Ω)*y0' + logdet(inv(Ω) + w))/2
+end
+
+marginal_nll_nonmem(m, subject, x0, y0, args...; kwargs...) =
+    2marginal_nll(m, subject, x0, y0, args...;kwargs...) - length(subject.observations)*log(2π)
 
 
 """
@@ -217,13 +228,12 @@ function FIM(m::PKPDModel, subject::Subject, x0, y0, args...; kwargs...)
   x, vals, dist = conditional_ll(m,subject, x0, y0, args...;extended_return = true,kwargs...)
   function mean_var(model, _subject, _x0, _y0, i, args...; kwargs...)
     x_, vals_, dist_ = conditional_ll(model,_subject, _x0, _y0, args...;extended_return = true,kwargs...)
-    mean(dist_[i]),var(dist_[i])
+    [mean(dist_[1][i]),var(dist_[1][i])]
   end
   fim = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(derived_dist[j]))
+    r_inv = inv(var(dist[1][j]))
     res = ll_derivatives(mean_var,m,subject, x0, y0, :η, j, args...;kwargs...)
-    del_r = res[2]
-    f = res[1]
+    f,del_r = DiffResults.gradient(res)
     f'*r_inv*f + (r_inv*del_r'*r_inv*del_r)/2
   end
   fim
