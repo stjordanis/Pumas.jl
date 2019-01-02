@@ -27,7 +27,7 @@ the derived produces distributions.
 """
 function conditional_nll(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
   obstimes = [obs.time for obs in subject.observations]
-  isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+  isempty(obstimes) && return 0.0
   derived = derivedfun(m,subject,args...;kwargs...)
   vals, derived_dist = derived(obstimes) # the second component is distributions
   typ = flattentype(derived_dist)
@@ -52,7 +52,12 @@ end
 """
     penalized_conditional_nll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
 
-Compute the penalized conditional negative log-likelihood. This is the same as [`conditional_nll`](@ref), except that it incorporates the penalty from the prior distribution of the random effects.
+Compute the penalized conditional negative log-likelihood. This is the same as
+[`conditional_nll`](@ref), except that it incorporates the penalty from the prior
+distribution of the random effects.
+
+Here `rfx` can be either a `NamedTuple` or a vector (representing a transformation of the
+random effects to Cartesian space).
 """
 function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...;kwargs...)
   rfxset = m.random(x0)
@@ -72,7 +77,7 @@ end
 
 
 """
-    penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::Subject, param, rfx, args...; 
+    penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::Subject, param, rfx, args...;
                                hessian=diffres isa HessianResult, kwargs...)
 
 Compute the penalized conditional negative log-likelihood (see [`penalized_conditional_nll`](@ref)),
@@ -92,17 +97,53 @@ end
 abstract type Approximation end
 struct Laplace <: Approximation end
 
+"""
+    rfx_estimate(model, subject, param, approx, ...)
+
+The point-estimate the random effects (being the mode of the empirical Bayes estimate) of a
+particular subject at a particular parameter values. The result is returned as a vector
+(transformed into Cartesian space).
+"""
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
+"""
+    rfx_estimate_dist(model, subject, param, approx, ...)
+
+Estimate the distribution of random effects (typically a Normal approximation of the
+empirical Bayes posterior) of a particular subject at a particular parameter values. The
+result is returned as a vector (transformed into Cartesian space).
+"""
+function rfx_estimate_dist(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
+  vy0 = rfx_estimate(m, subject, x0, approx, args...; kwargs...)
+  diffres = DiffResults.HessianResult(vy0)
+  penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
+  MvNormal(vy0, Symmetric(inv(DiffResults.hessian(diffres))))
+end
+
+"""
+    marginal_nll(model, subject, param[, rfx], approx, ...)
+    marginal_nll(model, population, param, approx, ...)
+
+Compute the marginal negative loglikelihood of a subject or dataset. If no random effect
+(`rfx`) is provided, then this is estimated from the data.
+
+See also [`marginal_nll_nonmem`](@ref).
+"""
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Approximation, args...;
+                      kwargs...)
+  rfxset = m.random(x0)
+  vy0 = TransformVariables.inverse(totransform(rfxset), y0)
+  marginal_nll(m, subject, x0, vy0, approx, args...; kwargs...)
+end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...;
                       kwargs...)
   diffres = DiffResults.HessianResult(vy0)
-  penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)  
+  penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
   g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
   CW = cholesky!(Symmetric(W))
   p = length(vy0)
@@ -120,11 +161,18 @@ function marginal_nll(m::PKPDModel, data::Population, args...;
 end
 
 
+"""
+    marginal_nll_nonmem(model, subject, param[, rfx], approx, ...)
+    marginal_nll_nonmem(model, data, param, approx, ...)
+
+Compute the NONMEM-equivalent marginal negative loglikelihood of a subject or dataset:
+this is scaled and shifted slightly from [`marginal_nll`](@ref).
+"""
 marginal_nll_nonmem(m::PKPDModel, subject::Subject, args...; kwargs...) =
     2marginal_nll(m, subject, args...; kwargs...) - length(subject.observations)*log(2π)
 marginal_nll_nonmem(m::PKPDModel, data::Population, args...; kwargs...) =
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(subject.observations), data.subjects)*log(2π)
-  
+
 
 
 """
