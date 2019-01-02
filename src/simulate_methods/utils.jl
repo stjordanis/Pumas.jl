@@ -55,7 +55,7 @@ function sorted_approx_unique(event)
   tType = promote_type((typeof(ev.time) for ev in event)...)
   out = tType[event[1].time]
   for i in 2:length(event)
-    if abs(out[end] - event[i].time) > 10eps(tType)
+    if abs(out[end] - event[i].time) > 10eps(tType)*oneunit(tType)
       push!(out,event[i].time)
     end
   end
@@ -78,7 +78,7 @@ function get_magic_args(p,u0,t0)
   if haskey(p,:lags)
     lags = p.lags
   else
-    lags = 0.0#zero(eltype(t0))
+    lags = zero(eltype(t0))
   end
 
   if haskey(p,:bioav)

@@ -14,7 +14,7 @@ end
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
 rule.
 """
-@inline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
@@ -44,7 +44,7 @@ end
 Compute area under the first moment of the concentration (AUMC) in an interval
 by log-linear trapezoidal rule.
 """
-@inline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
   Δt = t₂ - t₁
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
@@ -59,7 +59,7 @@ Extrapolate the first moment to the infinite.
 
 @enum AUCmethod Linear Log
 
-function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
+@inline function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
   if method === :linear ||
     (method === :linuplogdown && c2>=c1) && (method === :linlog && maxidx)
     return Linear
@@ -69,20 +69,52 @@ function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
   end
 end
 
-function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
+@inline function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
   m = choosescheme(c1, c2, t1, t2, i, maxidx, method)
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-function _auc(nca::NCAData; interval=nothing, auctype, method=:linear, linear, log, inf, kwargs...)
+@inline function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  if auc in (:AUClast, :AUCinf)
+    return eltype(AUC)
+  else
+    return eltype(AUMC)
+  end
+end
+
+@inline function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  @inbounds begin
+    # `points` is initialized to 0
+    sym === :lambdaz && return !(nca.points[1] === 0)
+    # `auc_last` and `aumc_last` are initialized to -1
+    sym === :auc     && return !(nca.auc_last[1]  === -one(eltype(AUC)))
+    sym === :aumc    && return !(nca.aumc_last[1] === -one(eltype(AUMC)))
+  end
+end
+
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, interval, linear, log, inf;
+              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  # fast return
+  if interval === nothing
+    if auctype === :inf
+      _clast = clast(nca; kwargs...)
+      _tlast = tlast(nca)
+      aucinf′ = inf(_clast, _tlast, lambdaz(nca; recompute=false, kwargs...)[1])
+      isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::eltype(AUC)
+      !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::eltype(AUMC)
+    elseif auctype === :last
+      isauc  && iscached(nca, :auc)  && return nca.auc_last[1] ::eltype(AUC)
+      !isauc && iscached(nca, :aumc) && return nca.aumc_last[1]::eltype(AUMC)
+    end
+  end
   conc, time = nca.conc, nca.time
-  isaucinf = auctype in (:AUMCinf, :AUCinf)
+  auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :inf or :last"))
+  isinf = auctype === :inf
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   if !(interval === nothing)
-    if isaucinf && isfinite(interval[2])
-      #@warn "Requesting AUCinf when the end of the interval is not Inf"
-      auctype = auctype === :AUCinf ? :AUClast : :AUMClast
-      isaucinf = false
+    if isinf && isfinite(interval[2])
+      auctype === :inf && (auctype = :last)
+      isinf = false
     end
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
@@ -123,7 +155,7 @@ function _auc(nca::NCAData; interval=nothing, auctype, method=:linear, linear, l
     end
   end
 
-  _clast = clast(nca)
+  _clast = clast(nca; kwargs...)
   _tlast = tlast(nca)
   if ismissing(_clast)
     if all(x->x<=nca.llq, conc)
@@ -140,7 +172,7 @@ function _auc(nca::NCAData; interval=nothing, auctype, method=:linear, linear, l
   for i in int_idxs
     auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
-  if isaucinf
+  if isinf
     λz = lambdaz(nca; recompute=false, kwargs...)[1]
     aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
   else
@@ -149,36 +181,25 @@ function _auc(nca::NCAData; interval=nothing, auctype, method=:linear, linear, l
 
   # cache results
   if interval == nothing # only cache when interval is nothing
-    if isaucinf
-      if auctype === :AUCinf
-        nca.auc_last = auc
-        nca.auc_inf = auc + aucinf′
-      else
-        nca.aumc_last = auc
-        nca.aumc_inf = auc + aucinf′
-      end
+    if isauc
+      AUC <: AbstractArray  ? nca.auc_last[1] = auc  : nca.auc_last = auc
     else
-      if auctype === :AUClast
-        nca.auc_last = auc
-      else
-        nca.aumc_last = auc
-      end
+      AUMC <: AbstractArray ? nca.aumc_last[1] = auc : nca.aumc_last = auc
     end
   end
 
-  auc += aucinf′ # add the infinite back
+  auc += aucinf′ # add the infinite part
 
   return auc
 end
 
 """
-  auc(nca::NCAData; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
+  auc(nca::NCASubject; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
-:linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`. It
-calculates AUC and normalized AUC if `dose` is provided.
+:linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`.
 """
-function auc(nca::NCAData; auctype=:AUCinf, interval=nothing, kwargs...)
+function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
     return auc_nokwarg(nca, auctype, interval; kwargs...)
   elseif interval isa AbstractArray
@@ -191,30 +212,19 @@ function auc(nca::NCAData; auctype=:AUCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auctype, interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
-  dose = nca.dose
-  sol = nothing
-  auctype in (:AUCinf, :AUClast) || throw(ArgumentError("auctype must be either :AUCinf or :AUClast for auc"))
-  if auctype === :AUCinf && interval === nothing # if we can use the cached result
-    nca.auc_inf === nothing || (sol = nca.auc_inf)
-  elseif auctype === :AUClast
-    !(nca.auc_last === nothing) && interval === nothing && (sol = nca.auc_last)
-  end
-  if sol === nothing
-    sol = _auc(nca; auctype=auctype, interval=interval, linear=auclinear, log=auclog, inf=aucinf, kwargs...)
-  end
-  return D === Nothing ? sol : (auc=sol, auc_dn=sol/dose) # if dose is not nothing, normalize AUC
+@inline function auc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
+  sol = _auc(nca, interval, auclinear, auclog, aucinf; auctype=auctype, isauc=true, kwargs...)
+  return sol
 end
 
 """
-  aumc(nca::NCAData; method::Symbol, interval=(0, Inf), kwargs...)
+  aumc(nca::NCASubject; method::Symbol, interval=(0, Inf), kwargs...)
 
 Compute area under the first moment of the concentration (AUMC) by linear
 trapezoidal rule `(method = :linear)` or by log-linear trapezoidal rule
-`(method = :linuplogdown)`. It calculates AUC and normalized AUC if `dose` is
-provided.
+`(method = :linuplogdown)`.
 """
-function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
+function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   if interval isa Tuple || interval === nothing
     return aumc_nokwarg(nca, auctype, interval; kwargs...)
   elseif interval isa AbstractArray
@@ -227,51 +237,54 @@ function aumc(nca; auctype=:AUMCinf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N}, auctype,
-                              interval; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N}
-  dose = nca.dose
-  sol = nothing
-  auctype in (:AUMCinf, :AUMClast) || throw(ArgumentError("auctype must be either :AUMCinf or :AUMClast for aumc"))
-  if auctype === :AUMCinf && interval === nothing # if we can use the cached result
-    nca.aumc_inf === nothing || (sol = nca.aumc_inf)
-  elseif auctype === :AUMClast
-    !(nca.aumc_last === nothing) && interval === nothing && (sol = nca.aumc_last)
-  end
-  if sol === nothing
-    sol = _auc(nca; auctype=auctype, interval=interval, linear=aumclinear, log=aumclog, inf=aumcinf, kwargs...)
-  end
-  return D === Nothing ? sol : (aumc=sol, aumc_dn=sol/dose) # if dose is not nothing, normalize AUMC
+@inline function aumc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
+  sol = _auc(nca, interval, aumclinear, aumclog, aumcinf; auctype=auctype, isauc=false, kwargs...)
+  return sol
 end
 
-function auc_extrap_percent(nca::NCAData; kwargs...)
-  auc(nca; auctype=:AUCinf, kwargs...)
-  (nca.auc_inf-nca.auc_last)/nca.auc_inf * 100
+function auc_extrap_percent(nca::NCASubject; kwargs...)
+  aucinf  = auc(nca; auctype=:inf, kwargs...)
+  auclast = auc(nca; auctype=:last, kwargs...)
+  @. (aucinf-auclast)/aucinf * 100
 end
 
-function aumc_extrap_percent(nca::NCAData; kwargs...)
-  aumc(nca; auctype=:AUMCinf, kwargs...)
-  (nca.aumc_inf-nca.aumc_last)/nca.aumc_inf * 100
+function aumc_extrap_percent(nca::NCASubject; kwargs...)
+  aumcinf  = aumc(nca; auctype=:inf, kwargs...)
+  aumclast = aumc(nca; auctype=:last, kwargs...)
+  @. (aumcinf-aumclast)/aumcinf * 100
 end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+  obj = map(eachindex(nca.dose)) do i
+    subj = subject_at_ithdose(nca, i)
+    lambdaz(subj; recompute=false, kwargs...)
+  end
+  λ, intercept, points, r2 = (map(x->x[i], obj) for i in 1:4)
+  (lambdaz=λ, intercept=intercept, points=points, r2=r2)
+end
+
 """
-  lambdaz(nca::NCAData; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
+  lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
 
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N};
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::NamedTuple{(:lambdaz, :points, :r2),Tuple{Z,Int,F}} where {C,T,AUC,AUMC,D,Z,F,N}
-  if !(nca.lambdaz === nothing) && !recompute
-    return (lambdaz=nca.lambdaz, points=nca.points, r2=nca.r2)
+                )::NamedTuple{(:lambdaz, :intercept, :points, :r2),
+                              Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  if iscached(nca, :lambdaz) && !recompute
+    return (lambdaz=nca.lambdaz[1], intercept=nca.intercept[1], points=nca.points[1], r2=nca.r2[1])
   end
+  _F = eltype(F)
+  _Z = eltype(Z)
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
-  maxr2::F = oneunit(F)*false
-  λ::Z = oneunit(Z)*false
-  NoUnitEltype = typeof(one(Z))
+  maxr2::_F = oneunit(_F)*false
+  λ::_Z = oneunit(_Z)*false
+  NoUnitEltype = typeof(one(_Z))
   time′ = reinterpret(NoUnitEltype, time)
   conc′ = reinterpret(NoUnitEltype, conc)
   points = 2
@@ -285,10 +298,11 @@ function lambdaz(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N};
       x = time′[end-i:end]
       y = conc′[end-i:end]
       model = fitlog(x, y)
-      r2 = oneunit(F) * r²(model)
+      r2 = oneunit(_F) * r²(model)
       if r2 > maxr2
         maxr2 = r2
-        λ = oneunit(Z) * coef(model)[2]
+        λ = oneunit(_Z) * coef(model)[2]
+        intercept = coef(model)[1]
         points = i+1
       end
     end
@@ -300,15 +314,24 @@ function lambdaz(nca::NCAData{C,T,AUC,AUMC,D,Z,F,N};
     x = time′[idxs]
     y = conc′[idxs]
     model = fitlog(x, y)
-    λ  = oneunit(Z) * coef(model)[2]
-    r2 = oneunit(F) * r²(model)
+    λ = oneunit(_Z) * coef(model)[2]
+    intercept = coef(model)[1]
+    r2 = oneunit(_F) * r²(model)
   end
   if λ ≥ zero(λ)
     outlier = true
     @warn "The estimated slope is not negative, got $λ"
   end
-  nca.lambdaz=-λ
-  nca.points=points
-  nca.r2=r2
-  return (lambdaz=-λ, points=points, r2=r2)
+  if Z <: AbstractArray
+    nca.lambdaz[1] = -λ
+    nca.points[1] = points
+    nca.r2[1] = maxr2
+    nca.intercept[1] = intercept
+  else
+    nca.lambdaz = -λ
+    nca.points = points
+    nca.r2 = maxr2
+    nca.intercept = intercept
+  end
+  return (lambdaz=-λ, intercept=intercept, points=points, r2=maxr2)
 end

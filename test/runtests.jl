@@ -31,14 +31,14 @@ using PuMaS, SafeTestsets
       include("sdes.jl") end
 @time @safetestset "DDE Tests" begin
      include("ddes.jl") end
-@time @safetestset "NCA" begin
-     include("nca/runtests.jl") end
+include("nca/runtests.jl")
 @time @safetestset "Automatic Differentiation Tests" begin
      include("ad_tests.jl") end
+@time @safetestset "Unit Handling Tests" begin
+     include("unit_handling_tests.jl") end
 @time @safetestset "Physical Measurements Tests" begin
      include("measurement_tests.jl") end
-@time @safetestset "NLME" begin
-   include("nlme.jl") end
+include("nlme/runtests.jl")
 @time @safetestset "Error Handling" begin
      include("error_handling.jl") end
 #=

@@ -36,15 +36,17 @@ end
 function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   check && checkconctime(conc, time)
   missingconc === nothing && (missingconc = :drop)
-  E = eltype(conc)
-  T = Base.nonmissingtype(E)
+  Ec = eltype(conc)
+  Tc = Base.nonmissingtype(Ec)
+  Et = eltype(time)
+  Tt = Base.nonmissingtype(Et)
   n = count(ismissing, conc)
   # fast path
-  n == 0 && return conc, time
+  Tc === Ec && Tt === Et && n == 0 && return conc, time
   len = length(conc)
   if missingconc === :drop
-    newconc = similar(conc, T, len-n)
-    newtime = similar(time, len-n)
+    newconc = similar(conc, Tc, len-n)
+    newtime = similar(time, Tt, len-n)
     ii = 1
     @inbounds for i in eachindex(conc)
       if !ismissing(conc[i])
@@ -55,7 +57,8 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true)
     end
     return newconc, newtime
   elseif missingconc isa Number
-    newconc = similar(conc, T)
+    newconc = similar(conc, Tc)
+    newtime = Tt === Et ? time : similar(time, Tt)
     @inbounds for i in eachindex(newconc)
       newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
     end
@@ -113,3 +116,67 @@ end
   end
   return conc, time
 end
+
+@inline normalizedose(x::Number, d::NCADose) = x/d.amt
+normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
+@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
+  return normalizedose(x, subj.dose)
+end
+
+Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
+  m = length(dose)
+  @boundscheck begin
+    1 <= i <= m || throw(BoundsError(dose, i))
+  end
+  idx1 = searchsortedfirst(time, dose[i].time)
+  idxs = if i === m
+    idx1:length(time)
+  else
+    idx2 = searchsortedfirst(time, dose[i+1].time)-1
+    idx1:idx2
+  end
+  return idxs
+end
+
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P},
+                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+  m = length(nca.dose)
+  @boundscheck begin
+    1 <= i <= m || throw(BoundsError(nca.dose, i))
+  end
+  @inbounds begin
+    conc = nca.conc[i]
+    time = nca.time[i]
+    maxidx = nca.maxidx[i]
+    lastidx = nca.lastidx[i]
+    dose = nca.dose[i]
+    # TODO: caching
+    lambdaz = view(nca.lambdaz, i)
+    r2 = view(nca.r2, i)
+    intercept = view(nca.intercept, i)
+    points = view(nca.points, i)
+    auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
+    #NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),typeof(lambdaz),typeof(r2),N,eltype(I)}(
+    return NCASubject(
+                 nca.id,
+                 conc,    time,
+                 maxidx,  lastidx,
+                 dose,
+                 lambdaz, nca.llq, r2, intercept, points,
+                 auc, aumc)
+  end
+end
+
+#function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+#  _, maxidx = conc_maximum(conc, eachindex(conc))
+#  lastidx = ctlast_idx(conc, time; llq=nca.llq, check=false)
+#  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N,I,P}(
+#               nca.id,
+#               conc,    time,
+#               maxidx,  lastidx,
+#               dose,
+#               nothing, nca.llq, nothing, nothing,
+#               nothing, nothing,
+#               nothing, nothing)
+#end

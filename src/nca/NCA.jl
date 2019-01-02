@@ -4,21 +4,46 @@ using Reexport
 using GLM
 @reexport using DataFrames
 using Pkg, Dates, Printf
+import ..PuMaS: Formulation, IV, EV
 
-include("utils.jl")
 include("type.jl")
+include("data_parsing.jl")
+include("utils.jl")
 include("interpolate.jl")
 include("auc.jl")
 include("simple.jl")
 
-export NCAData, showunits
+export NCASubject, NCAPopulation, NCADose, showunits
+export parse_ncadata
 export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-       clast, tlast, cmax, tmax, thalf, clf, vss, vz
+       clast, tlast, cmax, tmax, cmin, tmin, thalf, cl, clf, vss, vz,
+       bioav, tlag, mrt, mat, tau, cavg, fluctation, accumulationindex,
+       swing
 export NCAReport
+export normalizedose
 
-for f in (:lambdaz, :cmax, :tmax, :clast, :tlast, :thalf, :clf, :vss, :vz,
-          :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent)
-  @eval $f(conc, time, args...; kwargs...) = $f(NCAData(conc, time; kwargs...), args...; kwargs...)
+for f in (:lambdaz, :cmax, :tmax, :cmin, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
+          :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
+          :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
+          :swing)
+  @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
+  @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
+    res = map(pop) do subj
+      sol = $f(subj, args...; kwargs...)
+      sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
+    end
+    return DataFrame(res)
+  end
+end
+
+# Multiple dosing handling
+for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex, :swing)
+  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+    obj = map(eachindex(nca.dose)) do i
+      subj = subject_at_ithdose(nca, i)
+      $f(subj, args...; kwargs...)
+    end
+  end
 end
 
 end
