@@ -25,22 +25,19 @@ Compute the conditional negative log-likelihood of model `m` for `subject` with 
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-function conditional_nll(m::PKPDModel, subject::Subject, args...; extended_return = false, kwargs...)
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; extended_return = false, kwargs...)
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && return 0.0
-  derived = derivedfun(m,subject,args...;kwargs...)
+  derived = derivedfun(m,subject,x0::NamedTuple, args...;kwargs...)
   vals, derived_dist = derived(obstimes) # the second component is distributions
   typ = flattentype(derived_dist)
   n = length(derived_dist)
-  idx = 1
-  x = sum(subject.observations) do obs
+  x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      l = _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs.val)
+      _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs.val)
     else
-      l = _lpdf(derived_dist, obs.val)
+      _lpdf(derived_dist, obs.val)
     end
-    idx += 1
-    return l
   end
   if extended_return
     return -x, vals, derived_dist
