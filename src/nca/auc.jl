@@ -21,10 +21,13 @@ rule.
   return (Δt * ΔC) / lg
 end
 
+
+# I suggest a different name for this function. `extrapaucinf` or something to be
+# explicit that this only extraploates to infinity
 """
     aucinf(clast, tlast, lambdaz)
 
-Extrapolate concentration to the infinite.
+Extrapolate auc to the infinite.
 """
 @inline aucinf(clast, tlast, lambdaz) = clast/lambdaz
 
@@ -50,6 +53,7 @@ by log-linear trapezoidal rule.
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
 end
 
+#maybe even this function needs to be `extrapaumcinf`
 """
     aumcinf(clast, tlast, lambdaz)
 
@@ -208,7 +212,8 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
     end
     return map(f, interval)
   else
-    error("interval must be a tuple or an array of tuples")
+    error("interval must be a tuple or an array of tuples, e.g., <Yingbo, can you provide the
+    exact specification as an example here>")
   end
 end
 
@@ -233,7 +238,8 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
     end
     return map(f, interval)
   else
-    error("interval must be a tuple or an array of tuples")
+    error("interval must be a tuple or an array of tuples e.g., <Yingbo, can you provide the
+    exact specification as an example here>")
   end
 end
 

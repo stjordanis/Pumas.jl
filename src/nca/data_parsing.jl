@@ -1,5 +1,14 @@
 using CSV, DataFrames
 
+"""
+  parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
+                       amt=nothing, formulation=nothing, iv=nothing, kwargs...)
+
+Parse a dataframe object  an external spredsheet file as an NCA dataset.
+
+The resulting object has the following properties
+TODO: Yingbo - can we fill in details here please
+"""
 parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
 function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing, kwargs...)
@@ -20,6 +29,10 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`"
   end
   sortvars = occasion === nothing ? id : (id, occasion)
+  # I think sortvars should be
+  # sortvars = occasion === nothing ? (id,time) : (id, time, occasion)
+  # but in order to sort with time, we need to make sure there is no missing time
+  # or non-numeric time. Not sure how you will implement that
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sorted(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)

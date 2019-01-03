@@ -1,5 +1,20 @@
 const Maybe{T} = Union{Missing, T}
 
+"""
+  checkconctime(conc, time=nothing; monotonictime=true)
+Verify that the concentration and time are valid
+
+If the concentrations or times are invalid, will provide an error.
+Reasons for being invalid are:
+  1. `conc` is not a `Number`
+  2. `time` is not a `Number`
+  3. `time` value is `missing`
+  4. `time` is not monotonically increasing
+  5. `conc` and `time` are not of same length
+
+Some cases may generate warnings
+  1.  A negative concentration is often but not always an error; it will generate a warning.
+"""
 function checkconctime(conc, time=nothing; monotonictime=true)
   # check conc
   conc == nothing && return
@@ -33,6 +48,16 @@ function checkconctime(conc, time=nothing; monotonictime=true)
   return
 end
 
+"""
+  cleanmissingconc(conc, time; missingconc=nothing, check=true)
+
+Handle `missing` values in the concentration measurements as requested by the user.
+
+`missing` concentrations (and their associated times) will be removed
+
+#Arguments
+- `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
+"""
 function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   check && checkconctime(conc, time)
   missingconc === nothing && (missingconc = :drop)
@@ -68,6 +93,40 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true)
   end
 end
 
+"""
+  cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+
+Handle BLQ values in the concentration measurements as requested by the user.
+
+`missing` concentrations (and their associated times) will be handled as described in
+`cleanmissingconc` before working with the BLQ values.  The method for handling `missing`
+concentrations can affect the output of which points are considered BLQ and which are
+considered "middle".  Values are considered BLQ if they are 0.
+
+#Arguments
+- `conc`: Measured concentrations
+- `time`: Time of the concentration measurement
+- `...` Additional arguments passed to `cleanmissingconc`
+
+- `concblq`: How to handle a BLQ value that is between above LOQ values?  See details for description.
+- `cleanmissingconc`: How to handle NA concentrations.
+
+`concblq` can be set either a scalar indicating what should be done for all BLQ
+values or a list with elements named "first", "middle", and "last" each set to a scalar.
+If `nothing`, BLQ values will be dropped (:drop)
+
+The meaning of each of the list elements is:
+
+  1. first: Values up to the first non-BLQ value.  Note that if all values are BLQ,
+     this includes all values.
+  2. middle: Values that are BLQ between the first and last non-BLQ values.
+  3. last: Values that are BLQ after the last non-BLQ value
+
+ The valid settings for each are:
+   1. "drop" Drop the BLQ values
+   2. "keep" Keep the BLQ values
+   3. a number Set the BLQ values to that number
+"""
 @inline function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   isempty(conc) && return conc, time
@@ -75,7 +134,8 @@ end
   concblq === nothing && (concblq = :drop)
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
-  if firstidx == -1
+  if firstidx == -1 #not sure I got the logic for this conditional.
+    #Why is tfirst = last(time)? Should it not be first(time).
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
     tfirst = last(time)
     tlast = tfirst + one(tfirst)
@@ -124,6 +184,7 @@ normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x
   return normalizedose(x, subj.dose)
 end
 
+#can you explain the logic here please
 Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   m = length(dose)
   @boundscheck begin

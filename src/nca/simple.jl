@@ -219,6 +219,7 @@ function cl(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, ithdose=nothing; kwargs..
     _bioav = one(AUC)
     return _bioav*_clf
   else # multiple doses
+    # TODO: check back on logic for this ithdose for CL, not sure about the user specification
     ithdose === nothing && throw(ArgumentError("`ithdose` must be provided for computing CL"))
     _bioav = bioav(nca, ithdose)
     map(eachindex(dose)) do idx

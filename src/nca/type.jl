@@ -20,7 +20,7 @@ Broadcast.broadcastable(x::NCADose) = Ref(x)
 
 # any changes in here must be reflected to ./simple.jl, too
 mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}
-  id::Int
+  id::Int # can we allow ids to be non-int also, something like 001-100-1001 or STUD011001
   conc::C
   time::T
   maxidx::I
@@ -35,6 +35,9 @@ mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}
   aumc_last::AUMC
 end
 
+"""
+To be completed
+"""
 function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=true, lambdaz=nothing, kwargs...) where T
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
   unitconc = oneunit(eltype(conc))
