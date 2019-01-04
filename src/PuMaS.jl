@@ -2,7 +2,7 @@ module PuMaS
 
 using DiffEqBase, DiffEqMonteCarlo, Reexport,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
-      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults
+      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
@@ -16,6 +16,7 @@ include("dsl/model_macro.jl")
 
 include("models/params.jl")
 include("models/model_api.jl")
+include("models/transforms.jl")
 include("models/likelihoods.jl")
 
 include("analytical_solutions/analytical_problem.jl")
@@ -35,7 +36,7 @@ example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*fi
 export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, pre, simpost
-export conditional_ll, ll_derivatives, marginal_loglikelihood
+export conditional_nll, ll_derivatives, marginal_loglikelihood
 export example_nmtran_data
 export @model
 end # module

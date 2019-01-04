@@ -3,7 +3,7 @@ using PuMaS, Test, Random, LinearAlgebra, LabelledArrays
 # Read the data# Read the data
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
-# Cut off the `t=0` pre-dose observation as it throws conditional_ll calculations
+# Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations
 # off the scale (variance of the simulated distribution is too small).
 for subject in data.subjects
     obs1 = subject.observations[1]
@@ -86,7 +86,7 @@ y0 = init_random(mdsl, x0)
 
 subject = data.subjects[1]
 
-@test conditional_ll(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12) ≈ conditional_ll(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)
+@test conditional_nll(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12) ≈ conditional_nll(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)
 
 @test (Random.seed!(1); simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv]) ≈
       (Random.seed!(1); simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv])

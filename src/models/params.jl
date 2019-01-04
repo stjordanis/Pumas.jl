@@ -1,5 +1,5 @@
 using LinearAlgebra
-export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain, PDiagDomain
+export ParamSet, ConstDomain, RealDomain, VectorDomain, PSDDomain, PDiagDomain, Constrained
 
 abstract type Domain end
 
@@ -43,7 +43,7 @@ unpack(v, d::RealDomain) = v[1]
 
 
 """
-    @param x ∈ Vector(n::Int; lower=-Inf,upper=+Inf,init=0)
+    @param x ∈ VectorDomain(n::Int; lower=-Inf,upper=+Inf,init=0)
 
 Specifies a parameter as a real vector of length `n`. `lower` and `upper` are the respective bounds, `init` is the value used as the initial guess in the optimisation.
 """
@@ -75,7 +75,7 @@ Specifies a parameter as a symmetric `n`-by-`n` positive semidefinite matrix.
 struct PSDDomain{T} <: Domain
   init::T
 end
-PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(PDMat(init))
+PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(init)
 
 
 init(d::PSDDomain) = d.init
@@ -162,6 +162,8 @@ function Domain(d::MvNormal)
   n = length(d)
   VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
 end
+Domain(d::InverseWishart) = PSDDomain(Distributions.dim(d))
+
 function Domain(d::ContinuousUnivariateDistribution)
   RealDomain(minimum(d), maximum(d), median(d))
 end
@@ -224,3 +226,14 @@ function unpack(v, p::ParamSet)
 end
 
 Base.rand(p::ParamSet) = map(rand, p.params)
+
+
+struct Constrained{D<:Distribution,M<:Domain}
+  dist::D
+  domain::M
+end
+
+Constrained(dist::MvNormal; lower=-Inf, upper=Inf, init=0.0) =
+  Constrained(dist, VectorDomain(length(dist); lower=lower, upper=upper, init=init))
+
+Domain(c::Constrained) = c.domain

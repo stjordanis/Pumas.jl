@@ -1,4 +1,4 @@
-using PuMaS, LinearAlgebra
+using Test, PuMaS, LinearAlgebra
 
 #Creating the dataset
 
@@ -88,6 +88,8 @@ x0 = (θ = θ,
     Ω = PDMat(diagm(0 => [0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04])),
     Σ_dv = 0.04,
     Σ_pddv = 1)
+
 @test_throws ArgumentError simobs(model, population[1], x0)
-@test_throws ArgumentError conditional_ll(model, population[1])
+@test conditional_nll(model, population[1], x0) == 0.0
+@test_throws MethodError conditional_nll(model, population[1])
 @test_nowarn simobs(model, population[1], x0,obstimes=0.1:0.1:300.0)

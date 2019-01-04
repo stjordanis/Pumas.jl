@@ -38,7 +38,4 @@ mdsl2 = @model begin
 end
 
 x0 = init_param(mdsl2)
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(mdsl2,subject, x0, (η=η,))
-ηstar = [Optim.optimize(η -> mdsl_f(η,theopp_nlme[i]),zeros(3),BFGS()).minimizer for i in 1:12]
-ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme[i],x0,(η=ηstar[i],),Laplace()), 1:12)
-@test ml ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,x0,Laplace()) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result

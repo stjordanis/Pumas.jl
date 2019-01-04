@@ -16,7 +16,7 @@ m_diffeq = @model begin
         Central' =  ka*Depot - cp*Central
     end
 
-    # we approximate the error by computing the logconditional_ll
+    # we approximate the error by computing the conditional_nll
     @derived begin
         conc = @. Central / v
         dv ~ @. Normal(conc, 1e-100)
@@ -34,7 +34,7 @@ m_analytic = @model begin
     end
     @dynamics OneCompartmentModel
 
-    # we approximate the error by computing the logconditional_ll
+    # we approximate the error by computing the conditional_nll
     @derived begin
         conc = @. Central / v
         dv ~ @. Normal(conc, 1e-100)

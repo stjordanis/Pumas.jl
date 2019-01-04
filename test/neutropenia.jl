@@ -106,4 +106,4 @@ sol_diffeq = solve(m_neut,subject,x0)
 # Should be made into a population test
 sol_diffeq = solve(m_neut,subject,x0, parallel_type = PuMaS.Threading)
 
-@test PuMaS.conditional_ll(m_neut, subject, x0, ()) ≈ -79.54079056760992 rtol=5e-5
+@test PuMaS.conditional_nll(m_neut, subject, x0, ()) ≈ 79.54079056760992 rtol=5e-5
