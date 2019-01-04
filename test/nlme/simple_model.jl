@@ -49,3 +49,7 @@ function full_ll(θ)
 end
 
 Optim.optimize(full_ll,[0.5],BFGS())
+
+
+ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),FOCEI()), 1:10)
+@test ml ≈ 56.410938825140313 rtol = 1e-6
