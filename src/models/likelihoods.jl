@@ -91,8 +91,8 @@ function penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::
 end
 
 
-abstract type Approximation end
-struct Laplace <: Approximation end
+abstract type LikelihoodApproximation end
+struct Laplace <: LikelihoodApproximation end
 
 """
     rfx_estimate(model, subject, param, approx, ...)
@@ -131,7 +131,7 @@ from the data.
 
 See also [`marginal_nll_nonmem`](@ref).
 """
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Approximation, args...;
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::LikelihoodApproximation, args...;
                       kwargs...)
   rfxset = m.random(x0)
   vy0 = TransformVariables.inverse(totransform(rfxset), y0)
@@ -148,7 +148,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Approximation, args...;
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
                       kwargs...)
   vy0 = rfx_estimate(m, subject, x0, approx, args...; kwargs...)
   marginal_nll(m, subject, x0, vy0, approx, args...; kwargs...)
