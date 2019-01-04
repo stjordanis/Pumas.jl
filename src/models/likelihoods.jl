@@ -125,8 +125,9 @@ end
     marginal_nll(model, subject, param[, rfx], approx, ...)
     marginal_nll(model, population, param, approx, ...)
 
-Compute the marginal negative loglikelihood of a subject or dataset. If no random effect
-(`rfx`) is provided, then this is estimated from the data.
+Compute the marginal negative loglikelihood of a subject or dataset, using the integral
+approximation `approx`. If no random effect (`rfx`) is provided, then this is estimated
+from the data.
 
 See also [`marginal_nll_nonmem`](@ref).
 """
@@ -142,7 +143,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
   g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
-  CW = cholesky!(Symmetric(W))
+  CW = cholesky!(Symmetric(W)) # W is positive-definite, only compute Cholesky once.
   p = length(vy0)
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
 end
