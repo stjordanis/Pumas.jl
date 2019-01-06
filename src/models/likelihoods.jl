@@ -84,9 +84,9 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0, y0, approx::FOCEI, arg
     l = conditional_ll(m,subject,x0, y0,args...;kwargs...)
     w = FIM(m,subject, x0, y0, args...;kwargs...)
     if size(Ω) == (1,)
-      return l - (log(Ω[1]) + y0.η[1]*inv(Ω[1])*y0.η[1]' + log(inv(Ω[1]) + w[1]))/2
+      return -l + (log(Ω[1]) + y0.η[1]*inv(Ω[1])*y0.η[1]' + log(inv(Ω[1]) + w[1]))/2
     else
-      return l - (logdet(Ω) + y0.η*inv(Ω)*y0.η' + logdet(inv(Ω) + w))/2
+      return -l + (logdet(Ω) + y0.η*inv(Ω)*y0.η' + logdet(inv(Ω) + w))/2
     end
 end
 
