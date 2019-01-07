@@ -24,7 +24,7 @@ theopmodel_fo = @model begin
     end
 
     @pre begin
-        Ka = SEX == 1 ? θ[1] + η[1] : θ[4] + η[1]
+        Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]+ η[2]
         CL  = θ[3]*WT + η[3]
         V = CL/K/WT
@@ -86,7 +86,7 @@ theopmodel_foce = @model begin
     end
 
     @pre begin
-        Ka = SEX == 1 ? θ[1] + η[1] : θ[4] + η[1]
+        Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
         V = CL/K/WT
@@ -142,7 +142,7 @@ theopmodel_focei = @model begin
     end
 
     @pre begin
-        Ka = SEX == 1 ? θ[1] + η[1] : θ[4] + η[1]
+        Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
         V = CL/K/WT
@@ -199,7 +199,7 @@ theopmodel_laplace = @model begin
     end
 
     @pre begin
-        Ka = SEX == 1 ? θ[1] + η[1] : θ[4] + η[1]
+        Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
         V = CL/K/WT
@@ -280,7 +280,7 @@ theopmodel_laplacei = @model begin
     end
 
     @pre begin
-        Ka = SEX == 1 ? θ[1] + η[1] : θ[4] + η[1]
+        Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
         V = CL/K/WT
