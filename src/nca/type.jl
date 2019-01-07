@@ -19,8 +19,8 @@ end
 Broadcast.broadcastable(x::NCADose) = Ref(x)
 
 # any changes in here must be reflected to ./simple.jl, too
-mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}
-  id::Int # can we allow ids to be non-int also, something like 001-100-1001 or STUD011001
+mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  id::ID # allow id to be non-int, e.g. 001-100-1001 or STUD011001
   conc::C
   time::T
   maxidx::I
@@ -64,24 +64,26 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
     return NCASubject{typeof(conc), typeof(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
-                      Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx), Vector{Int}}(id,
+                      Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
+                      Vector{Int}, typeof(id)}(id,
                         conc, time, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(intercept, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n))
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
-  NCASubject{typeof(conc), typeof(time),
+  NCASubject{typeof(conc),   typeof(time),
           typeof(auc_proto), typeof(aumc_proto),
-          typeof(dose), typeof(lambdaz_proto),
-          typeof(r2_proto), typeof(llq), typeof(lastidx), Int}(id,
+          typeof(dose),      typeof(lambdaz_proto),
+          typeof(r2_proto),  typeof(llq), typeof(lastidx),
+          Int, typeof(id)}(id,
             conc, time, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  intercept, 0,
             auc_proto, aumc_proto)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+function showunits(io::IO, ::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, indent=0) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[2]
@@ -139,7 +141,7 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+function NCAReport(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
   settings = nothing

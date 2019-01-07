@@ -134,9 +134,9 @@ The meaning of each of the list elements is:
   concblq === nothing && (concblq = :drop)
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
-  if firstidx == -1 #not sure I got the logic for this conditional.
-    #Why is tfirst = last(time)? Should it not be first(time).
-    # All measurements are BLQ; so apply the "first" BLQ rule to everyting.
+  if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
+    # All measurements are BLQ; so apply the "first" BLQ rule to everyting,
+    # hence, we take `tfirst` to be the `last(time)`
     tfirst = last(time)
     tlast = tfirst + one(tfirst)
   else
@@ -179,65 +179,49 @@ end
 
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
 
-#can you explain the logic here please
 Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   m = length(dose)
-  @boundscheck begin
-    1 <= i <= m || throw(BoundsError(dose, i))
-  end
+  @boundscheck 1 <= i <= m || throw(BoundsError(dose, i))
+  # get the first index of the `i`-th dose interval
   idx1 = searchsortedfirst(time, dose[i].time)
   idxs = if i === m
-    idx1:length(time)
+    idx1:length(time) # the indices of the last dose interval is `idx1:end`
   else
     idx2 = searchsortedfirst(time, dose[i+1].time)-1
+    # indices of the `i`-th dose interval is from `idx1` to the first index of
+    # `i+1`-th dose minus one
     idx1:idx2
   end
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P},
-                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
+                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
   m = length(nca.dose)
-  @boundscheck begin
-    1 <= i <= m || throw(BoundsError(nca.dose, i))
-  end
+  @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
     maxidx = nca.maxidx[i]
     lastidx = nca.lastidx[i]
     dose = nca.dose[i]
-    # TODO: caching
     lambdaz = view(nca.lambdaz, i)
     r2 = view(nca.r2, i)
     intercept = view(nca.intercept, i)
     points = view(nca.points, i)
     auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
-    #NCASubject{typeof(conc),typeof(time),eltype(AUC),eltype(AUMC),typeof(dose),typeof(lambdaz),typeof(r2),N,eltype(I)}(
     return NCASubject(
                  nca.id,
-                 conc,    time,
-                 maxidx,  lastidx,
-                 dose,
-                 lambdaz, nca.llq, r2, intercept, points,
-                 auc, aumc)
+                 conc,    time,                           # NCA measurements
+                 maxidx,  lastidx,                        # idx cache
+                 dose,                                    # dose
+                 lambdaz, nca.llq, r2, intercept, points, # lambdaz related cache
+                 auc, aumc                                # AUC related cache
+                )
   end
 end
-
-#function remakesubject(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, conc, time, dose) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
-#  _, maxidx = conc_maximum(conc, eachindex(conc))
-#  lastidx = ctlast_idx(conc, time; llq=nca.llq, check=false)
-#  NCASubject{typeof(conc),typeof(time),AUC,AUMC,typeof(dose),Z,F,N,I,P}(
-#               nca.id,
-#               conc,    time,
-#               maxidx,  lastidx,
-#               dose,
-#               nothing, nca.llq, nothing, nothing,
-#               nothing, nothing,
-#               nothing, nothing)
-#end
