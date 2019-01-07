@@ -93,6 +93,7 @@ end
 
 abstract type LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
+struct FOCEI <: LikelihoodApproximation end
 
 """
     rfx_estimate(model, subject, param, approx, ...)
@@ -146,6 +147,17 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   CW = cholesky!(Symmetric(W)) # W is positive-definite, only compute Cholesky once.
   p = length(vy0)
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
+end
+
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCEI, args...; kwargs...)
+  Ω = var(m.random(x0).params.η)
+  l = -conditional_nll(m,subject,x0, y0,args...;kwargs...)
+  w = FIM(m,subject, x0, y0, args...;kwargs...)
+  if size(Ω) == (1,)
+    return -l + (log(Ω[1]) + y0.η[1]*inv(Ω[1])*y0.η[1]' + log(inv(Ω[1]) + w[1]))/2
+  else
+    return -l + (logdet(Ω) + y0.η*inv(Ω)*y0.η' + logdet(inv(Ω) + w))/2
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -211,4 +223,25 @@ end
       return result
     end
   end
+end
+
+function FIM(m::PKPDModel, subject::Subject, x0, vy0, args...; kwargs...)
+  x, vals, dist = conditional_nll(m,subject, x0, vy0, args...;extended_return = true,kwargs...)
+  function mean_(model, _subject, _x0, _vy0, i, args...; kwargs...)
+    x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+    mean(dist_[1][i])
+  end
+  function var_(model, _subject, _x0, _vy0, i, args...; kwargs...)
+    x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+    var(dist_[1][i])
+  end
+  fim = sum(1:length(subject.observations)) do j
+    r_inv = inv(var(dist[1][j]))
+    res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
+    f = DiffResults.gradient(res)
+    res = ll_derivatives(var_,m,subject, x0, vy0, :η, j, args...;kwargs...)
+    del_r = DiffResults.gradient(res)
+    f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
+  end
+  fim
 end
