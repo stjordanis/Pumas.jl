@@ -21,12 +21,13 @@ rule.
   return (Δt * ΔC) / lg
 end
 
-"""
-    aucinf(clast, tlast, lambdaz)
 
-Extrapolate concentration to the infinite.
 """
-@inline aucinf(clast, tlast, lambdaz) = clast/lambdaz
+    extrapaucinf(clast, tlast, lambdaz)
+
+Extrapolate auc to the infinite.
+"""
+@inline extrapaucinf(clast, tlast, lambdaz) = clast/lambdaz
 
 """
     aumclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
@@ -51,11 +52,11 @@ by log-linear trapezoidal rule.
 end
 
 """
-    aumcinf(clast, tlast, lambdaz)
+    extrapaumcinf(clast, tlast, lambdaz)
 
 Extrapolate the first moment to the infinite.
 """
-@inline aumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
+@inline extrapaumcinf(clast, tlast, lambdaz) = clast*tlast/lambdaz + clast/lambdaz^2
 
 @enum AUCmethod Linear Log
 
@@ -74,7 +75,7 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+@inline function _auctype(::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, auc=:AUCinf) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   if auc in (:AUClast, :AUCinf)
     return eltype(AUC)
   else
@@ -82,7 +83,7 @@ end
   end
 end
 
-@inline function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+@inline function iscached(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, sym::Symbol) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   @inbounds begin
     # `points` is initialized to 0
     sym === :lambdaz && return !(nca.points[1] === 0)
@@ -92,8 +93,8 @@ end
   end
 end
 
-function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, interval, linear, log, inf;
-              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf;
+              auctype, method=:linear, isauc, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
   if interval === nothing
     if auctype === :inf
@@ -208,12 +209,15 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
     end
     return map(f, interval)
   else
-    error("interval must be a tuple or an array of tuples")
+    error("""
+          interval must be a tuple or an array of tuples, e.g.,
+          auc(nca; interval=[(0,1.), (2, 3.)])
+          """)
   end
 end
 
 @inline function auc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
-  sol = _auc(nca, interval, auclinear, auclog, aucinf; auctype=auctype, isauc=true, kwargs...)
+  sol = _auc(nca, interval, auclinear, auclog, extrapaucinf; auctype=auctype, isauc=true, kwargs...)
   return sol
 end
 
@@ -233,12 +237,15 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
     end
     return map(f, interval)
   else
-    error("interval must be a tuple or an array of tuples")
+    error("""
+          interval must be a tuple or an array of tuples, e.g.,
+          aumc(nca; interval=[(0,1.), (2, 3.)])
+          """)
   end
 end
 
 @inline function aumc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
-  sol = _auc(nca, interval, aumclinear, aumclog, aumcinf; auctype=auctype, isauc=false, kwargs...)
+  sol = _auc(nca, interval, aumclinear, aumclog, extrapaumcinf; auctype=auctype, isauc=false, kwargs...)
   return sol
 end
 
@@ -256,7 +263,7 @@ end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
   obj = map(eachindex(nca.dose)) do i
     subj = subject_at_ithdose(nca, i)
     lambdaz(subj; recompute=false, kwargs...)
@@ -271,10 +278,10 @@ end
 Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
 in the determination of ``ΛZ``.
 """
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P};
+function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
                 )::NamedTuple{(:lambdaz, :intercept, :points, :r2),
-                              Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P}
+                              Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   if iscached(nca, :lambdaz) && !recompute
     return (lambdaz=nca.lambdaz[1], intercept=nca.intercept[1], points=nca.points[1], r2=nca.r2[1])
   end

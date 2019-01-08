@@ -1,5 +1,14 @@
 using CSV, DataFrames
 
+"""
+  parse_ncadata(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
+    conc=:conc, occasion=nothing, amt=nothing, formulation=nothing, iv=nothing,
+    kwargs...) -> NCAPopulation
+
+Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
+holds an array of `NCASubject`s which can cache certain results to achieve
+efficient NCA calculation.
+"""
 parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
 function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing, kwargs...)
@@ -19,10 +28,10 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by
     `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`"
   end
-  sortvars = occasion === nothing ? id : (id, occasion)
+  sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
-  sortedf = iss ? df : sorted(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
+  sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
   uids = unique(ids)
   idx  = -1
   ncas = map(uids) do id

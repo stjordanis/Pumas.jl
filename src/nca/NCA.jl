@@ -38,7 +38,7 @@ end
 
 # Multiple dosing handling
 for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex, :swing)
-  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P}
+  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
     obj = map(eachindex(nca.dose)) do i
       subj = subject_at_ithdose(nca, i)
       $f(subj, args...; kwargs...)
