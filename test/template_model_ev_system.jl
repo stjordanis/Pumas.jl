@@ -1,4 +1,4 @@
-using PuMaS, Test
+using PuMaS, Test, StaticArrays
 
 ###############################
 # Test 2
@@ -22,7 +22,7 @@ using PuMaS, Test
 # Gut dosing model
 m_diffeq = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -40,7 +40,7 @@ end
 
 m_analytic = @model begin
     @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -92,7 +92,7 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mlag_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -111,7 +111,7 @@ end
 
 mlag_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -169,7 +169,7 @@ sim = simobs(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mlagbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -189,7 +189,7 @@ end
 
 mlagbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -248,7 +248,7 @@ sim = simobs(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
 
 mbioav_diffeq = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -267,7 +267,7 @@ end
 
 mbioav_analytic = @model begin
     @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -713,7 +713,7 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mbld_diffeq = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -734,7 +734,7 @@ end
 
 mbld_analytic = @model begin
     @param    θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -924,7 +924,7 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mparbl_diffeq = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka1 = θ[1]
@@ -946,7 +946,7 @@ end
 
 mparbl_analytic = @model begin
     @param   θ ∈ VectorDomain(6, lower=zeros(6), init=ones(6))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka1 = θ[1]
@@ -996,7 +996,7 @@ sim = simobs(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 
 mbl2_diffeq = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]
@@ -1017,7 +1017,7 @@ end
 
 mbl2_analytic = @model begin
     @param   θ ∈ VectorDomain(5, lower=zeros(5), init=ones(5))
-    @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+    @random  η ~ Gaussian(@SVector(zeros(2)), I)
 
     @pre begin
         Ka = θ[1]

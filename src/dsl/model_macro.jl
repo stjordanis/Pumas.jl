@@ -1,6 +1,7 @@
 using DataStructures
 using MacroTools
 using ModelingToolkit
+using MultivariateDistributions
 
 islinenum(x) = x isa LineNumberNode
 function nt_expr(set, prefix=nothing)
@@ -43,7 +44,7 @@ function extract_params!(vars, params, exprs)
   #    a = 1
   #  a domain
   #    a ∈ RealDomain()
-  #  a random variable 
+  #  a random variable
   #    a ~ Normal()
   if exprs isa Expr && exprs.head == :block
     _exprs = exprs.args

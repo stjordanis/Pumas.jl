@@ -1,4 +1,4 @@
-using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays, DiffResults
+using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays, DiffResults, LinearAlgebra, StaticArrays
 
 AD_gradient = ForwardDiff.gradient
 AD_hessian = ForwardDiff.hessian
@@ -31,7 +31,7 @@ end
         end
 
         @random begin
-            η ~ MvNormal(Ω)
+            η ~ Gaussian(Ω)
         end
 
         @covariates sex wt etn
@@ -59,7 +59,7 @@ end
     p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
-    rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
+    rfx_f(p) = ParamSet((η=Gaussian(p.Ω),))
     function col_f(p,rfx,cov)
         (Ka = p.θ[1],
         CL = p.θ[2] * ((cov.wt/70)^0.75) * (p.θ[4]^cov.sex) * exp(rfx.η[1]),
@@ -84,7 +84,7 @@ end
 
     # Initial data
     θ0 = [2.268,74.17,468.6,0.5876]
-    x0 = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    x0 = (θ = θ0, Ω = Diagonal(@SVector([0.05, 0.2])), σ = 0.1)
     Random.seed!(0); y0 = init_random(model, x0)
 
     # Test gradient and hessian of an observable w.r.t. θ
@@ -135,7 +135,7 @@ end
     # Test 3 of template_model_ev_system.jl
     mlag = @model begin
         @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-        @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+        @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
         @pre begin
             Ka = θ[1]
@@ -177,7 +177,7 @@ end
     # Test 5 of template_model_ev_system.jl
     mbioav = @model begin
         @param    θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
-        @random   η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+        @random   η ~ Gaussian(@SVector(zeros(2)), I)
 
         @pre begin
             Ka = θ[1]

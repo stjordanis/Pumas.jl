@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra, Optim, StaticArrays
 
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
@@ -20,7 +20,7 @@ theopmodel_fo = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -50,7 +50,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
+           Ω = Diagonal(@SVector([5.55, 0.0024, 0.515])), # update to block diagonal
            σ_add = 0.388
            #σ_prop = 0.3
            )
@@ -82,7 +82,7 @@ theopmodel_foce = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -109,7 +109,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55,0.515])),
+           Ω = Diagonal(@SVector([5.55,0.515])),
            σ_add = 0.388
            #σ_prop = 0.3
            )
@@ -138,7 +138,7 @@ theopmodel_focei = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -165,7 +165,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55,0.515])),
+           Ω = Diagonal(@SVector([5.55,0.515])),
            σ_add = 0.388,
            σ_prop = 0.3
            )
@@ -195,7 +195,7 @@ theopmodel_laplace = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -222,7 +222,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55,0.515])),
+           Ω = Diagonal(@SVector([5.55,0.515])),
            σ_add = 0.388
            #σ_prop = 0.3
            )
@@ -232,7 +232,7 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
                           3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
                           2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
                           ],
-                          Ω = PDMat(diagm(0 => [1.596,2.27638e-01])),
+                          Ω = Diagonal(@SVector([1.596,2.27638e-01])),
                           σ_add = 5.14457E-01)
 # Elapsed estimation time in seconds:     0.23
 # Elapsed covariance time in seconds:     0.17
@@ -251,7 +251,7 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
   laplace_obj = 123.76439574418291
 
   function full_ll(θ)
-    _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
+    _x0 = (θ=θ,Ω = Diagonal(@SVector([5.55,0.515])),
                σ_add = 0.388)
     ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
     sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
@@ -276,7 +276,7 @@ theopmodel_laplacei = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -303,7 +303,7 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55,0.515])),
+           Ω = Diagonal(@SVector([5.55,0.515])),
            σ_add = 0.388,
            σ_prop = 0.3
            )

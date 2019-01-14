@@ -1,19 +1,19 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra, Optim, StaticArrays
 
 data = process_nmtran(example_nmtran_data("sim_data_model1"))
 
-#likelihood tests from NLME.jl 
+#likelihood tests from NLME.jl
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin
         θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        Ω ∈ PSDDomain(@SMatrix(fill(0.04, 1, 1)))
         Σ ∈ ConstDomain(0.1)
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -44,7 +44,7 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1,data,x0,Laplace()) ≈ 56.810343602063618 rtol=1e-6
 
 function full_ll(θ)
-  _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
+  _x0 = (θ=θ,Ω=@SMatrix([0.04]),Σ=0.1)
   PuMaS.marginal_nll_nonmem(mdsl1,data,_x0,Laplace())
 end
 

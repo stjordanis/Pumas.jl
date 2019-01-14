@@ -1,5 +1,5 @@
 using Test
-using PuMaS, TransformVariables, LinearAlgebra, Distributions
+using PuMaS, TransformVariables, LinearAlgebra, Distributions, StaticArrays
 
 p = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
               Ω = PSDDomain(2),
@@ -14,7 +14,7 @@ u = transform(t, zeros(8))
 
 
 
-pd = ParamSet((θ = Constrained(MvNormal([1.0 0.2; 0.2 1.0]), lower=-2.0),
+pd = ParamSet((θ = Constrained(Gaussian(@SMatrix([1.0 0.2; 0.2 1.0])), lower=-2.0),
               Ω = InverseWishart(13.0, [1.0 0.2; 0.2 1.0])))
 
 td = PuMaS.totransform(pd)

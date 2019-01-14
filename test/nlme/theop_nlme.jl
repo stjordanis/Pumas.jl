@@ -1,22 +1,22 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra, Optim, StaticArrays
 
 theopp_nlme = process_nmtran(example_nmtran_data("THEOPP"))
 
-#likelihood tests from NLME.jl 
+#likelihood tests from NLME.jl
 #-----------------------------------------------------------------------# Test 2
 
 mdsl2 = @model begin
     @param begin
-        θ ∈ VectorDomain(3,init=[3.24467E+01, 8.72879E-02, 1.49072E+00])
-        Ω ∈ PSDDomain(Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
-                                        1.20854E-02  2.02375E-02 -6.47803E-03
-                                        5.69131E-02 -6.47803E-03  4.34671E-01]))
-        Σ ∈ PSDDomain(Diagonal([1.70385E-02, 8.28498E-02]))
+        θ ∈ VectorDomain(3,init=[3.24467e+01, 8.72879e-02, 1.49072e+00])
+        Ω ∈ PSDDomain(@SMatrix([ 1.93973e-02  1.20854e-02  5.69131e-02
+                                 1.20854e-02  2.02375e-02 -6.47803e-03
+                                 5.69131e-02 -6.47803e-03  4.34671e-01]))
+        Σ ∈ PSDDomain(Diagonal(@SVector([1.70385e-02, 8.28498e-02])))
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin

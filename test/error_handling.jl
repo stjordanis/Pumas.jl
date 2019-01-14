@@ -1,4 +1,4 @@
-using Test, PuMaS, LinearAlgebra
+using Test, PuMaS, LinearAlgebra, StaticArrays
 
 #Creating the dataset
 
@@ -20,7 +20,7 @@ model = @model begin
     end
 
     @random begin
-      η ~ MvNormal(Matrix{Float64}(I, 9, 9))
+      η ~ Gaussian(@SVector(zeros(9)), I)
     end
 
     @pre begin
@@ -85,7 +85,7 @@ end
               ]
 
 x0 = (θ = θ,
-    Ω = PDMat(diagm(0 => [0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04])),
+    Ω = Diagonal(@SVector([0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04,0.04])),
     Σ_dv = 0.04,
     Σ_pddv = 1)
 

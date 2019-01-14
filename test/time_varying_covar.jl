@@ -1,4 +1,4 @@
-using PuMaS, StaticArrays
+using PuMaS, StaticArrays, LinearAlgebra
 
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
@@ -17,7 +17,7 @@ p = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
               a = ConstDomain(0.2)))
 
 function rfx_f(p)
-    ParamSet((η=MvNormal(p.Ω),))
+    ParamSet((η=Gaussian(p.Ω),))
 end
 
 function col_f(p,rfx,cov)
@@ -50,8 +50,7 @@ end
 mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 x0 = (θ = [2.268,74.17,468.6,0.5876],
-      Ω = PDMat([0.05 0.0;
-                 0.0 0.2]),
+      Ω = Diagonal(@SVector([0.05, 0.2])),
       σ = 0.1)
 subject1 = data.subjects[1]
 y0 = init_random(mobj, x0)
@@ -70,7 +69,7 @@ sol_mobj = solve(mobj,subject1,x0,y0)
       end
 
       @random begin
-          η ~ MvNormal(Ω)
+          η ~ Gaussian(Ω)
       end
 
       @covariates sex wt etn

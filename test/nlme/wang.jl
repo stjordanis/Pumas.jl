@@ -12,7 +12,7 @@ wang_additive = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -49,7 +49,7 @@ wang_prop = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin
@@ -87,7 +87,7 @@ wang_exp = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @pre begin

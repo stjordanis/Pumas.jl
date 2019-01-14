@@ -21,7 +21,7 @@ mdsl = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+        η ~ Gaussian(Ω)
     end
 
     @covariates sex wt etn
@@ -50,7 +50,7 @@ p = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
               a = ConstDomain(0.2)))
 
 function rfx_f(p)
-    ParamSet((η=MvNormal(p.Ω),))
+    ParamSet((η=Gaussian(p.Ω),))
 end
 
 function col_f(p,rfx,cov)

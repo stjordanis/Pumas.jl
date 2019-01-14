@@ -8,7 +8,7 @@ using PuMaS, Test, DelayDiffEq
 
 p = ParamSet((θ=VectorDomain(3, lower=zeros(4),init=θ), Ω=PSDDomain(2)))
 function randomfx(p)
-  ParamSet((η=MvNormal(p.Ω),))
+  ParamSet((η=Gaussian(p.Ω),))
 end
 
 function pre_f(params, randoms, covars)

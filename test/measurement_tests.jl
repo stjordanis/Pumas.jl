@@ -1,5 +1,5 @@
 using PuMaS, Measurements, LabelledArrays
-using Random, LinearAlgebra, Test
+using Random, LinearAlgebra, Test, StaticArrays
 
 data = process_nmtran(example_nmtran_data("data1"), [:sex,:wt,:etn])
 subject = data.subjects[1]
@@ -14,7 +14,7 @@ subject = data.subjects[1]
         end
 
         @random begin
-            η ~ MvNormal(Ω)
+            η ~ Gaussian(Ω)
         end
 
         @covariates sex wt etn
@@ -39,7 +39,7 @@ subject = data.subjects[1]
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
-    x0 = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    x0 = (θ = θ0, Ω = Diagonal(@SVector([0.05, 0.2])), σ = 0.1)
     Random.seed!(0); y0 = init_random(model, x0)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
@@ -69,7 +69,7 @@ end
     p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
-    rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
+    rfx_f(p) = ParamSet((η=Gaussian(p.Ω),))
     function col_f(p,rfx,cov)
         (Ka = p.θ[1],
         CL = p.θ[2] * ((cov.wt/70)^0.75) * (p.θ[4]^cov.sex) * exp(rfx.η[1]),
@@ -93,7 +93,7 @@ end
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
-    x0 = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    x0 = (θ = θ0, Ω = Diagonal(@SVector([0.05, 0.2])), σ = 0.1)
     Random.seed!(0); y0 = init_random(model, x0)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
@@ -128,7 +128,7 @@ end
         end
 
         @random begin
-            η ~ MvNormal(Ω)
+            η ~ Gaussian(Ω)
         end
 
         @covariates sex wt etn
@@ -154,7 +154,7 @@ end
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876, 0.412]
-    x0 = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    x0 = (θ = θ0, Ω = Diagonal(@SVector([0.05, 0.2])), σ = 0.1)
     Random.seed!(0); y0 = init_random(model, x0)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
@@ -183,16 +183,16 @@ end
     # Analytic model
     model = @model begin
         @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
-        @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
-    
+        @random  η ~ Gaussian(@SVector(zeros(2)), I)
+
         @pre begin
             Ka = θ[1]
             CL = θ[2]*exp(η[1])
             V  = θ[3]*exp(η[2])
         end
-    
+
         @dynamics OneCompartmentModel
-    
+
         @derived begin
             cp = @. Central / V
             cmax = maximum(cp)

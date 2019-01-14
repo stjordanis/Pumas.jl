@@ -1,4 +1,4 @@
-using PuMaS, Test, LinearAlgebra
+using PuMaS, Test, LinearAlgebra, StaticArrays
 
 
 ###############################
@@ -35,7 +35,7 @@ subject = process_nmtran(example_nmtran_data("event_data/data23"),
 
 m23 = @model begin
     @param   θ ∈ VectorDomain(12)
-    @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
+    @random  η ~ Gaussian(@SVector(zeros(11)), I)
 
     @pre begin
         Ka1     = θ[1]
@@ -135,7 +135,7 @@ subject = process_nmtran(example_nmtran_data("event_data/data24"),
 
 m24 = @model begin
     @param   θ ∈ VectorDomain(12)
-    @random  η ~ MvNormal(Matrix{Float64}(I, 11, 11))
+    @random  η ~ Gaussian(@SVector(zeros(11)), I)
 
     @pre begin
         Ka1     = θ[1]

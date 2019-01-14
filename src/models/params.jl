@@ -75,7 +75,7 @@ Specifies a parameter as a symmetric `n`-by-`n` positive semidefinite matrix.
 struct PSDDomain{T} <: Domain
   init::T
 end
-PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(init)
+PSDDomain(n::Int; init=Diagonal(@SVector(ones(n)))) = PSDDomain(init)
 
 
 init(d::PSDDomain) = d.init
@@ -158,7 +158,7 @@ function unpack(v, d::PDiagDomain)
 end
 
 # domains of random variables
-function Domain(d::MvNormal)
+function Domain(d::Gaussian)
   n = length(d)
   VectorDomain(fill(-Inf, n), fill(Inf, n), mean(d))
 end
@@ -228,12 +228,12 @@ end
 Base.rand(p::ParamSet) = map(rand, p.params)
 
 
-struct Constrained{D<:Distribution,M<:Domain}
+struct Constrained{D,M<:Domain}
   dist::D
   domain::M
 end
 
-Constrained(dist::MvNormal; lower=-Inf, upper=Inf, init=0.0) =
+Constrained(dist::Gaussian; lower=-Inf, upper=Inf, init=0.0) =
   Constrained(dist, VectorDomain(length(dist); lower=lower, upper=upper, init=init))
 
 Domain(c::Constrained) = c.domain

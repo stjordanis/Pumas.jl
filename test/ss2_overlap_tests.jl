@@ -1,4 +1,4 @@
-using Test, LinearAlgebra
+using Test, LinearAlgebra, StaticArrays
 using PuMaS
 
 # Gut dosing model
@@ -8,7 +8,7 @@ m_diffeq = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+        η ~ Gaussian(@SVector(zeros(2)),I)
     end
 
     @pre begin
