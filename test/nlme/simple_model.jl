@@ -44,7 +44,7 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1,data,x0,Laplace()) ≈ 56.810343602063618 rtol=1e-6
 
 function full_ll(θ)
-  _x0 = (θ=θ,Ω=[0.04],Σ=0.1)
+  _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
   PuMaS.marginal_nll_nonmem(mdsl1,data,_x0,Laplace())
 end
 

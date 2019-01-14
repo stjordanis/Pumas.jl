@@ -150,14 +150,10 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCEI, args...; kwargs...)
-  Ω = var(m.random(x0).params.η)
+  Ω = cov(m.random(x0).params.η)
   l = -conditional_nll(m,subject,x0, y0,args...;kwargs...)
   w = FIM(m,subject, x0, y0, args...;kwargs...)
-  if size(Ω) == (1,)
-    return -l + (log(Ω[1]) + y0.η[1]*inv(Ω[1])*y0.η[1]' + log(inv(Ω[1]) + w[1]))/2
-  else
-    return -l + (logdet(Ω) + y0.η*inv(Ω)*y0.η' + logdet(inv(Ω) + w))/2
-  end
+  return -l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
