@@ -53,3 +53,7 @@ Optim.optimize(full_ll,[0.5],BFGS())
 ηstar = [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361]
 ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FOCEI()), 1:10)
 @test ml ≈ 56.410938825140313 rtol = 1e-6
+
+ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FOCE()), 1:10)
+println(ml) #56.252631972150475
+# @test ml ≈ 56.476216665029462
