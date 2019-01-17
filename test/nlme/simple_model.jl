@@ -55,5 +55,5 @@ ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS
 @test ml ≈ 56.410938825140313 rtol = 1e-6
 
 ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FOCE()), 1:10)
-println(ml) #56.252631972150475
+println(ml) #56.31674083785947
 # @test ml ≈ 56.476216665029462
