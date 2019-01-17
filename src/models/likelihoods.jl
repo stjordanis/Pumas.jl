@@ -102,12 +102,12 @@ function conditional_nll(derived_dist, derived_dist_,subject)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),var(derived_dist_[i][idx])), n)), obs.val)
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist_[i][idx]))), n)), obs.val) 
     else
-      _lpdf(Normal(mean(derived_dist[i][idx]),var(derived_dist_[i][idx])), obs.val)
+      _lpdf(Normal(mean(derived_dist),var(derived_dist_)), obs.val)
     end
   end
-  return -x
+  return -x 
 end
 
 """
@@ -170,14 +170,20 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{FOCEI,FOCE}, args...; kwargs...)
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCEI, args...; kwargs...)
+  Ω = cov(m.random(x0).params.η)
+  l = -conditional_nll(m,subject,x0, y0,args...;kwargs...)
+  w = FIM(m,subject, x0, y0, approx, args...;kwargs...)
+  return -l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+end
+
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l, vals, dist = conditional_nll(m,subject,x0, y0, args...;extended_return = true,kwargs...)
   l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
-  l_ = -conditional_nll(dist, dist0,subject)
+  l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
   w = FIM(m,subject, x0, y0, approx, args...;kwargs...)
-  println(l_)
-  return -l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2 
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
