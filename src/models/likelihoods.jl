@@ -96,13 +96,8 @@ struct Laplace <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
 struct FOCE <: LikelihoodApproximation end
 
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0, approx::FOCE, args...; extended_return = false, kwargs...)
+function conditional_nll(derived_dist, derived_dist_,subject)
   obstimes = [obs.time for obs in subject.observations]
-  isempty(obstimes) && return 0.0
-  derived = derivedfun(m,subject,x0::NamedTuple, y0, args...;kwargs...)
-  derived_ = derivedfun(m,subject,x0::NamedTuple, zeros(length(y0)), args...;kwargs...)
-  vals, derived_dist = derived(obstimes) # the second component is distributions
-  vals_, derived_dist_ = derived_(obstimes)
   typ = flattentype(derived_dist)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
@@ -112,11 +107,7 @@ function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0, app
       _lpdf(Normal(mean(derived_dist[i][idx]),var(derived_dist_[i][idx])), obs.val)
     end
   end
-  if extended_return
-    return -x, vals, derived_dist
-  else
-    return -x
-  end
+  return -x
 end
 
 """
@@ -181,9 +172,11 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{FOCEI,FOCE}, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l = -conditional_nll(m,subject,x0, y0, approx, args...;kwargs...)
+  l, vals, dist = conditional_nll(m,subject,x0, y0, args...;extended_return = true,kwargs...)
+  l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
+  l_ = -conditional_nll(dist, dist0,subject)
   w = FIM(m,subject, x0, y0, approx, args...;kwargs...)
-  println(l)
+  println(l_)
   return -l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
