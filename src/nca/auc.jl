@@ -24,6 +24,7 @@ end
 
 """
     extrapaucinf(clast, tlast, lambdaz)
+idx = 1:16
 
 Extrapolate auc to the infinite.
 """
@@ -139,12 +140,14 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, lo
     concstart = conc[idx1]
   end
   # assert the type here because we know that `auc` won't be `missing`
-  __auc = linear(concstart, conc[idx1], lo, time[idx1])
+  __auc = linear(concstart, conc[idx1], lo, time[idx1]) # this must be zero
   auc::_auctype(nca, auctype) = __auc
   # auc of the bounary intervals
   if time[idx1] != lo # if the interpolation point does not hit the exact data point
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
     int_idxs = idx1:idx2-1
+  elseif !isassigned(time, idx1+1) # if idx1+1 is not assigned
+    int_idxs = 0:-1 # no iteration
   else # we compute the first interval in the data
     auc = intervalauc(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1], idx1, nca.maxidx, method, linear, log)
     int_idxs = idx1+1:idx2-1
