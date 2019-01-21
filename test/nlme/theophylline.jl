@@ -222,7 +222,9 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat(diagm(0 => [5.55,0.515])),
+           Ω = PDMat([ 5.55     0.00524 -0.128; 
+                       0.00524  0.00024  0.00911; 
+                      -0.128    0.00911  0.515]),
            σ_add = 0.388
            #σ_prop = 0.3
            )
@@ -232,7 +234,7 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
                           3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
                           2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
                           ],
-                          Ω = PDMat(diagm(0 => [1.596,2.27638e-01])),
+                          Ω = PDMat([1.596 0.0; 0.0 2.27638e-01]),
                           σ_add = 5.14457E-01)
 # Elapsed estimation time in seconds:     0.23
 # Elapsed covariance time in seconds:     0.17
@@ -240,6 +242,7 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
 @test_broken begin
   theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
   ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
+  println(ηstar)
   #@test ηstar ≈  atol = 1e-3
 
   η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
@@ -251,7 +254,9 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
   laplace_obj = 123.76439574418291
 
   function full_ll(θ)
-    _x0 = (θ=θ,Ω = PDMat(diagm(0 => [5.55,0.515])),
+    _x0 = (θ=θ,Ω = PDMat([ 5.55     0.00524 -0.128; 
+    0.00524  0.00024  0.00911; 
+   -0.128    0.00911  0.515]),
                σ_add = 0.388)
     ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
     sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],

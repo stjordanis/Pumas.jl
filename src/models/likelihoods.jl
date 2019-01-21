@@ -94,6 +94,20 @@ end
 abstract type LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
+struct FOCE <: LikelihoodApproximation end
+
+function conditional_nll(derived_dist, derived_dist0,subject)
+  typ = flattentype(derived_dist)
+  n = length(derived_dist)
+  x = sum(enumerate(subject.observations)) do (idx,obs)
+    if eltype(derived_dist) <: Array
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val) 
+    else
+      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
+    end
+  end
+  return -x 
+end
 
 """
     rfx_estimate(model, subject, param, approx, ...)
@@ -151,9 +165,18 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCEI, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l = -conditional_nll(m,subject,x0, y0,args...;kwargs...)
-  w = FIM(m,subject, x0, y0, args...;kwargs...)
-  return -l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+  l,val,dist = conditional_nll(m,subject,x0, y0,args...;extended_return = true,kwargs...)
+  w = FIM(m,subject, x0, y0, approx, dist, args...;kwargs...)
+  return l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+end
+
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCE, args...; kwargs...)
+  Ω = cov(m.random(x0).params.η)
+  l, vals, dist = conditional_nll(m,subject,x0, y0, args...;extended_return = true,kwargs...)
+  l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
+  l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
+  w = FIM(m,subject, x0, y0, approx, dist0, args...;kwargs...)
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2 
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -221,16 +244,17 @@ end
   end
 end
 
-function FIM(m::PKPDModel, subject::Subject, x0, vy0, args...; kwargs...)
-  x, vals, dist = conditional_nll(m,subject, x0, vy0, args...;extended_return = true,kwargs...)
-  function mean_(model, _subject, _x0, _vy0, i, args...; kwargs...)
-    x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
-    mean(dist_[1][i])
-  end
-  function var_(model, _subject, _x0, _vy0, i, args...; kwargs...)
-    x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
-    var(dist_[1][i])
-  end
+function mean_(model, _subject, _x0, _vy0, i, args...; kwargs...)
+  x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+  mean(dist_[1][i])
+end
+
+function var_(model, _subject, _x0, _vy0, i, args...; kwargs...)
+  x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+  var(dist_[1][i])
+end
+
+function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCEI, dist, args...; kwargs...)
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist[1][j]))
     res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
@@ -238,6 +262,16 @@ function FIM(m::PKPDModel, subject::Subject, x0, vy0, args...; kwargs...)
     res = ll_derivatives(var_,m,subject, x0, vy0, :η, j, args...;kwargs...)
     del_r = DiffResults.gradient(res)
     f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
+  end
+  fim
+end
+
+function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCE, dist0, args...; kwargs...)
+  fim = sum(1:length(subject.observations)) do j
+    r_inv = inv(var(dist0[1][j]))
+    res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
+    f = DiffResults.gradient(res)
+    f*r_inv*f' 
   end
   fim
 end
