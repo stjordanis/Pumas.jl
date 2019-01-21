@@ -202,13 +202,14 @@ theopmodel_laplace = @model begin
         Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
-        V = CL/K/WT
+        V = CL/K
+        SC = CL/K/WT
     end
 
     @covariates SEX WT
 
     @vars begin
-        conc = Central / V
+        conc = Central / SC
     end
 
     @dynamics OneCompartmentModel
@@ -217,6 +218,8 @@ theopmodel_laplace = @model begin
         dv ~ @. Normal(conc,sqrt(σ_add))
     end
 end
+
+
 x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
            0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
@@ -227,7 +230,28 @@ x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                       -0.128    0.00911  0.515]),
            σ_add = 0.388
            #σ_prop = 0.3
-           )
+      )
+
+laplace_initial_rfx = [[-1.29964E+00, -8.32445E-01],
+                       [-5.02283E-01,  1.04703E-01],
+                       [-2.43001E-01,  1.51238E-01],
+                       [-1.51174E+00, -1.02357E-01],
+                       [-1.19255E+00,  2.15326E-01],
+                       [-1.43398E+00,  5.89950E-01],
+                       [-6.90249E-01,  5.11417E-01],
+                       [ 1.15977E-02,  3.87675E-01],
+                       [ 4.83842E+00, -5.54201E-01],
+                       [-8.29081E-01, -1.63510E-01],
+                       [ 2.63035E+00,  7.77899E-01],
+                       [-4.82787E-01, -5.32906E-02]]
+
+@testset "Laplce initial" begin
+  for (i,η) in enumerate(laplace_initial_rfx)
+    @test_broken PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, Laplace()) ≈ η rtol=1e-4
+  end
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, Laplace()) ≈ 141.296 atol=1e-1
+end
 
 laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                           8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -239,19 +263,33 @@ laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTAN
 # Elapsed estimation time in seconds:     0.23
 # Elapsed covariance time in seconds:     0.17
 
+# from run5.phi
+laplace_estimated_rfx = [[-2.81817E-01, -9.51075E-01],
+                         [ 4.36123E-01,  2.95020E-02],
+                         [ 6.11776E-01,  7.42657E-02],
+                         [-4.86815E-01, -1.82637E-01],
+                         [-1.91050E-01,  1.64544E-01],
+                         [-4.45223E-01,  4.75049E-01],
+                         [-1.35543E+00,  4.29076E-01],
+                         [-6.79064E-01,  3.15307E-01],
+                         [ 2.80934E+00, -6.62060E-01],
+                         [-1.48446E+00, -2.47635E-01],
+                         [ 1.44666E+00,  6.99712E-01],
+                         [-1.14629E+00, -1.26537E-01]]
+
+@testset "Laplace fitted" begin
+  for (i,η) in enumerate(laplace_estimated_rfx)
+    @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
+  end
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params,Laplace()) ≈ 123.76439574418291 atol=1e-2
+end
+
 @test_broken begin
   theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
   ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
   println(ηstar)
   #@test ηstar ≈  atol = 1e-3
-
-  η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,subject,x0,(η=zeros(2),),Laplace()), theopp.subjects)
-  #@test η0_mll ≈
-
-  ml = sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],x0,(η=ηstar[i],),Laplace()), 1:length(theopp))
-  #@test ml ≈ rtol = 1e-6
-
-  laplace_obj = 123.76439574418291
 
   function full_ll(θ)
     _x0 = (θ=θ,Ω = PDMat([ 5.55     0.00524 -0.128; 
