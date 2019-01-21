@@ -96,15 +96,14 @@ struct Laplace <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
 struct FOCE <: LikelihoodApproximation end
 
-function conditional_nll(derived_dist, derived_dist_,subject)
-  obstimes = [obs.time for obs in subject.observations]
+function conditional_nll(derived_dist, derived_dist0,subject)
   typ = flattentype(derived_dist)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->typeof(derived_dist[i][idx])(mean(derived_dist[i][idx]),sqrt(var(derived_dist_[i][idx]))), n)), obs.val) 
+      _lpdf(typ(ntuple(i->typeof(derived_dist[i][idx])(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val) 
     else
-      _lpdf(typeof(derived_dist[i][idx])(mean(derived_dist),sqrt(var(derived_dist_))), obs.val)
+      _lpdf(typeof(derived_dist[i][idx])(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
     end
   end
   return -x 
@@ -118,12 +117,6 @@ particular subject at a particular parameter values. The result is returned as a
 (transformed into Cartesian space).
 """
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
-  rfxset = m.random(x0)
-  p = TransformVariables.dimension(totransform(rfxset))
-  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
-end
-
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::FOCE, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
