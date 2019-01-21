@@ -102,9 +102,9 @@ function conditional_nll(derived_dist, derived_dist_,subject)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->typeof(derived_dist[i][idx])(mean(derived_dist[i][idx]),sqrt(var(derived_dist_[i][idx]))), n)), obs.val) 
+      _lpdf(typ(ntuple(i->derived_dist[i][idx](mean(derived_dist[i][idx]),sqrt(var(derived_dist_[i][idx]))), n)), obs.val) 
     else
-      _lpdf(typeof(derived_dist[i][idx])(mean(derived_dist),sqrt(var(derived_dist_))), obs.val)
+      _lpdf(derived_dist[i][idx](mean(derived_dist),sqrt(var(derived_dist_))), obs.val)
     end
   end
   return -x 
