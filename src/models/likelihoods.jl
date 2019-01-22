@@ -25,25 +25,24 @@ Compute the conditional negative log-likelihood of model `m` for `subject` with 
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; extended_return = false, kwargs...)
+conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
+  first(conditional_nll_ext(m, subject, x0, args...; kwargs...))
+
+function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...)
   obstimes = [obs.time for obs in subject.observations]
-  isempty(obstimes) && return 0.0
+  # isempty(obstimes) && return 0.0
   derived = derivedfun(m,subject,x0::NamedTuple, args...;kwargs...)
   vals, derived_dist = derived(obstimes) # the second component is distributions
-  typ = flattentype(derived_dist)
-  n = length(derived_dist)
-  x = sum(enumerate(subject.observations)) do (idx,obs)
-    if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->derived_dist[i][idx], n)), obs.val)
-    else
-      _lpdf(derived_dist, obs.val)
+  x = let derived_dist=derived_dist
+    sum(enumerate(subject.observations)) do (idx,obs)
+      if eltype(derived_dist) <: Array
+        _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
+      else
+        _lpdf(derived_dist, obs.val)
+      end
     end
   end
-  if extended_return
-    return -x, vals, derived_dist
-  else
-    return -x
-  end
+  return -x, vals, derived_dist
 end
 
 """
@@ -101,12 +100,12 @@ function conditional_nll(derived_dist, derived_dist0,subject)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val) 
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val)
     else
       _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
     end
   end
-  return -x 
+  return -x
 end
 
 """
@@ -165,18 +164,18 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCEI, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l,val,dist = conditional_nll(m,subject,x0, y0,args...;extended_return = true,kwargs...)
+  l,val,dist = conditional_nll_ext(m,subject,x0, y0,args...;kwargs...)
   w = FIM(m,subject, x0, y0, approx, dist, args...;kwargs...)
   return l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l, vals, dist = conditional_nll(m,subject,x0, y0, args...;extended_return = true,kwargs...)
-  l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
+  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
   l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
   w = FIM(m,subject, x0, y0, approx, dist0, args...;kwargs...)
-  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2 
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -245,12 +244,12 @@ end
 end
 
 function mean_(model, _subject, _x0, _vy0, i, args...; kwargs...)
-  x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+  x_, vals_, dist_ = conditional_nll_ext(model,_subject, _x0, _vy0, args...;kwargs...)
   mean(dist_[1][i])
 end
 
 function var_(model, _subject, _x0, _vy0, i, args...; kwargs...)
-  x_, vals_, dist_ = conditional_nll(model,_subject, _x0, _vy0, args...;extended_return = true,kwargs...)
+  x_, vals_, dist_ = conditional_nll_ext(model,_subject, _x0, _vy0, args...;kwargs...)
   var(dist_[1][i])
 end
 
@@ -271,7 +270,7 @@ function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCE, dist0, args.
     r_inv = inv(var(dist0[1][j]))
     res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
     f = DiffResults.gradient(res)
-    f*r_inv*f' 
+    f*r_inv*f'
   end
   fim
 end
