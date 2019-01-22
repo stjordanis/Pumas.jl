@@ -28,9 +28,6 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
   derived::V
 end
 
-# Shallow copy
-Base.copy(m::PKPDModel) = PKPDModel(m.param, m.random, m.pre, m.init, m.prob, m.derived)
-
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
 
@@ -104,8 +101,12 @@ function _solve(m::PKPDModel, subject, col, args...;
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-    mtmp = copy(m) # Avoid mutating m in multithreaded execution
-    mtmp.prob = remake(mtmp.prob; p=col, u0=u0, tspan=tspan)
+    mtmp = PKPDModel(m.param,
+                     m.random,
+                     m.pre,
+                     m.init,
+                     remake(m.prob; p=col, u0=u0, tspan=tspan),
+                     m.derived)
     return _solve_diffeq(mtmp, subject, args...;kwargs...)
   end
 end
