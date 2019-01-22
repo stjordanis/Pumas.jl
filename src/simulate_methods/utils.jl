@@ -1,6 +1,6 @@
 _cmt_value(ev::Event, var::Number) = var
 _cmt_value(ev::Event, var) = var[ev.cmt]
-function create_event_proxy(ev::Event,lags,bioav,rate,duration)
+function _adjust_event(ev::Event,lags,bioav,rate,duration)
   if rate != 0
     _rate = rate
     _duration = ev.amt
@@ -23,15 +23,15 @@ function create_event_proxy(ev::Event,lags,bioav,rate,duration)
   end
 
   time += _cmt_value(ev, lags)
-  EventProxy(ev, time, _rate, _duration)
+  Event(ev.amt, time, ev.evid, ev.cmt, _rate, _duration, ev.ss, ev.ii, ev.base_time, ev.rate_dir)
 end
 
 """
-  adjust_event(event,lags,bioav,rate,duration) -> AbstractEvent
-  adjust_event(events,lags,bioav,rate,duration) -> AbstractEvent[]
+  adjust_event(event,lags,bioav,rate,duration) -> Event
+  adjust_event(events,lags,bioav,rate,duration) -> Event[]
 
 Adjust the event(s) with the "magic arguments" lags, bioav, rate
-and duration. Returns either the original event or an `EventProxy`
+and duration. Returns either the original event or an adjusted event
 if modified. If given a list of events, the output event list will
 be sorted.
 """
@@ -45,7 +45,7 @@ function adjust_event(ev::Event,lags,bioav,rate_input,duration_input)
   @assert rate == 0 || duration == 0
 
   if ev.amt != 0
-    create_event_proxy(ev,lags,bioav,rate,duration)
+    _adjust_event(ev,lags,bioav,rate,duration)
   else
     ev
   end
