@@ -51,12 +51,12 @@ function adjust_event(ev::Event,lags,bioav,rate_input,duration_input)
   end
 end
 
-function sorted_approx_unique(event)
-  tType = promote_type((typeof(ev.time) for ev in event)...)
-  out = tType[event[1].time]
-  for i in 2:length(event)
-    if abs(out[end] - event[i].time) > 10eps(tType)*oneunit(tType)
-      push!(out,event[i].time)
+function sorted_approx_unique(events)
+  tType = mapreduce(t -> typeof(t.time), promote_type, events)
+  out = tType[events[1].time]
+  for i in 2:length(events)
+    if abs(out[end] - events[i].time) > 10eps(tType)*oneunit(tType)
+      push!(out,events[i].time)
     end
   end
   out
