@@ -35,7 +35,7 @@ and duration. Returns either the original event or an `EventProxy`
 if modified. If given a list of events, the output event list will
 be sorted.
 """
-function adjust_event(events::AbstractVector{Event},args...)
+function adjust_event(events::AbstractVector{<:Event},args...)
   out = collect(adjust_event(ev, args...) for ev in events)
   sort!(out)
 end
@@ -111,7 +111,7 @@ numtype(x::Number)        = typeof(x)
 numtype(x::AbstractArray) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 numtype(x::Tuple)         = promote_type(map(numtype,x)...)
-numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
+numtype(x::NamedTuple) = numtype(values(x))
 numtype(x::Function) = Float64 # To allow time-varying covars, could be better
 
 zero(x) = Base.zero(x)

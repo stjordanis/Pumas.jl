@@ -26,13 +26,6 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
   init::S
   prob::T
   derived::V
-  function PKPDModel(param, random, pre, init, prob, derived)
-      new{typeof(param), typeof(random),
-          typeof(pre), typeof(init),
-          Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
-          typeof(derived)}(
-          param, random, pre, init, prob, derived)
-  end
 end
 
 # Shallow copy
@@ -100,9 +93,10 @@ function _solve(m::PKPDModel, subject, col, args...;
   m.prob === nothing && return nothing
   if tspan === nothing
     _tspan = timespan(subject)
-    m.prob isa DiffEqBase.DEProblem &&
-    !(m.prob.tspan === (nothing, nothing)) &&
-    (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+    if m.prob isa DiffEqBase.DEProblem && !(m.prob.tspan === (nothing, nothing))
+      _tspan = (min(_tspan[1], m.prob.tspan[1]),
+                max(_tspan[2], m.prob.tspan[2]))
+    end
     tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
     tspan = float.(tspan_tmp)
   end
