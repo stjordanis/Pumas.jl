@@ -1,7 +1,10 @@
 using PuMaS, CSV,Test
 
-data = CSV.read("sim_poisson.csv")
-df = process_nmtran(data,[:dose])
+# avoid rand issue for now
+using StatsFuns, ForwardDiff
+StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisrand(ForwardDiff.value(x))
+
+df = process_nmtran(example_nmtran_data("sim_poisson"),[:dose])
 
 poisson_model = @model begin
     @param begin
@@ -25,6 +28,7 @@ poisson_model = @model begin
         dv ~ @. Poisson(λ)
     end
 end
+
 
 x0 = init_param(poisson_model)
 y0 = init_random(poisson_model, x0)
