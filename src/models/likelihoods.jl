@@ -14,8 +14,9 @@ _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
 _lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
 _lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-  syms =  fieldnames(T) ∩ fieldnames(S)
-  sum(map((d,x) -> _lpdf(d,x), (getproperty(ds,x) for x in syms), (getproperty(xs,x) for x in syms)))
+  sum(keys(xs)) do k
+    haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
+  end
 end
 
 """
