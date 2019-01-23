@@ -30,7 +30,7 @@ conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs.
 
 function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...)
   obstimes = [obs.time for obs in subject.observations]
-  # isempty(obstimes) && return 0.0
+  isempty(obstimes) && throw(ArgumentError("no observations for subject"))
   derived = derivedfun(m,subject,x0::NamedTuple, args...;kwargs...)
   vals, derived_dist = derived(obstimes) # the second component is distributions
   x = let derived_dist=derived_dist
