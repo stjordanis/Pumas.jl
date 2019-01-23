@@ -2,7 +2,7 @@ module NCA
 
 using Reexport
 using GLM
-@reexport using DataFrames
+using DataFrames
 using Pkg, Dates, Printf
 import ..PuMaS: Formulation, IV, EV
 
@@ -12,6 +12,8 @@ include("utils.jl")
 include("interpolate.jl")
 include("auc.jl")
 include("simple.jl")
+
+export DataFrame
 
 export NCASubject, NCAPopulation, NCADose, showunits
 export parse_ncadata
