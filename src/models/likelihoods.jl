@@ -95,6 +95,8 @@ abstract type LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
 struct FOCE <: LikelihoodApproximation end
+struct FOI <: LikelihoodApproximation end
+struct FO <: LikelihoodApproximation end
 
 function conditional_nll(derived_dist, derived_dist0,subject)
   typ = flattentype(derived_dist)
@@ -170,6 +172,14 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   return l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOI, args...; kwargs...)
+  Ω = cov(m.random(x0).params.η)
+  y_ = (η = zeros(length(y0.η)),)
+  l,val,dist = conditional_nll(m,subject,x0, y0,args...;extended_return = true,kwargs...)
+  w = FIM(m,subject, x0, y_, FOCEI(), dist, args...;kwargs...)
+  return l + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+end
+
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
@@ -177,6 +187,16 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
   w = FIM(m,subject, x0, y0, approx, dist0, args...;kwargs...)
   return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
+end
+
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FO, args...; kwargs...)
+  Ω = cov(m.random(x0).params.η)
+  l, vals, dist = conditional_nll(m,subject,x0, y0, args...;extended_return = true,kwargs...)
+  l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
+  l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
+  y_ = (η = zeros(length(y0.η)),)
+  w = FIM(m,subject, x0, y_, FOCE(), dist0, args...;kwargs...)
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2 
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
