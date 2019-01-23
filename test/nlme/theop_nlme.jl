@@ -3,7 +3,7 @@ using PuMaS, LinearAlgebra, Optim
 
 theopp_nlme = process_nmtran(example_nmtran_data("THEOPP"))
 
-#likelihood tests from NLME.jl 
+#likelihood tests from NLME.jl
 #-----------------------------------------------------------------------# Test 2
 
 mdsl2 = @model begin
@@ -38,4 +38,4 @@ mdsl2 = @model begin
 end
 
 x0 = init_param(mdsl2)
-@test PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,x0,Laplace()) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test @inferred(PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,x0,Laplace())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
