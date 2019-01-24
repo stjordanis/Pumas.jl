@@ -190,3 +190,49 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   markdown = Markdown.parse(String(take!(_io)))
   show(io, str, markdown)
 end
+
+using RecipesBase
+
+@recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  layout --> (1, 2)
+  xguide --> "Time"
+  label --> subj.id
+  @series begin
+    yguide --> "Concentration"
+    seriestype --> :path
+    subplot --> 1
+    title --> "Linear view"
+    (subj.time, subj.conc)
+  end
+  @series begin
+    yscale --> :log10
+    seriestype --> :path
+    subplot --> 2
+    title --> "Semilogrithmic view"
+    (subj.time, subj.conc)
+  end
+end
+
+@recipe function f(pop::NCAPopulation)
+  layout --> (1, 2)
+  xguide --> "Time"
+  label --> [subj.id for subj in pop]
+  linestyle --> :auto
+  leg --> false
+  timearr = [subj.time for subj in pop]
+  concarr = [subj.conc for subj in pop]
+  @series begin
+    yguide --> "Concentration"
+    seriestype --> :path
+    subplot --> 1
+    title --> "Linear view"
+    (timearr, concarr)
+  end
+  @series begin
+    yscale --> :log10
+    seriestype --> :path
+    subplot --> 2
+    title --> "Semilogrithmic view"
+    (timearr, concarr)
+  end
+end
