@@ -13,8 +13,6 @@ function (::ImmediateAbsorptionModel)(t,t0,C0,dose,p,rate)
 end
 varnames(::Type{ImmediateAbsorptionModel}) = [:Central]
 
-OneCompartmentVector = @SLVector (:Depot, :Central)
-
 struct OneCompartmentModel <: ExplicitModel end
 function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
   Ka = p.Ka
@@ -26,8 +24,8 @@ function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
   Depot  = (amt[1] * Sa) + (1-Sa)*rates[1]/(Ka)          # next depot (cmt==1)
   Central =  Ka / (Ka - Ke) * (amt[1] * (Se - Sa) + rates[1]*((1-Se)/Ke - (1-Sa)/Ka)) +
     amt[2] * Se + (1-Se)*rates[2]/Ke # next central (cmt==2)
-  
-  OneCompartmentVector(Depot,Central)
+
+  return LabelledArrays.SLVector(Depot=Depot, Central=Central)
 end
 varnames(::Type{OneCompartmentModel}) = [:Depot, :Central]
 

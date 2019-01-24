@@ -1,6 +1,6 @@
 _cmt_value(ev::Event, var::Number) = var
 _cmt_value(ev::Event, var) = var[ev.cmt]
-function create_event_proxy(ev::Event,lags,bioav,rate,duration)
+function _adjust_event(ev::Event,lags,bioav,rate,duration)
   if rate != 0
     _rate = rate
     _duration = ev.amt
@@ -23,19 +23,19 @@ function create_event_proxy(ev::Event,lags,bioav,rate,duration)
   end
 
   time += _cmt_value(ev, lags)
-  EventProxy(ev, time, _rate, _duration)
+  Event(ev.amt, time, ev.evid, ev.cmt, _rate, _duration, ev.ss, ev.ii, ev.base_time, ev.rate_dir)
 end
 
 """
-  adjust_event(event,lags,bioav,rate,duration) -> AbstractEvent
-  adjust_event(events,lags,bioav,rate,duration) -> AbstractEvent[]
+  adjust_event(event,lags,bioav,rate,duration) -> Event
+  adjust_event(events,lags,bioav,rate,duration) -> Event[]
 
 Adjust the event(s) with the "magic arguments" lags, bioav, rate
-and duration. Returns either the original event or an `EventProxy`
+and duration. Returns either the original event or an adjusted event
 if modified. If given a list of events, the output event list will
 be sorted.
 """
-function adjust_event(events::AbstractVector{Event},args...)
+function adjust_event(events::AbstractVector{<:Event},args...)
   out = collect(adjust_event(ev, args...) for ev in events)
   sort!(out)
 end
@@ -45,18 +45,18 @@ function adjust_event(ev::Event,lags,bioav,rate_input,duration_input)
   @assert rate == 0 || duration == 0
 
   if ev.amt != 0
-    create_event_proxy(ev,lags,bioav,rate,duration)
+    _adjust_event(ev,lags,bioav,rate,duration)
   else
     ev
   end
 end
 
-function sorted_approx_unique(event)
-  tType = promote_type((typeof(ev.time) for ev in event)...)
-  out = tType[event[1].time]
-  for i in 2:length(event)
-    if abs(out[end] - event[i].time) > 10eps(tType)*oneunit(tType)
-      push!(out,event[i].time)
+function sorted_approx_unique(events)
+  tType = mapreduce(t -> typeof(t.time), promote_type, events)
+  out = tType[events[1].time]
+  for i in 2:length(events)
+    if abs(out[end] - events[i].time) > 10eps(tType)*oneunit(tType)
+      push!(out,events[i].time)
     end
   end
   out
@@ -110,8 +110,8 @@ numtype(::Type{T}) where {T<:Number} = T
 numtype(x::Number)        = typeof(x)
 numtype(x::AbstractArray) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
-numtype(x::Tuple)         = promote_type(map(numtype,x)...)
-numtype(x::NamedTuple) = promote_type(map(numtype,x)...)
+numtype(x::Tuple)         = reduce(promote_type, map(numtype,x))
+numtype(x::NamedTuple) = numtype(values(x))
 numtype(x::Function) = Float64 # To allow time-varying covars, could be better
 
 zero(x) = Base.zero(x)
