@@ -183,15 +183,11 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l0, vals0, dist0 = conditional_nll(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;extended_return = true,kwargs...)
   l_ = -conditional_nll(dist0, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
   y_ = (η = zeros(length(y0.η)),)
   w,dldη = FIM(m,subject, x0, y_, approx, dist0, args...;kwargs...)
-  println(Ω)
-  println(l_+ (length(subject.observations)-2)*log(2π)/2 + log(2π))
-  println(w)
-  println(dldη)
-  return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) - w))/2 
+  return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2 
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -271,10 +267,6 @@ end
 
 function mean_0(model, _subject, _x0, _vy0, i, args...; kwargs...)
   mean_(model, _subject, _x0, zeros(length(_vy0)), i, args...; kwargs...)
-end
-
-function var_0(model, _subject, _x0, _vy0, i, args...; kwargs...)
-  var_(model, _subject, _x0, zeros(length(_vy0)), i, args...; kwargs...)
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCEI, dist, args...; kwargs...)
