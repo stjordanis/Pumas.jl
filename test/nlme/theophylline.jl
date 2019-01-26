@@ -220,13 +220,12 @@ theopmodel_laplace = @model begin
 end
 
 
-x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-           0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+           0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
-           Ω = PDMat([ 5.55     0.0;
-                       0.0  0.515]),
+           Ω = PDMat(diagm(0 => [5.55, 0.515 ])),
            σ_add = 0.388
            #σ_prop = 0.3
       )
@@ -246,11 +245,10 @@ laplace_initial_rfx = [[-1.29964E+00, -8.32445E-01],
 
 @testset "Laplce initial" begin
   for (i,η) in enumerate(laplace_initial_rfx)
-    # these are off a bit, I suspect due to finite differencing error?
-    @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, Laplace()) ≈ ηatol=0.1
+    @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, Laplace()) ≈ η rtol=1e-4
   end
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, Laplace()) ≈ 141.296 atol=1e-1
+  @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, Laplace()) ≈ 141.296 atol=1e-3
 end
 
 laplace_estimated_params = (θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -285,35 +283,12 @@ laplace_estimated_rfx = [[-2.81817E-01, -9.51075E-01],
   @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params,Laplace()) ≈ 123.76439574418291 atol=1e-2
 end
 
-@test_broken begin
-  theopmodel_laplace_f(η,subject) = PuMaS.penalized_conditional_nll(theopmodel_laplace,subject, laplace_estimated_params, (η=η,))
-  ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
-  println(ηstar)
-  #@test ηstar ≈  atol = 1e-3
-
-  function full_ll(θ)
-    _x0 = (θ=θ,Ω = PDMat([ 5.55     0.00524 -0.128; 
-    0.00524  0.00024  0.00911; 
-   -0.128    0.00911  0.515]),
-               σ_add = 0.388)
-    ηstar = [Optim.optimize(η -> theopmodel_laplace_f(η,theopp[i]),zeros(2),BFGS()).minimizer for i in 1:length(theopp)]
-    sum(i -> PuMaS.marginal_nll_nonmem(theopmodel_laplace,theopp[i],
-        _x0,(η=ηstar[i],),Laplace()), 1:10)
-  end
-
-  Optim.optimize(full_ll,[2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-             ],BFGS())
-end
-
 # run6.mod Laplace with interaction, diagonal omega and additive + proportional error , $COV = sandwich matrix
 # method = laplacei
 theopmodel_laplacei = @model begin
     @param begin
         θ ∈ VectorDomain(4, lower=[0.1,0.0008,0.004,0.1], init=[2.77,0.0781,0.0363,1.5], upper =[5,0.5,0.9,5])
-        Ω ∈ PSDDomain(2)
+        Ω ∈ PSDDomain(diagm(0 => [5.55,0.515]))
         σ_add ∈ RealDomain(init=0.388)
         σ_prop ∈ RealDomain(init=0.3)
     end
@@ -326,23 +301,27 @@ theopmodel_laplacei = @model begin
         Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
         K = θ[2]
         CL  = θ[3]*WT + η[2]
-        V = CL/K/WT
+        V = CL/K
+        SC = CL/K/WT
     end
 
     @covariates SEX WT
 
     @vars begin
-        conc = Central / V
+        conc = Central / SC
     end
 
     @dynamics ImmediateAbsorptionModel
 
     @derived begin
-        dv ~ @. Normal(conc,conc*sqrt(σ_prop)+(σ_add))
+        # dv ~ @. Normal(conc,conc*sqrt(σ_prop)+(σ_add))
+        dv ~ @. Normal(conc,conc*σ_prop + σ_add)
+        # dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
+        # dv ~ @. Normal(conc,sqrt(conc^2+σ_add))
     end
 end
-x0 = (θ = [2.7,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-           0.078,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+           0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
            0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
            1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
            ],
