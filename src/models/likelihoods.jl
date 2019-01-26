@@ -2,6 +2,14 @@ import DiffResults: DiffResult
 
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
 
+abstract type LikelihoodApproximation end
+struct LaplaceI <: LikelihoodApproximation end
+struct FOCEI <: LikelihoodApproximation end
+struct FOCE <: LikelihoodApproximation end
+struct FOI <: LikelihoodApproximation end
+struct FO <: LikelihoodApproximation end
+struct Laplace <: LikelihoodApproximation end
+
 """
     _lpdf(d,x)
 
@@ -44,6 +52,25 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
     end
   end
   return -x, vals, derived_dist
+end
+
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Laplace, args...;kwargs...)
+  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
+  -conditional_nll(dist, dist0,subject) + log(2π)
+end
+
+function conditional_nll(derived_dist, derived_dist0,subject)
+  typ = flattentype(derived_dist)
+  n = length(derived_dist)
+  x = sum(enumerate(subject.observations)) do (idx,obs)
+    if eltype(derived_dist) <: Array
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val)
+    else
+      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
+    end
+  end
+  return -x
 end
 
 """
@@ -91,26 +118,6 @@ function penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::
 end
 
 
-abstract type LikelihoodApproximation end
-struct Laplace <: LikelihoodApproximation end
-struct FOCEI <: LikelihoodApproximation end
-struct FOCE <: LikelihoodApproximation end
-struct FOI <: LikelihoodApproximation end
-struct FO <: LikelihoodApproximation end
-
-function conditional_nll(derived_dist, derived_dist0,subject)
-  typ = flattentype(derived_dist)
-  n = length(derived_dist)
-  x = sum(enumerate(subject.observations)) do (idx,obs)
-    if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val)
-    else
-      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
-    end
-  end
-  return -x
-end
-
 """
     rfx_estimate(model, subject, param, approx, ...)
 
@@ -118,7 +125,7 @@ The point-estimate the random effects (being the mode of the empirical Bayes est
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
@@ -131,7 +138,7 @@ Estimate the distribution of random effects (typically a Normal approximation of
 empirical Bayes posterior) of a particular subject at a particular parameter values. The
 result is returned as a vector (transformed into Cartesian space).
 """
-function rfx_estimate_dist(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
+function rfx_estimate_dist(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
   vy0 = rfx_estimate(m, subject, x0, approx, args...; kwargs...)
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
@@ -155,7 +162,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   marginal_nll(m, subject, x0, vy0, approx, args...; kwargs...)
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...;
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::LaplaceI, args...;
                       kwargs...)
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
@@ -188,6 +195,19 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   y_ = (η = zeros(length(y0.η)),)
   w,dldη = FIM(m,subject, x0, y_, approx, dist0, args...;kwargs...)
   return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2 
+end
+
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Laplace, args...; kwargs...)
+  Ω = cov(m.random(x0).params.η)
+  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
+  l_ = -conditional_nll(dist, dist0,subject) + log(2π)
+  rfxset = m.random(x0)
+  vy0 = TransformVariables.inverse(totransform(rfxset), y0)
+  diffres = DiffResults.HessianResult(zeros(length(vy0)))
+  penalized_conditional_nll!(diffres, m, subject, x0, zeros(length(vy0)), approx, args...; hessian=true, kwargs...)
+  g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
+  return -2*(l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + W))/2 )
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
