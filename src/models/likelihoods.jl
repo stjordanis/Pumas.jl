@@ -54,10 +54,10 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
   return -x, vals, derived_dist
 end
 
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Laplace, args...;kwargs...)
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...;kwargs...)
   l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
-  -conditional_nll(dist, dist0,subject) + log(2π)
+  conditional_nll(dist, dist0,subject) - log(2π)
 end
 
 function conditional_nll(derived_dist, derived_dist0,subject)
@@ -181,10 +181,8 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
-  l_ = -conditional_nll(dist, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
-  w = FIM(m,subject, x0, y0, approx, dist0, args...;kwargs...)
+  l_ = -conditional_nll(m,subject,x0, y0, approx, args...;kwargs...) - (length(subject.observations)*log(2π)/2)
+  w = FIM(m,subject, x0, y0, approx, args...;kwargs...)
   return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + w))/2
 end
 
@@ -199,15 +197,16 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
-  l_ = -conditional_nll(dist, dist0,subject) + log(2π)
+  l_ = -conditional_nll(m,subject,x0,y0,approx,args...;kwargs...) - (length(subject.observations)*log(2π)/2)
+  println(l_)
   rfxset = m.random(x0)
   vy0 = TransformVariables.inverse(totransform(rfxset), y0)
-  diffres = DiffResults.HessianResult(zeros(length(vy0)))
-  penalized_conditional_nll!(diffres, m, subject, x0, zeros(length(vy0)), approx, args...; hessian=true, kwargs...)
+  diffres = DiffResults.HessianResult(vy0)
+  conditional_nll! = y -> -conditional_nll(m,subject,x0,y,approx,args...;kwargs...)
+  ForwardDiff.hessian!(diffres, conditional_nll!, vy0)
   g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
-  return -2*(l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) + W))/2 )
+  println(W)
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) - W))/2 
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -301,7 +300,8 @@ function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCEI, dist, args.
   fim
 end
 
-function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCE, dist0, args...; kwargs...)
+function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FOCE, args...; kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(vy0)), args...;kwargs...)
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist0[1][j]))
     res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
