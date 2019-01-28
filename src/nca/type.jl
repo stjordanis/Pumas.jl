@@ -195,34 +195,41 @@ using RecipesBase
 
 @recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
-  xguide --> "Time"
+  hasunits = eltype(C) <: Quantity
+  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  xguide --> timename
   label --> subj.id
+  vars = (ustrip.(subj.time), ustrip.(subj.conc))
   @series begin
-    yguide --> "Concentration"
+    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+    yguide --> concname
     seriestype --> :path
     subplot --> 1
     title --> "Linear view"
-    (subj.time, subj.conc)
+    vars
   end
   @series begin
     yscale --> :log10
     seriestype --> :path
     subplot --> 2
     title --> "Semilogrithmic view"
-    (subj.time, subj.conc)
+    vars
   end
 end
 
-@recipe function f(pop::NCAPopulation)
+@recipe function f(pop::NCAPopulation{NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
-  xguide --> "Time"
+  hasunits = eltype(C) <: Quantity
+  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  xguide --> timename
   label --> [subj.id for subj in pop]
   linestyle --> :auto
   leg --> false
-  timearr = [subj.time for subj in pop]
-  concarr = [subj.conc for subj in pop]
+  timearr = [ustrip.(subj.time) for subj in pop]
+  concarr = [ustrip.(subj.conc) for subj in pop]
   @series begin
-    yguide --> "Concentration"
+    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+    yguide --> concname
     seriestype --> :path
     subplot --> 1
     title --> "Linear view"
