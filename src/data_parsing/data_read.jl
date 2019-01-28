@@ -83,7 +83,6 @@ function build_event_list(regimen::DosageRegimen)
   data = getfield(regimen, :data)
   events = Event[]
   for i in 1:size(data, 1)
-    t    = data[:time][i]
     evid = data[:evid][i]
     amt  = data[:amt][i]
     addl = data[:addl][i]
@@ -91,6 +90,7 @@ function build_event_list(regimen::DosageRegimen)
     cmt  = data[:cmt][i]
     rate = data[:rate][i]
     ss   = data[:ss][i]
+    t    = typeof(ii)(data[:time][i])
 
     for j = 0:addl  # addl==0 means just once
       _ss = iszero(j) ? ss : zero(Int8)

@@ -290,7 +290,7 @@ function Base.show(io::IO, subject::Subject)
   println(io, "  Observations: ",  length(obs))
   subject.covariates !== nothing &&
   println(io, "  Covariates: ",
-          join(propertynames(subject.covariates)[2:end],", "))
+          join(fieldnames(typeof(subject.covariates)),", "))
   !isempty(subject.observations) &&
   println(io, "  Observables: ",
           join(fieldnames(typeof(subject.observations[1].val)),", "))
