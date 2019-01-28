@@ -195,6 +195,7 @@ using RecipesBase
 
 @recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
+  hastitle = length(plotattributes[:title]) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
@@ -205,20 +206,23 @@ using RecipesBase
     yguide --> concname
     seriestype --> :path
     subplot --> 1
-    title --> "Linear view"
+    _title = hastitle ? plotattributes[:title][1] : "Linear view"
+    title := _title
     vars
   end
   @series begin
     yscale --> :log10
     seriestype --> :path
     subplot --> 2
-    title --> "Semilogrithmic view"
+    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+    title := _title
     vars
   end
 end
 
 @recipe function f(pop::NCAPopulation{NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
+  hastitle = length(plotattributes[:title]) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
@@ -232,14 +236,16 @@ end
     yguide --> concname
     seriestype --> :path
     subplot --> 1
-    title --> "Linear view"
+    _title = hastitle ? plotattributes[:title][1] : "Linear view"
+    title := _title
     (timearr, concarr)
   end
   @series begin
     yscale --> :log10
     seriestype --> :path
     subplot --> 2
-    title --> "Semilogrithmic view"
+    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+    title := _title
     (timearr, concarr)
   end
 end
