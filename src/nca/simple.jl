@@ -334,6 +334,18 @@ function swing(nca::NCASubject; kwargs...)
   (cmax(nca) - _cmin) ./ _cmin
 end
 
+"""
+  c0(nca::NCASubject; method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...)
+
+Estimate the concentration at dosing time for an IV bolus dose. It takes the
+following methods:
+
+- c0: If the observed `conc` at `dose.time` is nonzero, return that. This method should usually be used first for single-dose IV bolus data in case nominal time zero is measured. (single-dose only)
+- logslope: Compute the semilog line between the first two measured times, and use that line to extrapolate backward to `dose.time`. (single-dose only)
+- c1: Use the first point after `dose.time`. (single-dose only)
+- cmin: Set c0 to cmin during the interval. This method should usually be used for multiple-dose oral data and IV infusion data.
+- set0: Set c0 to zero (regardless of any other data). This method should usually be used first for single-dose oral data.
+"""
 function c0(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   ret = missing
   # if we get one method, then convert it to a tuple anyway
@@ -350,7 +362,7 @@ function c0(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; method=(:c0, :logslope
     elseif current_method == :cmin
       ret = cmin(nca)
     elseif current_method == :set0
-      ret = zero(eltype(nca.conc))
+      ret = nca.dose isa AbstractArray ? fill(zero(eltype(eltype(nca.conc))), length(nca.dose)) : zero(eltype(nca.conc))
     else
       throw(ArgumentError("unknown method $current_method, please use any combination of :c0, :logslope, :c1, :cmin, :set0. E.g. `c0(subj, method=(:c0, :cmin, :set0))`"))
     end

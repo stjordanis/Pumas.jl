@@ -19,3 +19,4 @@ mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, fo
 @test accumulationindex(mncapop[1]) == inv.(1 .-exp.(-lambdaz(mncapop[1])[1].*tau(mncapop[1])))
 @test swing(mncapop[1]) == (cmax(mncapop[1]) .- cmin(mncapop[1]))./cmin(mncapop[1])
 @test c0(mncapop[1]) == cmin(mncapop[1])
+@test c0(mncapop[1], method=:set0) == zero(cmin(mncapop[1]))
