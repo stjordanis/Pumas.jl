@@ -333,3 +333,67 @@ function swing(nca::NCASubject; kwargs...)
   _cmin = cmin(nca)
   (cmax(nca) - _cmin) ./ _cmin
 end
+
+function c0(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  ret = missing
+  # if we get one method, then convert it to a tuple anyway
+  method isa Symbol && (method = tuple(method))
+  while ismissing(ret) && !isempty(method)
+    current_method = method[1]
+    method = method[2:end]
+    if current_method == :c0
+      ret = _c0_method_c0(nca)
+    elseif current_method == :logslope
+      ret = _c0_method_logslope(nca)
+    elseif current_method == :c1
+      ret = _c0_method_c1(nca)
+    elseif current_method == :cmin
+      ret = cmin(nca)
+    elseif current_method == :set0
+      ret = zero(eltype(nca.conc))
+    else
+      throw(ArgumentError("unknown method $current_method, please use any combination of :c0, :logslope, :c1, :cmin, :set0. E.g. `c0(subj, method=(:c0, :cmin, :set0))`"))
+    end
+  end
+  return ret
+end
+
+function _c0_method_c0(nca::NCASubject)
+  eltype(nca.time) <: AbstractArray && return missing
+  nca.dose isa Nothing && return missing
+  dosetime = nca.dose.time
+  for i in eachindex(nca.time)
+    c = nca.conc[i]
+    t = nca.time[i]
+    t == dosetime && !ismissing(c) && !iszero(c) && return c
+  end
+  return missing
+end
+
+function _c0_method_logslope(nca::NCASubject)
+  eltype(nca.time) <: AbstractArray && return missing
+  nca.dose isa Nothing && return missing
+  dosetime = nca.dose.time
+  idxs = findall(eachindex(nca.time)) do i
+    nca.time[i] > dosetime && !ismissing(nca.conc[i])
+  end
+  length(idxs) < 2 && return missing
+  # If there is enough data, proceed to calculate
+  c1 = nca.conc[idxs[1]]; t1 = nca.time[idxs[1]]
+  c2 = nca.conc[idxs[2]]; t2 = nca.time[idxs[2]]
+  if c2 < c1 && c1 != 0
+    return exp(log(c1) - (log(c2)-log(c1))/(t2-t1)*(t1 - dosetime))
+  else
+    return missing
+  end
+end
+
+function _c0_method_c1(nca::NCASubject)
+  eltype(nca.time) <: AbstractArray && return missing
+  nca.dose isa Nothing && return missing
+  dosetime = nca.dose.time
+  idx = findfirst(eachindex(nca.time)) do i
+    nca.time[i] > dosetime && !ismissing(nca.conc[i])
+  end
+  return idx isa Number ? nca.conc[idx] : missing
+end
