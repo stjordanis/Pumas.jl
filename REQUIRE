@@ -11,7 +11,7 @@ MacroTools
 DelayDiffEq
 PDMats
 ModelingToolkit
-LabelledArrays 0.1.1
+LabelledArrays 0.4
 DataFrames
 GLM
 Unitful
