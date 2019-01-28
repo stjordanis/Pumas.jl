@@ -21,6 +21,14 @@ function process_nmtran(filepath::String,kwargs...)
   process_nmtran(CSV.read(filepath),kwargs...)
 end
 
+to_nt(obj::Any) = propertynames(obj) |>
+  (x -> NamedTuple{Tuple(x)}(
+    getproperty(obj, x) |>
+    (x -> isone(length(unique(x))) ?
+          first(x) :
+          any(ismissing, x) ? x : disallowmissing(x))
+    for x ∈ x))
+
 """
     process_nmtran(filename, cvs=[], dvs=[:dv])
     process_nmtran(data, cvs=[], dvs=[:dv])
@@ -35,7 +43,6 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
   Names = names(data)
-  m = size(data, 1)
 
   if id ∉ Names
     data[id] = 1
@@ -46,81 +53,15 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   if evid ∉ Names
     data[evid] = Int8(1)
   end
-
   if cvs isa AbstractVector{<:Integer}
-    cvs = names[cvs]
+    cvs = Names[cvs]
   end
   if dvs isa AbstractVector{<:Integer}
-    dvs = names[dvs]
+    dvs = Names[dvs]
   end
-
-  ## Common fields
-
-  uids  = unique(data[id])
-  Tdv = isempty(dvs) ? Nothing : Core.NamedTuple{(dvs...,),NTuple{length(dvs),Float64}}
-  Tcv = isempty(cvs) ? Nothing : Core.NamedTuple{(cvs...,),NTuple{length(cvs),Float64}}
-
-  subjects = map(uids) do uid
-    ## Observations
-    idx_obs = filter(i -> data[id][i] == uid && data[evid][i] == 0, 1:m)
-    obs_times = data[time][idx_obs]
-
-    dv_idx = [ data[dv][idx_obs] for dv in dvs]
-
-    obs_dvs = Tdv === Nothing ? nothing : map((x...) -> Tdv(x), dv_idx...)
-    # cmt handling should be reversed: it should give it the appropriate name given cmt
-    # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
-    observations = Observation.(obs_times, obs_dvs)
-
-    ## Covariates
-    #  TODO: allow non-constant covariates
-    i_z = findfirst(x -> x == uid, data[id])
-    covariates = Tcv === Nothing ? nothing : Tcv( data[cv][i_z] for cv in cvs)
-
-    ## Events
-    idx_evt = filter(1:m) do i
-      data[id][i] == uid &&
-        data[evid][i] != 0
-    end
-    events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
-
-    for i in idx_evt
-      t     = float(data[time][i])
-      _evid = Int8(data[evid][i])
-      _amt  = amt  ∈ Names ? float(data[amt][i])  : nothing # can be missing if evid=2
-      _addl = addl ∈ Names ? Int(data[addl][i])   : 0
-      _ii   = ii   ∈ Names ? float(data[ii][i])   : zero(t)
-      _cmt  = cmt  ∈ Names ? Int(data[cmt][i])    : 1
-      _rate = rate ∈ Names ? float(data[rate][i]) : _amt === nothing ? 0.0 : zero(_amt)/oneunit(t)
-      ss′   = ss   ∈ Names ? Int8(data[ss][i])    : Int8(0)
-
-      for j = 0:_addl  # addl==0 means just once
-        _ss = j == 0 ? ss′ : Int8(0)
-        duration = _amt/_rate
-        @assert _amt != zero(_amt) || _ss == 1 || _evid == 2
-        if _amt == zero(_amt) && _evid != 2
-          @assert _rate > zero(_rate)
-          # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
-          # Such an event consists of infusion with the stated rate,
-          # starting at time −∞, and ending at the time on the dose
-          # ev event record. Bioavailability fractions do not apply
-          # to these doses.
-
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1)))
-        else
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1)))
-          if _rate != 0 && _ss == 0
-            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1)))
-          end
-        end
-        t += _ii
-      end
-    end
-
-    sort!(events)
-    Subject(id = uid, obs = observations, cvs = covariates, evs = events)
-  end
-  Population(subjects)
+  Population(Subject.(groupby(data, :id), Ref(Names),
+                      id, time, evid, amt, addl, ii, cmt, rate, ss,
+                      Ref(cvs), Ref(dvs)))
 end
 build_observation_list(obs::AbstractVector{<:Observation}) = obs
 function build_observation_list(obs::AbstractDataFrame)

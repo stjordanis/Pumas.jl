@@ -207,6 +207,70 @@ struct Subject{T1,T2,T3}
   observations::T1
   covariates::T2
   events::T3
+  function Subject(data, Names,
+                   id, time, evid, amt, addl, ii, cmt, rate, ss,
+                   cvs = Symbol[], dvs = Symbol[:dv])
+    ## Observations
+    idx_obs = findall(iszero, data[evid])
+    obs_times = data[time][idx_obs]
+
+    dv_idx = [ data[dv][idx_obs] for dv in dvs]
+
+    Tdv = isempty(dvs) ? Nothing : NamedTuple{(dvs...,),NTuple{length(dvs),Float64}}
+
+    obs_dvs = isempty(dvs) ? nothing : map((x...) -> Tdv(x), dv_idx...)
+    # cmt handling should be reversed: it should give it the appropriate name given cmt
+    # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
+    observations = Observation.(obs_times, obs_dvs)
+
+    ## Covariates
+    covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
+
+    ## Events
+    idx_evt = setdiff(1:size(data, 1), idx_obs)
+    events = Event[]
+    n_amt = amt ∈ Names
+    n_addl = addl ∈ Names
+    n_ii = ii ∈ Names
+    n_cmt = cmt ∈ Names
+    n_rate = rate ∈ Names
+    n_ss = ss ∈ Names
+    for i in idx_evt
+      t     = float(data[time][i])
+      _evid = Int8(data[evid][i])
+      _amt  = n_amt ? float(data[amt][i])   : 0. # can be missing if evid=2
+      _addl = n_addl ? Int(data[addl][i])   : 0
+      _ii   = n_ii ? float(data[ii][i])     : zero(t)
+      _cmt  = n_cmt ? Int(data[cmt][i])     : 1
+      _rate = n_rate ? float(data[rate][i]) : _amt === nothing ? 0.0 : zero(_amt)/oneunit(t)
+      ss′   = n_ss ? Int8(data[ss][i])      : Int8(0)
+
+      for j = 0:_addl  # addl==0 means just once
+        _ss = iszero(j) ? ss′ : zero(Int8)
+        duration = isa(_rate, Nothing) ? Inf : _amt/_rate
+        @assert _amt != zero(_amt) || _ss == 1 || _evid == 2
+        if _amt == zero(_amt) && _evid != 2
+          @assert _rate > zero(_rate)
+          # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
+          # Such an event consists of infusion with the stated rate,
+          # starting at time −∞, and ending at the time on the dose
+          # ev event record. Bioavailability fractions do not apply
+          # to these doses.
+
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1)))
+        else
+          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1)))
+          if _rate != 0 && _ss == 0
+            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1)))
+          end
+        end
+        t += _ii
+      end
+    end
+    sort!(events)
+    new{typeof(observations),typeof(covariates),typeof(events)}(
+        first(data[id]), observations, covariates, events)
+  end
   function Subject(;id = 1,
                    obs = Observation[],
                    cvs = nothing,
@@ -224,10 +288,9 @@ function Base.show(io::IO, subject::Subject)
   println(io, "  Events: ", length(subject.events))
   obs = subject.observations
   println(io, "  Observations: ",  length(obs))
-  println(io, "  Covariates: ")
   subject.covariates !== nothing &&
-  foreach(kv -> println(io, string("    ", kv[1], ": ", kv[2])),
-          pairs(subject.covariates))
+  println(io, "  Covariates: ",
+          join(propertynames(subject.covariates)[2:end],", "))
   !isempty(subject.observations) &&
   println(io, "  Observables: ",
           join(fieldnames(typeof(subject.observations[1].val)),", "))
