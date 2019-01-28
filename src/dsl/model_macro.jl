@@ -43,7 +43,7 @@ function extract_params!(vars, params, exprs)
   #    a = 1
   #  a domain
   #    a ∈ RealDomain()
-  #  a random variable 
+  #  a random variable
   #    a ~ Normal()
   if exprs isa Expr && exprs.head == :block
     _exprs = exprs.args
@@ -240,7 +240,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
     for p in odevars
       push!(vecexpr, ode_init[p])
     end
-    uType = SLArray{Tuple{length(odevars)},1,(odevars...,)}
+    uType = SLArray{Tuple{length(odevars)},(odevars...,)}
     typeexpr = :($uType())
     append!(typeexpr.args,vecexpr)
     quote
