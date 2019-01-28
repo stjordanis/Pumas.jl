@@ -44,8 +44,20 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1,data,x0,Laplace()) ≈ 56.810343602063618 rtol=1e-6
 
 function full_ll(θ)
-  _x0 = (θ=θ,Ω=[0.04],Σ=0.1)
+  _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
   PuMaS.marginal_nll_nonmem(mdsl1,data,_x0,Laplace())
 end
 
 Optim.optimize(full_ll,[0.5],BFGS())
+
+ηstar = [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361]
+ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FOCEI()), 1:10)
+@test ml ≈ 56.410938825140313 rtol = 1e-6
+
+ηstar = [-0.1007, 0.0167, -0.0363, -0.0820, 0.1061, 0.0473, -0.1007, -0.0361, -0.0578, -0.0181]
+ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FOCE()), 1:10)
+@test ml ≈ 56.476216665029462 rtol = 1e-6
+
+ηstar = [-0.1007, 0.0167, -0.0363, -0.0820, 0.1061, 0.0473, -0.1007, -0.0361, -0.0578, -0.0181]
+ml = sum(i -> PuMaS.marginal_nll_nonmem(mdsl1,data[i],x0,(η=[ηstar[i]],),PuMaS.FO()), 1:10)
+@test ml ≈ 56.474912258255571 rtol = 1e-6

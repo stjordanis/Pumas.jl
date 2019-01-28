@@ -26,17 +26,7 @@ mutable struct PKPDModel{P,Q,R,S,T,V}
   init::S
   prob::T
   derived::V
-  function PKPDModel(param, random, pre, init, prob, derived)
-      new{typeof(param), typeof(random),
-          typeof(pre), typeof(init),
-          Union{DiffEqBase.DEProblem,ExplicitModel,Nothing},
-          typeof(derived)}(
-          param, random, pre, init, prob, derived)
-  end
 end
-
-# Shallow copy
-Base.copy(m::PKPDModel) = PKPDModel(m.param, m.random, m.pre, m.init, m.prob, m.derived)
 
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
@@ -100,9 +90,10 @@ function _solve(m::PKPDModel, subject, col, args...;
   m.prob === nothing && return nothing
   if tspan === nothing
     _tspan = timespan(subject)
-    m.prob isa DiffEqBase.DEProblem &&
-    !(m.prob.tspan === (nothing, nothing)) &&
-    (_tspan = (min(_tspan[1], m.prob.tspan[1]), max(_tspan[2], m.prob.tspan[2])))
+    if m.prob isa DiffEqBase.DEProblem && !(m.prob.tspan === (nothing, nothing))
+      _tspan = (min(_tspan[1], m.prob.tspan[1]),
+                max(_tspan[2], m.prob.tspan[2]))
+    end
     tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
     tspan = float.(tspan_tmp)
   end
@@ -110,8 +101,12 @@ function _solve(m::PKPDModel, subject, col, args...;
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-    mtmp = copy(m) # Avoid mutating m in multithreaded execution
-    mtmp.prob = remake(mtmp.prob; p=col, u0=u0, tspan=tspan)
+    mtmp = PKPDModel(m.param,
+                     m.random,
+                     m.pre,
+                     m.init,
+                     remake(m.prob; p=col, u0=u0, tspan=tspan),
+                     m.derived)
     return _solve_diffeq(mtmp, subject, args...;kwargs...)
   end
 end

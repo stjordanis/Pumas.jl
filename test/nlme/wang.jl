@@ -1,9 +1,9 @@
 using Test
 using PuMaS, LinearAlgebra, Optim
 
+@test_broken begin
 data = process_nmtran(example_nmtran_data("sim_data_model1_wang"))
 
-@test_broken begin
 wang_additive = @model begin
     @param begin
         θ ∈ VectorDomain(1,init=[0.5])

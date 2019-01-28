@@ -82,7 +82,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
       data[id][i] == uid &&
         data[evid][i] != 0
     end
-    events = Event[]
+    events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
 
     for i in idx_evt
       t     = float(data[time][i])
