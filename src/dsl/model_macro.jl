@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures: OrderedDict, OrderedSet
 using MacroTools
 using ModelingToolkit
 
