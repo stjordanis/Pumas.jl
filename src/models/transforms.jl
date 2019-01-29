@@ -1,4 +1,5 @@
-using TransformVariables
+import TransformVariables
+using TransformVariables: as, asℝ₊, ∞
 
 struct ElementArrayTransform{T<:TransformVariables.AbstractTransform,N} <: TransformVariables.VectorTransform
   a::Array{T,N}
@@ -68,12 +69,12 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
     @inbounds for col in 1:n
         r = one(T)
         for row in 1:(col-1)
-            U[row, col] = x[index]            
+            U[row, col] = x[index]
             index += 1
         end
         if flag isa TransformVariables.NoLogJac
             U[col, col] = TransformVariables.transform(asℝ₊, x[index])
-        else            
+        else
             U[col, col], ℓi = TransformVariables.transform_and_logjac(asℝ₊, x[index])
             ℓ += ℓi
         end
@@ -84,7 +85,7 @@ end
 
 # a bit of type piracy
 # we need to use a slightly different density here,
-# since it is wrt the Cholesky, not the 
+# since it is wrt the Cholesky, not the
 function Distributions.logpdf(d::Wishart, C::Cholesky)
     df = d.df
     p = dim(d)
