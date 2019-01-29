@@ -3,7 +3,7 @@ using PuMaS, LinearAlgebra, Optim
 
 data = process_nmtran(example_nmtran_data("sim_data_model1"))
 
-#likelihood tests from NLME.jl 
+#likelihood tests from NLME.jl
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin
