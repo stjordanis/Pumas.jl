@@ -215,7 +215,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   diffres = DiffResults.HessianResult(vy0)
   conditional_nll! = y -> -conditional_nll(m, subject, x0, y, approx, args...; kwargs...)
   ForwardDiff.hessian!(diffres, conditional_nll!, vy0)
-  g, m, W = DiffResults.value(diffres), DiffResults.gradient(diffres), DiffResults.hessian(diffres)
+  W = DiffResults.hessian(diffres)
   return -l_ + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(_extract(inv(Ω)) - W))/2
 end
 
