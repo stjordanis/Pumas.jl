@@ -40,7 +40,7 @@ conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs.
 function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...)
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
-  derived = derivedfun(m,subject,x0::NamedTuple, args...;kwargs...)
+  derived = derivedfun(m, subject, x0::NamedTuple, args...;kwargs...)
   vals, derived_dist = derived(obstimes) # the second component is distributions
   x = let derived_dist=derived_dist
     sum(enumerate(subject.observations)) do (idx,obs)
@@ -55,8 +55,9 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
 end
 
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
-  l, vals, dist    = conditional_nll_ext(m, subject, x0, vy0, args...; kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, zero(vy0), args...; kwargs...)
+  # FIXME! Wrapping the random effects vector in a NamedTuple shouldn't be necessary but see #248
+  l, vals, dist    = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
   conditional_nll(dist, dist0, subject) - log(2π)
 end
 
@@ -212,7 +213,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   l_ = -conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...) - (length(subject.observations)*log(2π)/2)
   rfxset = m.random(x0)
   diffres = DiffResults.HessianResult(vy0)
-  conditional_nll! = y -> -conditional_nll(m, subject, x0, y, approx,args...; kwargs...)
+  conditional_nll! = y -> -conditional_nll(m, subject, x0, y, approx, args...; kwargs...)
   ForwardDiff.hessian!(diffres, conditional_nll!, vy0)
   g, m, W = DiffResults.value(diffres), DiffResults.gradient(diffres), DiffResults.hessian(diffres)
   return -l_ + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(_extract(inv(Ω)) - W))/2
