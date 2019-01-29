@@ -54,10 +54,10 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
   return -x, vals, derived_dist
 end
 
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0, approx::Union{Laplace,FOCE}, args...;kwargs...)
-  l, vals, dist = conditional_nll_ext(m,subject,x0, y0, args...;kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zeros(length(y0)), args...;kwargs...)
-  conditional_nll(dist, dist0,subject) - log(2π)
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+  l, vals, dist = conditional_nll_ext(m,subject, x0, y0, args...; kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject, x0, map(zero, y0), args...; kwargs...)
+  conditional_nll(dist, dist0, subject) - log(2π)
 end
 
 function conditional_nll(derived_dist, derived_dist0,subject)
@@ -125,10 +125,18 @@ The point-estimate the random effects (being the mode of the empirical Bayes est
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
+rfx_estimate
+
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
+end
+
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
+  rfxset = m.random(x0)
+  p = TransformVariables.dimension(totransform(rfxset))
+  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, t, Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
 """
@@ -192,9 +200,14 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   l_ = -conditional_nll(dist0, dist0,subject) - (length(subject.observations)-2)*log(2π)/2
   y_ = (η = zeros(length(y0.η)),)
   w,dldη = FIM(m,subject, x0, y_, approx, dist0, args...;kwargs...)
-  return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2 
+  return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
 end
 
+# FIXME! Avoid extracting matrix with `.mat`. However, PDMats doesn't support -. We should probably
+# just stop depending on PDMats all together.
+_extract(x::PDMat) = x.mat
+_extract(x::PDiadMat) = Diagonal(x.diag)
+_extract(x) = x
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l_ = -conditional_nll(m,subject,x0,y0,approx,args...;kwargs...) - (length(subject.observations)*log(2π)/2)
@@ -204,7 +217,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedT
   conditional_nll! = y -> -conditional_nll(m,subject,x0,y,approx,args...;kwargs...)
   ForwardDiff.hessian!(diffres, conditional_nll!, vy0)
   g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
-  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(inv(Ω) - W))/2 
+  return -l_ + (logdet(Ω) + y0.η'*(Ω\y0.η) + logdet(_extract(inv(Ω)) - W))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
@@ -314,7 +327,7 @@ function FIM(m::PKPDModel, subject::Subject, x0, vy0, approx::FO, dist0, args...
     r_inv = inv(var(dist0[1][j]))
     res = ll_derivatives(mean_,m,subject, x0, vy0, :η, j, args...;kwargs...)
     f = DiffResults.gradient(res)
-    f*r_inv*f' 
+    f*r_inv*f'
   end
   dldη = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist0[1][j]))
