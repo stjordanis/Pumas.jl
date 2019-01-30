@@ -394,7 +394,7 @@ function _c0_method_logslope(nca::NCASubject)
   c1 = nca.conc[idxs[1]]; t1 = nca.time[idxs[1]]
   c2 = nca.conc[idxs[2]]; t2 = nca.time[idxs[2]]
   if c2 < c1 && c1 != 0
-    return exp(log(c1) - (log(c2)-log(c1))/(t2-t1)*(t1 - dosetime))
+    return exp(log(c1) - (t1 - dosetime)*(log(c2)-log(c1))/(t2-t1))
   else
     return missing
   end
