@@ -263,7 +263,7 @@ end
       @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
-    @test_broken PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
+    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
   end
 
   laplace_estimated_params = (
@@ -297,7 +297,7 @@ end
       @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
     end
 
-    @test_broken PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
+    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
   end
 end
 
