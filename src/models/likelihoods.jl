@@ -54,11 +54,17 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
   return -x, vals, derived_dist
 end
 
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
-  # FIXME! Wrapping the random effects vector in a NamedTuple shouldn't be necessary but see #248
-  l, vals, dist    = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+  l, vals, dist    = conditional_nll_ext(m, subject, x0, y0, args...; kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, map(zero, y0), args...; kwargs...)
   conditional_nll(dist, dist0, subject) - log(2π)
+end
+
+# FIXME! Having both a method for y0::NamedTuple and vy0::AbstractVector shouldn't really be necessary. Clean it up!
+function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
+  rfxset = m.random(x0)
+  y0 = TransformVariables.transform(totransform(rfxset), vy0)
+  conditional_nll(m, subject, x0, y0, approx, args...; kwargs...)
 end
 
 function conditional_nll(derived_dist, derived_dist0,subject)
@@ -86,13 +92,13 @@ random effects to Cartesian space).
 """
 function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...;kwargs...)
   rfxset = m.random(x0)
-  conditional_nll(m,subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
+  conditional_nll(m, subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
 end
 
 function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, args...;kwargs...)
   rfxset = m.random(x0)
   y0 = TransformVariables.transform(totransform(rfxset), vy0)
-  conditional_nll(m,subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
+  conditional_nll(m, subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
 end
 
 function penalized_conditional_nll_fn(m::PKPDModel, subject::Subject, x0::NamedTuple, args...;kwargs...)
@@ -137,7 +143,7 @@ end
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, t, Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
+  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
 """
