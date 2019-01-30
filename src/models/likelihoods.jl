@@ -57,7 +57,7 @@ end
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   l, vals, dist    = conditional_nll_ext(m, subject, x0, y0, args...; kwargs...)
   l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, map(zero, y0), args...; kwargs...)
-  conditional_nll(dist, dist0, subject) - log(2π)
+  conditional_nll(dist, dist0, subject)
 end
 
 # FIXME! Having both a method for y0::NamedTuple and vy0::AbstractVector shouldn't really be necessary. Clean it up!
@@ -67,7 +67,7 @@ function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Ab
   conditional_nll(m, subject, x0, y0, approx, args...; kwargs...)
 end
 
-function conditional_nll(derived_dist, derived_dist0,subject)
+function conditional_nll(derived_dist, derived_dist0, subject)
   typ = flattentype(derived_dist)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
@@ -196,9 +196,9 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l_ = -conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...) - (length(subject.observations)*log(2π)/2)
+  nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
   w = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
-  return -l_ + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
@@ -209,20 +209,11 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
 end
 
-# FIXME! Avoid extracting matrix with `.mat`. However, PDMats doesn't support -. We should probably
-# just stop depending on PDMats all together.
-_extract(x::PDMat) = x.mat
-_extract(x::PDiagMat) = Diagonal(x.diag)
-_extract(x) = x
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l_ = -conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...) - (length(subject.observations)*log(2π)/2)
-  rfxset = m.random(x0)
-  diffres = DiffResults.HessianResult(vy0)
-  conditional_nll! = y -> -conditional_nll(m, subject, x0, y, approx, args...; kwargs...)
-  ForwardDiff.hessian!(diffres, conditional_nll!, vy0)
-  W = DiffResults.hessian(diffres)
-  return -l_ + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(_extract(inv(Ω)) - W))/2
+  nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
+  W = ForwardDiff.hessian(t -> conditional_nll(m, subject, x0, t, approx, args...; kwargs...), vy0)
+  return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + W))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
