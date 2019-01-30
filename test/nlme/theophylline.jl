@@ -260,10 +260,10 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, Laplace()) ≈ η rtol=1e-4
+      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
-    @test_broken PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, Laplace()) ≈ 141.296 atol=1e-3
+    @test_broken PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
   end
 
   laplace_estimated_params = (
