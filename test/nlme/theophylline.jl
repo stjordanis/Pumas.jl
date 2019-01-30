@@ -28,22 +28,23 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
     @pre begin
       Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K = θ[2]+ η[2]
-      CL  = θ[3]*WT + η[3]
-      V = CL/K/WT
+      K  = θ[2]+ η[2]
+      CL = θ[3]*WT + η[3]
+      V  = CL/K
+      SC = CL/K/WT
     end
 
     @covariates SEX WT
 
     @vars begin
-      conc = Central / V
+      conc = Central / SC
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
       dv ~ @. Normal(conc,sqrt(σ_add))
-      end
+    end
   end
 
   x0 = (θ = [2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -55,6 +56,8 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
         σ_add = 0.388
         #σ_prop = 0.3
        )
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
 
   fo_obj = 71.979975297638589
   fo_estimated_params = (θ = [4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -93,16 +96,17 @@ end
       Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
       K  = θ[2]
       CL = θ[3]*WT + η[2]
-      V  = CL/K/WT
+      V  = CL/K
+      SC = CL/K/WT
     end
 
     @covariates SEX WT
 
     @vars begin
-      conc = Central / V
+      conc = Central / SC
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
       dv ~ @. Normal(conc,sqrt(σ_add))
@@ -118,6 +122,8 @@ end
         σ_add = 0.388
         #σ_prop = 0.3
        )
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, x0, PuMaS.FOCE()) ≈ 138.90111320972699
 
   foce_obj = 121.89849118143030
   foce_estimated_params = (
@@ -154,19 +160,20 @@ end
       Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
       K  = θ[2]
       CL = θ[3]*WT + η[2]
-      V = CL/K/WT
+      V  = CL/K
+      SC = CL/K/WT
     end
 
     @covariates SEX WT
 
     @vars begin
-      conc = Central / V
+      conc = Central / SC
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
-      dv ~ @. Normal(conc,conc*sqrt(σ_prop)+(σ_add))
+      dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
@@ -179,6 +186,8 @@ end
         σ_add = 0.388,
         σ_prop = 0.3
        )
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_focei, theopp, x0, PuMaS.FOCEI()) ≈ 287.08854688950419
 
   focei_obj = 115.40505381367598
   focei_estimated_params = (
@@ -332,13 +341,10 @@ end
       conc = Central / SC
     end
 
-    @dynamics ImmediateAbsorptionModel
+    @dynamics OneCompartmentModel
 
     @derived begin
-      # dv ~ @. Normal(conc,conc*sqrt(σ_prop)+(σ_add))
-      dv ~ @. Normal(conc,conc*σ_prop + σ_add)
-      # dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
-      # dv ~ @. Normal(conc,sqrt(conc^2+σ_add))
+      dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
@@ -351,6 +357,8 @@ end
         σ_add = 0.388,
         σ_prop = 0.3
        )
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI()) ≈ 288.30901928585990
 
   laplacei_obj = 116.97275684239327
   laplacei_estimated_params = (
