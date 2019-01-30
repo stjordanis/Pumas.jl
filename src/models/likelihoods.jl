@@ -134,13 +134,13 @@ particular subject at a particular parameter values. The result is returned as a
 """
 rfx_estimate
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Laplace, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE,FO}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
