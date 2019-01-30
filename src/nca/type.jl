@@ -17,6 +17,7 @@ end
 
 # NCADose should behave like a scalar in broadcast
 Broadcast.broadcastable(x::NCADose) = Ref(x)
+Base.first(x::NCADose) = x
 
 # any changes in here must be reflected to ./simple.jl, too
 mutable struct NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}

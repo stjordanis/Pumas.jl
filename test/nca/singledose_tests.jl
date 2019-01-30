@@ -45,6 +45,11 @@ ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test lambdaz(yli, collect(x), slopetimes=10:20)[1] ≈ lambdaz(ylg, collect(x), slopetimes=10:20)[1] atol=1e-2
 @test auc(nca, interval=(t[end],Inf)) ≈ auc(nca) - auc(nca, auctype=:last) atol=1e-12
+@test c0(ncapop[1]) == ncapop[1].conc[1]
+@test c0(nca, method=:set0) == zero(nca.conc[1])
+@test c0(ncapop[1], method=:c0) === ncapop[1].conc[1]
+@test c0(ncapop[1], method=:c1) === ncapop[1].conc[2]
+@test_nowarn c0(ncapop[1], method=:logslope)
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred auc(conc[idx], t[idx], method=m)
