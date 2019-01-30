@@ -3,12 +3,12 @@ import DiffResults: DiffResult
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
 
 abstract type LikelihoodApproximation end
-struct LaplaceI <: LikelihoodApproximation end
-struct FOCEI <: LikelihoodApproximation end
-struct FOCE <: LikelihoodApproximation end
-struct FOI <: LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
+struct FOI <: LikelihoodApproximation end
+struct FOCE <: LikelihoodApproximation end
+struct FOCEI <: LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
+struct LaplaceI <: LikelihoodApproximation end
 
 """
     _lpdf(d,x)
@@ -140,16 +140,16 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE,FO}, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::FO, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  zeros(p)
+  return zeros(p)
 end
 
 """
