@@ -146,6 +146,12 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
 end
 
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::FO, args...; kwargs...)
+  rfxset = m.random(x0)
+  p = TransformVariables.dimension(totransform(rfxset))
+  zeros(p)
+end
+
 """
     rfx_estimate_dist(model, subject, param, approx, ...)
 
@@ -203,9 +209,9 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, zero(vy0), args...; extended_return = true, kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, vy0, args...; extended_return = true, kwargs...)
   l_ = -conditional_nll(dist0, dist0, subject) - (length(subject.observations)-2)*log(2π)/2
-  w, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...;kwargs...)
+  w, dldη = FIM(m, subject, x0, vy0, approx, dist0, args...;kwargs...)
   return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
 end
 
