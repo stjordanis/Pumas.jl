@@ -21,4 +21,5 @@ ForwardDiff
 DiffResults
 Optim
 TransformVariables
+RecipesBase
 Missings
