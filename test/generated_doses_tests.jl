@@ -25,7 +25,7 @@ m_diffeq = @model begin
 
     @derived begin
         conc = @. Central / V
-        dv ~ @. Normal(conc, 1e-100)
+        dv ~ @. Normal(conc, 0.2)
     end
 end
 
@@ -38,7 +38,10 @@ y0 = init_random(m_diffeq, x0)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 
-# Make sure simobs works without time
+# Make sure simobs works without time, defaults to 1 day, obs at each hour
 obs = simobs(m_diffeq, subject, x0, y0)
 @test obs.times == 0.0:1.0:24.0
-DataFrame(obs)
+@test DataFrame(obs)[:,1] == 0.0:1.0:24.0
+
+using Plots
+plot(obs)

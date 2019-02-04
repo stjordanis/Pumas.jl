@@ -192,8 +192,6 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   show(io, str, markdown)
 end
 
-using RecipesBase
-
 @recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
   hastitle = length(plotattributes[:title]) >= 2

@@ -141,30 +141,6 @@ function derivedfun(m::PKPDModel, col, sol; continuity=:left)
   derived
 end
 
-struct SimulatedObservations{T,T2}
-  times::T
-  derived::T2
-end
-
-# TODO: interface on SimulatedObservations
-## size
-#Base.length(A::SimulatedObservations) = length(A.obs)
-#Base.size(A::SimulatedObservations) = size(A.obs)
-#
-# indexing
-@inline function Base.getindex(A::SimulatedObservations, I...)
-  return A.derived[I...]
-end
-@inline function Base.setindex!(A::SimulatedObservations, x, I...)
-  A.derived[I...] = x
-end
-#Base.axes(A::SimulatedObservations) = axes(A.obs)
-#Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
-
-function DataFrames.DataFrame(A::SimulatedObservations)
-  DataFrame(merge((times=A.times,),A.derived))
-end
-
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
@@ -189,7 +165,7 @@ function simobs(m::PKPDModel, subject::Subject,
     sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   end
   derived = derivedfun(m,col,sol;continuity=continuity)
-  SimulatedObservations(obstimes,derived(obstimes)[1]) # the first component is observed values
+  SimulatedObservations(subject,obstimes,derived(obstimes)[1]) # the first component is observed values
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;

@@ -3,6 +3,7 @@ module NCA
 using Reexport
 using GLM
 using DataFrames
+using RecipesBase
 using Pkg, Dates, Printf
 import ..PuMaS: Formulation, IV, EV
 
