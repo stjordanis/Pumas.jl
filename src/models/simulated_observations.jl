@@ -50,8 +50,10 @@ end
   pop.sims[I...] = x
 end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
-  dfs = [DataFrame(merge((id=s.subject.id,),(time=s.times,),s.derived)) for s in pop.sims]
-  vcat(dfs)
+  dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],),
+                          (time=s.times,),
+                          s.derived)) for s in pop.sims]
+  reduce(vcat,dfs)
 end
 
 @recipe function f(pop::SimulatedPopulation)

@@ -48,14 +48,13 @@ using Plots
 plot(obs)
 =#
 
-pop = Population([Subject(evs = DosageRegimen([10rand(), 20rand()],
+pop = Population([Subject(id = id,
+            evs = DosageRegimen([10rand(), 20rand()],
             ii = 24, addl = 2, ss = 1:2, time = [0, 12],
-            cmt = 2)) for i in 1:10])
+            cmt = 2)) for id in 1:10])
 pop_obs = simobs(m_diffeq, pop, x0, y0)
-
-dfs = [DataFrame(merge((time=s.times,),s.derived))
-        for s in pop_obs.sims]
-vcat(dfs...)
 DataFrame(pop_obs)
 
+#=
 plot(pop_obs)
+=#
