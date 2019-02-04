@@ -13,6 +13,8 @@ using PuMaS, SafeTestsets
     include("single_dosage_tests.jl") end
 @time @safetestset "Multiple Dosage Tests" begin
     include("multiple_dosage_tests.jl") end
+@time @safetestset "Generated Doses Tests" begin
+    include("generated_doses_tests.jl") end
 @time @safetestset "SS=2 and Overlap Tests" begin
     include("ss2_overlap_tests.jl") end
 @time @safetestset "Template Model EV System" begin

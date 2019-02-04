@@ -161,6 +161,10 @@ end
 #Base.axes(A::SimulatedObservations) = axes(A.obs)
 #Base.IndexStyle(::Type{<:SimulatedObservations}) = Base.IndexStyle(DataFrame)
 
+function DataFrames.DataFrame(A::SimulatedObservations)
+  DataFrame(merge((times=A.times,),A.derived))
+end
+
 """
     simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)

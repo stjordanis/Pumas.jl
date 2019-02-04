@@ -49,6 +49,7 @@ col = pre(m_diffeq, subject, x0, y0)
 # Make sure simobs works without time
 obs = simobs(m_diffeq, subject, x0, y0)
 @test obs.times == 0.0:1.0:24.0
+DataFrame(obs)
 
 ###############################
 # Test 16
