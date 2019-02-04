@@ -24,6 +24,8 @@ end
     push!(plot_vars,v)
   end
   xlabel --> "time"
+  legend --> false
+  lw --> 3
   ylabel --> reshape(names,1,length(names))
   layout --> good_layout(length(names))
   title --> "Subject ID: $(obs.subject.id)"
@@ -36,4 +38,29 @@ function good_layout(n)
   n == 3 && return (3,1)
   n == 4 && return (2,2)
   n > 4 && return (n÷2,2)
+end
+
+struct SimulatedPopulation{S}
+  sims::S
+end
+@inline function Base.getindex(pop::SimulatedPopulation, I...)
+  return pop.sims[I...]
+end
+@inline function Base.setindex!(pop::SimulatedPopulation, x, I...)
+  pop.sims[I...] = x
+end
+function DataFrames.DataFrame(pop::SimulatedPopulation)
+  dfs = [DataFrame(merge((id=s.subject.id,),(time=s.times,),s.derived)) for s in pop.sims]
+  vcat(dfs)
+end
+
+@recipe function f(pop::SimulatedPopulation)
+  for p in pop.sims
+    @series begin
+      lw --> 1.5
+      title --> "Population Simulation"
+      p
+    end
+  end
+  nothing
 end

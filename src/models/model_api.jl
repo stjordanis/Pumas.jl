@@ -171,19 +171,19 @@ end
 function simobs(m::PKPDModel, pop::Population, args...;
                 parallel_type = Threading, kwargs...)
   time = @elapsed if parallel_type == Serial
-    sols = [simobs(m,subject,args...;kwargs...) for subject in pop]
+    sims = [simobs(m,subject,args...;kwargs...) for subject in pop]
   elseif parallel_type == Threading
-    _sols = Vector{Any}(undef,length(pop))
+    _sims = Vector{Any}(undef,length(pop))
     Threads.@threads for i in 1:length(pop)
-      _sols[i] = simobs(m,pop[i],args...;kwargs...)
+      _sims[i] = simobs(m,pop[i],args...;kwargs...)
     end
-    sols = [sol for sol in _sols] # Make strict typed
+    sims = [sim for sim in _sims] # Make strict typed
   elseif parallel_type == Distributed
-    sols = pmap((subject)->simobs(m,subject,args...;kwargs...),pop)
+    sims = pmap((subject)->simobs(m,subject,args...;kwargs...),pop)
   elseif parallel_type == SplitThreads
     error("SplitThreads is not yet implemented")
   end
-  sols
+  SimulatedPopulation(sims)
 end
 
 """

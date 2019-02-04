@@ -41,7 +41,21 @@ subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, tim
 # Make sure simobs works without time, defaults to 1 day, obs at each hour
 obs = simobs(m_diffeq, subject, x0, y0)
 @test obs.times == 0.0:1.0:24.0
-@test DataFrame(obs)[:,1] == 0.0:1.0:24.0
+@test DataFrame(obs).time == 0.0:1.0:24.0
 
+#=
 using Plots
 plot(obs)
+=#
+
+pop = Population([Subject(evs = DosageRegimen([10rand(), 20rand()],
+            ii = 24, addl = 2, ss = 1:2, time = [0, 12],
+            cmt = 2)) for i in 1:10])
+pop_obs = simobs(m_diffeq, pop, x0, y0)
+
+dfs = [DataFrame(merge((time=s.times,),s.derived))
+        for s in pop_obs.sims]
+vcat(dfs...)
+DataFrame(pop_obs)
+
+plot(pop_obs)
