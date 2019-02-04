@@ -46,11 +46,6 @@ sol = solve(m_diffeq, subject, x0, y0; tspan=(0.0,12.0+1e-14), abstol=1e-14, rel
 col = pre(m_diffeq, subject, x0, y0)
 @test [1000 * sol(12*i + 1e-14)[2] / col.V for i in 0:1] ≈ [605.3220736386598;1616.4036675452326] atol=1e-8
 
-# Make sure simobs works without time
-obs = simobs(m_diffeq, subject, x0, y0)
-@test obs.times == 0.0:1.0:24.0
-DataFrame(obs)
-
 ###############################
 # Test 16
 ###############################
