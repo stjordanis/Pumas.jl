@@ -285,6 +285,7 @@ end
 Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
+  println(io, "  ID: ", subject.id)
   println(io, "  Events: ", length(subject.events))
   obs = subject.observations
   println(io, "  Observations: ",  length(obs))
