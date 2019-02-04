@@ -312,7 +312,8 @@ function timespan(sub::Subject)
   lo, hi
 end
 
-observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
+observationtimes(sub::Subject) = isempty(sub.observations) ? 0.0:1.0:24.0 :
+                                 [obs.time for obs in sub.observations]
 
 """
     Population(::AbstractVector{<:Subject})
