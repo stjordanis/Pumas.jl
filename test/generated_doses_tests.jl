@@ -40,8 +40,8 @@ subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, tim
 
 # Make sure simobs works without time, defaults to 1 day, obs at each hour
 obs = simobs(m_diffeq, subject, x0, y0)
-@test obs.times == 0.0:1.0:24.0
-@test DataFrame(obs).time == 0.0:1.0:24.0
+@test obs.times == 0.0:1.0:84.0
+@test DataFrame(obs).time == 0.0:1.0:84.0
 
 #=
 using Plots
