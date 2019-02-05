@@ -51,7 +51,8 @@ end
 
 function full_ll(θ)
   _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
-  PuMaS.marginal_nll_nonmem(mdsl1,data,_x0,PuMaS.LaplaceI())
+  PuMaS.marginal_nll(mdsl1,data,_x0,PuMaS.LaplaceI())
 end
 
-Optim.optimize(full_ll,[0.5],BFGS())
+@test Optim.optimize(full_ll, [0.5], Newton(), autodiff=:forward) isa Optim.MultivariateOptimizationResults
+@test Optim.optimize(full_ll, [0.5], BFGS(), autodiff=:forward) isa Optim.MultivariateOptimizationResults
