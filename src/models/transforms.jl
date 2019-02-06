@@ -53,13 +53,14 @@ function TransformVariables.inverse!(x::AbstractArray,t::ConstantTransform, v)
   x
 end
 
-struct PSDCholeskyFactor <: TransformVariables.VectorTransform
+
+
+struct PSDTransform <: TransformVariables.VectorTransform
     n::Int
 end
+TransformVariables.dimension(t::PSDTransform) = (t.n*(t.n+1))>>1
 
-TransformVariables.dimension(t::PSDCholeskyFactor) = (t.n*(t.n+1))>>1
-
-function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::PSDCholeskyFactor,
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::PSDTransform,
                                            x::TransformVariables.RealVector{T}) where T
     n = t.n
     ℓ = TransformVariables.logjac_zero(flag, T)
@@ -75,16 +76,16 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
             U[col, col] = TransformVariables.transform(asℝ₊, x[index])
         else
             U[col, col], ℓi = TransformVariables.transform_and_logjac(asℝ₊, x[index])
-            ℓ += ℓi
+            ℓ += (n-col+2)*ℓi
         end
         index += 1
     end
     PDMat(Cholesky(U, 'U', 0)), ℓ
 end
 
-TransformVariables.inverse_eltype(::PuMaS.PSDCholeskyFactor, y::PDMat{T}) where T = T
+TransformVariables.inverse_eltype(::PSDTransform, y::PDMat{T}) where T = T
 
-function TransformVariables.inverse!(x::AbstractVector, t::PSDCholeskyFactor, y::PDMat)
+function TransformVariables.inverse!(x::AbstractVector, t::PSDTransform, y::PDMat)
   index = TransformVariables.firstindex(x)
   F = y.chol
   @assert F.uplo === 'U'
@@ -138,22 +139,14 @@ function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PD
   return x
 end
 
-# a bit of type piracy
-# we need to use a slightly different density here,
-# since it is wrt the Cholesky, not the
-function Distributions.logpdf(d::Wishart, C::Cholesky)
-    df = d.df
+function Distributions.logpdf(d::InverseWishart, M::PDMat)
     p = dim(d)
-    sum((df-i)*log(C.UL[i,i]) for i = 1:p) - 0.5 * tr(d.S \ Matrix(C)) - d.c0
-end
-function Distributions.logpdf(d::InverseWishart, C::Cholesky)
     df = d.df
-    p = dim(d)
-    sum((-df-i)*log(C.UL[i,i]) for i = 1:p) - 0.5 * tr(C \ Matrix(d.Ψ)) - d.c0
+    Xcf = M.chol
+    # we use the fact: tr(Ψ * inv(X)) = tr(inv(X) * Ψ) = tr(X \ Ψ)
+    Ψ = Matrix(d.Ψ)
+    -0.5 * ((df + p + 1) * logdet(Xcf) + tr(Xcf \ Ψ)) - d.c0
 end
-
-Distributions.MvNormal(μ::AbstractVector, c::Cholesky) = Distributions.MvNormal(μ, PDMat(c))
-Distributions.MvNormal(c::Cholesky) = Distributions.MvNormal(PDMat(c))
 
 totransform(d::ConstDomain) = ConstantTransform(d.val)
 function totransform(d::RealDomain)
@@ -176,7 +169,8 @@ function totransform(d::VectorDomain)
   as(map((lo,hi) -> totransform(RealDomain(lower=lo,upper=hi)), d.lower, d.upper))
 end
 
-totransform(d::PSDDomain) = PSDCholeskyFactor(size(d.init,1))
+
+totransform(d::PSDDomain) = PSDTransform(size(d.init,1))
 totransform(d::PDiagDomain) = PDiagTransform(length(d.init.diag))
 
 totransform(d::Distribution) = totransform(Domain(d))

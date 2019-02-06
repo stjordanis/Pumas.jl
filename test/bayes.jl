@@ -13,9 +13,8 @@ for subject in data.subjects
   end
 end
 
+nan2zero(x) = isnan(x) ? zero(x) : x
 
-
-# Definition using diffeqs
 m = @model begin
   @param begin
     θ ~ Constrained(MvNormal([2.268,74.17,468.6,0.5876],
@@ -41,10 +40,16 @@ m = @model begin
   @dynamics OneCompartmentModel
 
   @derived begin
-    conc = @. Central / V
-    dv ~ @. Normal(conc, conc*σ)
+    conc = @. nan2zero(Central / V)
+    dv ~ @. Normal(conc, nan2zero(conc*σ))
   end
 end
+
+b = PuMaS.BayesModel(m, data)
+
+using DynamicHMC
+chain,tuned = NUTS_init_tune_mcmc(b, 1000)
+
 
 
 
@@ -68,6 +73,12 @@ end
 
 b = BayesModel(m, data)
 
+
+
+
+
+
+
 v_param = (θ = [2.268,74.17,468.6,0.5876],
            Ω = cholesky([0.05 0.0;
                          0.0 0.2]),
@@ -80,8 +91,8 @@ b((v_param, v_random))
 
 using DynamicHMC, LogDensityProblems
 P = TransformedLogDensity(t, b)
-∇P = ADgradient(:ForwardDiff, P)
-chain,tuned = NUTS_init_tune_mcmc(∇P, 10_000)
+∇P = ADgradient(:ForwardDiff, b)
+chain,tuned = NUTS_init_tune_mcmc(∇P, 10)
 
 [TransformVariables.transform(t, get_position(c))[1].θ[2] for c in chain]
 
@@ -108,7 +119,7 @@ theopmodel_bayes = @model begin
                         upper=[5,0.5,0.09,5,1.5],
                         init=[1.9,0.0781,0.0463,1.5,0.4]
                         )
-      
+
         Ω ~ InverseWishart(2, fill(0.9,1,1))
         σ = 0.388
     end
