@@ -155,7 +155,10 @@ end
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  return zeros(p)
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(x0), numtype(x0))
+  return zeros(T, p)
 end
 
 """
@@ -216,8 +219,15 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
-  w, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
-  return l0 + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
+  W, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
+
+  FΩ = cholesky(Ω, check=false)
+  if issuccess((FΩ))
+    invFΩ = inv(FΩ)
+    return l0 + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
+  else # Ω is numerically singular
+    return typeof(l0)(Inf)
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)

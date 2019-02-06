@@ -18,7 +18,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
 end
 
 function TransformVariables.inverse_eltype(t::ElementArrayTransform, y::AbstractArray)
-  inverse_eltype(first(t.a), first(y))
+  TransformVariables.inverse_eltype(first(t.a), first(y))
 end
 function TransformVariables.inverse!(x::AbstractArray, t::ElementArrayTransform, y::AbstractArray)
   map!(TransformVariables.inverse, x, t.a, y)
@@ -26,7 +26,6 @@ end
 function TransformVariables.inverse(t::ElementArrayTransform, y::AbstractArray)
   map(TransformVariables.inverse, t.a, y)
 end
-
 
 struct ConstantTransform{T} <: TransformVariables.AbstractTransform
   val::T
@@ -80,7 +79,25 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
         end
         index += 1
     end
-    Cholesky(U, 'U', 0), ℓ
+    PDMat(Cholesky(U, 'U', 0)), ℓ
+end
+
+TransformVariables.inverse_eltype(::PuMaS.PSDCholeskyFactor, y::PDMat{T}) where T = T
+function TransformVariables.inverse!(x::AbstractVector, t::PSDCholeskyFactor, y::PDMat)
+  index = TransformVariables.firstindex(x)
+  F = y.chol
+  @assert F.uplo === 'U'
+  U = F.U
+  # FIXME! Add @inbounds when we know it works
+  for col in 1:t.n
+    for row in 1:(col-1)
+      x[index] = U[row, col]
+      index += 1
+    end
+    x[index] = TransformVariables.inverse(asℝ₊, U[col,col])
+    index += 1
+  end
+  return x
 end
 
 # a bit of type piracy
