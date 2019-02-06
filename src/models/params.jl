@@ -236,6 +236,9 @@ end
 Constrained(dist::MvNormal; lower=-Inf, upper=Inf, init=0.0) =
   Constrained(dist, VectorDomain(length(dist); lower=lower, upper=upper, init=init))
 
+Constrained(dist::ContinuousUnivariateDistribution; lower=-Inf, upper=Inf, init=0.0) =
+  Constrained(dist, RealDomain(; lower=lower, upper=upper, init=init))
+
 Domain(c::Constrained) = c.domain
 
 # obviously wrong, but fine as long as parameters are constant

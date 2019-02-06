@@ -19,10 +19,10 @@ m = @model begin
   @param begin
     θ ~ Constrained(MvNormal([2.268,74.17,468.6,0.5876],
                              Diagonal([4.0, 30.0, 100.0, 0.5])),
-    lower=zeros(4), init=ones(4))
+                    lower=zeros(4), init=ones(4))
     Ω ~ InverseWishart(5.0, 2.0*[0.05 0.0;
                                  0.0 0.2])
-    σ ~ Gamma(1,0.1)
+    σ ~ Constrained(Gamma(1,0.1), lower=0.01, upper=100.0)
   end
 
   @random begin
@@ -40,8 +40,8 @@ m = @model begin
   @dynamics OneCompartmentModel
 
   @derived begin
-    conc = @. nan2zero(Central / V)
-    dv ~ @. Normal(conc, nan2zero(conc*σ))
+    conc = @. Central / V
+    dv ~ @. Normal(conc, conc*σ)
   end
 end
 
@@ -51,27 +51,6 @@ using DynamicHMC
 chain,tuned = NUTS_init_tune_mcmc(b, 1000)
 
 
-
-
-t_param = PuMaS.totransform(m.param)
-t_random = PuMaS.totransform(m.random(init_param(m)))
-
-using TransformVariables
-t = as((t_param, t_random))
-
-
-struct BayesModel{M,D}
-  model::M
-  data::D
-end
-
-function (b::BayesModel)((v_param, v_random))
-  s_param = b.model.param
-  l_param = sum(map(logpdf, s_param.params, v_param))
-  l_param - PuMaS.penalized_conditional_nll(b.model, b.data.subjects[1], v_param, v_random)
-end
-
-b = BayesModel(m, data)
 
 
 
