@@ -3,6 +3,7 @@ using PuMaS, LinearAlgebra, Optim
 
 # FIXME! Find a nicer way to handle this
 _extract(A::PDMat) = A.mat
+_extract(A::PDiagMat) = A.diag
 _extract(A) = A
 
 @testset "Theophylline model" begin
@@ -77,14 +78,16 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
   o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_fo, # The marginal likelihood is the objective
                                               theopp,
-                                              TransformVariables.transform(PuMaS.totransform(theopmodel_fo.param), t),
-                                              PuMaS.FO()),
+                                              TransformVariables.transform(totransform(theopmodel_fo.param), t),
+                                              FO()),
                TransformVariables.inverse(totransform(theopmodel_fo.param), x0), # The initial values
                BFGS(),                                                           # The optimization method
                Optim.Options(show_trace=true,                                    # Print progress
                              g_tol=1e-5))                                        # Adjust convergence tolerance
 
   x_optim = TransformVariables.transform(totransform(theopmodel_fo.param), o.minimizer)
+
+  @test o.f_converged
   @test o.minimum ≈ 71.979975297638589
   for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
@@ -94,12 +97,12 @@ end
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin
   theopmodel_foce = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(2)
-      σ_add ∈ RealDomain(init=0.388)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.01, init=0.388)
       #σ_prop ∈ RealDomain(init=0.3)
     end
 
@@ -108,9 +111,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -128,31 +131,45 @@ end
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55,0.515])),
+  x0 = (θ₁ = 2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55, 0.515]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, x0, PuMaS.FOCE()) ≈ 138.90111320972699
 
-  foce_obj = 121.89849118143030
   foce_estimated_params = (
-    θ = [1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.49011E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.10668E+00  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω_11  = 1.62087E+00,
-    Ω_21  = 0.00000E+00,
-    Ω_22  = 2.26449E-01,
+    θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.49011E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.10668E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+    Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
     σ_add = 5.14069E-01)
     # Elapsed estimation time in seconds:     0.27
     # Elapsed covariance time in seconds:     0.19
+
+  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_foce, # The marginal likelihood is the objective
+                                              theopp,
+                                              TransformVariables.transform(totransform(theopmodel_foce.param), t),
+                                              FOCE()),
+               TransformVariables.inverse(totransform(theopmodel_foce.param), x0), # The initial values
+               BFGS(),                                                           # The optimization method
+               Optim.Options(show_trace=true,                                    # Print progress
+                             g_tol=1e-5))
+
+  x_optim = TransformVariables.transform(totransform(theopmodel_foce.param), o.minimizer)
+
+  @test_broken o.f_converged
+  @test o.minimum ≈ 121.89849118143030
+  for k in keys(x_optim)
+    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  end
 end
 
 @testset "run4.mod FOCE with interaction, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin

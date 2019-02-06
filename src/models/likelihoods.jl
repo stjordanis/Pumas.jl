@@ -212,8 +212,14 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
-  w = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
-  return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  W = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
+
+  FΩ = cholesky(Ω, check=false)
+  if issuccess((FΩ))
+    return nl + (logdet(FΩ) + vy0'*(FΩ\vy0) + logdet(inv(FΩ) + W))/2
+  else # Ω is numerically singular
+    return typeof(nl)(Inf)
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
