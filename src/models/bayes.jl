@@ -49,7 +49,6 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     n = b.dim_rfx
     rfx = b.model.random(x)
     t_rfx = totransform(rfx)
-    n = dimension(t_rfx)
     ℓ_rfx = sum(enumerate(b.data.subjects)) do (i,subject)
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[(m+(i-1)*n) .+ (1:n)])
       j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y)
@@ -68,7 +67,6 @@ end
 function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient}, b::BayesModel, v::AbstractVector)
   ∇ℓ = zeros(size(v))
   try
-
     param = b.model.param
     t_param = totransform(param)
     m = b.dim_param

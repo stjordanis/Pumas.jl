@@ -13,8 +13,6 @@ for subject in data.subjects
   end
 end
 
-nan2zero(x) = isnan(x) ? zero(x) : x
-
 m = @model begin
   @param begin
     θ ~ Constrained(MvNormal([2.268,74.17,468.6,0.5876],
