@@ -259,12 +259,12 @@ end
 
   theopmodel_laplace = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(2)
-      σ_add ∈ RealDomain(init=0.388)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.0001, init=0.388)
       #σ_prop ∈ RealDomain(init=0.3)
     end
 
@@ -273,9 +273,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -289,16 +289,16 @@ end
     @dynamics OneCompartmentModel
 
     @derived begin
-        dv ~ @. Normal(conc,sqrt(σ_add))
+        dv ~ @. Normal(conc, sqrt(σ_add))
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55, 0.515 ])),
+  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55, 0.515 ]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
@@ -325,12 +325,12 @@ end
   end
 
   laplace_estimated_params = (
-    θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω = PDMat([1.596 0.0; 0.0 2.27638e-01]),
+    θ₁ = 1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.11952E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+    Ω = PDiagMat([1.596, 2.27638e-01]),
     σ_add = 5.14457E-01
   )
   # Elapsed estimation time in seconds:     0.23
@@ -357,6 +357,26 @@ end
 
     @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
   end
+
+  @testset "Test optimization" begin
+    o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_laplace, # The marginal likelihood is the objective
+                                                theopp,
+                                                TransformVariables.transform(totransform(theopmodel_laplace.param), t),
+                                                PuMaS.Laplace()),
+                 TransformVariables.inverse(totransform(theopmodel_laplace.param), x0), # The initial values
+                 BFGS(),                                                           # The optimization method
+                 Optim.Options(show_trace=true,                                    # Print progress
+                               g_tol=1e-5))
+
+    x_optim = TransformVariables.transform(totransform(theopmodel_laplace.param), o.minimizer)
+
+    @test_broken o.f_converged
+    @test o.minimum ≈ 123.76439574418291 rtol=1e-5
+    @testset "test parameter $k" for k in keys(x_optim)
+      @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+    end
+  end
+
 end
 
 @testset "run6.mod Laplace with interaction, diagonal omega and additive + proportional error , \$COV = sandwich matrix" begin
