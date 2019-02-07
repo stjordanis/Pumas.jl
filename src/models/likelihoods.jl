@@ -37,25 +37,47 @@ the derived produces distributions.
 conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
   first(conditional_nll_ext(m, subject, x0, args...; kwargs...))
 
-function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...)
+function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...; kwargs...)
+  # Extract a vector of the time stamps for the observations
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
-  derived = derivedfun(m, subject, x0::NamedTuple, args...;kwargs...)
-  vals, derived_dist = derived(obstimes) # the second component is distributions
-  x = let derived_dist=derived_dist
-    sum(enumerate(subject.observations)) do (idx,obs)
-      if eltype(derived_dist) <: Array
-        _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
-      else
-        _lpdf(derived_dist, obs.val)
+
+  # collate that arguments
+  collated = m.pre(x0, y0, subject.covariates)
+
+  # create solution object
+  solution = _solve(m, subject, collated, args...; kwargs...)
+
+  # compute solution values
+  path     = solution.(obstimes, continuity=:right)
+
+  # if solution contains NaN return Inf
+  if any(isnan, last(path))
+    # FIXME! Make this type stable
+    return Inf, nothing, nothing
+  else
+    # extract values and distributions
+    vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
+
+    # compute the log-likelihood value
+    ll = let derived_dist=derived_dist
+      sum(enumerate(subject.observations)) do (idx,obs)
+        if eltype(derived_dist) <: Array
+          _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
+        else
+          _lpdf(derived_dist, obs.val)
+        end
       end
     end
+    return -ll, vals, derived_dist
   end
-  return -x, vals, derived_dist
 end
 
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   l, vals, dist    = conditional_nll_ext(m, subject, x0, y0, args...; kwargs...)
+  if isinf(l)
+    return l
+  end
   l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, map(zero, y0), args...; kwargs...)
   conditional_nll(dist, dist0, subject)
 end

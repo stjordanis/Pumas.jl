@@ -181,7 +181,7 @@ end
 # FIXME! Temporary workaround to avoid that NaN from the ODE solve propagate
 _nonan(x) = isnan(x) ? floatmin() : x
 
-@testset "run4.mod FOCE with interaction, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin
+@testset "run4.mod FOCEI, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin
   theopmodel_focei = @model begin
     @param begin
       θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
@@ -214,7 +214,7 @@ _nonan(x) = isnan(x) ? floatmin() : x
     @dynamics OneCompartmentModel
 
     @derived begin
-      dv ~ @. Normal(conc, _nonan(sqrt(conc^2*σ_prop+σ_add)))
+      dv ~ @. Normal(conc, sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
@@ -385,7 +385,7 @@ end
 
 end
 
-@testset "run6.mod Laplace with interaction, diagonal omega and additive + proportional error , \$COV = sandwich matrix" begin
+@testset "run6.mod LaplaceI, diagonal omega and additive + proportional error , \$COV = sandwich matrix" begin
 
   theopmodel_laplacei = @model begin
     @param begin
@@ -419,7 +419,7 @@ end
     @dynamics OneCompartmentModel
 
     @derived begin
-      dv ~ @. Normal(conc, _nonan(sqrt(conc^2*σ_prop+σ_add)))
+      dv ~ @. Normal(conc, sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
