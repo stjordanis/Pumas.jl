@@ -88,7 +88,7 @@ end
 build_event_list(evs::AbstractVector{<:Event}) = evs
 function build_event_list(regimen::DosageRegimen)
   data = getfield(regimen, :data)
-  events = Event[]
+  events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
   for i in 1:size(data, 1)
     t    = data[:time][i]
     evid = data[:evid][i]
