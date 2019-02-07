@@ -3,7 +3,7 @@ module NCA
 using Reexport
 using GLM
 using DataFrames
-using Pkg, Dates, Printf
+using Pkg, Dates, Printf, LinearAlgebra
 import ..PuMaS: Formulation, IV, EV
 
 include("type.jl")
@@ -27,7 +27,7 @@ export normalizedose
 for f in (:lambdaz, :cmax, :tmax, :cmin, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
-          :swing)
+          :swing, :superposition)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
     res = map(pop) do subj
