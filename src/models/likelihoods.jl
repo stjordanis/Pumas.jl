@@ -37,7 +37,8 @@ the derived produces distributions.
 conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
   first(conditional_nll_ext(m, subject, x0, args...; kwargs...))
 
-function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...; kwargs...)
+function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
+                             y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
@@ -48,29 +49,33 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, y0:
   # create solution object
   solution = _solve(m, subject, collated, args...; kwargs...)
 
-  # compute solution values
-  path     = solution.(obstimes, continuity=:right)
-
-  # if solution contains NaN return Inf
-  if any(isnan, last(path))
-    # FIXME! Make this type stable
-    return Inf, nothing, nothing
+  if solution === nothing
+     vals, derived_dist = m.derived(collated, nothing, obstimes)
   else
+    # compute solution values
+    path = solution.(obstimes, continuity=:right)
+
+    # if solution contains NaN return Inf
+    if any(isnan, last(path))
+      # FIXME! Do we need to make this type stable?
+      return Inf, nothing, nothing
+    end
+
     # extract values and distributions
     vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
+  end
 
-    # compute the log-likelihood value
-    ll = let derived_dist=derived_dist
-      sum(enumerate(subject.observations)) do (idx,obs)
-        if eltype(derived_dist) <: Array
-          _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
-        else
-          _lpdf(derived_dist, obs.val)
-        end
+  # compute the log-likelihood value
+  ll = let derived_dist=derived_dist
+    sum(enumerate(subject.observations)) do (idx,obs)
+      if eltype(derived_dist) <: Array
+        _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
+      else
+        _lpdf(derived_dist, obs.val)
       end
     end
-    return -ll, vals, derived_dist
   end
+  return -ll, vals, derived_dist
 end
 
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
