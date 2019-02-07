@@ -3,7 +3,7 @@ module PuMaS
 using DiffEqBase, DiffEqMonteCarlo, Reexport,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings
+      Missings, RecipesBase
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
@@ -16,6 +16,7 @@ include("data_parsing/data_read.jl")
 include("dsl/model_macro.jl")
 
 include("models/params.jl")
+include("models/simulated_observations.jl")
 include("models/model_api.jl")
 include("models/transforms.jl")
 include("models/likelihoods.jl")
@@ -33,6 +34,8 @@ include("nca/NCA.jl")
 @reexport using .NCA
 
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
+
+OrdinaryDiffEq._reshape(x,y) = x
 
 export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,

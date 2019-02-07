@@ -285,6 +285,7 @@ end
 Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
+  println(io, "  ID: ", subject.id)
   println(io, "  Events: ", length(subject.events))
   obs = subject.observations
   println(io, "  Observations: ",  length(obs))
@@ -311,7 +312,8 @@ function timespan(sub::Subject)
   lo, hi
 end
 
-observationtimes(sub::Subject) = [obs.time for obs in sub.observations]
+observationtimes(sub::Subject) = isempty(sub.observations) ? (0.0:1.0:(sub.events[end].time+24.0)) :
+                                 [obs.time for obs in sub.observations]
 
 """
     Population(::AbstractVector{<:Subject})

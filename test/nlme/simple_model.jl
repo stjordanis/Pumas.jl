@@ -41,9 +41,9 @@ for (ηstar, dt) in zip([-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.05
     @test PuMaS.rfx_estimate(mdsl1, dt, x0, PuMaS.LaplaceI())[1] ≈ ηstar rtol=1e-3
 end
 
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6 
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FOCE())     ≈ 56.476216665029462 rtol=1e-6 
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6 
+@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6
+@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FOCE())     ≈ 56.476216665029462 rtol=1e-6
+@test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
@@ -51,7 +51,8 @@ end
 
 function full_ll(θ)
   _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
-  PuMaS.marginal_nll_nonmem(mdsl1,data,_x0,PuMaS.LaplaceI())
+  PuMaS.marginal_nll(mdsl1,data,_x0,PuMaS.LaplaceI())
 end
 
-Optim.optimize(full_ll,[0.5],BFGS())
+@test Optim.optimize(full_ll, [0.5], Newton(), autodiff=:forward) isa Optim.MultivariateOptimizationResults
+@test Optim.optimize(full_ll, [0.5], BFGS(), autodiff=:forward) isa Optim.MultivariateOptimizationResults

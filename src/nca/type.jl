@@ -191,3 +191,60 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   markdown = Markdown.parse(String(take!(_io)))
   show(io, str, markdown)
 end
+
+@recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  layout --> (1, 2)
+  hastitle = length(plotattributes[:title]) >= 2
+  hasunits = eltype(C) <: Quantity
+  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  xguide --> timename
+  label --> subj.id
+  vars = (ustrip.(subj.time), ustrip.(subj.conc))
+  @series begin
+    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+    yguide --> concname
+    seriestype --> :path
+    subplot --> 1
+    _title = hastitle ? plotattributes[:title][1] : "Linear view"
+    title := _title
+    vars
+  end
+  @series begin
+    yscale --> :log10
+    seriestype --> :path
+    subplot --> 2
+    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+    title := _title
+    vars
+  end
+end
+
+@recipe function f(pop::NCAPopulation{NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  layout --> (1, 2)
+  hastitle = length(plotattributes[:title]) >= 2
+  hasunits = eltype(C) <: Quantity
+  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  xguide --> timename
+  label --> [subj.id for subj in pop]
+  linestyle --> :auto
+  leg --> false
+  timearr = [ustrip.(subj.time) for subj in pop]
+  concarr = [ustrip.(subj.conc) for subj in pop]
+  @series begin
+    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+    yguide --> concname
+    seriestype --> :path
+    subplot --> 1
+    _title = hastitle ? plotattributes[:title][1] : "Linear view"
+    title := _title
+    (timearr, concarr)
+  end
+  @series begin
+    yscale --> :log10
+    seriestype --> :path
+    subplot --> 2
+    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+    title := _title
+    (timearr, concarr)
+  end
+end

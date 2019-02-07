@@ -3,12 +3,12 @@ import DiffResults: DiffResult
 Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
 
 abstract type LikelihoodApproximation end
-struct LaplaceI <: LikelihoodApproximation end
-struct FOCEI <: LikelihoodApproximation end
-struct FOCE <: LikelihoodApproximation end
-struct FOI <: LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
+struct FOI <: LikelihoodApproximation end
+struct FOCE <: LikelihoodApproximation end
+struct FOCEI <: LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
+struct LaplaceI <: LikelihoodApproximation end
 
 """
     _lpdf(d,x)
@@ -137,19 +137,25 @@ rfx_estimate
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(x0), numtype(x0))
+  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE,FO}, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(p), BFGS(); autodiff=:forward))
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(x0), numtype(x0))
+  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::FO, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  zeros(p)
+  return zeros(p)
 end
 
 """
@@ -195,7 +201,7 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l,val,dist = conditional_nll_ext(m, subject, x0, vy0, args...; kwargs...)
+  l,val,dist = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
   w = FIM(m, subject, x0, vy0, approx, dist, args...; kwargs...)
   return l + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
 end
@@ -209,10 +215,9 @@ end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
-  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, vy0, args...; extended_return = true, kwargs...)
-  l_ = -conditional_nll(dist0, dist0, subject) - (length(subject.observations)-2)*log(2π)/2
-  w, dldη = FIM(m, subject, x0, vy0, approx, dist0, args...;kwargs...)
-  return -l_ + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
+  l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
+  w, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
+  return l0 + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
@@ -316,7 +321,7 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
-  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, zero(vy0), args...;kwargs...)
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),), args...; kwargs...)
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist0[1][j]))
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
