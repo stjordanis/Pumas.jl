@@ -380,23 +380,23 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
-  fim = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(dist0[1][j]))
-    # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    f = DiffResults.gradient(res)
-    f*r_inv*f'
-  end
-  dldη = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(dist0[1][j]))
-    # FIXME! Wrapping vy0 shouldn't be necessary
+  r = var(dist0[1][1])
+  f = ForwardDiff.gradient(t -> _mean(m, subject, x0, (η=t,), 1, args..., kwargs...), vy0)
+  fdr = f/r
+  H = fdr*f'
+  mean0 = _mean0(m, subject, x0, (η=vy0,), 1, args...; kwargs...)
+  dldη = fdr*(subject.observations[1].val[1] - mean0)
+
+  for j in 2:length(subject.observations)
+    r = var(dist0[1][j])
+    ForwardDiff.gradient!(f, t -> _mean(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    fdr = f/r
+    H += fdr*f'
     mean0 = _mean0(m, subject, x0, (η=vy0,), j, args...; kwargs...)
-    # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    f = DiffResults.gradient(res)
-    f*r_inv*(subject.observations[j].val[1] - mean0)
+    dldη += fdr*(subject.observations[j].val[1] - mean0)
   end
-  fim, dldη
+
+  return H, dldη
 end
 
 # Fitting methods
