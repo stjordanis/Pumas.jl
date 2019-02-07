@@ -11,6 +11,9 @@ _extract(A) = A
 
 @testset "Theophylline model" begin
 
+# Control verbosity of solver output
+verbose = false
+
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
 @testset "run2.mod FO without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin
@@ -85,7 +88,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
                                               PuMaS.FO()),
                TransformVariables.inverse(totransform(theopmodel_fo.param), x0), # The initial values
                BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=true,                                    # Print progress
+               Optim.Options(show_trace=verbose,                                 # Print progress
                              g_tol=1e-5))                                        # Adjust convergence tolerance
 
   x_optim = TransformVariables.transform(totransform(theopmodel_fo.param), o.minimizer)
@@ -163,7 +166,7 @@ end
                                               PuMaS.FOCE()),
                TransformVariables.inverse(totransform(theopmodel_foce.param), x0), # The initial values
                BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=true,                                    # Print progress
+               Optim.Options(show_trace=verbose,                                 # Print progress
                              g_tol=1e-5))
 
   x_optim = TransformVariables.transform(totransform(theopmodel_foce.param), o.minimizer)
@@ -246,7 +249,7 @@ _nonan(x) = isnan(x) ? floatmin() : x
                                               PuMaS.FOCEI()),
                TransformVariables.inverse(totransform(theopmodel_focei.param), x0), # The initial values
                BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=true,                                    # Print progress
+               Optim.Options(show_trace=verbose,                                 # Print progress
                              g_tol=1e-5))
 
   x_optim = TransformVariables.transform(totransform(theopmodel_focei.param), o.minimizer)
@@ -368,7 +371,7 @@ end
                                                 PuMaS.Laplace()),
                  TransformVariables.inverse(totransform(theopmodel_laplace.param), x0), # The initial values
                  BFGS(),                                                           # The optimization method
-                 Optim.Options(show_trace=true,                                    # Print progress
+                 Optim.Options(show_trace=verbose,                                 # Print progress
                                g_tol=1e-5))
 
     x_optim = TransformVariables.transform(totransform(theopmodel_laplace.param), o.minimizer)
@@ -452,7 +455,7 @@ end
                                                 PuMaS.LaplaceI()),
                  TransformVariables.inverse(totransform(theopmodel_laplacei.param), x0), # The initial values
                  BFGS(),                                                           # The optimization method
-                 Optim.Options(show_trace=true,                                    # Print progress
+                 Optim.Options(show_trace=verbose,                                 # Print progress
                                g_tol=1e-5))
 
     x_optim = TransformVariables.transform(totransform(theopmodel_laplacei.param), o.minimizer)
