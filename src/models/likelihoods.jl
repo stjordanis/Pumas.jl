@@ -394,3 +394,30 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   end
   fim, dldη
 end
+
+# Fitting methods
+struct FittedPKPDModel{T1<:PKPDModel,T2<:Population,T3<:NamedTuple,T4<:LikelihoodApproximation}
+  model::T1
+  data::T2
+  x0::T3
+  approx::T4
+end
+
+function Distributions.fit(m::PKPDModel,
+                           data::Population,
+                           x0::NamedTuple,
+                           approx::LikelihoodApproximation;
+                           verbose=false,
+                           optimmethod::Optim.AbstractOptimizer=BFGS(),
+                           optimautodiff=:finite,
+                           optimoptions::Optim.Options=Optim.Options(show_trace=verbose,                                 # Print progress
+                                                                     g_tol=1e-5))
+  trf = totransform(m.param)
+  vx0 = TransformVariables.inverse(trf, x0)
+  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx), vx0, optimmethod, optimoptions)
+
+  return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
+end
+
+marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
+marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
