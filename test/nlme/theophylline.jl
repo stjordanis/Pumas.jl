@@ -13,7 +13,7 @@ verbose = false
 
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 @testset "Check that Events is fully typed when parsed" begin
-  @test theopp[1].events isa Vector{Event{Float64,Float64,Float64,Float64,Float64,Float64}}
+  @test theopp[1].events isa Vector{PuMaS.Event{Float64,Float64,Float64,Float64,Float64,Float64}}
 end
 
 @testset "run2.mod FO without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin

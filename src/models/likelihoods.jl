@@ -237,7 +237,8 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   Ω = cov(m.random(x0).params.η)
   l,val,dist = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
   w = FIM(m, subject, x0, vy0, approx, dist, args...; kwargs...)
-  return l + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  l += (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  return l
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
@@ -354,15 +355,17 @@ function _mean0(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwar
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
+  f_res     = DiffResults.GradientResult(vy0)
+  del_r_res = DiffResults.GradientResult(vy0)
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist[1][j]))
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...; kwargs...)
-    f = DiffResults.gradient(res)
+    ForwardDiff.gradient!(f_res, t -> _mean(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    f = DiffResults.gradient(f_res)
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_var, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    del_r = DiffResults.gradient(res)
-    f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
+    ForwardDiff.gradient!(del_r_res, t -> _var(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    del_r = DiffResults.gradient(del_r_res)
+    return f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
   end
   fim
 end
