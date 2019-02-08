@@ -414,7 +414,8 @@ function Distributions.fit(m::PKPDModel,
                                                                      g_tol=1e-5))
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
-  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx), vx0, optimmethod, optimoptions)
+  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx),
+               vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
   return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
 end
