@@ -50,12 +50,6 @@ chain,tuned = NUTS_init_tune_mcmc(b, 1000)
 
 
 
-
-
-
-
-
-
 v_param = (θ = [2.268,74.17,468.6,0.5876],
            Ω = cholesky([0.05 0.0;
                          0.0 0.2]),
@@ -102,20 +96,21 @@ theopmodel_bayes = @model begin
     end
 
     @random begin
-        η ~ MvNormal(Ω)
+      η ~ MvNormal(Ω)
     end
 
     @pre begin
-        Ka = (SEX == 1 ? θ[1] : θ[4]) + η[1]
-        K = θ[2]
-        CL  = θ[3]*(WT/70)^θ[5]
-        V = CL/K/(WT/70)
+      Ka = (SEX == 1 ? θ[1] : θ[4]) + η[1]
+      K = θ[2]
+      CL  = θ[3]*(WT/70)^θ[5]
+      V = CL/K
+      SC = V/(WT/70)
     end
 
     @covariates SEX WT
 
     @vars begin
-        conc = Central / V
+        conc = Central / SC
     end
 
     @dynamics OneCompartmentModel
