@@ -10,7 +10,7 @@ t = PuMaS.totransform(p)
 @test TransformVariables.dimension(t) == 8
 u = transform(t, zeros(8))
 @test all(u.θ .> 0)
-@test u.Ω isa Cholesky
+@test u.Ω isa PuMaS.PDMats.AbstractPDMat
 
 
 
@@ -21,5 +21,4 @@ td = PuMaS.totransform(pd)
 @test TransformVariables.dimension(td) == 5
 ud = transform(td, zeros(5))
 @test all(ud.θ .> -2.0)
-@test ud.Ω isa Cholesky
-
+@test ud.Ω isa PuMaS.PDMats.AbstractPDMat
