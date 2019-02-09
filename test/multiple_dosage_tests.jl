@@ -10,8 +10,11 @@ m_diffeq = @model begin
 
     @covariates ka cl v
 
+    @vars begin
+        cp = cl/v
+    end
+
     @dynamics begin
-        cp       =  cl/v
         Depot'   = -ka*Depot
         Central' =  ka*Depot - cp*Central
     end

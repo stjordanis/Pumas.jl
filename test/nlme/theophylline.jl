@@ -133,10 +133,10 @@ end
 
     @vars begin
       conc = Central / SC
+      cp   = Central/V
     end
 
     @dynamics begin
-        cp       =  Central/V
         Depot'   = -Ka*Depot
         Central' =  Ka*Depot - (CL/V)*Central
     end

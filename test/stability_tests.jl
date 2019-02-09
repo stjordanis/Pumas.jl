@@ -15,8 +15,12 @@ m_diffeq = @model begin
         CL = cl
         V  = v
     end
+
+    @vars begin
+        cp = Central/V
+    end
+
     @dynamics begin
-        cp       =  Central/V
         Depot'   = -Ka*Depot
         Central' =  Ka*Depot - CL*cp
     end

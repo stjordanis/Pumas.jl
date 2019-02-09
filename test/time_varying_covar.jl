@@ -81,8 +81,11 @@ sol_mobj = solve(mobj,subject1,x0,y0)
           V  = θ[3] * exp(η[2])
       end
 
+      @vars begin
+          cp = Central/V
+      end
+
       @dynamics begin
-          cp       =  Central/V
           Depot'   = -Ka(t)*Depot
           Central' =  Ka(t)*Depot - CL*cp
       end

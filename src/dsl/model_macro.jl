@@ -187,10 +187,8 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
     dp = expr.args[1]
     isder = dp isa Expr && dp.head == Symbol('\'')
     #dp in vars && error("Variable $dp already defined")
-    isder || return true
-    (isder && length(dp.args) != 1) ||
-    (!isder && !isa(dp, Symbol)) &&
-      error("Invalid variable $dp: must be in the form of X' or X")
+    (isder && length(dp.args) == 1) ||
+      error("Invalid variable $dp: must be in the form of X'")
     p = dp.args[1]
     lhs = :(___D($p))
     push!(eqs.args, :($lhs ~ $(expr.args[2])))
@@ -440,7 +438,7 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@dynamics")
       # Add in @vars only if not an analytical solution
       if !(typeof(ex.args[3]) <: Symbol)
-        ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
+        ex.args[3].args = [ex.args[3].args[1],ex.args[3].args[2:end]...]
       end
       isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
