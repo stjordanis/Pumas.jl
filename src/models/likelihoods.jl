@@ -37,12 +37,36 @@ the derived produces distributions.
 conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
   first(conditional_nll_ext(m, subject, x0, args...; kwargs...))
 
-function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...)
+function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
+                             y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
+  # Extract a vector of the time stamps for the observations
   obstimes = [obs.time for obs in subject.observations]
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
-  derived = derivedfun(m, subject, x0::NamedTuple, args...;kwargs...)
-  vals, derived_dist = derived(obstimes) # the second component is distributions
-  x = let derived_dist=derived_dist
+
+  # collate that arguments
+  collated = m.pre(x0, y0, subject.covariates)
+
+  # create solution object
+  solution = _solve(m, subject, collated, args...; kwargs...)
+
+  if solution === nothing
+     vals, derived_dist = m.derived(collated, nothing, obstimes)
+  else
+    # compute solution values
+    path = solution.(obstimes, continuity=:right)
+
+    # if solution contains NaN return Inf
+    if any(isnan, last(path))
+      # FIXME! Do we need to make this type stable?
+      return Inf, nothing, nothing
+    end
+
+    # extract values and distributions
+    vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
+  end
+
+  # compute the log-likelihood value
+  ll = let derived_dist=derived_dist
     sum(enumerate(subject.observations)) do (idx,obs)
       if eltype(derived_dist) <: Array
         _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
@@ -51,11 +75,14 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple, arg
       end
     end
   end
-  return -x, vals, derived_dist
+  return -ll, vals, derived_dist
 end
 
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   l, vals, dist    = conditional_nll_ext(m, subject, x0, y0, args...; kwargs...)
+  if isinf(l)
+    return l
+  end
   l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, map(zero, y0), args...; kwargs...)
   conditional_nll(dist, dist0, subject)
 end
@@ -155,7 +182,10 @@ end
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
-  return zeros(p)
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(x0), numtype(x0))
+  return zeros(T, p)
 end
 
 """
@@ -209,15 +239,28 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
-  w = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
-  return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  W = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
+
+  FΩ = cholesky(Ω, check=false)
+  if issuccess((FΩ))
+    return nl + (logdet(FΩ) + vy0'*(FΩ\vy0) + logdet(inv(FΩ) + W))/2
+  else # Ω is numerically singular
+    return typeof(nl)(Inf)
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l0, vals0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
-  w, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
-  return l0 + (logdet(Ω) - dldη'*((inv(Ω)+w)\dldη) + logdet(inv(Ω) + w))/2
+  W, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
+
+  FΩ = cholesky(Ω, check=false)
+  if issuccess((FΩ))
+    invFΩ = inv(FΩ)
+    return l0 + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
+  else # Ω is numerically singular
+    return typeof(l0)(Inf)
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
@@ -351,3 +394,31 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   end
   fim, dldη
 end
+
+# Fitting methods
+struct FittedPKPDModel{T1<:PKPDModel,T2<:Population,T3<:NamedTuple,T4<:LikelihoodApproximation}
+  model::T1
+  data::T2
+  x0::T3
+  approx::T4
+end
+
+function Distributions.fit(m::PKPDModel,
+                           data::Population,
+                           x0::NamedTuple,
+                           approx::LikelihoodApproximation;
+                           verbose=false,
+                           optimmethod::Optim.AbstractOptimizer=BFGS(),
+                           optimautodiff=:finite,
+                           optimoptions::Optim.Options=Optim.Options(show_trace=verbose,                                 # Print progress
+                                                                     g_tol=1e-5))
+  trf = totransform(m.param)
+  vx0 = TransformVariables.inverse(trf, x0)
+  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx),
+               vx0, optimmethod, optimoptions, autodiff=optimautodiff)
+
+  return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
+end
+
+marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
+marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)

@@ -1,7 +1,15 @@
 using Test
 using PuMaS, LinearAlgebra, Optim
 
+# FIXME! Find a nicer way to handle this
+_extract(A::PDMat) = A.mat
+_extract(A::PDiagMat) = A.diag
+_extract(A) = A
+
 @testset "Theophylline model" begin
+
+# Control verbosity of solver output
+verbose = false
 
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
 
@@ -13,12 +21,12 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
   # -0.128 0.00911 0.515  ;         K_
   theopmodel_fo = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
       Ω ∈ PSDDomain(3)
-      σ_add ∈ RealDomain(init=0.388)
+      σ_add ∈ RealDomain(lower=0.001, init=0.388)
       #σ_prop ∈ RealDomain(init=0.3)
     end
 
@@ -27,9 +35,9 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]+ η[2]
-      CL = θ[3]*WT + η[3]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂+ η[2]
+      CL = θ₃*WT + η[3]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -47,44 +55,140 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
     end
   end
 
-  x0 = (θ = [2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
-        σ_add = 0.388
-        #σ_prop = 0.3
+  x0 = (
+    θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+    Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
+    σ_add = 0.388
+    # σ_prop = 0.3
        )
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
 
-  fo_obj = 71.979975297638589
-  fo_estimated_params = (θ = [4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-                              7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-                              3.57499E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-                              2.12401E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-                             ],
-                         Ω_11  = 1.81195E+01,
-                         Ω_21  = -1.12474E-02,
-                         Ω_22  = 2.25098E-04,
-                         Ω_31  = -3.05266E-02,
-                         Ω_32  = 1.04586E-02,
-                         Ω_33  = 5.99850E-01,
+  fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+                         θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+                         θ₃ = 3.57499E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+                         θ₄ = 2.12401E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+                         Ω = [1.81195E+01 -1.12474E-02 -3.05266E-02
+                             -1.12474E-02  2.25098E-04  1.04586E-02
+                             -3.05266E-02  1.04586E-02  5.99850E-01],
                          σ_add = 2.66533E-01)
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
+
+  o = fit(theopmodel_fo, theopp, x0, PuMaS.FO())
+
+  x_optim = o.x0
+
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
+  @testset "test parameter $k" for k in keys(x_optim)
+    @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
+  end
+end
+
+@testset "run2.mod FO without interaction, ODE solver, diagonal omega and additive error, \$COV = sandwich matrix" begin
+  #Note: run2 requires a block diagonal for the omega
+  #$OMEGA  BLOCK(3)
+  # 5.55  ;       KA__
+  # 0.00524 0.00024  ;   COV KA~K
+  # -0.128 0.00911 0.515  ;         K_
+  theopmodel_fo = @model begin
+    @param begin
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PSDDomain(3)
+      σ_add ∈ RealDomain(lower=0.001, init=0.388)
+      #σ_prop ∈ RealDomain(init=0.3)
+    end
+
+    @random begin
+      η ~ MvNormal(Ω)
+    end
+
+    @pre begin
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂+ η[2]
+      CL = θ₃*WT + η[3]
+      V  = CL/K
+      SC = CL/K/WT
+    end
+
+    @covariates SEX WT
+
+    @vars begin
+      conc = Central / SC
+    end
+
+    @dynamics begin
+        cp       =  Central/V
+        Depot'   = -Ka*Depot
+        Central' =  Ka*Depot - (CL/V)*Central
+    end
+
+    @derived begin
+      dv ~ @. Normal(conc,sqrt(σ_add))
+    end
+  end
+
+  x0 = (
+    θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+    Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
+    σ_add = 0.388
+    # σ_prop = 0.3
+       )
+
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
+
+  #=
+  # Would stall Travis
+  fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+                         θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+                         θ₃ = 3.57499E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+                         θ₄ = 2.12401E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+                         Ω = [1.81195E+01 -1.12474E-02 -3.05266E-02
+                             -1.12474E-02  2.25098E-04  1.04586E-02
+                             -3.05266E-02  1.04586E-02  5.99850E-01],
+                         σ_add = 2.66533E-01)
+                         # Elapsed estimation time in seconds:     0.04
+                         # Elapsed covariance time in seconds:     0.02
+
+  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_fo, # The marginal likelihood is the objective
+                                              theopp,
+                                              TransformVariables.transform(totransform(theopmodel_fo.param), t),
+                                              PuMaS.FO()),
+               TransformVariables.inverse(totransform(theopmodel_fo.param), x0), # The initial values
+               BFGS(),                                                           # The optimization method
+               Optim.Options(show_trace=verbose,                                 # Print progress
+                             g_tol=1e-5))                                        # Adjust convergence tolerance
+
+  x_optim = TransformVariables.transform(totransform(theopmodel_fo.param), o.minimizer)
+
+  @test o.f_converged
+  @test o.minimum ≈ 71.979975297638589
+  @testset "test parameter $k" for k in keys(x_optim)
+    @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
+  end
+  =#
 end
 
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin
   theopmodel_foce = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(2)
-      σ_add ∈ RealDomain(init=0.388)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.001, init=0.388)
       #σ_prop ∈ RealDomain(init=0.3)
     end
 
@@ -93,9 +197,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -113,43 +217,49 @@ end
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55,0.515])),
+  x0 = (θ₁ = 2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55, 0.515]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, x0, PuMaS.FOCE()) ≈ 138.90111320972699
 
-  foce_obj = 121.89849118143030
   foce_estimated_params = (
-    θ = [1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.49011E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.10668E+00  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω_11  = 1.62087E+00,
-    Ω_21  = 0.00000E+00,
-    Ω_22  = 2.26449E-01,
-    σ_add = 5.14069E-01)
-    # Elapsed estimation time in seconds:     0.27
-    # Elapsed covariance time in seconds:     0.19
+    θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.49011E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.10668E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+  Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
+  σ_add = 5.14069E-01)
+  # Elapsed estimation time in seconds:     0.27
+  # Elapsed covariance time in seconds:     0.19
+
+  o = fit(theopmodel_foce, theopp, x0, PuMaS.FOCE())
+
+  x_optim = o.x0
+
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849118143030
+  @testset "test parameter $k" for k in keys(x_optim)
+    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  end
 end
 
-@testset "run4.mod FOCE with interaction, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin
+@testset "run4.mod FOCEI, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin
   theopmodel_focei = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(2)
-      σ_add ∈ RealDomain(init=0.388)
-      σ_prop ∈ RealDomain(init=0.3)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.0001, init=0.388)
+      σ_prop ∈ RealDomain(lower=0.0001, init=0.3)
     end
 
     @random begin
@@ -157,9 +267,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -173,49 +283,55 @@ end
     @dynamics OneCompartmentModel
 
     @derived begin
-      dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
+      dv ~ @. Normal(conc, sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-              1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55,0.515])),
+  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55, 0.515]),
         σ_add = 0.388,
         σ_prop = 0.3
        )
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_focei, theopp, x0, PuMaS.FOCEI()) ≈ 287.08854688950419
 
-  focei_obj = 115.40505381367598
   focei_estimated_params = (
-    θ = [1.58896E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.52144E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.97132E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.03889E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω_11  = 1.49637E+00,
-    Ω_21  = 0.00000E+00,
-    Ω_22  = 2.62862E-01,
+    θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.52144E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.97132E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.03889E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+    Ω = PDiagMat([1.49637E+00, 2.62862E-01]),
     σ_add = 2.09834E-01,
     σ_prop = 1.13479E-02
   )
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
+
+  o = fit(theopmodel_focei, theopp, x0, PuMaS.FOCEI())
+
+  x_optim = o.x0
+
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505381367598 rtol=1e-5
+  @testset "test parameter $k" for k in keys(x_optim)
+    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
+  end
 end
 
 @testset "run5.mod Laplace without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin
 
   theopmodel_laplace = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(2)
-      σ_add ∈ RealDomain(init=0.388)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.0001, init=0.388)
       #σ_prop ∈ RealDomain(init=0.3)
     end
 
@@ -224,9 +340,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -240,16 +356,16 @@ end
     @dynamics OneCompartmentModel
 
     @derived begin
-        dv ~ @. Normal(conc,sqrt(σ_add))
+        dv ~ @. Normal(conc, sqrt(σ_add))
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55, 0.515 ])),
+  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55, 0.515 ]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
@@ -276,12 +392,12 @@ end
   end
 
   laplace_estimated_params = (
-    θ = [1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.11952E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω = PDMat([1.596 0.0; 0.0 2.27638e-01]),
+    θ₁ = 1.68975E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.54637E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.11952E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+    Ω = PDiagMat([1.596, 2.27638e-01]),
     σ_add = 5.14457E-01
   )
   # Elapsed estimation time in seconds:     0.23
@@ -308,19 +424,31 @@ end
 
     @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
   end
+
+  @testset "Test optimization" begin
+    o = fit(theopmodel_laplace, theopp, x0, PuMaS.Laplace())
+
+    x_optim = o.x0
+
+    @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
+    @testset "test parameter $k" for k in keys(x_optim)
+      @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+    end
+  end
+
 end
 
-@testset "run6.mod Laplace with interaction, diagonal omega and additive + proportional error , \$COV = sandwich matrix" begin
+@testset "run6.mod LaplaceI, diagonal omega and additive + proportional error , \$COV = sandwich matrix" begin
 
   theopmodel_laplacei = @model begin
     @param begin
-      θ ∈ VectorDomain(4,
-                       lower=[0.1,0.0008,0.004,0.1],
-                       init=[2.77,0.0781,0.0363,1.5],
-                       upper =[5,0.5,0.9,5])
-      Ω ∈ PSDDomain(diagm(0 => [5.55,0.515]))
-      σ_add ∈ RealDomain(init=0.388)
-      σ_prop ∈ RealDomain(init=0.3)
+      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      Ω ∈ PDiagDomain(2)
+      σ_add ∈ RealDomain(lower=0.0001, init=0.388)
+      σ_prop ∈ RealDomain(lower=0.0001, init=0.3)
     end
 
     @random begin
@@ -328,9 +456,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
-      K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
+      K  = θ₂
+      CL = θ₃*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -344,36 +472,44 @@ end
     @dynamics OneCompartmentModel
 
     @derived begin
-      dv ~ @. Normal(conc,sqrt(conc^2*σ_prop+σ_add))
+      dv ~ @. Normal(conc, sqrt(conc^2*σ_prop+σ_add))
     end
   end
 
-  x0 = (θ = [2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-             0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-             0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-             1.5 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-            ],
-        Ω = PDMat(diagm(0 => [5.55,0.515])),
+  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+        θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+        θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+        Ω = PDiagMat([5.55,0.515]),
         σ_add = 0.388,
         σ_prop = 0.3
        )
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI()) ≈ 288.30901928585990
 
-  laplacei_obj = 116.97275684239327
   laplacei_estimated_params = (
-    θ = [1.60941E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-         8.55663E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-         3.97472E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-         2.05830E+00 #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-        ],
-    Ω_11  = 1.48117E+00,
-    Ω_21  = 0.00000E+00,
-    Ω_22  = 2.67215E-01,
+    θ₁ = 1.60941E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+    θ₂ = 8.55663E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+    θ₃ = 3.97472E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+    θ₄ = 2.05830E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+
+    Ω = PDiagMat([1.48117E+00, 2.67215E-01]),
     σ_add = 1.88050E-01,
     σ_prop = 1.25319E-02
   )
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
+
+  @testset "Test optimization" begin
+    o = fit(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI())
+
+    x_optim = o.x0
+
+    @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
+    @testset "test parameter $k" for k in keys(x_optim)
+      @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
+    end
+  end
 end
 end

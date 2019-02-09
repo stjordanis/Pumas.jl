@@ -8,7 +8,7 @@ data = process_nmtran(example_nmtran_data("sim_data_model1"))
 mdsl1 = @model begin
     @param begin
         θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        Ω ∈ PDiagDomain(PDiagMat(fill(0.04, 1)))
         Σ ∈ ConstDomain(0.1)
     end
 
@@ -49,10 +49,7 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
-function full_ll(θ)
-  _x0 = (θ=θ,Ω=fill(0.04,1,1),Σ=0.1)
-  PuMaS.marginal_nll(mdsl1,data,_x0,PuMaS.LaplaceI())
-end
-
-@test Optim.optimize(full_ll, [0.5], Newton(), autodiff=:forward) isa Optim.MultivariateOptimizationResults
-@test Optim.optimize(full_ll, [0.5], BFGS(), autodiff=:forward) isa Optim.MultivariateOptimizationResults
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:finite) isa PuMaS.FittedPKPDModel
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:finite) isa PuMaS.FittedPKPDModel
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel

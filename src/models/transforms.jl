@@ -18,7 +18,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
 end
 
 function TransformVariables.inverse_eltype(t::ElementArrayTransform, y::AbstractArray)
-  inverse_eltype(first(t.a), first(y))
+  TransformVariables.inverse_eltype(first(t.a), first(y))
 end
 function TransformVariables.inverse!(x::AbstractArray, t::ElementArrayTransform, y::AbstractArray)
   map!(TransformVariables.inverse, x, t.a, y)
@@ -26,7 +26,6 @@ end
 function TransformVariables.inverse(t::ElementArrayTransform, y::AbstractArray)
   map(TransformVariables.inverse, t.a, y)
 end
-
 
 struct ConstantTransform{T} <: TransformVariables.AbstractTransform
   val::T
@@ -42,8 +41,8 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJac, t::C
 end
 
 
-function TransformVariables.inverse_eltype(t::ConstantTransform, y::AbstractArray)
-  Float64
+function TransformVariables.inverse_eltype(t::ConstantTransform, y::T) where T<:Real
+  T
 end
 function TransformVariables.inverse(t::ConstantTransform, v)
   @assert t.val == v
@@ -80,7 +79,63 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
         end
         index += 1
     end
-    Cholesky(U, 'U', 0), ℓ
+    PDMat(Cholesky(U, 'U', 0)), ℓ
+end
+
+TransformVariables.inverse_eltype(::PuMaS.PSDCholeskyFactor, y::PDMat{T}) where T = T
+
+function TransformVariables.inverse!(x::AbstractVector, t::PSDCholeskyFactor, y::PDMat)
+  index = TransformVariables.firstindex(x)
+  F = y.chol
+  @assert F.uplo === 'U'
+  U = F.U
+  @inbounds for col in 1:t.n
+    for row in 1:(col-1)
+      x[index] = U[row, col]
+      index += 1
+    end
+    x[index] = TransformVariables.inverse(asℝ₊, U[col,col])
+    index += 1
+  end
+  return x
+end
+
+
+struct PDiagTransform  <: TransformVariables.VectorTransform
+  n::Int
+end
+
+TransformVariables.dimension(t::PDiagTransform) = t.n
+
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::PDiagTransform,
+                                           x::TransformVariables.RealVector{T}) where T
+    n = t.n
+    ℓ = TransformVariables.logjac_zero(flag, T)
+    d = zeros(typeof(√one(T)), n)
+    index = TransformVariables.firstindex(x)
+    @inbounds for col in 1:n
+        if flag isa TransformVariables.NoLogJac
+            d[col] = TransformVariables.transform(asℝ₊, x[index])
+        else
+            d[col], ℓi = TransformVariables.transform_and_logjac(asℝ₊, x[index])
+            ℓ += ℓi
+        end
+        index += 1
+    end
+    PDiagMat(d), ℓ
+end
+
+TransformVariables.inverse_eltype(::PuMaS.PDiagTransform, y::PDiagMat{T}) where T = T
+
+function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PDiagMat)
+  index = TransformVariables.firstindex(x)
+  d = y.diag
+  # FIXME! Add @inbounds when we know it works
+  for col in 1:t.n
+    x[index] = TransformVariables.inverse(asℝ₊, d[col])
+    index += 1
+  end
+  return x
 end
 
 # a bit of type piracy
@@ -121,6 +176,7 @@ function totransform(d::VectorDomain)
 end
 
 totransform(d::PSDDomain) = PSDCholeskyFactor(size(d.init,1))
+totransform(d::PDiagDomain) = PDiagTransform(length(d.init.diag))
 
 totransform(d::Distribution) = totransform(Domain(d))
 totransform(d::MvNormal) = as(Array, length(d))
