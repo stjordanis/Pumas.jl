@@ -25,8 +25,11 @@ subject = data.subjects[1]
             V  = θ[3] * exp(η[2])
         end
 
+        @vars begin
+            cp = Central/V
+        end
+
         @dynamics begin
-            cp       =  Central/V
             Depot'   = -Ka*Depot
             Central' =  Ka*Depot - CL*cp
         end
@@ -140,8 +143,11 @@ end
             bioav = θ[5]
         end
 
+        @vars begin
+            cp = Central/V
+        end
+
         @dynamics begin
-            cp       =  Central/V
             Depot'   = -Ka*Depot
             Central' =  Ka*Depot - CL*cp
         end
@@ -184,15 +190,15 @@ end
     model = @model begin
         @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
         @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
-    
+
         @pre begin
             Ka = θ[1]
             CL = θ[2]*exp(η[1])
             V  = θ[3]*exp(η[2])
         end
-    
+
         @dynamics OneCompartmentModel
-    
+
         @derived begin
             cp = @. Central / V
             cmax = maximum(cp)
