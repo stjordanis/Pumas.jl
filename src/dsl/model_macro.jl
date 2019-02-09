@@ -184,22 +184,21 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
       extract_dynamics!(vars, odevars, ode_init, ex, eqs)
     end
   elseif expr.head == :(=) || expr.head == :(:=)
-    # `odevars[1]` stores DVar & `odevars[2]` stores Var
     dp = expr.args[1]
     isder = dp isa Expr && dp.head == Symbol('\'')
     #dp in vars && error("Variable $dp already defined")
+    isder || return true
     (isder && length(dp.args) != 1) ||
     (!isder && !isa(dp, Symbol)) &&
-    error("Invalid variable $dp: must be in the form of X' or X")
-    p = isder ? dp.args[1] : dp
-    _odevars = isder ? odevars[1] : odevars[2]
-    lhs = isder ? :(___D*$p) : p
+      error("Invalid variable $dp: must be in the form of X' or X")
+    p = dp.args[1]
+    lhs = :(___D($p))
     push!(eqs.args, :($lhs ~ $(expr.args[2])))
-    if p in keys(ode_init)
-      push!(_odevars, p)
+    if p ∈ keys(ode_init)
+      push!(odevars, p)
     elseif p ∉ vars
       push!(vars,p)
-      push!(_odevars, p)
+      push!(odevars, p)
       ode_init[p] = 0.0
     end
   else
@@ -211,7 +210,6 @@ end
 # used for pre-defined analytical systems
 function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
   obj = eval(sym)
-  odevars = odevars[1]
   if obj isa Type && obj <: ExplicitModel # explict model
     for p in varnames(obj)
       if p in keys(ode_init)
@@ -263,47 +261,37 @@ function init_obj(ode_init,odevars,prevars,isstatic)
   end
 end
 
-function dynamics_obj(odeexpr::Expr, pre, odevars, eqs, isstatic)
+function dynamics_obj(odeexpr::Expr, pre, odevars, vars_, eqs, isstatic)
   odeexpr == :() && return nothing
-  ivar  = :(@IVar t)
-  var   = :(@Var)
-  dvar  = :(@DVar)
+  ivar  = :(@Param t)
+  dvar  = :(@Unknown)
   der   = :(@Deriv ___D'~t)
   param = :(@Param)
-  if isstatic
-    diffeq= :(ODEProblem(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[], []),version=ModelingToolkit.SArrayFunction),nothing,nothing,nothing))
-  else
-    diffeq= :(ODEProblem(ODEFunction(DiffEqSystem($eqs, [t], [], Variable[],
-                                                  [])),nothing,nothing,nothing))
-  end
+  version = isstatic ? SArrayFunction : ArrayFunction
+  diffeq = :(ODEProblem(ODEFunction(DiffEqSystem($eqs, t, [], Variable[]),version=$version),nothing,nothing,nothing))
 
   # DVar
-  for v in odevars[1]
+  for v in odevars
     push!(dvar.args, :($v(t)))
     push!(diffeq.args[2].args[2].args[4].args, v)
-  end
-  # Var
-  for v in odevars[2]
-    push!(var.args, v)
-    push!(diffeq.args[2].args[2].args[5].args, v)
   end
   # Param
   for p in pre
     push!(param.args, p)
-    push!(diffeq.args[2].args[2].args[6].args, p)
+    push!(diffeq.args[2].args[2].args[5].args, p)
   end
   quote
     let
       $ivar
-      $var
       $dvar
       $der
       $param
+      $(vars_...)
       $diffeq
     end
   end
 end
-function dynamics_obj(odename::Symbol, pre, odevars, eqs, isstatic)
+function dynamics_obj(odename::Symbol, pre, odevars, vars_, eqs, isstatic)
   quote
     ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
   end
@@ -417,7 +405,7 @@ macro model(expr)
   covariates = OrderedSet{Symbol}()
   prevars  = OrderedSet{Symbol}()
   ode_init  = OrderedDict{Symbol, Any}()
-  odevars  = [OrderedSet{Symbol}(),OrderedSet{Symbol}()]
+  odevars  = OrderedSet{Symbol}()
   preexpr = :()
   derivedvars = OrderedSet{Symbol}()
   eqs = Expr(:vect)
@@ -474,15 +462,15 @@ macro model(expr)
     $(param_obj(params)),
     $(random_obj(randoms,params)),
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
-    $(init_obj(ode_init,odevars[1],prevars,isstatic)),
-    $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
-    $(derived_obj(derivedexpr,derivedvars,prevars,odevars[1],distvars)))
+    $(init_obj(ode_init,odevars,prevars,isstatic)),
+    $(dynamics_obj(odeexpr,prevars,odevars,vars_,eqs,isstatic)),
+    $(derived_obj(derivedexpr,derivedvars,prevars,odevars,distvars)))
     function Base.show(io::IO, ::typeof(x))
       println(io,"PKPDModel")
       println(io,"  Parameters: ",$(join(keys(params),", ")))
       println(io,"  Random effects: ",$(join(keys(randoms),", ")))
       println(io,"  Covariates: ",$(join(covariates,", ")))
-      println(io,"  Dynamical variables: ",$(join(odevars[1],", ")))
+      println(io,"  Dynamical variables: ",$(join(odevars,", ")))
       println(io,"  Derived: ",$(join(derivedvars,", ")))
     end
     x
