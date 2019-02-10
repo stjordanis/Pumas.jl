@@ -409,3 +409,74 @@ function _c0_method_c1(nca::NCASubject)
   end
   return idx isa Number ? nca.conc[idx] : missing
 end
+
+# TODO: user input lambdaz, clast, and tlast?
+# TODO: multidose?
+function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
+                       tau::Number, ntau=Inf, args...;
+                       doseamount=nothing, additionaltime::Vector=T[],
+                       steadystatetol::Number=1e-3, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+  D === Nothing && throw(ArgumentError("Dose must be known to compute superposition"))
+  !(tau isa Integer) && tau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
+  tau < 1 && throw(ArgumentError("ntau must be an integer or Inf"))
+  !isempty(additionaltime) &&
+    any(x -> x isa Number || x < zero(x) || x > tau, additionaltime) &&
+      throw(ArgumentError("additionaltime must be positive and be <= tau"))
+  ismultidose = D <: NCADose
+  time = nca.time
+  conc = nca.conc
+  dosetime  = ismultidose ? nca.dose.time : [d.time for d in nca.dose]
+  doseinput = ismultidose ? nca.dose.amt  : [d.amt  for d in nca.dose]
+  dosescaling = doseamount === nothing ? map(oneunit, doseinput) : @. doseamount / doseinput
+  tmptime = map(zero, time)
+  map(v->append!(tmptime, v), [tau, dosetime, additionaltime])
+  map(v->append!(tmptime, v), [@.((d + time) % tau) for d in time])
+  # Check if all the input concentrations are 0, and if so, give that
+  # simple answer.
+  all(iszero, conc) && return DataFrame(conc=zero(eltype(conc)), tmptime)
+  # Check if we will need to extrapolate
+  tlast′ = tlast(nca)[end]
+  if tau*ntau > tlast′
+    λz = lambdaz(nca; recompute=false, kwargs...)[1]
+    clast′ = clast(nca; kwargs...)
+    # check missing λz??
+    # cannot continue extrapolating due to missing data (likely due to
+    # half-life not calculable)
+  else
+    λz = nothing
+  end
+  currenttol = steadystatetol + oneunit(steadystatetol)
+  taucount = 0
+  prevconc = similar(conc)
+  conc′    = deepcopy(conc)
+  tmptime  = similar(time)
+  atmp     = similar(conc, typeof(one(eltype(conc))))
+  # Stop either for reaching steady-state or for reaching the requested number of doses
+  while taucount < ntau && currenttol >= steadystatetol
+    copyto!(prevconc, conc′)
+    # Perform the dosing for a single dosing interval.
+    for i in eachindex(dosetime)
+      @. tmptime = time - dosetime[i] + (tau * taucount)
+      # For the first dosing interval, make sure that we do not
+      # assign concentrations before the dose is given.
+      # Update the current concentration (previous concentration +
+      # new concentration scaled by the relative dose)
+      for i in eachindex(tmptime)
+        tmptime′ = tmptime[i]
+        tmptime[i] >= zero(eltype(tmptime)) && continue
+        dosescaling′ = dosescaling isa Number ? dosescaling : dosescaling[i] # handle scalar case
+        conc′[i] = conc′[i] + dosescaling′ * interpextrapconc(nca, tmptime′; kwargs...)
+      end
+    end
+    taucount = taucount + 1
+    if any(iszero, conc′)
+      # prevent division by 0. Since not all concentrations are 0,
+      # all values will eventually be nonzero.
+      currenttol = steadystatetol + oneunit(steadystatetol)
+    else
+      @. atmp = oneunit(eltype(prevconc))-prevconc/conc′
+      currenttol = norm(atmp, Inf)
+    end
+  end
+  return DataFrame(conc=conc′, time=tmptime)
+end
