@@ -6,13 +6,13 @@ using Markdown
 
 `NCADose` takes the following arguments
 - `time`: time of the dose
-- `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
 - `amt`: The amount of dosage
+- `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
 """
 struct NCADose{T,A}
   time::T
-  formulation::Formulation
   amt::A
+  formulation::Formulation
 end
 
 # NCADose should behave like a scalar in broadcast

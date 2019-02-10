@@ -56,7 +56,7 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
         end
       end
       formulation = map(i -> formulations[i] == iv ? IV : EV, dose_idx)
-      doses = NCADose.(dose_time, formulation, amts[dose_idx])
+      doses = NCADose.(dose_time, amts[dose_idx], formulation)
     else
       doses = nothing
     end

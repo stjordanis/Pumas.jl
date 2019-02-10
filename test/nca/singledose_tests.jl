@@ -96,7 +96,7 @@ end
 fails = (6, 9)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  dose = NCADose(1, NCA.IV, doses[i])
+  dose = NCADose(NCA.IV, 0.0, doses[i])
   nca = NCASubject(conc[idx], t[idx], dose=dose)
   aucs = auc(nca, method=:linear)
   @test aucs === auc(conc[idx], t[idx], dose=dose, method=:linear)
