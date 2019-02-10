@@ -76,14 +76,6 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function _auctype(::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  if isauc
-    return eltype(AUC)
-  else
-    return eltype(AUMC)
-  end
-end
-
 @inline function iscached(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, sym::Symbol) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   @inbounds begin
     # `points` is initialized to 0
@@ -94,7 +86,7 @@ end
   end
 end
 
-function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf;
+function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf, ret_typ;
               auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
   if interval === nothing
@@ -102,11 +94,11 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
       aucinf′ = inf(_clast, _tlast, lambdaz(nca; recompute=false, kwargs...))
-      isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::eltype(AUC)
-      !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::eltype(AUMC)
+      isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::ret_typ
+      !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::ret_typ
     elseif auctype === :last
-      isauc  && iscached(nca, :auc)  && return nca.auc_last[1] ::eltype(AUC)
-      !isauc && iscached(nca, :aumc) && return nca.aumc_last[1]::eltype(AUMC)
+      isauc  && iscached(nca, :auc)  && return nca.auc_last[1] ::ret_typ
+      !isauc && iscached(nca, :aumc) && return nca.aumc_last[1]::ret_typ
     end
   end
   conc, time = nca.conc, nca.time
@@ -141,7 +133,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
   end
   # assert the type here because we know that `auc` won't be `missing`
   __auc = linear(concstart, conc[idx1], lo, time[idx1]) # this must be zero
-  auc::_auctype(nca, isauc) = __auc
+  auc::ret_typ = __auc
   # auc of the bounary intervals
   if time[idx1] != lo # if the interpolation point does not hit the exact data point
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
@@ -219,8 +211,8 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
-  sol = _auc(nca, interval, auclinear, auclog, extrapaucinf; auctype=auctype, isauc=true, kwargs...)
+@inline function auc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  sol = _auc(nca, interval, auclinear, auclog, extrapaucinf, eltype(AUC); auctype=auctype, isauc=true, kwargs...)
   return sol
 end
 
@@ -247,8 +239,8 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCASubject, auctype, interval; kwargs...)
-  sol = _auc(nca, interval, aumclinear, aumclog, extrapaumcinf; auctype=auctype, isauc=false, kwargs...)
+@inline function aumc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  sol = _auc(nca, interval, aumclinear, aumclog, extrapaumcinf, eltype(AUMC); auctype=auctype, isauc=false, kwargs...)
   return sol
 end
 
