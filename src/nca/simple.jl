@@ -5,7 +5,8 @@ Calculate `clast`
 """
 function clast(nca::NCASubject; pred=false, kwargs...)
   if pred
-    λz, intercept, _, _ = lambdaz(nca; recompute=false, kwargs...)
+    λz = lambdaz(nca; recompute=false, kwargs...)
+    intercept = lambdazintercept(nca; recompute=false, kwargs...)
     return exp(intercept - λz*tlast(nca))
   else
     idx = nca.lastidx
@@ -138,7 +139,7 @@ end
 
 Calculate half life time.
 """
-thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs...)[1]
+thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs...)
 
 """
   clf(nca::NCASubject; kwargs...)
@@ -177,7 +178,7 @@ function vz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,
     throw(ArgumentError("Dose must be known to compute V_z"))
   end
   aucinf = normalizedose(auc(nca; kwargs...), nca)
-  λ = lambdaz(nca; recompute=false, kwargs...)[1]
+  λ = lambdaz(nca; recompute=false, kwargs...)
   @. inv(aucinf * λ)
 end
 
@@ -320,7 +321,7 @@ fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; k
 Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-Lambda_z*Tau))``.
 """
 function accumulationindex(nca::NCASubject; kwargs...)
-  tmp = -lambdaz(nca; recompute=false, kwargs...)[1]*tau(nca)
+  tmp = -lambdaz(nca; recompute=false, kwargs...)*tau(nca)
   inv(oneunit(tmp)-exp(tmp))
 end
 

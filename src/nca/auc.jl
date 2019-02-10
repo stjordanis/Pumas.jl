@@ -101,7 +101,7 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, lo
     if auctype === :inf
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
-      aucinf′ = inf(_clast, _tlast, lambdaz(nca; recompute=false, kwargs...)[1])
+      aucinf′ = inf(_clast, _tlast, lambdaz(nca; recompute=false, kwargs...))
       isauc  && iscached(nca, :auc)  && return (nca.auc_last[1] + aucinf′) ::eltype(AUC)
       !isauc && iscached(nca, :aumc) && return (nca.aumc_last[1] + aucinf′)::eltype(AUMC)
     elseif auctype === :last
@@ -177,7 +177,7 @@ function _auc(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, lo
     auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
   end
   if isinf
-    λz = lambdaz(nca; recompute=false, kwargs...)[1]
+    λz = lambdaz(nca; recompute=false, kwargs...)
     aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
   else
     aucinf′= zero(auc)
@@ -266,27 +266,25 @@ end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
-function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
-  obj = map(eachindex(nca.dose)) do i
-    subj = subject_at_ithdose(nca, i)
-    lambdaz(subj; recompute=false, kwargs...)
-  end
-  λ, intercept, points, r2 = (map(x->x[i], obj) for i in 1:4)
-  (lambdaz=λ, intercept=intercept, points=points, r2=r2)
-end
+#function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
+#  obj = map(eachindex(nca.dose)) do i
+#    subj = subject_at_ithdose(nca, i)
+#    lambdaz(subj; recompute=false, kwargs...)
+#  end
+#  λ, intercept, points, r2 = (map(x->x[i], obj) for i in 1:4)
+#  (lambdaz=λ, intercept=intercept, points=points, r2=r2)
+#end
 
 """
-  lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> (lambdaz, points, r2)
+  lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> lambdaz
 
-Calculate ``ΛZ``, ``r^2``, and the number of data points from the profile used
-in the determination of ``ΛZ``.
+Calculate terminal elimination rate constant ``λz``.
 """
 function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::NamedTuple{(:lambdaz, :intercept, :points, :r2),
-                              Tuple{eltype(Z),eltype(F),Int,eltype(F)}} where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+                )::eltype(Z) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   if iscached(nca, :lambdaz) && !recompute
-    return (lambdaz=nca.lambdaz[1], intercept=nca.intercept[1], points=nca.points[1], r2=nca.r2[1])
+    return lambdaz=first(nca.lambdaz)
   end
   _F = eltype(F)
   _Z = eltype(Z)
@@ -343,5 +341,56 @@ function lambdaz(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID};
     nca.r2 = maxr2
     nca.intercept = intercept
   end
-  return (lambdaz=-λ, intercept=intercept, points=points, r2=maxr2)
+  return lambdaz=-λ
 end
+
+"""
+  lambdaznpoints(nca::NCASubject; kwargs...)
+
+Give the number of points that is used in the `λz` calculation. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdaznpoints(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.points))
+
+"""
+  lambdaztimefirst(nca::NCASubject; kwargs...)
+
+Give the first time point that is used in the `λz` calculation. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdaztimefirst#(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.firstpoint))
+
+"""
+  lambdazintercept(nca::NCASubject; kwargs...)
+
+Give the `y`-intercept in the log-linear scale when calculating `λz`. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdazintercept(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.intercept))
+
+
+"""
+  lambdazr2(nca::NCASubject; kwargs...)
+
+Give the coefficient of determination (``r²``) when calculating `λz`. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdazr2(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.r2))
+
+"""
+  lambdazadjr2(nca::NCASubject; kwargs...)
+
+Give the adjusted coefficient of determination (``adjr²``) when calculating
+`λz`. Please calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdazajdr2#(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.adjr2))

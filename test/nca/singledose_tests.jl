@@ -45,7 +45,7 @@ arr = [missing, 1, 2, 3, missing]
 x = 0:24.
 ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
-@test NCA.lambdaz(yli, collect(x), slopetimes=10:20)[1] ≈ NCA.lambdaz(ylg, collect(x), slopetimes=10:20)[1] atol=1e-2
+@test NCA.lambdaz(yli, collect(x), slopetimes=10:20) ≈ NCA.lambdaz(ylg, collect(x), slopetimes=10:20) atol=1e-2
 @test NCA.auc(nca, interval=(t[end],Inf)) ≈ NCA.auc(nca) - NCA.auc(nca, auctype=:last) atol=1e-12
 @test NCA.c0(ncapop[1]) == ncapop[1].conc[1]
 @test NCA.c0(nca, method=:set0) == zero(nca.conc[1])
@@ -86,14 +86,14 @@ for m in (:linear, :linuplogdown, :linlog)
 
   x = 0:.1:50
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
-  @test NCA.lambdaz(y, x)[1] ≈ NCA.lambdaz(conc[idx], t[idx])[1]
+  @test NCA.lambdaz(y, x) ≈ NCA.lambdaz(conc[idx], t[idx])
 end
 
-@test @inferred(NCA.lambdaz(nca, idxs=12:16))[1] == NCA.lambdaz(conc[idx], t[idx])[1]
-@test log(2)/NCA.lambdaz(conc[idx], t[idx])[1] === NCA.thalf(nca)
-@test NCA.lambdaz(nca, slopetimes=t[10:13])[1] == NCA.lambdaz(conc[idx], t[idx], idxs=10:13)[1]
-@test NCA.lambdaz(nca, slopetimes=t[10:13])[1] !== NCA.lambdaz(conc[idx], t[idx])[1]
-@test NCA.lambdaz(nca, idxs=12:16)[1] ≈ data[:Lambda_z][1] atol=1e-6
+@test @inferred(NCA.lambdaz(nca, idxs=12:16)) == NCA.lambdaz(conc[idx], t[idx])
+@test log(2)/NCA.lambdaz(conc[idx], t[idx]) === NCA.thalf(nca)
+@test NCA.lambdaz(nca, slopetimes=t[10:13]) == NCA.lambdaz(conc[idx], t[idx], idxs=10:13)
+@test NCA.lambdaz(nca, slopetimes=t[10:13]) !== NCA.lambdaz(conc[idx], t[idx])
+@test NCA.lambdaz(nca, idxs=12:16) ≈ data[:Lambda_z][1] atol=1e-6
 
 fails = (6, 9)
 for i in 1:24
@@ -113,8 +113,8 @@ for i in 1:24
     @test_broken data[:AUMCINF_obs][i] ≈ aumcs atol = 1e-6
     @test_broken data[:AUCINF_pred][i] ≈ aucps atol = 1e-6
     @test_broken data[:AUMCINF_pred][i] ≈ aumcps atol = 1e-6
-    @test_broken data[:Lambda_z][i] ≈ NCA.lambdaz(nca)[1] atol = 1e-6
-    @test_broken data[:Lambda_z_intercept][i] ≈ NCA.lambdaz(nca)[2] atol = 1e-6
+    @test_broken data[:Lambda_z][i] ≈ NCA.lambdaz(nca) atol = 1e-6
+    @test_broken data[:Lambda_z_intercept][i] ≈ NCA.lambdazintercept(nca) atol = 1e-6
     @test_broken data[:Clast_pred][i] ≈ NCA.clast(nca, pred=true) atol = 1e-6
     @test_broken data[:Vss_obs][i] ≈ NCA.vss(nca) atol = 1e-6
     @test_broken data[:Vz_obs][i] ≈ NCA.vz(nca) atol = 1e-6
@@ -123,8 +123,8 @@ for i in 1:24
     @test data[:AUMCINF_obs][i] ≈ aumcs atol = 1e-6
     @test data[:AUCINF_pred][i] ≈ aucps atol = 1e-6
     @test data[:AUMCINF_pred][i] ≈ aumcps atol = 1e-6
-    @test data[:Lambda_z][i] ≈ NCA.lambdaz(nca)[1] atol = 1e-6
-    @test data[:Lambda_z_intercept][i] ≈ NCA.lambdaz(nca)[2] atol = 1e-6
+    @test data[:Lambda_z][i] ≈ NCA.lambdaz(nca) atol = 1e-6
+    @test data[:Lambda_z_intercept][i] ≈ NCA.lambdazintercept(nca) atol = 1e-6
     @test data[:Clast_pred][i] ≈ NCA.clast(nca, pred=true) atol = 1e-6
     @test data[:Vss_obs][i] ≈ NCA.vss(nca) atol = 1e-6
     @test data[:Vz_obs][i] ≈ NCA.vz(nca) atol = 1e-6
