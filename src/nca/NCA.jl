@@ -32,11 +32,17 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
-    res = map(pop) do subj
-      sol = $f(subj, args...; kwargs...)
-      sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
+    if ismultidose(pop)
+      sol = map(enumerate(pop)) do (i, subj)
+        sol = $f(subj, args...; kwargs...)
+        DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol)
+      end
+    else
+      sol = map(pop) do subj
+        DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...))
+      end
     end
-    return DataFrame(res)
+    return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
   end
 end
 

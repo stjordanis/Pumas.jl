@@ -142,6 +142,12 @@ function Base.getindex(n::NCAPopulation, I...)
 end
 Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)
 
+ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
+ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
+function ismultidose(::Type{NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  return D <: AbstractArray
+end
+
 # Summary and report
 struct NCAReport{S,V}
   settings::S

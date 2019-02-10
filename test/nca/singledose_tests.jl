@@ -12,7 +12,10 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
-@test_nowarn NCA.lambdaz(ncapop)
+lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
+@test size(lambdazdf, 2) == 2
+@test lambdazdf[:lambdaz] isa Vector
+@test lambdazdf[:id] == collect(1:24)
 @test_nowarn NCA.lambdazr2(ncapop)
 @test_nowarn NCA.lambdazadjr2(ncapop)
 @test_nowarn NCA.lambdazintercept(ncapop)

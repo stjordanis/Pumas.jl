@@ -7,14 +7,18 @@ msol = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
 
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, iv="IV")
 
-@test_nowarn NCA.lambdaz(mncapop)
+lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
+@test size(lambdazdf, 2) == 3
+@test lambdazdf[:lambdaz] isa Vector
+@test lambdazdf[:occasion] == repeat(collect(1:4), 24)
+@test lambdazdf[:id] == repeat(collect(1:24), inner=4)
 @test_nowarn NCA.lambdazr2(mncapop)
 @test_nowarn NCA.lambdazadjr2(mncapop)
 @test_nowarn NCA.lambdazintercept(mncapop)
 @test_nowarn NCA.lambdaztimefirst(mncapop)
 
 @test_nowarn NCA.bioav(mncapop, 1)
-@test all(vcat(NCA.tlag(mncapop)[2]...) .=== float.(msol[:Tlag]))
+@test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(msol[:Tlag]))
 @test_nowarn NCA.mrt(mncapop; auctype=:inf)
 @test_nowarn NCA.mrt(mncapop; auctype=:last)
 @test_nowarn NCA.mat(mncapop)
