@@ -194,7 +194,7 @@ end
 
 @recipe function f(subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
-  hastitle = length(plotattributes[:title]) >= 2
+  hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
@@ -221,7 +221,7 @@ end
 
 @recipe function f(pop::NCAPopulation{NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
   layout --> (1, 2)
-  hastitle = length(plotattributes[:title]) >= 2
+  hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
