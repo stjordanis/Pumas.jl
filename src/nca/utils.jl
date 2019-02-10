@@ -179,7 +179,7 @@ end
 
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
@@ -200,13 +200,14 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
-                                                     i::Integer) where {C,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
+    abstime = nca.abstime[i]
     maxidx = nca.maxidx[i]
     lastidx = nca.lastidx[i]
     dose = nca.dose[i]
@@ -219,7 +220,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,tEltype
     auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,
-                 conc,    time,                           # NCA measurements
+                 conc,    time,    abstime,               # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
@@ -227,4 +228,9 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,tEltype
                  auc, aumc                                # AUC related cache
                 )
   end
+end
+
+function vectorizeconctime(nca::NCASubject)
+  nca.dose isa NCADose && return nca.time, nca.conc
+
 end

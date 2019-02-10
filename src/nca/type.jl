@@ -20,10 +20,11 @@ Broadcast.broadcastable(x::NCADose) = Ref(x)
 Base.first(x::NCADose) = x
 
 # any changes in here must be reflected to ./simple.jl, too
-mutable struct NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   id::ID # allow id to be non-int, e.g. 001-100-1001 or STUD011001
   conc::C
   time::T
+  abstime::TT
   maxidx::I
   lastidx::I
   dose::D
@@ -52,6 +53,7 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
   multidose = T <: AbstractArray
+  abstime = time
   if multidose
     n = length(dose)
     ct = let time=time, dose=dose
@@ -64,30 +66,30 @@ function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=
     time = map(x->x[2], ct)
     maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
     lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
-    return NCASubject{typeof(conc), typeof(time), eltype(time),
+    return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
                       Vector{Int}, typeof(id)}(id,
-                        conc, time, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
+                        conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n))
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
-  NCASubject{typeof(conc),   typeof(time), eltype(time),
+  NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),
           typeof(r2_proto),  typeof(llq), typeof(lastidx),
           Int, typeof(id)}(id,
-            conc, time, maxidx, lastidx, dose, lambdaz_proto, llq,
+            conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, 0,
             auc_proto, aumc_proto)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, indent=0) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[2]
@@ -144,7 +146,7 @@ Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)
 
 ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
 ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
-function ismultidose(::Type{NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   return D <: AbstractArray
 end
 
@@ -154,7 +156,7 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function NCAReport(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
   settings = nothing
@@ -204,59 +206,71 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   show(io, str, markdown)
 end
 
-@recipe function f(subj::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  layout --> (1, 2)
+@recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  istwoplots = linear && loglinear
+  istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
   label --> subj.id
-  vars = (ustrip.(subj.time), ustrip.(subj.conc))
-  @series begin
-    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
-    yguide --> concname
-    seriestype --> :path
-    subplot --> 1
-    _title = hastitle ? plotattributes[:title][1] : "Linear view"
-    title := _title
-    vars
+  vars = (ustrip.(subj.abstime), vcat(ustrip.(subj.conc)...))
+  if linear
+    @series begin
+      concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+      yguide --> concname
+      seriestype --> :path
+      istwoplots && (subplot --> 1)
+      _title = hastitle ? plotattributes[:title][1] : "Linear view"
+      title := _title
+      vars
+    end
   end
-  @series begin
-    yscale --> :log10
-    seriestype --> :path
-    subplot --> 2
-    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
-    title := _title
-    vars
+  if loglinear
+    @series begin
+      yscale --> :log10
+      seriestype --> :path
+      istwoplots && (subplot --> 2)
+      _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+      title := _title
+      vars
+    end
   end
 end
 
-@recipe function f(pop::NCAPopulation{NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  layout --> (1, 2)
+@recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  istwoplots = linear && loglinear
+  istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
   timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
   xguide --> timename
   label --> [subj.id for subj in pop]
   linestyle --> :auto
-  leg --> false
-  timearr = [ustrip.(subj.time) for subj in pop]
-  concarr = [ustrip.(subj.conc) for subj in pop]
-  @series begin
-    concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
-    yguide --> concname
-    seriestype --> :path
-    subplot --> 1
-    _title = hastitle ? plotattributes[:title][1] : "Linear view"
-    title := _title
-    (timearr, concarr)
+  legend --> false
+  timearr = [ustrip.(subj.abstime) for subj in pop]
+  concarr = [vcat(map(x->ustrip.(x), subj.conc)...) for subj in pop]
+  if linear
+    @series begin
+      concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+      yguide --> concname
+      seriestype --> :path
+      istwoplots && (subplot --> 1)
+      _title = hastitle ? plotattributes[:title][1] : "Linear view"
+      title := _title
+      (timearr, concarr)
+    end
   end
-  @series begin
-    yscale --> :log10
-    seriestype --> :path
-    subplot --> 2
-    _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
-    title := _title
-    (timearr, concarr)
+  if loglinear
+    @series begin
+      concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
+      yguide --> concname
+      yscale --> :log10
+      seriestype --> :path
+      istwoplots && (subplot --> 2)
+      _title = hastitle ? plotattributes[:title][2] : "Semilogrithmic view"
+      title := _title
+      (timearr, concarr)
+    end
   end
 end

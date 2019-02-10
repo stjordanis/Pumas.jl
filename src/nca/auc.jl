@@ -76,7 +76,7 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function _auctype(::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auc=:AUCinf) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function _auctype(::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auc=:AUCinf) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   if auc in (:AUClast, :AUCinf)
     return eltype(AUC)
   else
@@ -84,7 +84,7 @@ end
   end
 end
 
-@inline function iscached(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, sym::Symbol) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function iscached(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, sym::Symbol) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   @inbounds begin
     # `points` is initialized to 0
     sym === :lambdaz && return !(nca.points[1] === 0)
@@ -94,8 +94,8 @@ end
   end
 end
 
-function _auc(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf;
-              auctype, method=:linear, isauc, kwargs...) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf;
+              auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
   if interval === nothing
     if auctype === :inf
@@ -271,9 +271,9 @@ fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
 
 Calculate terminal elimination rate constant ``λz``.
 """
-function lambdaz(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
+function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::eltype(Z) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+                )::eltype(Z) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   if iscached(nca, :lambdaz) && !recompute
     return lambdaz=first(nca.lambdaz)
   end
