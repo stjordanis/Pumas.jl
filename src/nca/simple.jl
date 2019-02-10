@@ -7,7 +7,7 @@ function clast(nca::NCASubject; pred=false, kwargs...)
   if pred
     λz = lambdaz(nca; recompute=false, kwargs...)
     intercept = lambdazintercept(nca; recompute=false, kwargs...)
-    return exp(intercept - λz*tlast(nca))
+    return exp(intercept - λz*tlast(nca))*oneunit(eltype(nca.conc))
   else
     idx = nca.lastidx
     return idx === -1 ? missing : nca.conc[idx]
@@ -217,7 +217,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, ithdose=not
   dose = nca.dose
   if D <: NCADose # single dose
     dose.formulation === IV || return missing
-    _bioav = one(AUC)
+    _bioav = oneunit(AUC)
     return _bioav*_clf
   else # multiple doses
     # TODO: check back on logic for this ithdose for CL, not sure about the user specification
@@ -229,7 +229,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, ithdose=not
       if idx == ithdose
         formulation === IV || throw(ArgumentError("the formulation of `ithdose` must be IV"))
       end
-      _bioav = formulation === IV ? one(eltype(AUC)) : _bioav
+      _bioav = formulation === IV ? oneunit(eltype(AUC)) : _bioav
       _bioav*_clf[idx]
     end # end multidoses
   end # end if
@@ -392,10 +392,10 @@ function _c0_method_logslope(nca::NCASubject)
   end
   length(idxs) < 2 && return missing
   # If there is enough data, proceed to calculate
-  c1 = nca.conc[idxs[1]]; t1 = nca.time[idxs[1]]
-  c2 = nca.conc[idxs[2]]; t2 = nca.time[idxs[2]]
+  c1 = ustrip(nca.conc[idxs[1]]); t1 = ustrip(nca.time[idxs[1]])
+  c2 = ustrip(nca.conc[idxs[2]]); t2 = ustrip(nca.time[idxs[2]])
   if c2 < c1 && c1 != 0
-    return exp(log(c1) - (t1 - dosetime)*(log(c2)-log(c1))/(t2-t1))
+    return exp(log(c1) - (t1 - ustrip(dosetime))*(log(c2)-log(c1))/(t2-t1))*oneunit(eltype(nca.conc))
   else
     return missing
   end

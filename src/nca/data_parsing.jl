@@ -11,7 +11,8 @@ efficient NCA calculation.
 """
 parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
 function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
-                       amt=nothing, formulation=nothing, iv=nothing, kwargs...)
+                       amt=nothing, formulation=nothing, iv=nothing,
+                       concu=true, timeu=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
     ids   = df[id]
@@ -56,11 +57,11 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
         end
       end
       formulation = map(i -> formulations[i] == iv ? IV : EV, dose_idx)
-      doses = NCADose.(dose_time, amts[dose_idx], formulation)
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*(concu/timeu), formulation)
     else
       doses = nothing
     end
-    NCASubject(concs[idx], times[idx]; id=id, dose=doses, kwargs...)
+    NCASubject(concs[idx], times[idx]; id=id, dose=doses, concu=concu, timeu=timeu, kwargs...)
   end
   return NCAPopulation(ncas)
 end

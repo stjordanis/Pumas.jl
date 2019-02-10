@@ -229,8 +229,3 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                 )
   end
 end
-
-function vectorizeconctime(nca::NCASubject)
-  nca.dose isa NCADose && return nca.time, nca.conc
-
-end

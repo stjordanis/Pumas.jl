@@ -76,8 +76,8 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function _auctype(::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auc=:AUCinf) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  if auc in (:AUClast, :AUCinf)
+@inline function _auctype(::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  if isauc
     return eltype(AUC)
   else
     return eltype(AUMC)
@@ -89,8 +89,8 @@ end
     # `points` is initialized to 0
     sym === :lambdaz && return !(nca.points[1] === 0)
     # `auc_last` and `aumc_last` are initialized to -1
-    sym === :auc     && return !(nca.auc_last[1]  === -one(eltype(AUC)))
-    sym === :aumc    && return !(nca.aumc_last[1] === -one(eltype(AUMC)))
+    sym === :auc     && return !(nca.auc_last[1]  === -oneunit(eltype(AUC)))
+    sym === :aumc    && return !(nca.aumc_last[1] === -oneunit(eltype(AUMC)))
   end
 end
 
@@ -141,7 +141,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
   end
   # assert the type here because we know that `auc` won't be `missing`
   __auc = linear(concstart, conc[idx1], lo, time[idx1]) # this must be zero
-  auc::_auctype(nca, auctype) = __auc
+  auc::_auctype(nca, isauc) = __auc
   # auc of the bounary intervals
   if time[idx1] != lo # if the interpolation point does not hit the exact data point
     auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)

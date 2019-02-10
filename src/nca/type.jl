@@ -42,14 +42,21 @@ end
 """
 To be completed
 """
-function NCASubject(conc′, time′; id=1, dose::T=nothing, llq=nothing, clean=true, lambdaz=nothing, kwargs...) where T
+function NCASubject(conc′, time′;
+                    concu=true, timeu=true,
+                    id=1, dose::T=nothing, llq=nothing, clean=true,
+                    lambdaz=nothing, kwargs...) where T
+  if concu !== true || timeu !== true
+    conc′ = conc′*concu
+    time′ = time′*timeu
+  end
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
   unitconc = oneunit(eltype(conc))
   unittime = oneunit(eltype(time))
   llq === nothing && (llq = zero(unitconc))
   auc_proto = -unitconc * unittime
   aumc_proto = auc_proto * unittime
-  intercept = r2_proto = unittime/unitconc
+  intercept = r2_proto = ustrip(unittime/unitconc)
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
   multidose = T <: AbstractArray
@@ -200,7 +207,7 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   for entry in pairs(report.values)
     _name = string(entry[1])
     name = replace(_name, "_"=>"\\_") # escape underscore
-    @printf(_io, "| %s | %f |\n", name, entry[2])
+    @printf(_io, "| %s | %f |\n", name, ustrip(entry[2]))
   end
   markdown = Markdown.parse(String(take!(_io)))
   show(io, str, markdown)

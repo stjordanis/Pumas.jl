@@ -2,7 +2,7 @@ function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, interpme
   conc, time = nca.conc, nca.time
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
-  out = timeout isa AbstractArray ? fill!(similar(timeout), 0) : zero(timeout)
+  out = timeout isa AbstractArray ? fill!(similar(conc, length(timeout)), zero(eltype(conc))) : zero(eltype(conc))
   for i in eachindex(out)
     if ismissing(out[i])
       @warn warning("Interpolation/extrapolation time is missing at the $(i)th index")
@@ -32,13 +32,14 @@ function interpolateconc(nca::NCASubject, timeout::Number; interpmethod, concori
     return conc[idx2]
   else
     idx1 = idx2 - 1
-    time1 = time[idx1]; time2 = time[idx2]
-    conc1 = conc[idx1]; conc2 = conc[idx2]
+    time1 = ustrip(time[idx1]); time2 = ustrip(time[idx2])
+    conc1 = ustrip(conc[idx1]); conc2 = ustrip(conc[idx2])
+    timeout = ustrip(timeout)
     m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, interpmethod)
     if m === Linear
-      return conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1)
+      return (conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1))*oneunit(eltype(conc))
     else
-      return exp(log(conc1)+(timeout-time1)/(time2-time1)*(log(conc2)-log(conc1)))
+      return exp(log(conc1)+(timeout-time1)/(time2-time1)*(log(conc2)-log(conc1)))*oneunit(eltype(conc))
     end
   end
 end
