@@ -65,6 +65,7 @@ yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test NCA.c0(ncapop[1], method=:c0) === ncapop[1].conc[1]
 @test NCA.c0(ncapop[1], method=:c1) === ncapop[1].conc[2]
 @test_nowarn NCA.c0(ncapop[1], method=:logslope)
+@test_nowarn superposition(ncapop, 24)
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
