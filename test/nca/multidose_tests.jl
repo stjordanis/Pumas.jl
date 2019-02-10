@@ -16,6 +16,7 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test_nowarn NCA.lambdazadjr2(mncapop)
 @test_nowarn NCA.lambdazintercept(mncapop)
 @test_nowarn NCA.lambdaztimefirst(mncapop)
+@test_nowarn NCA.lambdaznpoints(mncapop)
 
 @test_nowarn NCA.bioav(mncapop, 1)
 @test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(msol[:Tlag]))
