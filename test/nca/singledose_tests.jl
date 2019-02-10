@@ -12,6 +12,12 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
+@test_nowarn NCA.lambdaz(ncapop)
+@test_nowarn NCA.lambdazr2(ncapop)
+@test_nowarn NCA.lambdazadjr2(ncapop)
+@test_nowarn NCA.lambdazintercept(ncapop)
+@test_nowarn NCA.lambdaztimefirst(ncapop)
+
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
 doses = Float64.(data[:AMT_IV])[1:16:end]
@@ -95,7 +101,7 @@ end
 @test NCA.lambdaz(nca, slopetimes=t[10:13]) !== NCA.lambdaz(conc[idx], t[idx])
 @test NCA.lambdaz(nca, idxs=12:16) ≈ data[:Lambda_z][1] atol=1e-6
 
-fails = (6, 9)
+fails = (6,)
 for i in 1:24
   idx = 16(i-1)+1:16*i
   dose = NCADose(0.0, doses[i], NCA.IV)

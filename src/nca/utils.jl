@@ -179,7 +179,7 @@ end
 
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function normalizedose(x, subj::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
@@ -200,8 +200,8 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
-                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
+                                                     i::Integer) where {C,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
@@ -212,7 +212,9 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUM
     dose = nca.dose[i]
     lambdaz = view(nca.lambdaz, i)
     r2 = view(nca.r2, i)
+    adjr2 = view(nca.adjr2, i)
     intercept = view(nca.intercept, i)
+    firstpoint = view(nca.firstpoint, i)
     points = view(nca.points, i)
     auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
     return NCASubject(
@@ -220,7 +222,8 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUM
                  conc,    time,                           # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
-                 lambdaz, nca.llq, r2, intercept, points, # lambdaz related cache
+                 lambdaz, nca.llq, r2, adjr2, intercept,
+                 firstpoint, points,                      # lambdaz related cache
                  auc, aumc                                # AUC related cache
                 )
   end
