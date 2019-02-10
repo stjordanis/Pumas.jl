@@ -133,7 +133,10 @@ struct NCAPopulation{T<:NCASubject} <: AbstractVector{T}
 end
 
 Base.size(n::NCAPopulation) = size(n.subjects)
-Base.getindex(n::NCAPopulation, I...) = getindex(n.subjects, I...)
+function Base.getindex(n::NCAPopulation, I...)
+  subj = getindex(n.subjects, I...)
+  subj isa Vector ? NCAPopulation(subj) : subj
+end
 Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)
 
 # Summary and report

@@ -9,6 +9,8 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
 @test_nowarn NCA.auc(ncapop)
 @test all(ismissing, NCA.bioav(ncapop, 1)[2])
 @test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test ncapop[1] isa NCASubject
+@test ncapop[2:end-1] isa NCAPopulation
 
 conc = Float64.(data[:CObs])
 t = Float64.(data[:TIME])
