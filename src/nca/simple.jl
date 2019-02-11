@@ -194,7 +194,7 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; ithdose=
   length(unique(getfield.(nca.dose, :formulation))) == 1 && return missing
   # initialize
   auc_0_inf_po = auc_0_inf_iv = zero(eltype(AUC))/oneunit(first(nca.dose).amt) # normalizedosed
-  sol = zeros(typeof(auc_0_inf_po), axes(nca.dose))
+  sol = zeros(typeof(ustrip(auc_0_inf_po)), axes(nca.dose))
   refdose = subject_at_ithdose(nca, ithdose)
   refauc  = normalizedose(auc(refdose; auctype=:inf, kwargs...), refdose)
   map(eachindex(nca.dose)) do idx
