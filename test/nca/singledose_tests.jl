@@ -7,8 +7,9 @@ data = CSV.read(file)
 
 timeu = u"hr"
 concu = u"mg/L"
+amtu  = u"mg"
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, iv="IV",
-                                    llq=0concu, timeu=timeu, concu=concu)
+                                    llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop)
 @test all(ismissing, NCA.bioav(ncapop, 1)[2])
 @test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
