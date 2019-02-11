@@ -163,18 +163,21 @@ function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}})
   return D <: AbstractArray
 end
 
+hasdose(nca::NCASubject) = hasdose(typeof(nca))
+hasdose(nca::NCAPopulation) = hasdose(eltype(nca.subjects))
+function hasdose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  return D !== Nothing
+end
+
 # Summary and report
 struct NCAReport{S,V}
   settings::S
   values::V
 end
 
-function NCAReport(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
-                   kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
-  # TODO: Summarize settings
-  multidose = D <: AbstractArray
-  settings = Dict(:multidose=>multidose)
+function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
+  !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
+  settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
 
   # Calculate summary values
   funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
@@ -182,14 +185,24 @@ function NCAReport(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
    cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
-  values = NamedTuple{names}(f(nca; kwargs...) for f in funcs)
+  values = NamedTuple{names}(f(nca; id_occ = i==1, kwargs...) for (i, f) in enumerate(funcs))
 
   NCAReport(settings, values)
 end
 
 Base.summary(::NCAReport) = "NCAReport"
-Base.show(io::IO, report::NCAReport) = show(io, "text/plain", report)
-function Base.show(io::IO, str::AbstractString, report::NCAReport)
+
+function Base.show(io::IO, report::NCAReport)
+  println(io, summary(report))
+  print(io, "  keys: $(keys(report.values))")
+end
+
+function to_dataframe(report::NCAReport)
+  report.settings[:subject] && return DataFrame(map(x->[x], report.values))
+  hcat(report.values...)
+end
+
+function to_markdown(report::NCAReport)
   _io = IOBuffer()
   println(_io, "# Noncompartmental Analysis Report")
   println(_io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
@@ -214,8 +227,7 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
       @printf(_io, "| %s | %s |\n", name, val)
     end
   end
-  markdown = Markdown.parse(String(take!(_io)))
-  show(io, str, markdown)
+  return Markdown.parse(String(take!(_io)))
 end
 
 @recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}

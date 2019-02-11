@@ -16,6 +16,11 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
+popncareport = NCAReport(ncapop, ithdose=1)
+@test_nowarn display(popncareport)
+@test_broken display(NCA.to_markdown(popncareport))
+@test_nowarn display(NCA.to_dataframe(popncareport))
+
 lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
 @test size(lambdazdf, 2) == 2
 @test lambdazdf[:lambdaz] isa Vector
@@ -155,4 +160,6 @@ for i in 1:24
   @test NCA.auc_extrap_percent(nca) === NCA.auc_extrap_percent(conc[idx], t[idx])
   ncareport = @test_nowarn NCAReport(nca)
   i == 1 && @test_nowarn display(ncareport)
+  i == 1 && @test_nowarn display(NCA.to_markdown(ncareport))
+  i == 1 && @test_nowarn display(NCA.to_dataframe(ncareport))
 end

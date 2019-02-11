@@ -31,15 +31,20 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
-  @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
+  @eval function $f(pop::NCAPopulation, args...; id_occ=true, kwargs...) # NCAPopulation handling
     if ismultidose(pop)
       sol = map(enumerate(pop)) do (i, subj)
-        sol = $f(subj, args...; kwargs...)
-        DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol)
+        if $f == mat
+          _sol = $f(subj, args...; kwargs...)
+          sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `mat` as long as the other ones
+        else
+          sol = $f(subj, args...; kwargs...)
+        end
+        id_occ ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame($f=sol)
       end
     else
       sol = map(pop) do subj
-        DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...))
+        id_occ ? DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...)) : DataFrame($f=$f(subj, args...; kwargs...))
       end
     end
     return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
