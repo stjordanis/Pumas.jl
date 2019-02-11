@@ -169,25 +169,20 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function NCAReport(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
+                   kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && @warn "`dose` is not provided. No dependent quantities will be calculated"
   # TODO: Summarize settings
-  settings = nothing
+  multidose = D <: AbstractArray
+  settings = Dict(:multidose=>multidose)
 
   # Calculate summary values
-  clast′ = clast(nca; kwargs...)
-  tlast′ = tlast(nca; kwargs...)
-  tmax′  = tmax(nca; kwargs...)
-  cmax′  = cmax(nca; kwargs...)[1]
-  λz     = lambdaz(nca; recompute=false, kwargs...)[1]
-  thalf′ = thalf(nca; kwargs...)
-  auc′   = auc(nca; kwargs...)[1]
-  aucp   = auc_extrap_percent(nca; kwargs...)
-  aumc′  = aumc(nca; kwargs...)[1]
-  aumcp  = aumc_extrap_percent(nca; kwargs...)
-  values = (clast=clast′, tlast=tlast′, tmax=tmax′, cmax=cmax′,
-   lambdaz=λz, thalf=thalf′, auc=auc′, auc_extrap_percent=aucp,
-   aumc=aumc′, aumc_extrap_percent=aumcp)
+  funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
+   cmax, tmax, cmin, tmin, c0, clast, tlast, thalf, auc, aumc, auc_extrap_percent, aumc_extrap_percent,
+   cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
+   swing, bioav, tau, cavg, mat)
+  names = map(nameof, funcs)
+  values = NamedTuple{names}(f(nca; kwargs...) for f in funcs)
 
   NCAReport(settings, values)
 end
@@ -213,7 +208,11 @@ function Base.show(io::IO, str::AbstractString, report::NCAReport)
   for entry in pairs(report.values)
     _name = string(entry[1])
     name = replace(_name, "_"=>"\\_") # escape underscore
-    @printf(_io, "| %s | %f |\n", name, ustrip(entry[2]))
+    ismissing(entry[2]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
+    for (i, v) in enumerate(entry[2])
+      val = ismissing(v) ? v : round(ustrip(v), digits=2)*oneunit(v)
+      @printf(_io, "| %s | %s |\n", name, val)
+    end
   end
   markdown = Markdown.parse(String(take!(_io)))
   show(io, str, markdown)

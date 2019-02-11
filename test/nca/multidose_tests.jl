@@ -18,12 +18,12 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test_nowarn NCA.lambdaztimefirst(mncapop)
 @test_nowarn NCA.lambdaznpoints(mncapop)
 
-@test_nowarn NCA.bioav(mncapop, 1)
+@test_nowarn NCA.bioav(mncapop, ithdose=1)
 @test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(msol[:Tlag]))
 @test_nowarn NCA.mrt(mncapop; auctype=:inf)
 @test_nowarn NCA.mrt(mncapop; auctype=:last)
 @test_nowarn NCA.mat(mncapop)
-@test_nowarn NCA.cl(mncapop, 1)
+@test_nowarn NCA.cl(mncapop, ithdose=1)
 @test NCA.tmin(mncapop[1])[1] == 20
 @test NCA.cmin(mncapop[1])[end] == mncapop[1].conc[end][end]
 @test NCA.fluctation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
@@ -31,3 +31,5 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.swing(mncapop[1]) == (NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1])
 @test NCA.c0(mncapop[1]) == NCA.cmin(mncapop[1])
 @test NCA.c0(mncapop[1], method=:set0) == zero(NCA.cmin(mncapop[1]))
+
+@test_nowarn display(NCAReport(mncapop[1], ithdose=1))

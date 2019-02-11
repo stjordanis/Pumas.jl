@@ -11,7 +11,7 @@ amtu  = u"mg"
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, iv="IV",
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop)
-@test all(ismissing, NCA.bioav(ncapop, 1)[2])
+@test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
 @test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
@@ -115,7 +115,7 @@ end
 fails = (6,)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  dose = NCADose(0.0, doses[i], NCA.IV)
+  dose = NCADose(0.0timeu, doses[i], NCA.IV)
   nca = NCASubject(conc[idx], t[idx], dose=dose)
   aucs = NCA.auc(nca, method=:linear)
   @test aucs === NCA.auc(conc[idx], t[idx], dose=dose, method=:linear)
