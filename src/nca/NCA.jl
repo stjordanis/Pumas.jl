@@ -29,7 +29,7 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           :cmax, :tmax, :cmin, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
-          :swing, :superposition)
+          :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
     if ismultidose(pop)
@@ -44,6 +44,16 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
     end
     return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
   end
+end
+
+# special handling for superposition
+superposition(conc, time, args...; kwargs...) = superposition(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
+function superposition(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
+  sol = map(pop) do subj
+    res = superposition(subj, args...; kwargs...)
+    DataFrame(id=subj.id, conc=res[1], time=res[2])
+  end
+  return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
 end
 
 # Multiple dosing handling

@@ -413,13 +413,14 @@ end
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?
-function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
+function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
                        tau::Number, ntau=Inf, args...;
                        doseamount=nothing, additionaltime::Vector=T[],
-                       steadystatetol::Number=1e-3, kwargs...) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+                       steadystatetol::Number=1e-3, method=:linear,
+                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && throw(ArgumentError("Dose must be known to compute superposition"))
-  !(tau isa Integer) && tau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
-  tau < 1 && throw(ArgumentError("ntau must be an integer or Inf"))
+  !(ntau isa Integer) && ntau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
+  tau < oneunit(tau) && throw(ArgumentError("ntau must be an integer or Inf"))
   !isempty(additionaltime) &&
     any(x -> x isa Number || x < zero(x) || x > tau, additionaltime) &&
       throw(ArgumentError("additionaltime must be positive and be <= tau"))
@@ -428,7 +429,7 @@ function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
   conc = nca.conc
   dosetime  = ismultidose ? nca.dose.time : [d.time for d in nca.dose]
   doseinput = ismultidose ? nca.dose.amt  : [d.amt  for d in nca.dose]
-  dosescaling = doseamount === nothing ? map(oneunit, doseinput) : @. doseamount / doseinput
+  dosescaling = doseamount === nothing ? map(one, doseinput) : @. doseamount / doseinput
   tmptime = map(zero, time)
   map(v->append!(tmptime, v), [tau, dosetime, additionaltime])
   map(v->append!(tmptime, v), [@.((d + time) % tau) for d in time])
@@ -438,7 +439,7 @@ function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
   # Check if we will need to extrapolate
   tlast′ = tlast(nca)[end]
   if tau*ntau > tlast′
-    λz = lambdaz(nca; recompute=false, kwargs...)[1]
+    λz = lambdaz(nca; recompute=false, kwargs...)
     clast′ = clast(nca; kwargs...)
     # check missing λz??
     # cannot continue extrapolating due to missing data (likely due to
@@ -464,9 +465,9 @@ function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
       # new concentration scaled by the relative dose)
       for i in eachindex(tmptime)
         tmptime′ = tmptime[i]
-        tmptime[i] >= zero(eltype(tmptime)) && continue
+        tmptime[i] < zero(eltype(tmptime)) && continue
         dosescaling′ = dosescaling isa Number ? dosescaling : dosescaling[i] # handle scalar case
-        conc′[i] = conc′[i] + dosescaling′ * interpextrapconc(nca, tmptime′; kwargs...)
+        conc′[i] = conc′[i] + dosescaling′ * interpextrapconc(nca, tmptime′; interpmethod=method, kwargs...)
       end
     end
     taucount = taucount + 1
@@ -475,7 +476,7 @@ function superposition(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
       # all values will eventually be nonzero.
       currenttol = steadystatetol + oneunit(steadystatetol)
     else
-      @. atmp = oneunit(eltype(prevconc))-prevconc/conc′
+      @. atmp = one(eltype(prevconc))-prevconc/conc′
       currenttol = norm(atmp, Inf)
     end
   end

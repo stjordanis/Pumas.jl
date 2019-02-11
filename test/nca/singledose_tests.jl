@@ -65,7 +65,6 @@ yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
 @test NCA.c0(ncapop[1], method=:c0) === ncapop[1].conc[1]
 @test NCA.c0(ncapop[1], method=:c1) === ncapop[1].conc[2]
 @test_nowarn NCA.c0(ncapop[1], method=:logslope)
-@test_nowarn superposition(ncapop, 24)
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
@@ -102,6 +101,8 @@ for m in (:linear, :linuplogdown, :linlog)
   x = (0:.1:50) .* timeu
   y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
   @test NCA.lambdaz(y, x) ≈ NCA.lambdaz(conc[idx], t[idx])
+
+  @test_nowarn NCA.superposition(ncapop, 24timeu, method=m)
 end
 
 @test @inferred(NCA.lambdaz(nca, idxs=12:16)) == NCA.lambdaz(conc[idx], t[idx])
