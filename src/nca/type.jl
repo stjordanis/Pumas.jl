@@ -150,6 +150,12 @@ function Base.getindex(n::NCAPopulation, I...)
   subj isa Vector ? NCAPopulation(subj) : subj
 end
 Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)
+Base.show(io::IO, pop::NCAPopulation) = show(io, MIME"text/plain"(), pop)
+function Base.show(io::IO, ::MIME"text/plain", pop::NCAPopulation)
+  println(io, "NCAPopulation ($(length(pop)) subjects):")
+  println(io, "  ID: $([subj.id for subj in pop])")
+  showunits(io, first(pop), 4)
+end
 
 ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
 ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
