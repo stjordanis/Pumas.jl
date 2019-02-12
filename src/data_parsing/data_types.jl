@@ -323,6 +323,9 @@ A `Population` is a set of `Subject`s. It can be instanced passing a collection 
 struct Population{T} <: AbstractVector{T}
   subjects::Vector{T}
   Population(obj::AbstractVector{T}) where {T<:Subject} = new{T}(obj)
+  Population(obj::AbstractVector{<:Subject}...) =
+    reduce(vcat, obj) |> (obj -> Population(obj))
+  Population(obj::Population...) = Population(mapreduce(x -> x.subjects, vcat, obj))
 end
 
 ### Display
