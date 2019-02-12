@@ -34,11 +34,16 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
   @eval function $f(pop::NCAPopulation, args...; id_occ=true, kwargs...) # NCAPopulation handling
     if ismultidose(pop)
       sol = map(enumerate(pop)) do (i, subj)
-        if $f == mat
-          _sol = $f(subj, args...; kwargs...)
-          sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `mat` as long as the other ones
-        else
-          sol = $f(subj, args...; kwargs...)
+        try
+          if $f == mat
+            _sol = $f(subj, args...; kwargs...)
+            sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `mat` as long as the other ones
+          else
+            sol = $f(subj, args...; kwargs...)
+          end
+        catch e
+          @info "ID $(subj.id) errored"
+          throw(e)
         end
         id_occ ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame($f=sol)
       end
@@ -68,7 +73,13 @@ for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluct
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
     obj = map(eachindex(nca.dose)) do i
-      subj = subject_at_ithdose(nca, i)
+      local subj
+      try
+        subj = subject_at_ithdose(nca, i)
+      catch e
+        @info "Errored at $(i)th occasion"
+        throw(e)
+      end
       $f(subj, args...; kwargs...)
     end
   end
