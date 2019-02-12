@@ -39,7 +39,7 @@ theopmodel_bayes = @model begin
     end
 end
 
-b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC)
+b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC())
 
 m = PuMaS.param_mean(b)
 

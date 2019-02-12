@@ -14,7 +14,7 @@ function dim_rfx(m::PKPDModel)
   dimension(t_rfx)
 end
 
-
+# This object wraps the model, data and some pre-allocated buffers to match the necessary interface for DynamicHMC.jl
 struct BayesLogDensity{M,D,B,C,R,A,K} <: LogDensityProblems.AbstractLogDensityProblem
   model::M
   data::D
@@ -45,6 +45,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     m = b.dim_param
     param = b.model.param
     t_param = totransform(param)
+    # compute the prior density and log-Jacobian
     x, j_x = TransformVariables.transform_and_logjac(t_param, @view v[1:m])
     ℓ_param = _lpdf(param.params, x) + j_x
 
@@ -52,6 +53,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     rfx = b.model.random(x)
     t_rfx = totransform(rfx)
     ℓ_rfx = sum(enumerate(b.data.subjects)) do (i,subject)
+      # compute the random effect density, likelihood and log-Jacobian
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[(m+(i-1)*n) .+ (1:n)])
       j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
     end
@@ -87,6 +89,10 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
     ∇ℓ[1:m] .= @view DiffResults.gradient(b.res)[1:m]
 
     for (i, subject) in enumerate(b.data.subjects)
+      # to avoid dimensionality problems with ForwardDiff.jl, we split the computation to
+      # compute the gradient for each subject individually, then accumulate this to the
+      # gradient vector.
+
       function L_rfx(u)
         x = TransformVariables.transform(t_param, @view u[1:m])
         rfx = b.model.random(x)
@@ -112,39 +118,42 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
   end
 end
 
-struct BayesMCMC{L<:BayesLogDensity,C,T}
+# results wrapper object
+struct BayesMCMCResults{L<:BayesLogDensity,C,T}
   loglik::L
   chain::C
   tuned::T
 end
 
-function fit(model::PKPDModel, data::Population, ::Type{BayesMCMC}, args...; nsamples=5000, kwargs...)
+struct BayesMCMC <: LikelihoodApproximation end
+
+function fit(model::PKPDModel, data::Population, ::BayesMCMC, args...; nsamples=5000, kwargs...)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
   chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)
-  BayesMCMC(bayes, chain, tuned)
+  BayesMCMCResults(bayes, chain, tuned)
 end
-  
+
+# remove unnecessary PDMat wrappers
 _clean_param(x) = x
 _clean_param(x::PDMat) = x.mat
 _clean_param(x::NamedTuple) = map(_clean_param, x)
 
-function param_values(b::BayesMCMC)
+# "unzip" the results via a StructArray
+function param_values(b::BayesMCMCResults)
   param = b.loglik.model.param
   t_param = totransform(param)
   StructArray([_clean_param(TransformVariables.transform(t_param, get_position(c))) for c in b.chain])
 end
 
-function param_mean(b::BayesMCMC)
+function param_mean(b::BayesMCMCResults)
   vals = param_values(b)
   map(mean, StructArrays.fieldarrays(vals))
-end    
-function param_var(b::BayesMCMC)
+end
+function param_var(b::BayesMCMCResults)
   vals = param_values(b)
   map(var, StructArrays.fieldarrays(vals))
-end    
-function param_std(b::BayesMCMC)
+end
+function param_std(b::BayesMCMCResults)
   vals = param_values(b)
   map(std, StructArrays.fieldarrays(vals))
-end    
-
-  
+end
