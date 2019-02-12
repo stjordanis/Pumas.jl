@@ -1,8 +1,5 @@
 using Test
 using PuMaS, LinearAlgebra, Optim
-# FIXME! Remove this dependency once we have a fit function and therefore don't need to call the transforms explicitly
-using TransformVariables
-using PuMaS: totransform
 
 # FIXME! Find a nicer way to handle this
 _extract(A::PDMat) = A.mat
@@ -82,19 +79,11 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_fo, # The marginal likelihood is the objective
-                                              theopp,
-                                              TransformVariables.transform(totransform(theopmodel_fo.param), t),
-                                              PuMaS.FO()),
-               TransformVariables.inverse(totransform(theopmodel_fo.param), x0), # The initial values
-               BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=verbose,                                 # Print progress
-                             g_tol=1e-5))                                        # Adjust convergence tolerance
+  o = fit(theopmodel_fo, theopp, x0, PuMaS.FO())
 
-  x_optim = TransformVariables.transform(totransform(theopmodel_fo.param), o.minimizer)
+  x_optim = o.x0
 
-  # @test o.f_converged # Commented out for now since it's too britle
-  @test o.minimum ≈ 71.979975297638589
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
   end
@@ -156,7 +145,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   #=
   # Would stall Travis
@@ -246,31 +235,20 @@ end
     θ₃ = 3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.10668E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
-    σ_add = 5.14069E-01)
-    # Elapsed estimation time in seconds:     0.27
-    # Elapsed covariance time in seconds:     0.19
+  Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
+  σ_add = 5.14069E-01)
+  # Elapsed estimation time in seconds:     0.27
+  # Elapsed covariance time in seconds:     0.19
 
-  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_foce, # The marginal likelihood is the objective
-                                              theopp,
-                                              TransformVariables.transform(totransform(theopmodel_foce.param), t),
-                                              PuMaS.FOCE()),
-               TransformVariables.inverse(totransform(theopmodel_foce.param), x0), # The initial values
-               BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=verbose,                                 # Print progress
-                             g_tol=1e-5))
+  o = fit(theopmodel_foce, theopp, x0, PuMaS.FOCE())
 
-  x_optim = TransformVariables.transform(totransform(theopmodel_foce.param), o.minimizer)
+  x_optim = o.x0
 
-  # @test_broken o.f_converged # Commented out for now since it's too britle
-  @test o.minimum ≈ 121.89849118143030
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849118143030
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
   end
 end
-
-# FIXME! Temporary workaround to avoid that NaN from the ODE solve propagate
-_nonan(x) = isnan(x) ? floatmin() : x
 
 @testset "run4.mod FOCEI, diagonal omega and additive + proportional error, \$COV = sandwich matrix" begin
   theopmodel_focei = @model begin
@@ -334,19 +312,11 @@ _nonan(x) = isnan(x) ? floatmin() : x
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
-  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_focei, # The marginal likelihood is the objective
-                                              theopp,
-                                              TransformVariables.transform(totransform(theopmodel_focei.param), t),
-                                              PuMaS.FOCEI()),
-               TransformVariables.inverse(totransform(theopmodel_focei.param), x0), # The initial values
-               BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=verbose,                                 # Print progress
-                             g_tol=1e-5))
+  o = fit(theopmodel_focei, theopp, x0, PuMaS.FOCEI())
 
-  x_optim = TransformVariables.transform(totransform(theopmodel_focei.param), o.minimizer)
+  x_optim = o.x0
 
-  # @test_broken o.f_converged # Commented out for now since it's too britle
-  @test o.minimum ≈ 115.40505381367598 rtol=1e-5
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505381367598 rtol=1e-5
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
   end
@@ -456,19 +426,11 @@ end
   end
 
   @testset "Test optimization" begin
-    o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_laplace, # The marginal likelihood is the objective
-                                                theopp,
-                                                TransformVariables.transform(totransform(theopmodel_laplace.param), t),
-                                                PuMaS.Laplace()),
-                 TransformVariables.inverse(totransform(theopmodel_laplace.param), x0), # The initial values
-                 BFGS(),                                                           # The optimization method
-                 Optim.Options(show_trace=verbose,                                 # Print progress
-                               g_tol=1e-5))
+    o = fit(theopmodel_laplace, theopp, x0, PuMaS.Laplace())
 
-    x_optim = TransformVariables.transform(totransform(theopmodel_laplace.param), o.minimizer)
+    x_optim = o.x0
 
-    # @test_broken o.f_converged # Commented out for now since it's too britle
-    @test o.minimum ≈ 123.76439574418291 rtol=1e-5
+    @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
     @testset "test parameter $k" for k in keys(x_optim)
       @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
     end
@@ -540,19 +502,11 @@ end
   # Elapsed covariance time in seconds:     0.32
 
   @testset "Test optimization" begin
-    o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_laplacei, # The marginal likelihood is the objective
-                                                theopp,
-                                                TransformVariables.transform(totransform(theopmodel_laplacei.param), t),
-                                                PuMaS.LaplaceI()),
-                 TransformVariables.inverse(totransform(theopmodel_laplacei.param), x0), # The initial values
-                 BFGS(),                                                           # The optimization method
-                 Optim.Options(show_trace=verbose,                                 # Print progress
-                               g_tol=1e-5))
+    o = fit(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI())
 
-    x_optim = TransformVariables.transform(totransform(theopmodel_laplacei.param), o.minimizer)
+    x_optim = o.x0
 
-    # @test_broken o.f_converged # Commented out for now since it's too britle
-    @test o.minimum ≈ 116.97275684239327 rtol=1e-5
+    @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
     @testset "test parameter $k" for k in keys(x_optim)
       @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
     end

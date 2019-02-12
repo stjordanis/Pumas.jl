@@ -41,8 +41,8 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJac, t::C
 end
 
 
-function TransformVariables.inverse_eltype(t::ConstantTransform, y::AbstractArray)
-  Float64
+function TransformVariables.inverse_eltype(t::ConstantTransform, y::T) where T<:Real
+  T
 end
 function TransformVariables.inverse(t::ConstantTransform, v)
   @assert t.val == v

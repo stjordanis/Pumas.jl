@@ -28,3 +28,15 @@ end
   @test data[1].covariates.weight |> (x -> isa(x, Vector{Int}) && length(x) == 9)
   @test data[1].covariates.dih == 2
 end
+@testset "Population Constructors" begin
+  e1 = DosageRegimen(100, ii = 24, addl = 6)
+  e2 = DosageRegimen(50,  ii = 12, addl = 13)
+  e3 = DosageRegimen(200, ii = 24, addl = 2)
+  s1 = map(i -> Subject(id = i, evs = e1), 1:5)
+  s2 = map(i -> Subject(id = i, evs = e2), 6:8)
+  s3 = map(i -> Subject(id = i, evs = e3), 9:10)
+  pop1 = Population(s1)
+  pop2 = Population(s2)
+  pop3 = Population(s3)
+  @test Population(s1, s2, s3) == Population(pop1, pop2, pop3)
+end
