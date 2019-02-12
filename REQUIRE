@@ -25,4 +25,5 @@ RecipesBase
 Missings
 Tables 0.1.14 0.1.15
 LogDensityProblems
-
+DynamicHMC
+StructArrays

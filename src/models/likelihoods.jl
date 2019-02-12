@@ -28,7 +28,7 @@ function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
     haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
   end
 end
-
+_lpdf(d::Domain, x) = 0.0
 
 
 """

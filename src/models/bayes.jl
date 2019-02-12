@@ -1,4 +1,4 @@
-using LogDensityProblems
+using LogDensityProblems, DynamicHMC, StructArrays
 import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
 
 
@@ -15,7 +15,7 @@ function dim_rfx(m::PKPDModel)
 end
 
 
-struct BayesModel{M,D,B,C,R} <: LogDensityProblems.AbstractLogDensityProblem
+struct BayesLogDensity{M,D,B,C,R,A,K} <: LogDensityProblems.AbstractLogDensityProblem
   model::M
   data::D
   dim_param::Int
@@ -23,22 +23,24 @@ struct BayesModel{M,D,B,C,R} <: LogDensityProblems.AbstractLogDensityProblem
   buffer::B
   cfg::C
   res::R
+  args::A
+  kwargs::K
 end
 
-function BayesModel(model, data)
+function BayesLogDensity(model, data, args...;kwargs...)
   m = dim_param(model)
   n = dim_rfx(model)
   buffer = zeros(m + n)
   cfg = ForwardDiff.GradientConfig(nothing, buffer)
   res = DiffResults.GradientResult(buffer)
-  BayesModel(model, data, m, n, buffer, cfg, res)
+  BayesLogDensity(model, data, m, n, buffer, cfg, res, args, kwargs)
 end
 
-function LogDensityProblems.dimension(b::BayesModel)
+function LogDensityProblems.dimension(b::BayesLogDensity)
   b.dim_param + b.dim_rfx * length(b.data.subjects)
 end
 
-function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::BayesModel, v::AbstractVector)
+function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::BayesLogDensity, v::AbstractVector)
   try
     m = b.dim_param
     param = b.model.param
@@ -51,7 +53,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     t_rfx = totransform(rfx)
     ℓ_rfx = sum(enumerate(b.data.subjects)) do (i,subject)
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[(m+(i-1)*n) .+ (1:n)])
-      j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y)
+      j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
     end
     ℓ = ℓ_param + ℓ_rfx
     return LogDensityProblems.Value(isnan(ℓ) ? -Inf : ℓ)
@@ -64,7 +66,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
   end
 end
 
-function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient}, b::BayesModel, v::AbstractVector)
+function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient}, b::BayesLogDensity, v::AbstractVector)
   ∇ℓ = zeros(size(v))
   try
     param = b.model.param
@@ -90,7 +92,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
         rfx = b.model.random(x)
         t_rfx = totransform(rfx)
         y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view u[m .+ (1:n)])
-        j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y)
+        j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
       end
       copyto!(b.buffer, m+1, v, m+(i-1)*n+1, n)
 
@@ -109,3 +111,40 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
     end
   end
 end
+
+struct BayesMCMC{L<:BayesLogDensity,C,T}
+  loglik::L
+  chain::C
+  tuned::T
+end
+
+function fit(model::PKPDModel, data::Population, ::Type{BayesMCMC}, args...; nsamples=5000, kwargs...)
+  bayes = BayesLogDensity(model, data, args...;kwargs...)
+  chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)
+  BayesMCMC(bayes, chain, tuned)
+end
+  
+_clean_param(x) = x
+_clean_param(x::PDMat) = x.mat
+_clean_param(x::NamedTuple) = map(_clean_param, x)
+
+function param_values(b::BayesMCMC)
+  param = b.loglik.model.param
+  t_param = totransform(param)
+  StructArray([_clean_param(TransformVariables.transform(t_param, get_position(c))) for c in b.chain])
+end
+
+function param_mean(b::BayesMCMC)
+  vals = param_values(b)
+  map(mean, StructArrays.fieldarrays(vals))
+end    
+function param_var(b::BayesMCMC)
+  vals = param_values(b)
+  map(var, StructArrays.fieldarrays(vals))
+end    
+function param_std(b::BayesMCMC)
+  vals = param_values(b)
+  map(std, StructArrays.fieldarrays(vals))
+end    
+
+  
