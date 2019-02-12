@@ -41,7 +41,7 @@ OrdinaryDiffEq._reshape(x,y) = x
 export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, pre, simpost
-export conditional_nll, ll_derivatives, marginal_loglikelihood, FIM
+export conditional_nll, ll_derivatives, FIM
 export example_nmtran_data
 export @model
 end # module
