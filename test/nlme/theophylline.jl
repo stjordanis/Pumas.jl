@@ -145,7 +145,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   #=
   # Would stall Travis
