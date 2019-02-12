@@ -61,6 +61,7 @@ function superposition(pop::NCAPopulation, args...; kwargs...) # NCAPopulation h
   return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
 end
 
+# add `tau`
 # Multiple dosing handling
 for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
           :cavg, :tau, :accumulationindex, :swing,

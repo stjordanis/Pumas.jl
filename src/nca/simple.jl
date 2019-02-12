@@ -204,6 +204,7 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; ithdose=
   return sol
 end
 
+#TODO: check the units
 """
   cl(nca::NCASubject; ithdose::Integer, kwargs...)
 
@@ -216,20 +217,22 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; ithdose=mis
   dose = nca.dose
   if D <: NCADose # single dose
     dose.formulation === IV || return missing
-    _bioav = oneunit(AUC)
+    _bioav = one(AUC)
     return _bioav*_clf
   else # multiple doses
     # TODO: check back on logic for this ithdose for CL, not sure about the user specification
     ismissing(ithdose) && throw(ArgumentError("`ithdose` must be provided for computing CL"))
-    _bioav = bioav(nca; ithdose=ithdose, kwargs...)
     map(eachindex(dose)) do idx
       subj = subject_at_ithdose(nca, idx)
       formulation = subj.dose.formulation
       if idx == ithdose
         formulation === IV || throw(ArgumentError("the formulation of `ithdose` must be IV"))
       end
-      _bioav = formulation === IV ? oneunit(eltype(AUC)) : _bioav
-      _bioav*_clf[idx]
+      if formulation === IV
+        one(eltype(AUC))*_clf[idx]
+      else
+        missing
+      end
     end # end multidoses
   end # end if
 end

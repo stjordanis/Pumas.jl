@@ -197,6 +197,7 @@ function Base.show(io::IO, report::NCAReport)
   print(io, "  keys: $(keys(report.values))")
 end
 
+# units go under the header
 function to_dataframe(report::NCAReport)
   report.settings[:subject] && return DataFrame(map(x->[x], report.values))
   hcat(report.values...)
