@@ -18,32 +18,68 @@ export DataFrame
 
 export NCASubject, NCAPopulation, NCADose, showunits
 export parse_ncadata
-export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-       clast, tlast, cmax, tmax, cmin, c0, tmin, thalf, cl, clf, vss, vz,
-       bioav, tlag, mrt, mat, tau, cavg, fluctation, accumulationindex,
-       swing, superposition
+#export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
+#       clast, tlast, cmax, tmax, cmin, c0, tmin, thalf, cl, clf, vss, vz,
+#       bioav, tlag, mrt, mat, tau, cavg, fluctation, accumulationindex,
+#       swing, superposition
 export NCAReport
 export normalizedose
 
-for f in (:lambdaz, :cmax, :tmax, :cmin, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
+for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
+          :cmax, :tmax, :cmin, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
           :interpextrapconc, :auc, :aumc, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
-          :swing, :superposition)
+          :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
-  @eval function $f(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
-    res = map(pop) do subj
-      sol = $f(subj, args...; kwargs...)
-      sol isa NamedTuple ? (id=subj.id, $f(subj, args...; kwargs...)...,) : (id=subj.id, $f=$f(subj, args...; kwargs...))
+  @eval function $f(pop::NCAPopulation, args...; id_occ=true, kwargs...) # NCAPopulation handling
+    if ismultidose(pop)
+      sol = map(enumerate(pop)) do (i, subj)
+        try
+          if $f == mat
+            _sol = $f(subj, args...; kwargs...)
+            sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `mat` as long as the other ones
+          else
+            sol = $f(subj, args...; kwargs...)
+          end
+        catch e
+          @info "ID $(subj.id) errored"
+          throw(e)
+        end
+        id_occ ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame($f=sol)
+      end
+    else
+      sol = map(pop) do subj
+        id_occ ? DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...)) : DataFrame($f=$f(subj, args...; kwargs...))
+      end
     end
-    return DataFrame(res)
+    return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
   end
 end
 
+# special handling for superposition
+superposition(conc, time, args...; kwargs...) = superposition(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
+function superposition(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
+  sol = map(pop) do subj
+    res = superposition(subj, args...; kwargs...)
+    DataFrame(id=subj.id, conc=res[1], time=res[2])
+  end
+  return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
+end
+
+# add `tau`
 # Multiple dosing handling
-for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation, :cavg, :tau, :accumulationindex, :swing)
-  @eval function $f(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}, args...; kwargs...) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
+for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
+          :cavg, :tau, :accumulationindex, :swing,
+          :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
+  @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
     obj = map(eachindex(nca.dose)) do i
-      subj = subject_at_ithdose(nca, i)
+      local subj
+      try
+        subj = subject_at_ithdose(nca, i)
+      catch e
+        @info "Errored at $(i)th occasion"
+        throw(e)
+      end
       $f(subj, args...; kwargs...)
     end
   end
