@@ -47,8 +47,8 @@ function NCASubject(conc′, time′;
                     id=1, dose::T=nothing, llq=nothing, clean=true,
                     lambdaz=nothing, kwargs...) where T
   if concu !== true || timeu !== true
-    conc′ = conc′*concu
-    time′ = time′*timeu
+    conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
+    time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
   end
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
   unitconc = oneunit(eltype(conc))

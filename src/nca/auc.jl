@@ -273,12 +273,10 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
   _Z = eltype(Z)
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
-  maxadjr2::_F = oneunit(_F)*false
+  maxadjr2::_F = -oneunit(_F)*true
   λ::_Z = oneunit(_Z)*false
-  NoUnitEltype = typeof(one(_Z))
-  time′ = reinterpret(NoUnitEltype, time)
-  conc′ = reinterpret(NoUnitEltype, conc)
-  points = 2
+  time′ = reinterpret(typeof(one(eltype(time))), time)
+  conc′ = reinterpret(typeof(one(eltype(conc))), conc)
   outlier = false
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
   n = length(time)
