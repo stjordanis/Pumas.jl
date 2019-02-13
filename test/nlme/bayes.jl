@@ -40,7 +40,8 @@ theopmodel_bayes = @model begin
 end
 
 Random.seed!(1)
-b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC())
+b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC(),
+              nsamples = 10_000)
 
 m = PuMaS.param_mean(b)
 
@@ -56,7 +57,7 @@ s = PuMaS.param_std(b)
 @test s.θ[1] ≈ 4.62E-01 rtol=0.2
 @test s.θ[2] ≈ 6.92E-03 rtol=0.1
 @test s.θ[3] ≈ 2.16E-03 rtol=0.1
-@test s.θ[4] ≈ 4.74E-01 rtol=0.1
+@test s.θ[4] ≈ 4.74E-01 rtol=0.2
 @test s.θ[5] ≈ 1.54E-01 rtol=0.1
 @test_broken s.Ω[1] ≈ 7.00E-01 rtol=0.1
 @test s.σ ≈  1.68E-01 rtol=0.1
