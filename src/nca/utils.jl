@@ -20,27 +20,31 @@ function checkconctime(conc, time=nothing; monotonictime=true)
   conc == nothing && return
   E = eltype(conc)
   isallmissing = all(ismissing, conc)
+  local _neg_idx, _missing_idx
   if isempty(conc)
     @warn "No concentration data given"
   elseif !(E <: Maybe{Number} && conc isa AbstractArray) || E <: Maybe{Bool} && !isallmissing
     throw(ArgumentError("Concentration data must be numeric and an array"))
   elseif isallmissing
     @warn "All concentration data is missing"
-  elseif any(x -> x<zero(x), skipmissing(conc))
-    @warn "Negative concentrations found"
+  elseif any(x -> (_neg_idx=x[1]; x[2]<zero(x[2])), enumerate(skipmissing(conc)))
+    @warn "Negative concentrations found at index $(_neg_idx)"
   end
   # check time
   time == nothing && return
   T = eltype(time)
   if isempty(time)
     @warn "No time data given"
-  elseif any(ismissing, time)
-    throw(ArgumentError("Time may not be missing"))
+  elseif any(x->(_missing_idx=x[1]; ismissing(x[2])), enumerate(time))
+    throw(ArgumentError("Time may not be missing (missing occured at index $_missing_idx)"))
   elseif !(T <: Maybe{Number} && time isa AbstractArray)
     throw(ArgumentError("Time data must be numeric and an array"))
   end
   if monotonictime
-    !issorted(time, lt=≤) && throw(ArgumentError("Time must be monotonically increasing"))
+    for i in 1:length(time)-1
+      time[i+1] > time[i] && continue
+      throw(ArgumentError("Time must be monotonically increasing. Errored at index $i"))
+    end
   end
   # check both
   # TODO: https://github.com/UMCTM/PuMaS.jl/issues/153
@@ -131,7 +135,9 @@ The meaning of each of the list elements is:
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
-  concblq === nothing && (concblq = :drop)
+  # the default is from
+  # https://github.com/billdenney/pknca/blob/38719483233d52533ac1d8f535c0016d2be70ae5/R/PKNCA.options.R#L78-L87
+  concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
@@ -179,7 +185,7 @@ end
 
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,T,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
@@ -200,27 +206,31 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,T,AUC,AUMC,D,Z,F,N,I,P,ID},
-                                                     i::Integer) where {C,T,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
+    abstime = nca.abstime[i]
     maxidx = nca.maxidx[i]
     lastidx = nca.lastidx[i]
     dose = nca.dose[i]
     lambdaz = view(nca.lambdaz, i)
     r2 = view(nca.r2, i)
+    adjr2 = view(nca.adjr2, i)
     intercept = view(nca.intercept, i)
+    firstpoint = view(nca.firstpoint, i)
     points = view(nca.points, i)
     auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,
-                 conc,    time,                           # NCA measurements
+                 conc,    time,    abstime,               # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
-                 lambdaz, nca.llq, r2, intercept, points, # lambdaz related cache
+                 lambdaz, nca.llq, r2, adjr2, intercept,
+                 firstpoint, points,                      # lambdaz related cache
                  auc, aumc                                # AUC related cache
                 )
   end
