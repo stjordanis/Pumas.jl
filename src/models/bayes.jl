@@ -127,7 +127,8 @@ end
 
 struct BayesMCMC <: LikelihoodApproximation end
 
-function fit(model::PKPDModel, data::Population, ::BayesMCMC, args...; nsamples=5000, kwargs...)
+function Distributions.fit(model::PKPDModel, data::Population, ::BayesMCMC,
+                           args...; nsamples=5000, kwargs...)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
   chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)
   BayesMCMCResults(bayes, chain, tuned)
