@@ -62,15 +62,15 @@ arr = [missing, 1, 2, 3, missing]
 @test NCA.tmax(conc[idx], t[idx], interval=[(24.,Inf).*timeu, (10.,Inf).*timeu]) == [NCA.tmax(nca, interval=(24.,Inf).*timeu), NCA.tmax(nca, interval=(10.,Inf).*timeu)]
 @test_throws ArgumentError NCA.cmax(conc[idx], t[idx], interval=(100,Inf).*timeu)
 x = (0:24.) .* timeu
-ylg = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linuplogdown)
-yli = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=:linear)
+ylg = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linuplogdown)
+yli = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linear)
 @test NCA.lambdaz(yli, collect(x), slopetimes=(10:20) .* timeu) ≈ NCA.lambdaz(ylg, collect(x), slopetimes=(10:20) .* timeu) atol=1e-2/timeu
 @test NCA.auc(nca, interval=(t[end],Inf*timeu)) ≈ NCA.auc(nca) - NCA.auc(nca, auctype=:last) atol=1e-12*(concu*timeu)
 @test NCA.c0(ncapop[1]) == ncapop[1].conc[1]
-@test NCA.c0(nca, method=:set0) == zero(nca.conc[1])
-@test NCA.c0(ncapop[1], method=:c0) === ncapop[1].conc[1]
-@test NCA.c0(ncapop[1], method=:c1) === ncapop[1].conc[2]
-@test_nowarn NCA.c0(ncapop[1], method=:logslope)
+@test NCA.c0(nca, c0method=:set0) == zero(nca.conc[1])
+@test NCA.c0(ncapop[1], c0method=:c0) === ncapop[1].conc[1]
+@test NCA.c0(ncapop[1], c0method=:c1) === ncapop[1].conc[2]
+@test_nowarn NCA.c0(ncapop[1], c0method=:logslope)
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
@@ -78,7 +78,7 @@ for m in (:linear, :linuplogdown, :linlog)
   _nca = NCASubject(conc[idx], t[idx])
   @inferred NCA.auc( _nca, method=m)
   @inferred NCA.aumc(_nca, method=m)
-  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500)*timeu, interpmethod=m)
+  @test_nowarn NCA.interpextrapconc(conc[idx], t[idx], 1000rand(500)*timeu, method=m)
   @test_nowarn NCA.auc(conc[idx], t[idx], method=m, interval=(0,100.).*timeu, auctype=:last)
   @test_nowarn NCA.aumc(conc[idx], t[idx], method=m, interval=(0,100.).*timeu, auctype=:last)
   # test interval
@@ -105,7 +105,7 @@ for m in (:linear, :linuplogdown, :linlog)
   @test aucinf ≈ aucinf
 
   x = (0:.1:50) .* timeu
-  y = NCA.interpextrapconc(conc[idx], t[idx], x; interpmethod=m)
+  y = NCA.interpextrapconc(conc[idx], t[idx], x; method=m)
   @test NCA.lambdaz(y, x) ≈ NCA.lambdaz(conc[idx], t[idx])
 
   @test_nowarn NCA.superposition(ncapop, 24timeu, method=m)

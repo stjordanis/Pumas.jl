@@ -356,13 +356,13 @@ following methods:
 - cmin: Set c0 to cmin during the interval. This method should usually be used for multiple-dose oral data and IV infusion data.
 - set0: Set c0 to zero (regardless of any other data). This method should usually be used first for single-dose oral data.
 """
-function c0(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function c0(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   ret = missing
   # if we get one method, then convert it to a tuple anyway
-  method isa Symbol && (method = tuple(method))
-  while ismissing(ret) && !isempty(method)
-    current_method = method[1]
-    method = method[2:end]
+  c0method isa Symbol && (c0method = tuple(c0method))
+  while ismissing(ret) && !isempty(c0method)
+    current_method = c0method[1]
+    c0method = c0method[2:end]
     if current_method == :c0
       ret = _c0_method_c0(nca)
     elseif current_method == :logslope
@@ -374,7 +374,7 @@ function c0(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; method=(:c0
     elseif current_method == :set0
       ret = nca.dose isa AbstractArray ? fill(zero(eltype(eltype(nca.conc))), length(nca.dose)) : zero(eltype(nca.conc))
     else
-      throw(ArgumentError("unknown method $current_method, please use any combination of :c0, :logslope, :c1, :cmin, :set0. E.g. `c0(subj, method=(:c0, :cmin, :set0))`"))
+      throw(ArgumentError("unknown method $current_method, please use any combination of :c0, :logslope, :c1, :cmin, :set0. E.g. `c0(subj, c0method=(:c0, :cmin, :set0))`"))
     end
   end
   return ret
@@ -476,7 +476,7 @@ function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID},
         tmptime′ = tmptime[i]
         tmptime[i] < zero(eltype(tmptime)) && continue
         dosescaling′ = dosescaling isa Number ? dosescaling : dosescaling[i] # handle scalar case
-        conc′[i] = conc′[i] + dosescaling′ * interpextrapconc(nca, tmptime′; interpmethod=method, kwargs...)
+        conc′[i] = conc′[i] + dosescaling′ * interpextrapconc(nca, tmptime′; method=method, kwargs...)
       end
     end
     taucount = taucount + 1

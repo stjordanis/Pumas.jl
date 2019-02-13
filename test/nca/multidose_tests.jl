@@ -34,7 +34,7 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.accumulationindex(mncapop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
 @test NCA.swing(mncapop[1]) == (NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1])
 @test NCA.c0(mncapop[1]) == NCA.cmin(mncapop[1])
-@test NCA.c0(mncapop[1], method=:set0) == zero(NCA.cmin(mncapop[1]))
+@test NCA.c0(mncapop[1], c0method=:set0) == zero(NCA.cmin(mncapop[1]))
 
 ncareport1 = NCAReport(mncapop[1], ithdose=1)
 @test_nowarn display(ncareport1)

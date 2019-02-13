@@ -121,7 +121,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
     # bolus, a linear back-extrapolation is done to get the intercept which
     # represents concentration at time zero (`C0`)
     #
-    concstart = interpextrapconc(nca, lo; interpmethod=method, kwargs...)
+    concstart = interpextrapconc(nca, lo; method=method, kwargs...)
     idx1, idx2 = let lo = lo, hi = hi
       findfirst(x->x>=lo, time),
       findlast( x->x<=hi, time)
@@ -145,7 +145,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
     int_idxs = idx1+1:idx2-1
   end
   if isfinite(hi)
-    concend = interpextrapconc(nca, hi; interpmethod=method, kwargs...)
+    concend = interpextrapconc(nca, hi; method=method, kwargs...)
     if conc[idx2] != concend
       auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log)
     end

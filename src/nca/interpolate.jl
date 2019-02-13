@@ -1,4 +1,4 @@
-function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, interpmethod=nothing, kwargs...)
+function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, method=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
@@ -7,7 +7,7 @@ function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, interpme
     if ismissing(out[i])
       @warn warning("Interpolation/extrapolation time is missing at the $(i)th index")
     elseif timeout[i] <= _tlast
-      _out = interpolateconc(nca, timeout[i]; interpmethod=interpmethod, concorigin=concorigin, kwargs...)
+      _out = interpolateconc(nca, timeout[i]; method=method, concorigin=concorigin, kwargs...)
       out isa AbstractArray ? (out[i] = _out) : (out = _out)
     else
       _out = extrapolateconc(nca, timeout[i]; kwargs...)
@@ -17,13 +17,13 @@ function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, interpme
   return out
 end
 
-function interpolateconc(nca::NCASubject, timeout::Number; interpmethod, concorigin=nothing, kwargs...)
+function interpolateconc(nca::NCASubject, timeout::Number; method, concorigin=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
   !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
   _tlast = tlast(nca)
-  !(interpmethod in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("Interpolation method must be :linear, :linuplogdown or :linlog"))
+  !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("Interpolation method must be :linear, :linuplogdown or :linlog"))
   if timeout < first(time)
     return concorigin
   elseif timeout > _tlast
@@ -35,7 +35,7 @@ function interpolateconc(nca::NCASubject, timeout::Number; interpmethod, concori
     time1 = ustrip(time[idx1]); time2 = ustrip(time[idx2])
     conc1 = ustrip(conc[idx1]); conc2 = ustrip(conc[idx2])
     timeout = ustrip(timeout)
-    m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, interpmethod)
+    m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, method)
     if m === Linear
       return (conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1))*oneunit(eltype(conc))
     else
