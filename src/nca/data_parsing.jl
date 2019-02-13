@@ -66,9 +66,9 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     end
     try
       NCASubject(concs[idx], times[idx]; id=id, dose=doses, concu=concu, timeu=timeu, kwargs...)
-    catch e
+    catch
       @info "ID $id errored"
-      throw(e)
+      rethrow()
     end
   end
   return NCAPopulation(ncas)

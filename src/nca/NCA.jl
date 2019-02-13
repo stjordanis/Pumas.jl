@@ -41,9 +41,9 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           else
             sol = $f(subj, args...; kwargs...)
           end
-        catch e
+        catch
           @info "ID $(subj.id) errored"
-          throw(e)
+          rethrow()
         end
         id_occ ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame($f=sol)
       end
@@ -78,7 +78,7 @@ for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluct
         subj = subject_at_ithdose(nca, i)
       catch e
         @info "Errored at $(i)th occasion"
-        throw(e)
+        rethrow()
       end
       $f(subj, args...; kwargs...)
     end
