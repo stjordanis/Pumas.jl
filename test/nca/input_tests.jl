@@ -12,7 +12,7 @@ end
 @test_throws ArgumentError NCA.checkconctime([1,2], Set([1,2]))
 @test_throws ArgumentError NCA.checkconctime([missing, true])
 @test_logs (:warn, "All concentration data is missing") NCA.checkconctime([missing, missing])
-@test_logs (:warn, "Negative concentrations found") NCA.checkconctime([missing, -1])
+@test_logs (:warn, "Negative concentrations found at index 1") NCA.checkconctime([missing, -1])
 
 @test_throws ArgumentError NCA.checkconctime([1,2], [missing, 2])
 @test_throws ArgumentError NCA.checkconctime([1,2], Set([1, 2]))
