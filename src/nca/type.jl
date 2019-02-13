@@ -21,9 +21,14 @@ Base.first(x::NCADose) = x
 
 # any changes in here must be reflected to ./simple.jl, too
 mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
-  id::ID # allow id to be non-int, e.g. 001-100-1001 or STUD011001
+  # allow id to be non-int, e.g. 001-100-1001 or STUD011001
+  id::ID
   conc::C
+  # `time` will be time after dose (TAD) for multiple dosing, and it will be in
+  # the form of [TAD₁, TAD₂, ..., TADₙ] where `TADᵢ` denotes the TAD for the
+  # `i`th dose, which is a vector. Hence, `time` could be a vector of vectors.
   time::T
+  # `abstime` is always a vector, and it leaves untouched except BLQ handling
   abstime::TT
   maxidx::I
   lastidx::I
@@ -51,6 +56,7 @@ function NCASubject(conc′, time′;
     time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
   end
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
+  abstime = time # leave `abstime` untouched
   unitconc = oneunit(eltype(conc))
   unittime = oneunit(eltype(time))
   llq === nothing && (llq = zero(unitconc))
@@ -60,7 +66,6 @@ function NCASubject(conc′, time′;
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
   multidose = T <: AbstractArray
-  abstime = time
   if multidose
     n = length(dose)
     ct = let time=time, dose=dose

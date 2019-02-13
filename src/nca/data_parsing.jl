@@ -10,6 +10,9 @@ holds an array of `NCASubject`s which can cache certain results to achieve
 efficient NCA calculation.
 """
 parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
+# TODO: add ploting time
+# TODO: infusion
+# TODO: plot time
 function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing,
                        concu=true, timeu=true, amtu=true, kwargs...)
