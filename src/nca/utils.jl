@@ -135,7 +135,9 @@ The meaning of each of the list elements is:
   conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check)
   isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
-  concblq === nothing && (concblq = :drop)
+  # the default is from
+  # https://github.com/billdenney/pknca/blob/38719483233d52533ac1d8f535c0016d2be70ae5/R/PKNCA.options.R#L78-L87
+  concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
