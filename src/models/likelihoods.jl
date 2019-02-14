@@ -180,7 +180,7 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
+  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), Laplace(), args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
@@ -271,7 +271,7 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
-  W = ForwardDiff.hessian(t -> conditional_nll(m, subject, x0, t, approx, args...; kwargs...), vy0)
+  W = ForwardDiff.hessian(s -> conditional_nll(m, subject, x0, s, approx, args...; kwargs...), vy0)
   return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + W))/2
 end
 
@@ -360,10 +360,10 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist[1][j]))
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    ForwardDiff.gradient!(f_res, t -> _mean(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    ForwardDiff.gradient!(f_res, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
     f = DiffResults.gradient(f_res)
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    ForwardDiff.gradient!(del_r_res, t -> _var(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    ForwardDiff.gradient!(del_r_res, s -> _var(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
     del_r = DiffResults.gradient(del_r_res)
     return f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
   end
@@ -384,7 +384,7 @@ end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
   r = var(dist0[1][1])
-  f = ForwardDiff.gradient(t -> _mean(m, subject, x0, (η=t,), 1, args..., kwargs...), vy0)
+  f = ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), 1, args...; kwargs...), vy0)
   fdr = f/r
   H = fdr*f'
   mean0 = _mean0(m, subject, x0, (η=vy0,), 1, args...; kwargs...)
@@ -392,7 +392,7 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
 
   for j in 2:length(subject.observations)
     r = var(dist0[1][j])
-    ForwardDiff.gradient!(f, t -> _mean(m, subject, x0, (η=t,), j, args..., kwargs...), vy0)
+    ForwardDiff.gradient!(f, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
     fdr = f/r
     H += fdr*f'
     mean0 = _mean0(m, subject, x0, (η=vy0,), j, args...; kwargs...)
@@ -421,7 +421,7 @@ function Distributions.fit(m::PKPDModel,
                                                                      g_tol=1e-5))
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
-  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx),
+  o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
   return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
