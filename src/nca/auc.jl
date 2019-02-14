@@ -154,6 +154,12 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
   else
     idx1, idx2 = firstindex(time), lastindex(time)
     auc = zero(auc)
+    # handle C0
+    time0 = zero(time[idx1])
+    c0′   = c0(nca; c0method=(:logslope, :c1))
+    if time[idx1] > time0
+      auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
+    end
   end
   if !isassigned(time, idx1+1) # if idx1+1 is not assigned
     idx1 = idx2 # no iteration
