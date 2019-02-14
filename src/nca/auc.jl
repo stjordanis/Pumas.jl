@@ -95,7 +95,7 @@ end
 function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf, ret_typ;
               auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
-  if interval === nothing
+  if interval === nothing && nca.method === method
     if auctype === :inf
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
@@ -176,6 +176,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
     else
       AUMC <: AbstractArray ? nca.aumc_last[1] = auc : nca.aumc_last = auc
     end
+    nca.method = method
   end
 
   # add the extrapolation part
