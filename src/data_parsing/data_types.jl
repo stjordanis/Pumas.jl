@@ -228,7 +228,7 @@ struct Subject{T1,T2,T3}
 
     ## Events
     idx_evt = setdiff(1:size(data, 1), idx_obs)
-    events = Event[]
+    events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
     n_amt = amt ∈ Names
     n_addl = addl ∈ Names
     n_ii = ii ∈ Names
