@@ -1,36 +1,13 @@
 variables:
-  CI_IMAGE_TAG: 'cuda'
+  JULIA_DEPOT_PATH: "$CI_PROJECT_DIR/.julia/"
 
-include:
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/common.yml'
-  # - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_v1.0.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_v1.1.yml'
-  # - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_dev.yml'
-  # - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/coverage_v1.1.yml'
-  # - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/documentation_v1.1.yml'
-
-# test:v1.0:
-#   only:
-#     - master
-#     - staging
-#     - trying
-
-# test:v1.1:
-#   only:
-#     - master
-#     - staging
-#     - trying
-
-# test:dev:
-#   allow_failure: true
-#   only:
-#     - master
-#     - staging
-#     - trying
-
-# coverage:
-#   allow_failure: true
-#   only:
-#     - master
-#     - staging
-#     - trying
+test:
+  image: "julia:1"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - mkdir $JULIA_DEPOT_PATH # Pkg3.jl#325
+    - julia --project -e 'using Pkg;
+                          Pkg.clone(pwd(), "PuMaS");
+                          Pkg.build("PuMaS");
+                          Pkg.test("PuMaS"; coverage=true);'
