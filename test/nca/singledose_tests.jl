@@ -66,11 +66,17 @@ ylg = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linear)
 @test NCA.lambdaz(yli, collect(x), slopetimes=(10:20) .* timeu) ≈ NCA.lambdaz(ylg, collect(x), slopetimes=(10:20) .* timeu) atol=1e-2/timeu
 @test NCA.auc(nca, interval=(t[end],Inf*timeu)) ≈ NCA.auc(nca) - NCA.auc(nca, auctype=:last) atol=1e-12*(concu*timeu)
-@test NCA.c0(ncapop[1]) == ncapop[1].conc[1]
-@test NCA.c0(nca, c0method=:set0) == zero(nca.conc[1])
-@test NCA.c0(ncapop[1], c0method=:c0) === ncapop[1].conc[1]
-@test NCA.c0(ncapop[1], c0method=:c1) === ncapop[1].conc[2]
-@test_nowarn NCA.c0(ncapop[1], c0method=:logslope)
+for n in (ncapop[1], nca) # with dose info and without dose info
+  @test NCA.c0(n) === ncapop[1].conc[1]
+  @test NCA.c0(n, c0method=:set0) === zero(nca.conc[1])
+  @test NCA.c0(n, c0method=:c0) === ncapop[1].conc[1]
+  @test NCA.c0(n, c0method=:c1) === ncapop[1].conc[2]
+  c1 = ustrip(conc[2])
+  c2 = ustrip(conc[3])
+  t1 = ustrip(t[2])
+  t2 = ustrip(t[3])
+  @test NCA.c0(n, c0method=:logslope) == exp(log(c1) - t1*(log(c2)-log(c1))/(t2-t1))*concu
+end
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)

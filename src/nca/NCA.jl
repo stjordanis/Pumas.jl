@@ -35,9 +35,9 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
     if ismultidose(pop)
       sol = map(enumerate(pop)) do (i, subj)
         try
-          if $f == mat
+          if $f in (mat, c0)
             _sol = $f(subj, args...; kwargs...)
-            sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `mat` as long as the other ones
+            sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `f` as long as the other ones
           else
             sol = $f(subj, args...; kwargs...)
           end
