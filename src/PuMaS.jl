@@ -20,6 +20,7 @@ include("models/simulated_observations.jl")
 include("models/model_api.jl")
 include("models/transforms.jl")
 include("models/likelihoods.jl")
+include("models/bayes.jl")
 
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")

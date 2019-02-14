@@ -8,4 +8,5 @@ using PuMaS, LinearAlgebra, Optim
 @time @safetestset "Theophylline"                                begin include("theophylline.jl")        end
 @time @safetestset "Wang"                                        begin include("wang.jl")                end
 @time @safetestset "Poisson"                                     begin include("poisson_model.jl")       end
+@time @safetestset "Bayes"                                       begin include("bayes.jl")       end
 end

@@ -19,13 +19,17 @@ The log pdf: this differs from `Distributions.logdpf` definintion in a couple of
 - if `d` is a `NamedTuple` of distributions, and `x` is a `NamedTuple` of observations, it computes the sum of the observed variables.
 """
 _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
+_lpdf(d::ConstDomain, x) = _lpdf(d.val, x)
 _lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
 _lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
+_lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   sum(keys(xs)) do k
     haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
   end
 end
+_lpdf(d::Domain, x) = 0.0
+
 
 """
     conditional_nll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
