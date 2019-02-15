@@ -42,6 +42,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   points::P
   auc_last::AUC
   aumc_last::AUMC
+  method::Symbol
 end
 
 """
@@ -86,7 +87,7 @@ function NCASubject(conc′, time′;
                         conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(0, n),
-                        fill(auc_proto, n), fill(aumc_proto, n))
+                        fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
@@ -97,7 +98,7 @@ function NCASubject(conc′, time′;
           Int, typeof(id)}(id,
             conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, 0,
-            auc_proto, aumc_proto)
+            auc_proto, aumc_proto, :___)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)

@@ -10,16 +10,16 @@ concu = u"mg/L"
 amtu  = u"mg"
 ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, iv="IV",
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
-@test_nowarn NCA.auc(ncapop)
+@test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
 @test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
 popncareport = NCAReport(ncapop, ithdose=1)
-@test_nowarn display(popncareport)
+@test_nowarn popncareport
 @test_broken display(NCA.to_markdown(popncareport))
-@test_nowarn display(NCA.to_dataframe(popncareport))
+@test_nowarn NCA.to_dataframe(popncareport)
 
 lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
 @test size(lambdazdf, 2) == 2
@@ -95,8 +95,8 @@ for m in (:linear, :linuplogdown, :linlog)
   @test NCA.aumc(conc[idx], t[idx], interval=interval) == [aumcinf for i in 1:3]
   @test NCA.auc(conc[idx], t[idx], interval=(0,Inf).*timeu) === aucinf
   @test NCA.aumc(conc[idx], t[idx], interval=(0,Inf).*timeu) === aumcinf
-  @test NCA.auc(conc[2:16], t[2:16], method=m) == NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], Inf*timeu))
-  @test NCA.auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf*timeu), auctype=:last) == NCA.auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:last)
+  @test NCA.auc(conc[2:16], t[2:16].-t[2], method=m) == NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], Inf*timeu))
+  @test NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], t[16])) ≈ NCA.auc(conc[2:16], t[2:16].-t[2], method=m, auctype=:last)
 
   auc10_in = NCA.auc(conc[idx], t[idx], interval=(0,23).*timeu) - NCA.auc(conc[idx], t[idx], interval=(10,23).*timeu)
   auc10_ex = NCA.auc(conc[idx], t[idx], interval=(0,50).*timeu) - NCA.auc(conc[idx], t[idx], interval=(10,50).*timeu)
@@ -127,7 +127,7 @@ fails = (6,)
 for i in 1:24
   idx = 16(i-1)+1:16*i
   dose = NCADose(0.0timeu, doses[i], NCA.IV)
-  nca = NCASubject(conc[idx], t[idx], dose=dose)
+  nca = ncapop[i]
   aucs = NCA.auc(nca, method=:linear)
   @test aucs === NCA.auc(conc[idx], t[idx], dose=dose, method=:linear)
   aumcs = NCA.aumc(nca, method=:linear)
@@ -165,7 +165,7 @@ for i in 1:24
   @test NCA.aumc_extrap_percent(nca) === NCA.aumc_extrap_percent(conc[idx], t[idx])
   @test NCA.auc_extrap_percent(nca) === NCA.auc_extrap_percent(conc[idx], t[idx])
   ncareport = @test_nowarn NCAReport(nca)
-  i == 1 && @test_nowarn display(ncareport)
+  i == 1 && @test_nowarn ncareport
   i == 1 && @test_nowarn display(NCA.to_markdown(ncareport))
-  i == 1 && @test_nowarn display(NCA.to_dataframe(ncareport))
+  i == 1 && @test_nowarn NCA.to_dataframe(ncareport)
 end

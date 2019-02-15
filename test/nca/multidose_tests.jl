@@ -11,6 +11,11 @@ amtu  = u"mg"
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
                                      iv="IV", timeu=timeu, concu=concu, amtu=amtu)
 
+# test caching
+@test_nowarn NCA.auc(mncapop)
+@test NCA.auc(mncapop[1]; method=:linear) != NCA.auc(mncapop[1]; method=:linlog)
+@test NCA.auc(mncapop[1]; method=:linear) != NCA.auc(mncapop[1]; method=:linuplogdown)
+
 lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test size(lambdazdf, 2) == 3
 @test lambdazdf[:lambdaz] isa Vector
@@ -37,11 +42,11 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.c0(mncapop[1], c0method=:set0) == zero(NCA.cmin(mncapop[1])[1])
 
 ncareport1 = NCAReport(mncapop[1], ithdose=1)
-@test_nowarn display(ncareport1)
+@test_nowarn ncareport1
 @test_nowarn display(NCA.to_markdown(ncareport1))
-@test_nowarn display(NCA.to_dataframe(ncareport1))
+@test_nowarn NCA.to_dataframe(ncareport1)
 
 popncareport = NCAReport(mncapop, ithdose=1)
-@test_nowarn display(popncareport)
+@test_nowarn popncareport
 @test_broken display(NCA.to_markdown(popncareport))
-@test_nowarn display(NCA.to_dataframe(popncareport))
+@test_nowarn NCA.to_dataframe(popncareport)
