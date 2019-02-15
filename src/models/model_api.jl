@@ -84,9 +84,9 @@ function _solve(m::PuMaSModel, subject, col, args...;
   m.prob === nothing && return nothing
   if tspan === nothing
     _tspan = timespan(subject)
-    if m.prob isa DiffEqBase.DEProblem && !(m.prob.tspan === (nothing, nothing))
-      _tspan = (min(_tspan[1], m.prob.tspan[1]),
-                max(_tspan[2], m.prob.tspan[2]))
+    if m.prob isa DiffEqBase.DEProblem && !(get_tspan(m.prob) === (nothing, nothing))
+      _tspan = (min(_tspan[1], get_tspan(m.prob)[1]),
+                max(_tspan[2], get_tspan(m.prob)[2]))
     end
     tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
     tspan = float.(tspan_tmp)
@@ -95,16 +95,32 @@ function _solve(m::PuMaSModel, subject, col, args...;
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-    mtmp = PuMaSModel(m.param,
-                     m.random,
-                     m.pre,
-                     m.init,
-                     remake(m.prob; p=col, u0=u0, tspan=tspan),
-                     m.derived,
-                     m.observed)
-    return _solve_diffeq(mtmp, subject, args...;kwargs...)
+    if typeof(m.prob) <: DiffEqBase.AbstractJumpProblem
+      _prob = remake(m.prob.prob; p=col, u0=u0, tspan=tspan)
+      _jump_prob = JumpProblem(_prob,m.prob.aggregator,m.prob.discrete_jump_aggregation,
+                               m.prob.jump_callback,m.prob.variable_jumps,
+                               m.prob.regular_jump,m.prob.massaction_jump)
+      mtmp = PuMaSModel(m.param,
+                        m.random,
+                        m.pre,
+                        m.init,
+                        _jump_prob,
+                        m.derived)
+      return _solve_diffeq(mtmp, subject, args...;kwargs...)
+    else
+      mtmp = PuMaSModel(m.param,
+                        m.random,
+                        m.pre,
+                        m.init,
+                        remake(m.prob; p=col, u0=u0, tspan=tspan),
+                        m.derived)
+      return _solve_diffeq(mtmp, subject, args...;kwargs...)
+    end
   end
 end
+
+get_tspan(prob::DiffEqBase.DEProblem) = prob.tspan
+get_tspan(prob::DiffEqJump.JumpProblem) = prob.prob.tspan
 
 """
 sample(d)

@@ -28,7 +28,7 @@ function affect1!(integrator)
 end
 jump1 = ConstantRateJump(rate1,affect1!)
 
-rate2(u,p,t) = (p.CL/p.V)*u[2]
+rate2(u,p,t) = 10000(p.CL/p.V)*u[1]
 function affect2!(integrator)
   integrator.u[2] -= 1
 end
@@ -50,4 +50,7 @@ fixeffs = init_fixeffs(model)
 randeffs = init_randeffs(model, fixeffs)
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
-sol  = solve(model,data,fixeffs,randeffs,FunctionMap())
+sol  = solve(model,data,fixeffs,randeffs,alg=FunctionMap())
+
+using Plots
+plot(sol)

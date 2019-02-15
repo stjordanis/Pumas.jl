@@ -27,7 +27,17 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
   inplace = DiffEqBase.isinplace(prob)
   new_f = make_function(prob,fd,inplace)
 
-  _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
+  if typeof(m.prob) <: DiffEqBase.AbstractJumpProblem
+    _prob = remake(m.prob.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
+    _jump_prob = JumpProblem(_prob,m.prob.aggregator,m.prob.discrete_jump_aggregation,
+                             m.prob.jump_callback,m.prob.variable_jumps,
+                             m.prob.regular_jump,m.prob.massaction_jump)
+    sol = solve(_jump_prob,alg,args...;
+                save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
+                tstops=tstops,   # extra times that the timestepping algorithm must step to
+                kwargs...)
+  else
+    _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
 
   sol = solve(_prob,alg,args...;
               saveat = saveat,
