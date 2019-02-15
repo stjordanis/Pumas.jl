@@ -92,6 +92,18 @@ function isaucinf(auctype, interval)
   interval === nothing ? auctype === :inf : !isfinite(interval[2])
 end
 
+function cacheauc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auclast, interval, method, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  if interval == nothing # only cache when interval is nothing
+    if isauc
+      AUC <: AbstractArray  ? nca.auc_last[1] = auclast  : nca.auc_last = auclast
+    else
+      AUMC <: AbstractArray ? nca.aumc_last[1] = auclast : nca.aumc_last = auclast
+    end
+    nca.method = method
+  end
+  nothing
+end
+
 function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf, ret_typ;
               auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
@@ -116,7 +128,9 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
   _tlast = tlast(nca)
   if ismissing(_clast)
     if all(x->x<=nca.llq, conc)
-      return zero(auc)
+      auc = zero(auc)
+      cacheauc(nca, auc, interval, method, isauc)
+      return auc
     else
       error("Unknown error with missing `tlast` but non-BLQ concentrations")
     end
@@ -176,14 +190,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
   end
 
   # cache results
-  if interval == nothing # only cache when interval is nothing
-    if isauc
-      AUC <: AbstractArray  ? nca.auc_last[1] = auc  : nca.auc_last = auc
-    else
-      AUMC <: AbstractArray ? nca.aumc_last[1] = auc : nca.aumc_last = auc
-    end
-    nca.method = method
-  end
+  cacheauc(nca, auc, interval, method, isauc)
 
   # add the extrapolation part
   if isaucinf(auctype, interval)
