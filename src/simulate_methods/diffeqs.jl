@@ -82,6 +82,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   ss_ii = Ref(-one(eltype(tstops)))
   ss_duration = Ref(-one(eltype(tstops)))
   ss_overlap_duration = Ref(-one(eltype(tstops)))
+  ss_idx = Ref(0)
   post_steady_state = Ref(false)
   ss_counter = Ref(0)
   ss_event_counter = Ref(0)
@@ -161,6 +162,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           ss_end[] = integrator.t + cur_ev.ii
           cur_ev.rate > 0 && (ss_rate_multiplier[] = 1 + round((_duration>cur_ev.ii)*(_duration ÷ cur_ev.ii)))
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
+          ss_idx[] = length(integrator.sol)
           ss_cache .= integrator.u
           ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
@@ -210,6 +212,23 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
               end
 
               f.f.rates_on = false
+
+              ## Handle DDE History
+              if ProbType <: DiffEqBase.DDEProblem
+                ## Manually erase history for reset
+                resize!(integrator.sol.u,ss_idx[])
+                resize!(integrator.sol.t,ss_idx[])
+                resize!(integrator.sol.k,ss_idx[])
+                resize!(integrator.integrator.sol.u,ss_idx[])
+                resize!(integrator.integrator.sol.t,ss_idx[])
+                resize!(integrator.integrator.sol.k,ss_idx[])
+                integrator.saveiter = ss_idx[]
+                integrator.integrator.saveiter = ss_idx[]
+                if integrator.sol isa OrdinaryDiffEq.ODECompositeSolution
+                  resize!(integrator.sol.alg_choice,ss_idx[])
+                  resize!(integrator.integrator.sol.alg_choice,ss_idx[])
+                end
+              end
             end
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
