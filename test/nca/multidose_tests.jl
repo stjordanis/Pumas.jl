@@ -11,6 +11,11 @@ amtu  = u"mg"
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
                                      iv="IV", timeu=timeu, concu=concu, amtu=amtu)
 
+# test caching
+@test_nowarn NCA.auc(mncapop)
+@test NCA.auc(mncapop[1]; method=:linear) != NCA.auc(mncapop[1]; method=:linlog)
+@test NCA.auc(mncapop[1]; method=:linear) != NCA.auc(mncapop[1]; method=:linuplogdown)
+
 lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test size(lambdazdf, 2) == 3
 @test lambdazdf[:lambdaz] isa Vector

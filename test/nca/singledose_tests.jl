@@ -95,8 +95,8 @@ for m in (:linear, :linuplogdown, :linlog)
   @test NCA.aumc(conc[idx], t[idx], interval=interval) == [aumcinf for i in 1:3]
   @test NCA.auc(conc[idx], t[idx], interval=(0,Inf).*timeu) === aucinf
   @test NCA.aumc(conc[idx], t[idx], interval=(0,Inf).*timeu) === aumcinf
-  @test NCA.auc(conc[2:16], t[2:16], method=m) == NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], Inf*timeu))
-  @test NCA.auc(conc[2:16], t[2:16], method=m, interval=(t[2], Inf*timeu), auctype=:last) == NCA.auc(conc[2:16], t[2:16], method=m, interval=(t[2], t[16]), auctype=:last)
+  @test NCA.auc(conc[2:16], t[2:16].-t[2], method=m) == NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], Inf*timeu))
+  @test NCA.auc(conc[idx], t[idx], method=m, interval=(t[2], t[16])) ≈ NCA.auc(conc[2:16], t[2:16].-t[2], method=m, auctype=:last)
 
   auc10_in = NCA.auc(conc[idx], t[idx], interval=(0,23).*timeu) - NCA.auc(conc[idx], t[idx], interval=(10,23).*timeu)
   auc10_ex = NCA.auc(conc[idx], t[idx], interval=(0,50).*timeu) - NCA.auc(conc[idx], t[idx], interval=(10,50).*timeu)
