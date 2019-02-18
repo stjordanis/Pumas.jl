@@ -209,7 +209,8 @@ struct Subject{T1,T2,T3}
   events::T3
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
-                   cvs = Symbol[], dvs = Symbol[:dv])
+                   cvs = Symbol[], dvs = Symbol[:dv],
+                   event_data = false)
     ## Observations
     idx_obs = findall(iszero, data[evid])
     obs_times = data[time][idx_obs]
@@ -222,6 +223,7 @@ struct Subject{T1,T2,T3}
     # cmt handling should be reversed: it should give it the appropriate name given cmt
     # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
     observations = Observation.(obs_times, obs_dvs)
+    @assert issorted(observations, by = x -> x.time) "Time is not monotonically increasing within subject"
 
     ## Covariates
     covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
@@ -248,9 +250,9 @@ struct Subject{T1,T2,T3}
       for j = 0:_addl  # addl==0 means just once
         _ss = iszero(j) ? ss′ : zero(Int8)
         duration = isa(_rate, Nothing) ? Inf : _amt/_rate
-        @assert _amt != zero(_amt) || _ss == 1 || _evid == 2
+        event_data && @assert _amt != zero(_amt) || _ss == 1 || _evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
         if _amt == zero(_amt) && _evid != 2
-          @assert _rate > zero(_rate)
+          event_data && @assert _rate > zero(_rate) "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
           # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
           # Such an event consists of infusion with the stated rate,
           # starting at time −∞, and ending at the time on the dose
@@ -274,10 +276,11 @@ struct Subject{T1,T2,T3}
   function Subject(;id = 1,
                    obs = Observation[],
                    cvs = nothing,
-                   evs = Event[])
+                   evs = Event[],
+                   event_data = false)
     obs = build_observation_list(obs)
-    evs = build_event_list(evs)
-    return new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
+    evs = build_event_list(evs, event_data)
+    new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
   end
 end
 

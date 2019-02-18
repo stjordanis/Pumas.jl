@@ -37,18 +37,20 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(filename, cvs=[], dvs=[:dv])
-    process_nmtran(data, cvs=[], dvs=[:dv])
+    process_nmtran(filename, cvs=[], dvs=[:dv], event_data = false)
+    process_nmtran(data, cvs=[], dvs=[:dv], event_data = false)
 
 Import NMTRAN-formatted data.
 
 - `cvs` covariates specified by either names or column numbers
 - `dvs` dependent variables specified by either names or column numbers
-
+- `event_data` activates assertions applicable to event data
 """
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
+                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                        event_data = false)
+  data = copy(data)
   Names = names(data)
 
   if id ∉ Names
@@ -68,9 +70,12 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   end
   Population(Subject.(groupby(data, :id), Ref(Names),
                       id, time, evid, amt, addl, ii, cmt, rate, ss,
-                      Ref(cvs), Ref(dvs)))
+                      Ref(cvs), Ref(dvs), event_data))
 end
-build_observation_list(obs::AbstractVector{<:Observation}) = obs
+function build_observation_list(obs::AbstractVector{<:Observation})
+  @assert issorted(obs, by = x -> x.time) "Time is not monotonically increasing within subject"
+  obs
+end
 function build_observation_list(obs::AbstractDataFrame)
   isempty(obs) && return Observation[]
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
@@ -81,14 +86,15 @@ function build_observation_list(obs::AbstractDataFrame)
   else
     time = float(time)
   end
-  return Observation.(time,
-                      NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
+  @assert issorted(time) "Time is not monotonically increasing within subject"
+  Observation.(time,
+               NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
 end
 
-build_event_list(evs::AbstractVector{<:Event}) = evs
-function build_event_list(regimen::DosageRegimen)
-  data = getfield(regimen, :data)
-  events = []
+build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
+function build_event_list(regimen::DosageRegimen, event_data::Bool)
+  data = regimen.data
+  events = Event[]
   for i in 1:size(data, 1)
     t    = data[:time][i]
     evid = data[:evid][i]
@@ -102,9 +108,9 @@ function build_event_list(regimen::DosageRegimen)
     for j = 0:addl  # addl==0 means just once
       _ss = iszero(j) ? ss : zero(Int8)
       duration = amt/rate
-      @assert amt != zero(amt) || _ss == 1 || evid == 2
+      event_data && @assert amt != zero(amt) || _ss == 1 || evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
       if iszero(amt) && evid != 2
-        @assert rate > zero(rate)
+        event_data && @assert rate > zero(rate) "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
         # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
         # Such an event consists of infusion with the stated rate,
         # starting at time −∞, and ending at the time on the dose
