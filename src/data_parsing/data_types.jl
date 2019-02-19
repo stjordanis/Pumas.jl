@@ -210,7 +210,7 @@ struct Subject{T1,T2,T3}
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
                    cvs = Symbol[], dvs = Symbol[:dv],
-                   event_data = false)
+                   event_data = true)
     ## Observations
     idx_obs = findall(iszero, data[evid])
     obs_times = data[time][idx_obs]
@@ -277,7 +277,7 @@ struct Subject{T1,T2,T3}
                    obs = Observation[],
                    cvs = nothing,
                    evs = Event[],
-                   event_data = false)
+                   event_data = true)
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
     new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)

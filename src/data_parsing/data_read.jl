@@ -37,19 +37,19 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(filename, cvs=[], dvs=[:dv], event_data = false)
-    process_nmtran(data, cvs=[], dvs=[:dv], event_data = false)
+    process_nmtran(filename, cvs=[], dvs=[:dv], event_data = true)
+    process_nmtran(data, cvs=[], dvs=[:dv], event_data = true)
 
 Import NMTRAN-formatted data.
 
 - `cvs` covariates specified by either names or column numbers
 - `dvs` dependent variables specified by either names or column numbers
-- `event_data` activates assertions applicable to event data
+- `event_data` toggles assertions applicable to event data
 """
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
-                        event_data = false)
+                        event_data = true)
   data = copy(data)
   Names = names(data)
 

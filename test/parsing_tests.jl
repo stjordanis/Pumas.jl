@@ -38,8 +38,8 @@ end
 end
 @testset "event_data" begin
   data = DataFrame(time = [0, 1, 2, 2], amt = zeros(4), dv = rand(4), evid = 1)
-  @test isa(process_nmtran(data), Population)
-  @test_throws AssertionError process_nmtran(data, event_data = true)
+  @test_throws AssertionError process_nmtran(data)
+  @test isa(process_nmtran(data, event_data = false), Population)
 end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)
