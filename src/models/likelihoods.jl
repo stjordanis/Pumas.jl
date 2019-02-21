@@ -60,7 +60,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     path = solution.(obstimes, continuity=:right)
 
     # if solution contains NaN return Inf
-    if any(isnan, last(path))
+    if any(isnan, last(path)) || solution.retcode != :Success
       # FIXME! Do we need to make this type stable?
       return Inf, nothing, nothing
     end
