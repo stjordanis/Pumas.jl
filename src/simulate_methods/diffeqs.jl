@@ -13,6 +13,9 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
     Tu0 = convert.(T,u0)
   end
 
+  @show u0
+  @show zero(u0)./oneunit(eltype(tspan)
+
   # build a "modified" problem using DiffEqWrapper
   fd = DiffEqWrapper(prob.f.f, 0, zero(u0)./oneunit(eltype(tspan)))
   ft = DiffEqBase.parameterless_type(typeof(prob.f))
@@ -409,6 +412,7 @@ end
 
 
 function subject_cb_initialize!(cb,t,u,integrator)
+  @show cb
   if cb.condition(t,u,integrator)
     cb.affect!(integrator)
     u_modified!(integrator,true)

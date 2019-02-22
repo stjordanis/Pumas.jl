@@ -51,7 +51,7 @@ fixeffs = init_fixeffs(model)
 randeffs = init_randeffs(model, fixeffs)
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
-sol  = solve(model,data,fixeffs,randeffs,Tsit5())
+sol  = solve(model,data,fixeffs,randeffs,alg=Tsit5())
 
 #data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 #sol  = simulate(pkpd,θ,η,data,Tsit5())
