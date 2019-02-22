@@ -24,7 +24,7 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; save_discont=tr
   prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
   # Remake problem of correct type
-  inplace = !(u0 isa StaticArray)
+  inplace = DiffEqBase.isinplace(prob)
   new_f = make_function(prob,fd,inplace)
 
   _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
