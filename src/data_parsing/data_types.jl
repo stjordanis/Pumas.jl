@@ -12,15 +12,16 @@ Fields
 """
 struct Observation{T,V}
   time::T
-  val::V
+  vals::V
 end
 Base.summary(::Observation) = "Observation"
 function Base.show(io::IO, o::Observation)
   println(io, summary(o))
-  println(io, "  time of measurement = $(o.time)")
+  foreach(v -> println(io, "$v "),
+          o.time)
   println(io, "  measurements")
-  foreach(v -> println(io, "    $(v) = $(getfield(o.val, v))"),
-          fieldnames(typeof(o.val)))
+  foreach(v -> println(io, "$v "),
+          o.vals)
 end
 TreeViews.hastreeview(::Observation) = true
 function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
@@ -222,8 +223,8 @@ struct Subject{T1,T2,T3}
     obs_dvs = isempty(dvs) ? nothing : map((x...) -> Tdv(x), dv_idx...)
     # cmt handling should be reversed: it should give it the appropriate name given cmt
     # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
-    observations = Observation.(obs_times, obs_dvs)
-    @assert issorted(observations, by = x -> x.time) "Time is not monotonically increasing within subject"
+    observations = Observation(obs_times, obs_dvs)
+    @assert issorted(observations.time) "Time is not monotonically increasing within subject"
 
     ## Covariates
     covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
@@ -297,7 +298,7 @@ function Base.show(io::IO, subject::Subject)
           join(fieldnames(typeof(subject.covariates)),", "))
   !isempty(subject.observations) &&
   println(io, "  Observables: ",
-          join(fieldnames(typeof(subject.observations[1].val)),", "))
+          join(fieldnames(typeof(subject.observations.vals[i])),", "))
   return nothing
 end
 TreeViews.hastreeview(::Subject) = true
@@ -308,7 +309,7 @@ end
 function timespan(sub::Subject)
   lo, hi = extrema(evt.time for evt in sub.events)
   if !isempty(sub.observations)
-    obs_lo, obs_hi = extrema(obs.time for obs in sub.observations)
+    obs_lo, obs_hi = extrema(sub.observations.time)
     lo = min(lo, obs_lo)
     hi = max(hi, obs_hi)
   end
@@ -316,7 +317,7 @@ function timespan(sub::Subject)
 end
 
 observationtimes(sub::Subject) = isempty(sub.observations) ? (0.0:1.0:(sub.events[end].time+24.0)) :
-                                 [obs.time for obs in sub.observations]
+                                 sub.observations.time
 
 """
     Population(::AbstractVector{<:Subject})
@@ -340,7 +341,7 @@ function Base.show(io::IO, data::Population)
     co = data.subjects[1].covariates
     co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
     obs = data.subjects[1].observations
-    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1].val)),", "))
+    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs.vals[1])),", "))
   end
   return nothing
 end

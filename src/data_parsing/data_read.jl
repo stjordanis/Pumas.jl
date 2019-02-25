@@ -74,12 +74,12 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                       id, time, evid, amt, addl, ii, cmt, rate, ss,
                       Ref(cvs), Ref(dvs), event_data))
 end
-function build_observation_list(obs::AbstractVector{<:Observation})
-  @assert issorted(obs, by = x -> x.time) "Time is not monotonically increasing within subject"
+function build_observation_list(obs::Observation)
+  @assert issorted(obs) "Time is not monotonically increasing within subject"
   obs
 end
 function build_observation_list(obs::AbstractDataFrame)
-  isempty(obs) && return Observation[]
+  isempty(obs) && return Observation
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
   time = obs[:time]
   vars = setdiff(names(obs), (:time, :cmt))
@@ -89,7 +89,7 @@ function build_observation_list(obs::AbstractDataFrame)
     time = float(time)
   end
   @assert issorted(time) "Time is not monotonically increasing within subject"
-  Observation.(time,
+  Observation(time,
                NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
 end
 

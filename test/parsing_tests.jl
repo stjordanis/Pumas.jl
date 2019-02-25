@@ -33,8 +33,7 @@ end
   @test isa(process_nmtran(data), Population)
   append!(data, DataFrame(time = 1, dv = rand(), evid = 0))
   @test_throws AssertionError process_nmtran(data)
-  @test_throws AssertionError Subject(obs = [ PuMaS.Observation(t, (x = x,)) for (t, x)
-                                              ∈ zip(1:-1:0, 2:3) ])
+  @test_throws AssertionError Subject(obs = PuMaS.Observation(collect(1:-1:0), [(x = x,) for x in 2:3]))
 end
 @testset "event_data" begin
   data = DataFrame(time = [0, 1, 2, 2], amt = zeros(4), dv = rand(4), evid = 1)
