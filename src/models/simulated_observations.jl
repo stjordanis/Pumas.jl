@@ -1,11 +1,12 @@
-struct SimulatedObservations{S,T,T2}
+struct SimulatedObservations{S,T,TAD,T2}
   subject::S
   times::T
-  time_after_doses::T
+  time_after_doses::TAD
   derived::T2
   function SimulatedObservations(subject::S, times::T,
     derived::T2) where {S,T,T2}
-    new{S,T,T2}(subject, times, tad(times, subject.events), derived)
+    time_after_doses = tad(times, subject.events)
+    new{S,T,typeof(time_after_doses),T2}(subject,times,time_after_doses,derived)
   end
 end
 
