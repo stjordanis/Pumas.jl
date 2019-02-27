@@ -462,13 +462,13 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
     yi_i = sims[i]
     covm_yi .+= (yi_i .- mean_yi)*(yi_i .- mean_yi)' 
   end
-  covm_yi = inv(covm_yi/(nsim-1))
-  yi_decorr = ((covm_yi)^0.5)*(yi .- mean_yi)
+  covm_yi = inv(covm_yi/(nsim-1))^0.5
+  yi_decorr = (covm_yi)*(yi .- mean_yi)
   phi = 0
   for i in 1:nsim
     yi_i = sims[i]
-    yi_decorr_i = ((covm_yi)^0.5)*(yi_i .- mean_yi)
-    phi = yi_decorr_i>yi_decorr ? phi : phi+1
+    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
+    phi = yi_decorr_i>=yi_decorr ? phi : phi+1
   end
   phi = phi/nsim
   cdf(Normal(0,1),phi)
