@@ -463,6 +463,7 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
     covm_yi .+= (yi_i .- mean_yi)*(yi_i .- mean_yi)' 
   end
   covm_yi = inv(covm_yi/(nsim-1))^0.5
+  println(cov)
   yi_decorr = (covm_yi)*(yi .- mean_yi)
   phi = 0
   for i in 1:nsim
@@ -471,5 +472,5 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
     phi = yi_decorr_i>=yi_decorr ? phi : phi+1
   end
   phi = phi/nsim
-  cdf(Normal(0,1),phi)
+  invlogcdf(Normal(0,1),log(phi))
 end
