@@ -24,7 +24,7 @@ using PuMaS, Test, CSV
   end
 end
 @testset "Time Variant Covariates" begin
-  data = process_nmtran(example_nmtran_data("time_variant_cvs"), [:weight, :dih])
+  data = process_nmtran(example_nmtran_data("time_varying_covariates"), [:weight, :dih])
   @test data[1].covariates.weight |> (x -> isa(x, Vector{Int}) && length(x) == 9)
   @test data[1].covariates.dih == 2
 end
