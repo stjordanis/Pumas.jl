@@ -450,19 +450,24 @@ marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f
 marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
 
 function residual_diagnostic(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
-  yi = [obs.val for obs in subject.observations]
+  yi = [obs.val.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim
     l,vals,dist = conditional_nll_ext(m, subject, x0, (η=vy0,))
-    push!(sims, [getfield(vals,v) for v in fieldnames(typeof(vals))])
+    push!(sims, vals.dv)
   end
-  mean_arr = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  var_arr = inv([cov(sims[:][i]) for i in 1:length(sims[1])])
-  yi_decorr = (var_arr^0.5)*(yi .- mean_arr)
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  covm_yi = zeros(length(mean_yi),length(mean_yi))
+  for i in 1:nsim
+    yi_i = sims[i]
+    covm_yi .+= (yi_i .- mean_yi)*(yi_i .- mean_yi)' 
+  end
+  covm_yi = inv(covm_yi/(nsim-1))
+  yi_decorr = ((covm_yi)^0.5)*(yi .- mean_yi)
   phi = 0
   for i in 1:nsim
-    yi_i = sim[i]
-    yi_decorr_i = (var_arr^0.5)*(yi .- mean_arr)
+    yi_i = sims[i]
+    yi_decorr_i = ((covm_yi)^0.5)*(yi_i .- mean_yi)
     phi = yi_decorr_i>yi_decorr ? phi : phi+1
   end
   phi = phi/nsim
