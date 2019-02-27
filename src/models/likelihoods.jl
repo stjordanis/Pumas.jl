@@ -449,7 +449,7 @@ end
 marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
 marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
 
-function residual_diagnostic(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
+function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
   yi = [obs.val.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim

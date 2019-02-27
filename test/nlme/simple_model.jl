@@ -55,4 +55,4 @@ x0 = init_param(mdsl1)
 # @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
 
 ηstar = [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361]
-println(residual_diagnostic(mdsl1,data[1],x0,ηstar,100))
+println(npde(mdsl1,data[1],x0,ηstar,100))
