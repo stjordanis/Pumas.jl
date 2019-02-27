@@ -33,7 +33,11 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(data, cvs=[], dvs=[:dv], event_data = true)
+    process_nmtran(filepath::String, args...; kwargs...)
+    process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
+                   id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                   ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                   event_data = true)
 
 Import NMTRAN-formatted data.
 
@@ -41,13 +45,13 @@ Import NMTRAN-formatted data.
 - `dvs` dependent variables specified by either names or column numbers
 - `event_data` toggles assertions applicable to event data
 """
+function process_nmtran(filepath::AbstractString, args...; kwargs...)
+  process_nmtran(CSV.read(filepath), args...; kwargs...)
+end
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
                         event_data = true)
-  if isa(data, AbstractString)
-    data = CSV.read(data)
-  end
   data = copy(data)
   Names = names(data)
 
