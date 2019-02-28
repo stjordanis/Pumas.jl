@@ -94,10 +94,10 @@ sim = simobs(m23, subject, x0, y0, abstol=1e-12,reltol=1e-12, continuity=:left)
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 
-@test sim[:ev1][inds] ≈ [obs.val.ev1 for obs in subject.observations][inds]
-@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
-@test sim[:periph] ≈ [obs.val.periph for obs in subject.observations]  rtol=1e-6
-@test sim[:resp] ≈ [obs.val.resp for obs in subject.observations] rtol=1e-6
+@test sim[:ev1][inds] ≈ subject.observations.ev1[inds]
+@test sim[:cp] ≈ subject.observations.cp rtol=1e-6
+@test sim[:periph] ≈ subject.observations.periph rtol=1e-6
+@test sim[:resp] ≈ subject.observations.resp rtol=1e-6
 
 # Indirect Response Model (irm2)
 
@@ -180,7 +180,7 @@ sim = simobs(m24, subject, x0, y0, abstol=1e-12,reltol=1e-12, continuity=:left)
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 
-@test sim[:ev1][inds] ≈ [obs.val.ev1 for obs in subject.observations][inds]
-@test sim[:cp] ≈ [obs.val.cp for obs in subject.observations] rtol=1e-6
-@test sim[:periph] ≈ [obs.val.periph for obs in subject.observations]  rtol=1e-6
-@test sim[:resp] ≈ [obs.val.resp for obs in subject.observations] rtol=1e-6
+@test sim[:ev1][inds] ≈ subject.observations.ev1[inds]
+@test sim[:cp] ≈ subject.observations.cp rtol=1e-6
+@test sim[:periph] ≈ subject.observations.periph  rtol=1e-6
+@test sim[:resp] ≈ subject.observations.resp rtol=1e-6

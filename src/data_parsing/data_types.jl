@@ -1,34 +1,6 @@
 ## Types
 
 """
-    Observation
-
-A single measurement at a point in time.
-
-Fields
-- `time`: Time of measurement
-- `val`: value of measurement; this will typically be a named tuple.
-- `cmt`: Compartment from which measurement was taken
-"""
-struct Observation{T,V}
-  time::T
-  vals::V
-end
-Base.summary(::Observation) = "Observation"
-function Base.show(io::IO, o::Observation)
-  println(io, summary(o))
-  foreach(v -> println(io, "$v "),
-          o.time)
-  println(io, "  measurements")
-  foreach(v -> println(io, "$v "),
-          o.vals)
-end
-TreeViews.hastreeview(::Observation) = true
-function TreeViews.treelabel(io::IO, o::Observation, mime::MIME"text/plain")
-  show(io, mime, Text(summary(o)))
-end
-
-"""
     Formulation
 
 Type of formulations. There are IV (intravenous) and EV (extravascular).
@@ -199,15 +171,18 @@ The data corresponding to a single subject:
 
 Fields:
 - `id::Int`: numerical identifier
-- `observations`: a vector of `Observation`s
+- `observations`: a StructArray of the dependent variables
 - `covariates`: a named tuple containing the covariates, or `nothing`.
 - `events`: a vector of `Event`s.
+- `time`: a vector of time stamps for the observations
 """
-struct Subject{T1,T2,T3}
+struct Subject{T1<:StructArray,T2,T3,T4}
   id::Int
   observations::T1
   covariates::T2
   events::T3
+  time::Vector{T4}
+
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
                    cvs = Symbol[], dvs = Symbol[:dv],
@@ -215,16 +190,19 @@ struct Subject{T1,T2,T3}
     ## Observations
     idx_obs = findall(iszero, data[evid])
     obs_times = data[time][idx_obs]
+    @assert issorted(obs_times) "Time is not monotonically increasing within subject"
+    if isa(obs_times, Unitful.Time)
+      _obs_times = convert.(Float64, getfield(uconvert.(u"hr", obs_times), :val))
+    else
+      _obs_times = float(obs_times)
+    end
 
-    dv_idx = [ data[dv][idx_obs] for dv in dvs]
+    dv_idx_tuple = ntuple(i -> convert(AbstractVector{Float64}, data[dvs[i]][idx_obs]), length(dvs))
+    dv_idx = NamedTuple{tuple(dvs...),typeof(dv_idx_tuple)}(dv_idx_tuple)
 
-    Tdv = isempty(dvs) ? Nothing : NamedTuple{(dvs...,),NTuple{length(dvs),Float64}}
-
-    obs_dvs = isempty(dvs) ? nothing : map((x...) -> Tdv(x), dv_idx...)
     # cmt handling should be reversed: it should give it the appropriate name given cmt
     # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
-    observations = Observation(obs_times, obs_dvs)
-    @assert issorted(observations.time) "Time is not monotonically increasing within subject"
+    observations = StructArray(dv_idx)
 
     ## Covariates
     covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
@@ -271,17 +249,19 @@ struct Subject{T1,T2,T3}
       end
     end
     sort!(events)
-    new{typeof(observations),typeof(covariates),typeof(events)}(
-        first(data[id]), observations, covariates, events)
+    new{typeof(observations),typeof(covariates),typeof(events),eltype(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
   end
+
   function Subject(;id = 1,
-                   obs = Observation[],
+                   obs = StructArray(NamedTuple{(),Tuple{}}[]),
                    cvs = nothing,
                    evs = Event[],
-                   event_data = true)
+                   time = obs isa AbstractDataFrame ? obs.time : range(0, length=length(obs)),
+                   event_data = true,)
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
-    new{typeof(obs),typeof(cvs),typeof(evs)}(id, obs, cvs, evs)
+    @assert issorted(time) "Time is not monotonically increasing within subject"
+    new{typeof(obs),typeof(cvs),typeof(evs),eltype(time)}(id, obs, cvs, evs, time)
   end
 end
 
@@ -298,7 +278,7 @@ function Base.show(io::IO, subject::Subject)
           join(fieldnames(typeof(subject.covariates)),", "))
   !isempty(subject.observations) &&
   println(io, "  Observables: ",
-          join(fieldnames(typeof(subject.observations.vals[i])),", "))
+          join(fieldnames(typeof(subject.observations[1])),", "))
   return nothing
 end
 TreeViews.hastreeview(::Subject) = true
@@ -309,15 +289,14 @@ end
 function timespan(sub::Subject)
   lo, hi = extrema(evt.time for evt in sub.events)
   if !isempty(sub.observations)
-    obs_lo, obs_hi = extrema(sub.observations.time)
+    obs_lo, obs_hi = extrema(sub.time)
     lo = min(lo, obs_lo)
     hi = max(hi, obs_hi)
   end
   lo, hi
 end
 
-observationtimes(sub::Subject) = isempty(sub.observations) ? (0.0:1.0:(sub.events[end].time+24.0)) :
-                                 sub.observations.time
+observationtimes(sub::Subject) = isempty(sub.observations) ? (0.0:1.0:(sub.events[end].time+24.0)) : sub.time
 
 """
     Population(::AbstractVector{<:Subject})
@@ -341,7 +320,7 @@ function Base.show(io::IO, data::Population)
     co = data.subjects[1].covariates
     co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
     obs = data.subjects[1].observations
-    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs.vals[1])),", "))
+    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1])),", "))
   end
   return nothing
 end

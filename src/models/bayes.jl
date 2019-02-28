@@ -1,4 +1,4 @@
-using LogDensityProblems, DynamicHMC, StructArrays
+using LogDensityProblems, DynamicHMC
 import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
 
 
