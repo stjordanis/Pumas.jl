@@ -459,7 +459,6 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
   covm_yi = cov(sims)
   covm_yi = sqrt(inv(covm_yi))
-  # println(cov)
   yi_decorr = (covm_yi)*(yi .- mean_yi)
   phi = []
   for i in 1:nsim
@@ -468,5 +467,13 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
     push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
   end
   phi = sum(phi)/nsim
-  [quantile(Normal(),phi[1]),quantile(Normal(),phi[2])]
+  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
+end
+
+function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
+  yi = [obs.val.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  var_yi = inv.(var.(dist0[1]))
+  [sqrt(var_yi[i])*(yi[i] .- mean_yi[i]) for i in 1:length(subject.observations)]    
 end
