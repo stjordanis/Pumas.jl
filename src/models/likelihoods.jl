@@ -449,7 +449,7 @@ end
 marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
 marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
 
-function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
+function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
   yi = [obs.val.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim
@@ -470,7 +470,7 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
 end
 
-function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector,nsim)
+function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
   yi = [obs.val.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   mean_yi = (mean.(dist0[1]))
