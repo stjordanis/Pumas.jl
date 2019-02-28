@@ -453,8 +453,8 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   yi = [obs.val.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim
-    l,vals,dist = conditional_nll_ext(m, subject, x0, (η=vy0,))
-    push!(sims, vals.dv)
+    vals = simobs(m, subject, x0, (η=vy0,))
+    push!(sims, vals.derived.dv)
   end
   mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
   covm_yi = cov(sims)
