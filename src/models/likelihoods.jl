@@ -453,18 +453,18 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   yi = [obs.val.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim
-    vals = simobs(m, subject, x0, (η=vy0,))
+    vals = simobs(m, subject, x0)
     push!(sims, vals.derived.dv)
   end
   mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
   covm_yi = cov(sims)
-  covm_yi = (covm_yi)^0.5
+  covm_yi = sqrt(inv(covm_yi))
   # println(cov)
-  yi_decorr = (covm_yi)\(yi .- mean_yi)
+  yi_decorr = (covm_yi)*(yi .- mean_yi)
   phi = []
   for i in 1:nsim
     yi_i = sims[i]
-    yi_decorr_i = (covm_yi)\(yi_i .- mean_yi)
+    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
     push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
   end
   phi = sum(phi)/nsim
