@@ -457,20 +457,16 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
     push!(sims, vals.dv)
   end
   mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  covm_yi = zeros(length(mean_yi),length(mean_yi))
+  covm_yi = cov(sims)
+  covm_yi = (covm_yi)^0.5
+  # println(cov)
+  yi_decorr = (covm_yi)\(yi .- mean_yi)
+  phi = []
   for i in 1:nsim
     yi_i = sims[i]
-    covm_yi .+= (yi_i .- mean_yi)*(yi_i .- mean_yi)' 
+    yi_decorr_i = (covm_yi)\(yi_i .- mean_yi)
+    push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
   end
-  covm_yi = inv(covm_yi/(nsim-1))^0.5
-  println(cov)
-  yi_decorr = (covm_yi)*(yi .- mean_yi)
-  phi = 0
-  for i in 1:nsim
-    yi_i = sims[i]
-    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
-    phi = yi_decorr_i>=yi_decorr ? phi : phi+1
-  end
-  phi = phi/nsim
-  invlogcdf(Normal(0,1),log(phi))
+  phi = sum(phi)/nsim
+  [quantile(Normal(),phi[1]),quantile(Normal(),phi[2])]
 end
