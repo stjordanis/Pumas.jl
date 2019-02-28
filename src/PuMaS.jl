@@ -36,8 +36,6 @@ include("nca/NCA.jl")
 
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
 
-OrdinaryDiffEq._reshape(x,y) = x
-
 export Subject, Population, process_nmtran, DosageRegimen
 export PKPDModel, init_param, init_random, rand_random,
        simobs, pre, simpost
