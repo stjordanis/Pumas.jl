@@ -189,7 +189,7 @@ struct Subject{T1<:StructArray,T2,T3,T4}
                    event_data = true)
     ## Observations
     idx_obs = findall(iszero, data[evid])
-    obs_times = data[time][idx_obs]
+    obs_times = Missings.disallowmissing(data[time][idx_obs])
     @assert issorted(obs_times) "Time is not monotonically increasing within subject"
     if isa(obs_times, Unitful.Time)
       _obs_times = convert.(Float64, getfield(uconvert.(u"hr", obs_times), :val))
@@ -260,8 +260,9 @@ struct Subject{T1<:StructArray,T2,T3,T4}
                    event_data = true,)
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
-    @assert issorted(time) "Time is not monotonically increasing within subject"
-    new{typeof(obs),typeof(cvs),typeof(evs),eltype(time)}(id, obs, cvs, evs, time)
+    _time = Missings.disallowmissing(time)
+    @assert issorted(_time) "Time is not monotonically increasing within subject"
+    new{typeof(obs),typeof(cvs),typeof(evs),eltype(_time)}(id, obs, cvs, evs, _time)
   end
 end
 
