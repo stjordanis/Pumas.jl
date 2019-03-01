@@ -2,14 +2,16 @@ function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args.
   f = m.prob
 
   # we don't want to promote units
-  if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
-    Tu0 = map(float, u0)
-    Ttspan = map(float, tspan)
-  else
+  # if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
+  #   Tu0 = map(float, u0)
+  #   Ttspan = map(float, tspan)
+  # else
     T = promote_type(numtype(col), numtype(u0), numtype(tspan))
     Tu0 = convert.(T,u0)
-    Ttspan = convert.(T,tspan)
-  end
+  #   # Ttspan = convert.(T,tspan)
+  #   Ttspan = tspan
+  # end
+  Ttspan = map(float, tspan)
 
   prob = PKPDAnalyticalProblem{false}(f, Tu0, Ttspan)
   ss = prob.ss
@@ -84,12 +86,11 @@ function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args.
           cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
 
           if ss == nothing
-            cur_norm = Inf
-            while cur_norm > 1e-12
+            Tu0prev = Tu0 .+ 1
+            while norm(Tu0-Tu0prev) > 1e-12
               Tu0prev = Tu0
               Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
               _t2-_t1 > 0 && (Tu0 = f(_t2,_t1,Tu0,zero(Tu0),col,_rate-ss_rate))
-              cur_norm = norm(Tu0-Tu0prev)
             end
           end
 
@@ -120,11 +121,10 @@ function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args.
           cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
 
           if ss == nothing
-            cur_norm = Inf
-            while cur_norm > 1e-12
+            Tu0prev = Tu0 .+ 1
+            while norm(Tu0-Tu0prev) > 1e-12
               Tu0prev = Tu0
               Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
-              cur_norm = norm(Tu0-Tu0prev)
             end
           end
 
