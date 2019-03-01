@@ -29,6 +29,15 @@ function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   end
 end
 _lpdf(d::Domain, x) = 0.0
+@noinline function _lpdf(derived_dist, observations::StructArray)
+  sum(enumerate(observations)) do (idx,obs)
+    if eltype(derived_dist) <: Array
+      _lpdf(NamedTuple{Base._nt_names(obs)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs)
+    else
+      _lpdf(derived_dist, obs)
+    end
+  end
+end
 
 
 """
@@ -69,16 +78,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
   end
 
-  # compute the log-likelihood value
-  ll = let derived_dist=derived_dist
-    sum(enumerate(subject.observations)) do (idx,obs)
-      if eltype(derived_dist) <: Array
-        _lpdf(NamedTuple{Base._nt_names(obs)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs)
-      else
-        _lpdf(derived_dist, obs)
-      end
-    end
-  end
+  ll = _lpdf(derived_dist, subject.observations)
   return -ll, vals, derived_dist
 end
 
