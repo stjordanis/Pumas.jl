@@ -474,6 +474,15 @@ function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   yi = [obs.val.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   mean_yi = (mean.(dist0[1]))
-  var_yi = inv.(var.(dist0[1]))
-  [sqrt(var_yi[i])*(yi[i] .- mean_yi[i]) for i in 1:length(subject.observations)]    
+  var_yi = sqrt.(inv.(var.(dist0[1])))
+  (var_yi).*(yi .- mean_yi)  
+end
+
+function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  yi = [obs.val.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  mean_yi = (mean.(dist[1])) 
+  var_yi = sqrt.(inv.(var.(dist0[1])))
+  (var_yi).*(yi .- mean_yi)  
 end

@@ -54,7 +54,7 @@ end
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
 
-ηstar = [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361]
+println([cwres(mdsl1,data[i],x0) for i in 1:10])
 println([npde(mdsl1,data[i],x0,ηstar,10000) for i in 1:10])
 
 ηstar = [-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361]
