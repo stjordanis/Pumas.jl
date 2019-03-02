@@ -4,9 +4,8 @@ data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 
 for subject in data.subjects
-    obs1 = subject.observations[1]
-    if obs1.time == 0
-        subject.observations[1] = PuMaS.Observation(sqrt(eps()), obs1.val)
+    if subject.time[1] == 0
+        subject.time[1] = sqrt(eps())
     end
 end
 
