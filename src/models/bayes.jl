@@ -1,4 +1,4 @@
-using LogDensityProblems, DynamicHMC, StructArrays
+using LogDensityProblems, DynamicHMC
 import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
 
 
@@ -31,7 +31,7 @@ function BayesLogDensity(model, data, args...;kwargs...)
   m = dim_param(model)
   n = dim_rfx(model)
   buffer = zeros(m + n)
-  cfg = ForwardDiff.GradientConfig(nothing, buffer)
+  cfg = ForwardDiff.GradientConfig(LogDensityProblems.logdensity, buffer)
   res = DiffResults.GradientResult(buffer)
   BayesLogDensity(model, data, m, n, buffer, cfg, res, args, kwargs)
 end
@@ -83,7 +83,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
     fill!(b.buffer, 0.0)
     copyto!(b.buffer, 1, v, 1, m)
 
-    ForwardDiff.gradient!(b.res, L_param, b.buffer, b.cfg)
+    ForwardDiff.gradient!(b.res, L_param, b.buffer, b.cfg, Val{false}())
 
     ℓ = DiffResults.value(b.res)
     ∇ℓ[1:m] .= @view DiffResults.gradient(b.res)[1:m]
@@ -102,7 +102,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
       end
       copyto!(b.buffer, m+1, v, m+(i-1)*n+1, n)
 
-      ForwardDiff.gradient!(b.res, L_rfx, b.buffer, b.cfg)
+      ForwardDiff.gradient!(b.res, L_rfx, b.buffer, b.cfg, Val{false}())
 
       ℓ += DiffResults.value(b.res)
       ∇ℓ[1:m] .+= @view DiffResults.gradient(b.res)[1:m]

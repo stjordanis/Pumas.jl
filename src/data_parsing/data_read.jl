@@ -17,10 +17,6 @@ end
 Base.axes(A::Population) = axes(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
-function process_nmtran(filepath::String,kwargs...)
-  process_nmtran(CSV.read(filepath),kwargs...)
-end
-
 """
   to_nt(obj)::NamedTuple{PN,VT}
 
@@ -37,8 +33,11 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(filename, cvs=[], dvs=[:dv], event_data = true)
-    process_nmtran(data, cvs=[], dvs=[:dv], event_data = true)
+    process_nmtran(filepath::String, args...; kwargs...)
+    process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
+                   id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                   ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                   event_data = true)
 
 Import NMTRAN-formatted data.
 
@@ -46,6 +45,9 @@ Import NMTRAN-formatted data.
 - `dvs` dependent variables specified by either names or column numbers
 - `event_data` toggles assertions applicable to event data
 """
+function process_nmtran(filepath::AbstractString, args...; kwargs...)
+  process_nmtran(CSV.read(filepath), args...; kwargs...)
+end
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
@@ -72,24 +74,14 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                       id, time, evid, amt, addl, ii, cmt, rate, ss,
                       Ref(cvs), Ref(dvs), event_data))
 end
-function build_observation_list(obs::AbstractVector{<:Observation})
-  @assert issorted(obs, by = x -> x.time) "Time is not monotonically increasing within subject"
-  obs
-end
+
 function build_observation_list(obs::AbstractDataFrame)
-  isempty(obs) && return Observation[]
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
-  time = obs[:time]
   vars = setdiff(names(obs), (:time, :cmt))
-  if isa(time, Unitful.Time)
-    time = convert.(Float64, getfield(uconvert.(u"hr", time), :val))
-  else
-    time = float(time)
-  end
-  @assert issorted(time) "Time is not monotonically increasing within subject"
-  Observation.(time,
-               NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
+  _obs = ntuple(i -> convert(AbstractVector{Float64}, obs[vars[i]]), length(vars))
+  return StructArray(NamedTuple{tuple(vars...),typeof(_obs)}(_obs))
 end
+build_observation_list(obs::StructArray) = obs
 
 build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
 function build_event_list(regimen::DosageRegimen, event_data::Bool)

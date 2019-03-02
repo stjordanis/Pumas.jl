@@ -44,7 +44,7 @@ conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs.
 function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
                              y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
-  obstimes = [obs.time for obs in subject.observations]
+  obstimes = subject.time
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
 
   # collate that arguments
@@ -60,7 +60,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     path = solution.(obstimes, continuity=:right)
 
     # if solution contains NaN return Inf
-    if any(isnan, last(path))
+    if any(isnan, last(path)) || solution.retcode != :Success
       # FIXME! Do we need to make this type stable?
       return Inf, nothing, nothing
     end
@@ -73,9 +73,9 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
   ll = let derived_dist=derived_dist
     sum(enumerate(subject.observations)) do (idx,obs)
       if eltype(derived_dist) <: Array
-        _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
+        _lpdf(NamedTuple{Base._nt_names(obs)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs)
       else
-        _lpdf(derived_dist, obs.val)
+        _lpdf(derived_dist, obs)
       end
     end
   end
@@ -103,9 +103,9 @@ function conditional_nll(derived_dist, derived_dist0, subject)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val)
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs)
     else
-      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
+      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs)
     end
   end
   return -x
@@ -388,7 +388,8 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   fdr = f/r
   H = fdr*f'
   mean0 = _mean0(m, subject, x0, (η=vy0,), 1, args...; kwargs...)
-  dldη = fdr*(subject.observations[1].val[1] - mean0)
+  # FIXME! This is not correct when there are more than a single dependent variable
+  dldη = fdr*(subject.observations[1][1] - mean0)
 
   for j in 2:length(subject.observations)
     r = var(dist0[1][j])
@@ -396,7 +397,8 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
     fdr = f/r
     H += fdr*f'
     mean0 = _mean0(m, subject, x0, (η=vy0,), j, args...; kwargs...)
-    dldη += fdr*(subject.observations[j].val[1] - mean0)
+    # FIXME! This is not correct when there are more than a single dependent variable
+    dldη += fdr*(subject.observations[j][1] - mean0)
   end
 
   return H, dldη
