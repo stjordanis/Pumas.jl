@@ -197,7 +197,7 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), Laplace(), args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
+  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
@@ -474,15 +474,19 @@ function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   yi = [obs.val.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   mean_yi = (mean.(dist0[1]))
-  var_yi = sqrt.(inv.(var.(dist0[1])))
-  (var_yi).*(yi .- mean_yi)  
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  (var_yi)*(yi .- mean_yi)  
 end
 
 function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
   yi = [obs.val.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  mean_yi = (mean.(dist[1])) 
-  var_yi = sqrt.(inv.(var.(dist0[1])))
-  (var_yi).*(yi .- mean_yi)  
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- f'*vy0
+  (var_yi)*(yi .- mean_yi)  
 end
