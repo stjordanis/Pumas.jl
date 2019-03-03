@@ -62,7 +62,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
     data[time] = 0.0
   end
   if evid ∉ Names
-    data[evid] = Int8(1)
+    data[evid] = Int8(0)
   end
   if cvs isa AbstractVector{<:Integer}
     cvs = Names[cvs]
