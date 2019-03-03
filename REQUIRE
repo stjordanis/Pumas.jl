@@ -3,7 +3,7 @@ DiffEqBase 3.0.0
 OrdinaryDiffEq 4.12.1
 Distributions
 Reexport
-StaticArrays
+StaticArrays 0.10.3
 DiffEqJump 1.0.0
 DiffEqMonteCarlo
 DataStructures
@@ -17,7 +17,7 @@ GLM
 Unitful
 TreeViews
 CSV
-ForwardDiff
+ForwardDiff 0.10.3
 DiffResults
 Optim
 TransformVariables
