@@ -55,6 +55,7 @@ end
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
 
 println([npde(mdsl1,data[i],x0,10000) for i in 1:10]) 
+println([epred(mdsl1,data[i],x0,10000) for i in 1:10])
 println([cpred(mdsl1,data[i],x0) for i in 1:10]) 
 println([cpredi(mdsl1,data[i],x0) for i in 1:10]) 
 for (sub_pred, dt) in zip([[10.0000000, 6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660], [10.0000000,6.06530660]] , data)

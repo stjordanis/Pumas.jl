@@ -520,3 +520,13 @@ function cpredi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVect
   mean_yi = (mean.(dist[1])) .- vec(f*vy0')
   mean_yi
 end
+
+function epred(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
+  sims = []
+  for i in 1:nsim
+    vals = simobs(m, subject, x0)
+    push!(sims, vals.derived.dv)
+  end
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  mean_yi
+end
