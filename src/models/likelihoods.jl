@@ -500,3 +500,23 @@ function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVect
   mean_yi = (mean.(dist[1])) .- vec(f*vy0')
   (var_yi)*(yi .- mean_yi)  
 end
+
+function pred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  mean_yi
+end
+
+function cpred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
+
+function cpredi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
