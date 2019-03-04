@@ -487,6 +487,16 @@ function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVecto
   Ω = cov(m.random(x0).params.η)
   f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
   var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
-  mean_yi = (mean.(dist[1])) .- f'*vy0
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  (var_yi)*(yi .- mean_yi)  
+end
+
+function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  yi = [obs.val.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
   (var_yi)*(yi .- mean_yi)  
 end
