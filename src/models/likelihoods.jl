@@ -29,16 +29,33 @@ function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   end
 end
 _lpdf(d::Domain, x) = 0.0
-@noinline function _lpdf(derived_dist, observations::StructArray)
-  sum(enumerate(observations)) do (idx,obs)
-    if eltype(derived_dist) <: Array
-      _lpdf(NamedTuple{Base._nt_names(obs)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs)
-    else
-      _lpdf(derived_dist, obs)
+# Define two vectorized helper functions __lpdf. Once we can do two argument mapreduce
+# or the equivalent without allocations, it should be possible to get rid of these.
+function __lpdf(ds::Distributions.Sampleable, xs::AbstractVector)
+  l = _lpdf(ds, xs[1])
+  @inbounds for i in 2:length(ds)
+    l += _lpdf(ds, xs[i])
+  end
+  return l
+end
+function __lpdf(ds::AbstractVector, xs::AbstractVector)
+  if length(ds) != length(xs)
+    throw(DimensionMismatch("vectors must have same length"))
+  end
+  l = _lpdf(ds[1], xs[1])
+  @inbounds for i in 2:length(ds)
+    l += _lpdf(ds[i], xs[i])
+  end
+  return l
+end
+function _lpdf(derived_dist::NamedTuple, observations::StructArray)
+  obs = StructArrays.fieldarrays(observations)
+  sum(keys(obs)) do k
+    if haskey(derived_dist, k)
+      __lpdf(getfield(derived_dist, k), getfield(obs, k))
     end
   end
 end
-
 
 """
     conditional_nll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
