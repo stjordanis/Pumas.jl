@@ -197,7 +197,9 @@ struct Subject{T1<:NamedTuple,T2,T3,T4}
       _obs_times = float(obs_times)
     end
 
-    dv_idx_tuple = ntuple(i -> convert(AbstractVector{Float64}, data[dvs[i]][idx_obs]), length(dvs))
+    dv_idx_tuple = ntuple(i -> convert(AbstractVector{Union{Missing,Float64}},
+                                       data[dvs[i]][idx_obs]),
+                                       length(dvs))
     observations = NamedTuple{tuple(dvs...),typeof(dv_idx_tuple)}(dv_idx_tuple)
 
     # cmt handling should be reversed: it should give it the appropriate name given cmt
