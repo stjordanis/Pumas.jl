@@ -98,7 +98,7 @@ theopmodel_bayes2 = @model begin
         Depot'   = -Ka*Depot
         Central' =  Ka*Depot - K*Central
     end
-  
+
     @derived begin
         dv ~ @. Normal(conc,sqrt(σ))
     end
