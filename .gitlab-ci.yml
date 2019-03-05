@@ -37,10 +37,22 @@ test-nca:
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
 
-test-nlme:
+test-nlme-nobayes:
   stage: test
   variables:
-    GROUP: "NLME"
+    GROUP: "NLME_NOBAYES"
+  cache:
+    policy: pull
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
+                          Pkg.test("PuMaS"; coverage=true);'
+
+test-nlme-bayes:
+  stage: test
+  variables:
+    GROUP: "NLME_BAYES"
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
