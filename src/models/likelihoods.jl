@@ -450,7 +450,7 @@ marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f
 marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
 
 function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
-  yi = [obs.val.dv for obs in subject.observations]
+  yi = [obs.dv for obs in subject.observations]
   sims = []
   for i in 1:nsim
     vals = simobs(m, subject, x0)
@@ -471,7 +471,7 @@ function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
 end
 
 function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
-  yi = [obs.val.dv for obs in subject.observations]
+  yi = [obs.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   mean_yi = (mean.(dist0[1]))
   Ω = cov(m.random(x0).params.η)
@@ -481,7 +481,7 @@ function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
 end
 
 function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
-  yi = [obs.val.dv for obs in subject.observations]
+  yi = [obs.dv for obs in subject.observations]
   l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
   l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
   Ω = cov(m.random(x0).params.η)
@@ -492,7 +492,7 @@ function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVecto
 end
 
 function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
-  yi = [obs.val.dv for obs in subject.observations]
+  yi = [obs.dv for obs in subject.observations]
   l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
   Ω = cov(m.random(x0).params.η)
   f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
