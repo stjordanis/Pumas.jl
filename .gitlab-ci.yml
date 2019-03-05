@@ -17,6 +17,7 @@ build:
                           Pkg.build("PuMaS");
                           using PuMaS;'
 
+
 test-core:
   stage: test
   variables:
@@ -41,8 +42,6 @@ test-nlme-nobayes:
   stage: test
   variables:
     GROUP: "NLME_NOBAYES"
-  cache:
-    policy: pull
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
