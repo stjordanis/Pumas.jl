@@ -1,13 +1,58 @@
+image: "julia:1"
+
 variables:
   JULIA_DEPOT_PATH: "$CI_PROJECT_DIR/.julia/"
 
-test:
-  image: "julia:1"
+cache:
+  paths:
+    - .julia/
+
+build:
+  stage: build
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
-    - mkdir $JULIA_DEPOT_PATH # Pkg3.jl#325
     - julia --project -e 'using Pkg;
                           Pkg.clone(pwd(), "PuMaS");
                           Pkg.build("PuMaS");
+                          using PuMaS;'
+
+test-core:
+  stage: test
+  variables:
+    GROUP: "Core"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
+                          Pkg.test("PuMaS"; coverage=true);'
+
+test-nca:
+  stage: test
+  variables:
+    GROUP: "NCA"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
+                          Pkg.test("PuMaS"; coverage=true);'
+
+test-nlme:
+  stage: test
+  variables:
+    GROUP: "NLME"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
+                          Pkg.test("PuMaS"; coverage=true);'
+
+test-features:
+  stage: test
+  variables:
+    GROUP: "Features"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
