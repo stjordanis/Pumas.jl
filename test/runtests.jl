@@ -50,7 +50,7 @@ if group == "All" || group == "NCA"
     include("nca/runtests.jl")
 end
 
-if group == "All" || group == "NLME"
+if group == "All" || group == "NLME_NOBAYES" || group == "NLME_BAYES"
     include("nlme/runtests.jl")
 end
 
