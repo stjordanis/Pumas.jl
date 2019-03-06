@@ -12,7 +12,7 @@ mdsl2 = @model begin
         Ω ∈ PSDDomain(Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
                                         1.20854E-02  2.02375E-02 -6.47803E-03
                                         5.69131E-02 -6.47803E-03  4.34671E-01]))
-        Σ ∈ PSDDomain(Diagonal([1.70385E-02, 8.28498E-02]))
+        Σ ∈ PDiagDomain(PDiagMat([1.70385E-02, 8.28498E-02]))
     end
 
     @random begin
@@ -33,9 +33,10 @@ mdsl2 = @model begin
     @dynamics OneCompartmentModel
 
     @derived begin
-        dv ~ @. Normal(conc,sqrt(conc^2 *Σ[1] + Σ[end])+eps())
+        dv ~ @. Normal(conc,sqrt(conc^2 *Σ.diag[1] + Σ.diag[end])+eps())
     end
 end
 
 x0 = init_param(mdsl2)
 @test @inferred(PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,x0,PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test fit(mdsl2, theopp_nlme, x0, PuMaS.FOCE()) isa PuMaS.FittedPKPDModel
