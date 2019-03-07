@@ -252,17 +252,21 @@ function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::Abst
   end
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
-  Ω = cov(m.random(x0).params.η)
-  l0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
-  W, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FO, args...; kwargs...)
+  @assert iszero(vy0)
+  nrfx = length(vy0)
+  vydual = [ForwardDiff.Dual{:tag}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
+  l_d, dist_d = conditional_nll_ext(m, subject, x0, (η=vydual,), args...; kwargs...)
+  l = ForwardDiff.value(l_d)
+  W, dldη = FIM(subject.observations, dist_d, FO())
 
+  Ω = cov(m.random(x0).params.η)
   FΩ = cholesky(Ω, check=false)
   if issuccess((FΩ))
     invFΩ = inv(FΩ)
-    return l0 + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
+    return l + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
   else # Ω is numerically singular
-    return typeof(l0)(Inf)
+    return typeof(l)(Inf)
   end
 end
 
@@ -380,23 +384,19 @@ function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVecto
   fim
 end
 
-function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
-  r = var(dist0.dv[1])
-  f = ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), 1, args...; kwargs...), vy0)
-  fdr = f/r
-  H = fdr*f'
-  mean0 = _mean0(m, subject, x0, (η=vy0,), 1, args...; kwargs...)
-  # FIXME! This is not correct when there are more than a single dependent variable
-  dldη = fdr*(subject.observations.dv[1] - mean0)
-
-  for j in 2:length(subject.observations.dv)
-    r = var(dist0.dv[j])
-    ForwardDiff.gradient!(f, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
+function FIM(obs::StructArray, dist::NamedTuple, ::FO)
+  dv = dist.dv
+  nrfx = length(ForwardDiff.partials(mean(dv[1])))
+  # FIXME! Careful about hardcoding for Float64 here
+  H    = zeros(nrfx, nrfx)
+  dldη = zeros(nrfx)
+  for j in 1:length(dv)
+    dvj = dv[j]
+    r = ForwardDiff.value(var(dvj))
+    f = [ForwardDiff.partials(mean(dvj)).values...]
     fdr = f/r
     H += fdr*f'
-    mean0 = _mean0(m, subject, x0, (η=vy0,), j, args...; kwargs...)
-    # FIXME! This is not correct when there are more than a single dependent variable
-    dldη += fdr*(subject.observations.dv[j] - mean0)
+    dldη += fdr*(obs.dv[j] - ForwardDiff.value(mean(dvj)))
   end
 
   return H, dldη
@@ -424,8 +424,90 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  return FittedPuMaSModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
+  return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
 end
 
-marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
-marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
+marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
+marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
+
+function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
+  yi = [obs.dv for obs in subject.observations]
+  sims = []
+  for i in 1:nsim
+    vals = simobs(m, subject, x0)
+    push!(sims, vals.derived.dv)
+  end
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  covm_yi = cov(sims)
+  covm_yi = sqrt(inv(covm_yi))
+  yi_decorr = (covm_yi)*(yi .- mean_yi)
+  phi = []
+  for i in 1:nsim
+    yi_i = sims[i]
+    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
+    push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
+  end
+  phi = sum(phi)/nsim
+  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
+end
+
+function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  (var_yi)*(yi .- mean_yi)
+end
+
+function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  (var_yi)*(yi .- mean_yi)
+end
+
+function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  (var_yi)*(yi .- mean_yi)
+end
+
+function pred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  mean_yi
+end
+
+function cpred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
+
+function cpredi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
+
+function epred(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
+  sims = []
+  for i in 1:nsim
+    vals = simobs(m, subject, x0)
+    push!(sims, vals.derived.dv)
+  end
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  mean_yi
+end
