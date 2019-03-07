@@ -68,7 +68,7 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, x0::NamedTuple,
      derived_dist = m.derived(collated, nothing, obstimes)
   else
     # compute solution values
-    path = solution.(obstimes, continuity=:right)
+    path = solution(obstimes, continuity=:right)
 
     # if solution contains NaN return Inf
     if any(isnan, last(path)) || solution.retcode != :Success
@@ -76,8 +76,8 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, x0::NamedTuple,
       return Inf, nothing
     end
 
-    # extract distributions
-    derived_dist = m.derived(collated, path, obstimes)
+    # extract values and distributions
+    derived_dist = m.derived(collated, [p for p in path], obstimes) # the second component is distributions
   end
 
   ll = _lpdf(derived_dist, subject.observations)
@@ -255,7 +255,7 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FO, args...; kwargs...)
   @assert iszero(vy0)
   nrfx = length(vy0)
-  vydual = [ForwardDiff.Dual{:tag}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
+  vydual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vy0)))}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
   l_d, dist_d = conditional_nll_ext(m, subject, x0, (η=vydual,), args...; kwargs...)
   l = ForwardDiff.value(l_d)
   W, dldη = FIM(subject.observations, dist_d, FO())
