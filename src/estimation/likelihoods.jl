@@ -425,10 +425,10 @@ function FIM(obs::StructArray, dist::NamedTuple, ::FO)
 end
 
 # Fitting methods
-struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3<:NamedTuple,T4<:LikelihoodApproximation}
+struct FittedPKPDModel{T1<:PKPDModel,T2<:Population,T3,T4<:LikelihoodApproximation}
   model::T1
   data::T2
-  x0::T3
+  optim::T3
   approx::T4
 end
 
@@ -437,16 +437,25 @@ function Distributions.fit(m::PuMaSModel,
                            x0::NamedTuple,
                            approx::LikelihoodApproximation;
                            verbose=false,
-                           optimmethod::Optim.AbstractOptimizer=BFGS(),
-                           optimautodiff=:finite,
-                           optimoptions::Optim.Options=Optim.Options(show_trace=verbose,                                 # Print progress
-                                                                     g_tol=1e-5))
+                           optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
+                           optimautodiff=:finiteforward,
+                           optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
+                                                                     g_tol=1e-2))
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
+  return FittedPKPDModel(m, data, o, approx)
+end
+
+function Base.getproperty(f::FittedPKPDModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
+  if s === :x0
+    trf = totransform(f.model.param)
+    TransformVariables.transform(trf, f.optim.minimizer)
+  else
+    return getfield(f, s)
+  end
 end
 
 marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
