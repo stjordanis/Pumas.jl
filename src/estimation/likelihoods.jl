@@ -161,37 +161,32 @@ The point-estimate the random effects (being the mode of the empirical Bayes est
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
-rfx_estimate
-
-function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
+
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
+
+  return rfx_estimate(m, subject, x0, zeros(T, p), approx, args...; kwargs...)
 end
 
-function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
-  rfxset = m.random(x0)
-  p = TransformVariables.dimension(totransform(rfxset))
-  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
-  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
-  T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...),
-                                 zeros(T, p),
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
+  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...),
+                                 vy0,
                                  BFGS(linesearch=Optim.LineSearches.BackTracking());
                                  autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, ::Union{FO,FOI}, args...; kwargs...)
-  rfxset = m.random(x0)
-  p = TransformVariables.dimension(totransform(rfxset))
-  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
-  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
-  T = promote_type(numtype(x0), numtype(x0))
-  return zeros(T, p)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
+  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...),
+                                 vy0,
+                                 BFGS(linesearch=Optim.LineSearches.BackTracking());
+                                 autodiff=:forward))
 end
+
+rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::Union{FO,FOI}, args...; kwargs...) = zero(vy0)
 
 """
     rfx_estimate_dist(model, subject, param, approx, ...)
