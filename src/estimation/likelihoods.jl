@@ -253,15 +253,30 @@ function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::Abst
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FO, args...; kwargs...)
+
+  # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vy0)
+
+  # The dimension of the random effect vector
   nrfx = length(vy0)
+
+  # Construct vector of dual numbers for the random effects to track the partial derivatives
   vydual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vy0)))}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
   l_d, dist_d = conditional_nll_ext(m, subject, x0, (η=vydual,), args...; kwargs...)
+
+  # Extract the value of the conditional likelihood
   l = ForwardDiff.value(l_d)
+
+  # Compute the gradient of the likelihood and Hessian approxmation in the random effect vector η
   W, dldη = FIM(subject.observations, dist_d, FO())
 
+  # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   Ω = cov(m.random(x0).params.η)
   FΩ = cholesky(Ω, check=false)
+
+  # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
   if issuccess((FΩ))
     invFΩ = inv(FΩ)
     return l + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
@@ -385,15 +400,22 @@ function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVecto
 end
 
 function FIM(obs::StructArray, dist::NamedTuple, ::FO)
+  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
   dv = dist.dv
+
+  # The dimension of the random effect vector
   nrfx = length(ForwardDiff.partials(mean(dv[1])))
-  # FIXME! Careful about hardcoding for Float64 here
-  H    = zeros(nrfx, nrfx)
-  dldη = zeros(nrfx)
+
+  # Initialize Hessian matrix and gradient vector
+  ## FIXME! Careful about hardcoding for Float64 here
+  H    = @SMatrix zeros(nrfx, nrfx)
+  dldη = @SVector zeros(nrfx)
+
+  # Loop through the distribtion vector and extract derivative information
   for j in 1:length(dv)
     dvj = dv[j]
     r = ForwardDiff.value(var(dvj))
-    f = [ForwardDiff.partials(mean(dvj)).values...]
+    f = SVector(ForwardDiff.partials(mean(dvj)).values)
     fdr = f/r
     H += fdr*f'
     dldη += fdr*(obs.dv[j] - ForwardDiff.value(mean(dvj)))
