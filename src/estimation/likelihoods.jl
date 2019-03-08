@@ -421,7 +421,7 @@ function Distributions.fit(m::PuMaSModel,
                            optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
                            optimautodiff=:finite,
                            optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
-                                                                     g_tol=1e-2))
+                                                                     g_tol=1e-3))
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
