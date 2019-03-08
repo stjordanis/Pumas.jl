@@ -229,12 +229,33 @@ function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::Abst
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, args...; kwargs...)
-  Ω = cov(m.random(x0).params.η)
-  l,dist = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
-  w = FIM(m, subject, x0, vy0, approx, dist, args...; kwargs...)
-  l += (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
-  return l
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FOCEI, args...; kwargs...)
+
+  # The dimension of the random effect vector
+  nrfx = length(vy0)
+
+  # Construct vector of dual numbers for the random effects to track the partial derivatives
+  vydual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vy0)))}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = conditional_nll_ext(m, subject, x0, (η=vydual,), args...; kwargs...)
+
+  nl = ForwardDiff.value(nl_d)
+
+  if isfinite(nl)
+    # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
+    Ω = cov(m.random(x0).params.η)
+    FΩ = cholesky(Ω, check=false)
+
+    # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
+    if issuccess(FΩ)
+      w = FIM(dist_d, FOCEI())
+      nl += (logdet(Ω) + vy0'*(FΩ\vy0) + logdet(inv(FΩ) + w))/2
+    else # Ω is numerically singular
+      nl = typeof(nl)(Inf)
+    end
+  end
+  return nl
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FOCE, args...; kwargs...)
@@ -262,7 +283,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   FΩ = cholesky(Ω, check=false)
 
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-  if issuccess((FΩ))
+  if issuccess(FΩ)
     return nl + (logdet(FΩ) + vy0'*(FΩ\vy0) + logdet(inv(FΩ) + W))/2
   else # Ω is numerically singular
     return typeof(nl)(Inf)
@@ -294,7 +315,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   FΩ = cholesky(Ω, check=false)
 
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-  if issuccess((FΩ))
+  if issuccess(FΩ)
     invFΩ = inv(FΩ)
     return l + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
   else # Ω is numerically singular
@@ -347,23 +368,21 @@ function _mean(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwarg
   mean(dist_.dv[i])
 end
 
-function _var(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwargs...)
-  x_, dist_ = conditional_nll_ext(model, subject, x0, y0, args...; kwargs...)
-  var(dist_.dv[i])
-end
+function FIM(dist::NamedTuple, ::FOCEI)
 
-function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
-  f_res     = DiffResults.GradientResult(vy0)
-  del_r_res = DiffResults.GradientResult(vy0)
-  fim = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(dist[1][j]))
-    ForwardDiff.gradient!(f_res, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
-    f = DiffResults.gradient(f_res)
-    ForwardDiff.gradient!(del_r_res, s -> _var(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
-    del_r = DiffResults.gradient(del_r_res)
-    return f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
+  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
+  dv  = dist.dv
+
+  # Loop through the distribution vector and extract derivative information
+  H = sum(1:length(dv)) do j
+    dvj   = dv[j]
+    r_inv = inv(ForwardDiff.value(var(dvj)))
+    f     = SVector(ForwardDiff.partials(mean(dvj)).values)
+    del_r = SVector(ForwardDiff.partials(var(dvj)).values)
+    f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
   end
-  fim
+
+  return H
 end
 
 function FIM(dist::NamedTuple, dist0::NamedTuple, ::FOCE)
@@ -371,6 +390,7 @@ function FIM(dist::NamedTuple, dist0::NamedTuple, ::FOCE)
   dv  = dist.dv
   dv0 = dist0.dv
 
+  # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0[j]))
     f = SVector(ForwardDiff.partials(mean(dv[j])).values)
@@ -392,7 +412,7 @@ function FIM(obs::StructArray, dist::NamedTuple, ::FO)
   H    = @SMatrix zeros(nrfx, nrfx)
   dldη = @SVector zeros(nrfx)
 
-  # Loop through the distribtion vector and extract derivative information
+  # Loop through the distribution vector and extract derivative information
   for j in 1:length(dv)
     dvj = dv[j]
     r = ForwardDiff.value(var(dvj))
