@@ -116,19 +116,15 @@ end
 
     fun = test_conditional_nll(model)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    res = PuMaS.ll_derivatives(conditional_nll,model,subject,x0,y0,
-                               :θ,abstol=1e-14,reltol=1e-14)
-    grad_AD, hes_AD = DiffResults.gradient(res), DiffResults.hessian(res)
+    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ0), ForwardDiff.hessian(fun, θ0)
     @test grad_FD ≈ grad_AD atol=2e-6
-    @test hes_FD ≈ hes_AD atol=5e-3
+    @test hes_FD  ≈ hes_AD  atol=5e-3
 
     fun = test_conditional_nll(model_ip)
     grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    res = PuMaS.ll_derivatives(conditional_nll,model_ip,subject,x0,y0,
-                               :θ,abstol=1e-14, reltol=1e-14)
-    grad_AD, hes_AD = DiffResults.gradient(res), DiffResults.hessian(res)
+    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ0), ForwardDiff.hessian(fun, θ0)
     @test grad_FD ≈ grad_AD atol=2e-6
-    @test hes_FD ≈ hes_AD atol=5e-3
+    @test hes_FD  ≈ hes_AD  atol=5e-3
 
     PuMaS.marginal_nll(model_ip,subject,x0,PuMaS.LaplaceI())
 end

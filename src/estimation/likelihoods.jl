@@ -342,38 +342,6 @@ In named tuple nt, replace the value x.var by y
   k ∉ x.names ? :x : :( (x..., $k=y) )
 end
 
-function generate_enclosed_likelihood(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, v, args...; kwargs...)
-  function (z)
-    _x0 = setindex(x0,z,v)
-    _y0 = setindex(y0,z,v)
-    ll(model, subject, _x0, _y0, args...; kwargs...)
-  end
-end
-
-function ll_derivatives(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, var::Symbol, args...; kwargs...)
-  ll_derivatives(ll, model, subject::Subject, x0::NamedTuple, y0::NamedTuple, Val(var), args...; kwargs...)
-end
-
-@generated function ll_derivatives(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple,
-                                   v::Val{var}, args...;
-                                   hessian_required = true,
-                                   transform=false, kwargs...) where var
-  var ∉ fieldnames(x0) ∪ fieldnames(y0) && error("Variable name not recognized")
-  valex = var ∈ fieldnames(x0) ? :(x0.$var) : :(y0.$var)
-  quote
-    f = generate_enclosed_likelihood(ll,model,subject,x0,y0,v, args...; kwargs...)
-    if hessian_required
-      result = DiffResults.HessianResult($valex)
-      result = ForwardDiff.hessian!(result, f, $valex)
-      return result
-    else
-      result = DiffResults.GradientResult($valex)
-      result = ForwardDiff.gradient!(result, f, $valex)
-      return result
-    end
-  end
-end
-
 function _mean(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwargs...)
   x_, dist_ = conditional_nll_ext(model, subject, x0, y0, args...; kwargs...)
   mean(dist_.dv[i])
@@ -384,19 +352,13 @@ function _var(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwargs
   var(dist_.dv[i])
 end
 
-function _mean0(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwargs...)
-  _mean(model, subject, x0, map(zero, y0), i, args...; kwargs...)
-end
-
-function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
+function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
   f_res     = DiffResults.GradientResult(vy0)
   del_r_res = DiffResults.GradientResult(vy0)
-  fim = sum(1:length(subject.observations.dv)) do j
-    r_inv = inv(var(dist.dv[j]))
-    # FIXME! Proper names should be kept and passed along
+  fim = sum(1:length(subject.observations)) do j
+    r_inv = inv(var(dist[1][j]))
     ForwardDiff.gradient!(f_res, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
     f = DiffResults.gradient(f_res)
-    # FIXME! Proper names should be kept and passed along
     ForwardDiff.gradient!(del_r_res, s -> _var(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
     del_r = DiffResults.gradient(del_r_res)
     return f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2

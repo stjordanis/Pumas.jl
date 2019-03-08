@@ -41,7 +41,7 @@ example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*fi
 export Subject, Population, process_nmtran, DosageRegimen
 export PuMaSModel, init_param, init_random, rand_random,
        simobs, pre, simpost
-export conditional_nll, ll_derivatives, FIM, npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
+export conditional_nll, FIM, npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
 export example_nmtran_data
 export @model
 end # module
