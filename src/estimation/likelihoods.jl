@@ -178,10 +178,13 @@ function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::U
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
+  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...),
+                                 zeros(T, p),
+                                 BFGS(linesearch=Optim.LineSearches.BackTracking());
+                                 autodiff=:forward))
 end
 
-function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
+function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, ::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
@@ -239,12 +242,31 @@ function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::Abst
   return l
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
-  Ω = cov(m.random(x0).params.η)
-  nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
-  W = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
+function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FOCE, args...; kwargs...)
 
+  # The dimension of the random effect vector
+  nrfx = length(vy0)
+
+  # Construct vector of dual numbers for the random effects to track the partial derivatives
+  vydual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vy0)))}(vy0[j], ntuple(i -> eltype(vy0)(i == j), nrfx)...) for j in 1:nrfx]
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = conditional_nll_ext(m, subject, x0, (η=vydual,), args...; kwargs...)
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
+  nl_0, dist_0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
+
+  # Extract the value of the conditional likelihood
+  nl = ForwardDiff.value(conditional_nll(dist_d, dist_0, subject))
+
+  # Compute the Hessian approxmation in the random effect vector η
+  W = FIM(dist_d, dist_0, FOCE())
+
+  # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
+  Ω = cov(m.random(x0).params.η)
   FΩ = cholesky(Ω, check=false)
+
+  # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
   if issuccess((FΩ))
     return nl + (logdet(FΩ) + vy0'*(FΩ\vy0) + logdet(inv(FΩ) + W))/2
   else # Ω is numerically singular
@@ -387,16 +409,18 @@ function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVecto
   fim
 end
 
-function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),), args...; kwargs...)
-  fim = sum(1:length(subject.observations.dv)) do j
-    r_inv = inv(var(dist0.dv[j]))
-    # FIXME! Proper names should be kept and passed along
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...; kwargs...)
-    f = DiffResults.gradient(res)
+function FIM(dist::NamedTuple, dist0::NamedTuple, ::FOCE)
+  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
+  dv  = dist.dv
+  dv0 = dist0.dv
+
+  H = sum(1:length(dv)) do j
+    r_inv = inv(var(dv0[j]))
+    f = SVector(ForwardDiff.partials(mean(dv[j])).values)
     f*r_inv*f'
   end
-  fim
+
+  return H
 end
 
 function FIM(obs::StructArray, dist::NamedTuple, ::FO)
@@ -438,7 +462,7 @@ function Distributions.fit(m::PuMaSModel,
                            approx::LikelihoodApproximation;
                            verbose=false,
                            optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                           optimautodiff=:finiteforward,
+                           optimautodiff=:finite,
                            optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
                                                                      g_tol=1e-2))
   trf = totransform(m.param)
