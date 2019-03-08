@@ -224,9 +224,13 @@ function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::Abst
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
   g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
-  CW = cholesky!(Symmetric(W)) # W is positive-definite, only compute Cholesky once.
-  p = length(vy0)
-  g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
+  CW = cholesky!(Symmetric(W), check=false) # W is positive-definite, only compute Cholesky once.
+  if issuccess(CW)
+    p = length(vy0)
+    g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
+  else
+    return typeof(g)(Inf)
+  end
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, ::FOCEI, args...; kwargs...)
