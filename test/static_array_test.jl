@@ -74,12 +74,13 @@ prob = ODEProblem(static_onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    ___dv = @. Normal(conc, conc*col.Σ)
-    dv = @. rand(___dv)
-    (dv = dv,), (dv=___dv,)
+    dv = @. Normal(conc, conc*col.Σ)
+    (dv = dv,)
 end
 
-mstatic = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+observed_f(col,sol,obstimes,samples) = samples
+
+mstatic = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -107,10 +108,10 @@ end
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    (conc = conc,), nothing
+    (conc = conc,)
 end
 
-mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,prob,derived_f)
+mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 

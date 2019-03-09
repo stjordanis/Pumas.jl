@@ -2,7 +2,7 @@ struct SimulatedObservations{S,T,TAD,T2}
   subject::S
   times::T
   time_after_doses::TAD
-  obs::T2
+  observed::T2
   function SimulatedObservations(subject::S, times::T,
     obs::T2) where {S,T,T2}
     time_after_doses = tad(times, subject.events)
@@ -12,15 +12,15 @@ end
 
 # indexing
 @inline function Base.getindex(obs::SimulatedObservations, I...)
-  return obs.obs[I...]
+  return obs.observed[I...]
 end
 @inline function Base.setindex!(obs::SimulatedObservations, x, I...)
-  obs.obs[I...] = x
+  obs.observed[I...] = x
 end
 function DataFrames.DataFrame(obs::SimulatedObservations)
   DataFrame(merge((time=obs.times,
                    time_after_dose=obs.time_after_doses),
-                  obs.obs))
+                  obs.observed))
 end
 
 @recipe function f(obs::SimulatedObservations)
@@ -60,7 +60,7 @@ end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
   dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],
                           time=s.times, time_after_dose=s.time_after_doses),
-                          s.obs)) for s in pop.sims]
+                          s.observed)) for s in pop.sims]
   reduce(vcat,dfs)
 end
 

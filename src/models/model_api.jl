@@ -171,7 +171,6 @@ function simobs(m::PKPDModel, subject::Subject,
   end
   derived = derivedfun(m,col,sol;continuity=continuity)(obstimes)
   obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived))
-  @show obs
   SimulatedObservations(subject,obstimes,obs) # the first component is observed values
 end
 

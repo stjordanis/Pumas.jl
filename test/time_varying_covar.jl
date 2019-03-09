@@ -41,12 +41,10 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes,obs)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    ___dv = @. Normal(conc, conc*col.Σ)
-    dv = @. rand(___dv)
-    (obs_cmax = maximum(dv),), (dv=___dv,)
+    (conc = conc,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
 
 x0 = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
