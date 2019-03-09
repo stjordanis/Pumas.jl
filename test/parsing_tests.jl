@@ -64,4 +64,3 @@ end
   @test isa(data, Population)
   isa(data[1].observations[1], NamedTuple{(:dv1,:dv2),NTuple{2, Union{Missing,Float64}}})
 end
-

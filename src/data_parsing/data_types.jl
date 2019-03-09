@@ -261,8 +261,8 @@ struct Subject{T1,T2,T3,T4}
                    event_data = true,)
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
-    _time = Missings.disallowmissing(time)
-    @assert issorted(_time) "Time is not monotonically increasing within subject"
+    _time = isnothing(time) ? nothing : Missings.disallowmissing(time)
+    @assert isnothing(time) || issorted(_time) "Time is not monotonically increasing within subject"
     new{typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(id, obs, cvs, evs, _time)
   end
 end
@@ -323,9 +323,9 @@ function Base.show(io::IO, data::Population)
   println(io, "  Subjects: ", length(data.subjects))
   if isassigned(data.subjects, 1)
     co = data.subjects[1].covariates
-    co != nothing && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
+    !isnothing(co) && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
     obs = data.subjects[1].observations
-    !isempty(obs) && println(io, "  Observables: ", join(fieldnames(typeof(obs[1])),", "))
+    !isnothing(obs) && println(io, "  Observables: ", join(propertynames(obs),", "))
   end
   return nothing
 end
