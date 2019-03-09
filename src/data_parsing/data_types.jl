@@ -176,12 +176,12 @@ Fields:
 - `events`: a vector of `Event`s.
 - `time`: a vector of time stamps for the observations
 """
-struct Subject{T1<:NamedTuple,T2,T3,T4}
+struct Subject{T1,T2,T3,T4}
   id::Int
   observations::T1
   covariates::T2
   events::T3
-  time::Vector{T4}
+  time::T4
 
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
@@ -252,10 +252,10 @@ struct Subject{T1<:NamedTuple,T2,T3,T4}
   end
 
   function Subject(;id = 1,
-                   obs = NamedTuple{(),Tuple{}}[],
+                   obs = nothing,
                    cvs = nothing,
                    evs = Event[],
-                   time = obs isa AbstractDataFrame ? obs.time : range(0, length=length(obs)),
+                   time = obs isa AbstractDataFrame ? obs.time : nothing,
                    event_data = true,)
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
@@ -270,15 +270,16 @@ Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
   println(io, "  ID: ", subject.id)
-  println(io, "  Events: ", length(subject.events))
+  evs = subject.events
+  evs !== nothing && println(io, "  Events: ", length(subject.events))
   obs = subject.observations
-  println(io, "  Observations: ",  length(obs))
+  obs !== nothing && println(io, "  Observations: ",  length(obs))
   subject.covariates !== nothing &&
   println(io, "  Covariates: ",
           join(fieldnames(typeof(subject.covariates)),", "))
-  !isempty(subject.observations) &&
+  obs !== nothing &&
   println(io, "  Observables: ",
-          join(fieldnames(typeof(subject.observations[1])),", "))
+          join(propertynames(obs),", "))
   return nothing
 end
 TreeViews.hastreeview(::Subject) = true
@@ -288,7 +289,7 @@ end
 
 function timespan(sub::Subject)
   lo, hi = extrema(evt.time for evt in sub.events)
-  if !isempty(sub.observations)
+  if !isnothing(sub.observations)
     obs_lo, obs_hi = extrema(sub.time)
     lo = min(lo, obs_lo)
     hi = max(hi, obs_hi)
@@ -296,7 +297,9 @@ function timespan(sub::Subject)
   lo, hi
 end
 
-observationtimes(sub::Subject) = isempty(sub.observations) ? (0.0:1.0:(sub.events[end].time+24.0)) : sub.time
+observationtimes(sub::Subject) = isnothing(sub.observations) ?
+                                 (0.0:1.0:(sub.events[end].time+24.0)) :
+                                 sub.time
 
 """
     Population(::AbstractVector{<:Subject})

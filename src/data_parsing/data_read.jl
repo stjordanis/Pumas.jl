@@ -81,6 +81,7 @@ function build_observation_list(obs::AbstractDataFrame)
   return ntuple(i -> convert(AbstractVector{Float64}, obs[vars[i]]), length(vars))
 end
 build_observation_list(obs::NamedTuple) = obs
+build_observation_list(obs::Nothing) = obs
 
 build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
 function build_event_list(regimen::DosageRegimen, event_data::Bool)

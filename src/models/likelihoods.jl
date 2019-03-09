@@ -24,21 +24,21 @@ _lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
 _lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-  sum(keys(xs)) do k
+  sum(propertynames(xs)) do k
     haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
   end
 end
 _lpdf(d::Domain, x) = 0.0
 # Define two vectorized helper functions __lpdf. Once we can do two argument mapreduce
 # or the equivalent without allocations, it should be possible to get rid of these.
-function __lpdf(ds::Distributions.Sampleable, xs::AbstractVector)
+function _lpdf(ds::Distributions.Sampleable, xs::AbstractVector)
   l = _lpdf(ds, xs[1])
   @inbounds for i in 2:length(ds)
     l += _lpdf(ds, xs[i])
   end
   return l
 end
-function __lpdf(ds::AbstractVector, xs::AbstractVector)
+function _lpdf(ds::AbstractVector, xs::AbstractVector)
   if length(ds) != length(xs)
     throw(DimensionMismatch("vectors must have same length"))
   end
@@ -47,13 +47,6 @@ function __lpdf(ds::AbstractVector, xs::AbstractVector)
     l += _lpdf(ds[i], xs[i])
   end
   return l
-end
-function _lpdf(derived_dist::NamedTuple, observations::NamedTuple)
-  sum(propertynames(obs)) do k
-    if haskey(derived_dist, k)
-      __lpdf(getfield(derived_dist, k), getfield(obs, k))
-    end
-  end
 end
 
 """
