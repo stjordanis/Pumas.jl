@@ -530,3 +530,40 @@ function epred(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
   mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
   mean_yi
 end
+
+function iwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  sqrt(inv((Diagonal(var.(dist0[1])))))*(yi .- mean_yi)
+end
+
+function icwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  mean_yi = (mean.(dist[1]))
+  sqrt(inv((Diagonal(var.(dist0[1])))))*(yi .- mean_yi)
+end
+
+function icwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  mean_yi = (mean.(dist[1]))
+  sqrt(inv((Diagonal(var.(dist[1])))))*(yi .- mean_yi)
+end
+
+function eiwres(m::PKPDModel,subject::Subject, x0::NamedTuple, nsim)
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0)
+  mean_yi = (mean.(dist[1]))
+  covm_yi = sqrt(inv((Diagonal(var.(dist[1])))))
+  sims_sum = (covm_yi)*(yi .- mean_yi)
+  for i in 2:nsim
+    l, vals, dist = conditional_nll_ext(m,subject,x0)
+    mean_yi = (mean.(dist[1]))
+    covm_yi = sqrt(inv((Diagonal(var.(dist[1])))))
+    sims_sum .+= (covm_yi)*(yi .- mean_yi)
+  end
+  sims_sum./nsim
+end
