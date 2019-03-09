@@ -250,7 +250,7 @@ struct Subject{T1,T2,T3,T4}
       end
     end
     sort!(events)
-    new{typeof(observations),typeof(covariates),typeof(events),eltype(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
+    new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
   end
 
   function Subject(;id = 1,
@@ -263,7 +263,7 @@ struct Subject{T1,T2,T3,T4}
     evs = build_event_list(evs, event_data)
     _time = Missings.disallowmissing(time)
     @assert issorted(_time) "Time is not monotonically increasing within subject"
-    new{typeof(obs),typeof(cvs),typeof(evs),eltype(_time)}(id, obs, cvs, evs, _time)
+    new{typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(id, obs, cvs, evs, _time)
   end
 end
 
