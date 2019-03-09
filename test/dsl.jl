@@ -165,7 +165,7 @@ mdsl = @model begin
     end
 
     @derived begin
-      dv ~ @. Binomial(30,Ka*CL)
+      dv ~ [Binomial(30,Ka*CL) for i in 1:length(t)]
     end
 
     @observed begin
