@@ -2,32 +2,32 @@ struct SimulatedObservations{S,T,TAD,T2}
   subject::S
   times::T
   time_after_doses::TAD
-  derived::T2
+  obs::T2
   function SimulatedObservations(subject::S, times::T,
-    derived::T2) where {S,T,T2}
+    obs::T2) where {S,T,T2}
     time_after_doses = tad(times, subject.events)
-    new{S,T,typeof(time_after_doses),T2}(subject,times,time_after_doses,derived)
+    new{S,T,typeof(time_after_doses),T2}(subject,times,time_after_doses,obs)
   end
 end
 
 # indexing
 @inline function Base.getindex(obs::SimulatedObservations, I...)
-  return obs.derived[I...]
+  return obs.obs[I...]
 end
 @inline function Base.setindex!(obs::SimulatedObservations, x, I...)
-  obs.derived[I...] = x
+  obs.obs[I...] = x
 end
 function DataFrames.DataFrame(obs::SimulatedObservations)
   DataFrame(merge((time=obs.times,
                    time_after_dose=obs.time_after_doses),
-                  obs.derived))
+                  obs.obs))
 end
 
 @recipe function f(obs::SimulatedObservations)
   t = obs.times
   names = Symbol[]
   plot_vars = []
-  for (n,v) in pairs(obs.derived)
+  for (n,v) in pairs(obs.obs)
     push!(names,n)
     push!(plot_vars,v)
   end
@@ -60,7 +60,7 @@ end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
   dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],
                           time=s.times, time_after_dose=s.time_after_doses),
-                          s.derived)) for s in pop.sims]
+                          s.obs)) for s in pop.sims]
   reduce(vcat,dfs)
 end
 

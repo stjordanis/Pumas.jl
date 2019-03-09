@@ -7,7 +7,8 @@ A model takes the following arguments
 - `random`: a mapping from a named tuple of parameters -> `DistSet`
 - `pre`: a mapping from the (params, rfx, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `derived`: the post processing (param, rfx, data, ode vals) -> outputs / sampling dist
+- `derived`: the derived variables and error distributions (param, rfx, data, ode vals) -> sampling dist
+- `observed`: simulated values from the error model and post processing: (param, rfx, data, ode vals, samples) -> vals
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -19,13 +20,14 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,V}
+mutable struct PKPDModel{P,Q,R,S,T,V,W}
   param::P
   random::Q
   pre::R
   init::S
   prob::T
   derived::V
+  observed::W
 end
 
 init_param(m::PKPDModel) = init(m.param)
@@ -106,7 +108,8 @@ function _solve(m::PKPDModel, subject, col, args...;
                      m.pre,
                      m.init,
                      remake(m.prob; p=col, u0=u0, tspan=tspan),
-                     m.derived)
+                     m.derived,
+                     m.observed)
     return _solve_diffeq(mtmp, subject, args...;kwargs...)
   end
 end
@@ -118,7 +121,9 @@ Samples a random value from a distribution or if it's a number assumes it's the
 constant distribution and passes it through.
 """
 sample(d::Distributions.Sampleable) = rand(d)
+sample(d::AbstractArray{<:Distributions.Sampleable}) = map(sample,d)
 sample(d) = d
+
 
 zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
@@ -164,8 +169,10 @@ function simobs(m::PKPDModel, subject::Subject,
     isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
     sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   end
-  derived = derivedfun(m,col,sol;continuity=continuity)
-  SimulatedObservations(subject,obstimes,derived(obstimes)[1]) # the first component is observed values
+  derived = derivedfun(m,col,sol;continuity=continuity)(obstimes)
+  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived))
+  @show obs
+  SimulatedObservations(subject,obstimes,obs) # the first component is observed values
 end
 
 function simobs(m::PKPDModel, pop::Population, args...;

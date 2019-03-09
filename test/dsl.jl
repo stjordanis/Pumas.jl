@@ -88,14 +88,17 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    ___dv = @. Normal(conc, conc*col.Σ)
-    dv = @. rand(___dv)
-    (obs_cmax = maximum(dv),
-     T_max = maximum(obstimes),
-     dv=dv), (dv=___dv,)
+    dv = @. Normal(conc, conc*col.Σ)
+    (dv=dv,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+function observed_f(col,sol,obstimes,samples)
+    (obs_cmax = maximum(samples.dv),
+     T_max = maximum(obstimes),
+     dv=samples.dv)
+end
+
+mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)

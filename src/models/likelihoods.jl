@@ -80,7 +80,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
   solution = _solve(m, subject, collated, args...; kwargs...)
 
   if solution === nothing
-     vals, derived_dist = m.derived(collated, nothing, obstimes)
+     derived_dist = m.derived(collated, nothing, obstimes)
   else
     # compute solution values
     path = solution.(obstimes, continuity=:right)
@@ -92,11 +92,11 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     end
 
     # extract values and distributions
-    vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
+    derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
   end
 
   ll = _lpdf(derived_dist, subject.observations)
-  return -ll, vals, derived_dist
+  return -ll, derived_dist
 end
 
 function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
@@ -477,7 +477,7 @@ function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector
   Ω = cov(m.random(x0).params.η)
   f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
   var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
-  (var_yi)*(yi .- mean_yi)  
+  (var_yi)*(yi .- mean_yi)
 end
 
 function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
@@ -488,7 +488,7 @@ function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVecto
   f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
   var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
   mean_yi = (mean.(dist[1])) .- vec(f*vy0')
-  (var_yi)*(yi .- mean_yi)  
+  (var_yi)*(yi .- mean_yi)
 end
 
 function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
@@ -498,7 +498,7 @@ function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVect
   f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
   var_yi = sqrt(inv((Diagonal(var.(dist[1]))) + (f*Ω*f')))
   mean_yi = (mean.(dist[1])) .- vec(f*vy0')
-  (var_yi)*(yi .- mean_yi)  
+  (var_yi)*(yi .- mean_yi)
 end
 
 function pred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))

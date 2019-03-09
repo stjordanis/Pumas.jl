@@ -476,7 +476,8 @@ macro model(expr)
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
     $(init_obj(ode_init,odevars[1],prevars,isstatic)),
     $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
-    $(derived_obj(derivedexpr,derivedvars,prevars,odevars[1],distvars)))
+    $(derived_obj(derivedexpr,derivedvars,prevars,odevars[1],distvars)),
+    nothing)
     function Base.show(io::IO, ::typeof(x))
       println(io,"PKPDModel")
       println(io,"  Parameters: ",$(join(keys(params),", ")))
