@@ -78,10 +78,9 @@ end
 function build_observation_list(obs::AbstractDataFrame)
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
   vars = setdiff(names(obs), (:time, :cmt))
-  _obs = ntuple(i -> convert(AbstractVector{Float64}, obs[vars[i]]), length(vars))
-  return StructArray(NamedTuple{tuple(vars...),typeof(_obs)}(_obs))
+  return ntuple(i -> convert(AbstractVector{Float64}, obs[vars[i]]), length(vars))
 end
-build_observation_list(obs::StructArray) = obs
+build_observation_list(obs::NamedTuple) = obs
 
 build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
 function build_event_list(regimen::DosageRegimen, event_data::Bool)

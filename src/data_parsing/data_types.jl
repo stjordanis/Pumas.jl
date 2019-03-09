@@ -171,12 +171,12 @@ The data corresponding to a single subject:
 
 Fields:
 - `id::Int`: numerical identifier
-- `observations`: a StructArray of the dependent variables
+- `observations`: a NamedTuple of the dependent variables
 - `covariates`: a named tuple containing the covariates, or `nothing`.
 - `events`: a vector of `Event`s.
 - `time`: a vector of time stamps for the observations
 """
-struct Subject{T1<:StructArray,T2,T3,T4}
+struct Subject{T1<:NamedTuple,T2,T3,T4}
   id::Int
   observations::T1
   covariates::T2
@@ -198,11 +198,10 @@ struct Subject{T1<:StructArray,T2,T3,T4}
     end
 
     dv_idx_tuple = ntuple(i -> convert(AbstractVector{Float64}, data[dvs[i]][idx_obs]), length(dvs))
-    dv_idx = NamedTuple{tuple(dvs...),typeof(dv_idx_tuple)}(dv_idx_tuple)
+    observations = NamedTuple{tuple(dvs...),typeof(dv_idx_tuple)}(dv_idx_tuple)
 
     # cmt handling should be reversed: it should give it the appropriate name given cmt
     # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
-    observations = StructArray(dv_idx)
 
     ## Covariates
     covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
@@ -253,7 +252,7 @@ struct Subject{T1<:StructArray,T2,T3,T4}
   end
 
   function Subject(;id = 1,
-                   obs = StructArray(NamedTuple{(),Tuple{}}[]),
+                   obs = NamedTuple{(),Tuple{}}[],
                    cvs = nothing,
                    evs = Event[],
                    time = obs isa AbstractDataFrame ? obs.time : range(0, length=length(obs)),

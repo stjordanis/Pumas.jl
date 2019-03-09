@@ -48,9 +48,8 @@ function __lpdf(ds::AbstractVector, xs::AbstractVector)
   end
   return l
 end
-function _lpdf(derived_dist::NamedTuple, observations::StructArray)
-  obs = StructArrays.fieldarrays(observations)
-  sum(keys(obs)) do k
+function _lpdf(derived_dist::NamedTuple, observations::NamedTuple)
+  sum(propertynames(obs)) do k
     if haskey(derived_dist, k)
       __lpdf(getfield(derived_dist, k), getfield(obs, k))
     end
