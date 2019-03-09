@@ -29,15 +29,6 @@ function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   end
 end
 _lpdf(d::Domain, x) = 0.0
-# Define two vectorized helper functions __lpdf. Once we can do two argument mapreduce
-# or the equivalent without allocations, it should be possible to get rid of these.
-function _lpdf(ds::Distributions.Sampleable, xs::AbstractVector)
-  l = _lpdf(ds, xs[1])
-  @inbounds for i in 2:length(ds)
-    l += _lpdf(ds, xs[i])
-  end
-  return l
-end
 function _lpdf(ds::AbstractVector, xs::AbstractVector)
   if length(ds) != length(xs)
     throw(DimensionMismatch("vectors must have same length"))
@@ -63,7 +54,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
                              y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
-  isempty(obstimes) && throw(ArgumentError("no observations for subject"))
+  isnothing(obstimes) && throw(ArgumentError("no observations for subject"))
 
   # collate that arguments
   collated = m.pre(x0, y0, subject.covariates)
