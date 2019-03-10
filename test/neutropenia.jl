@@ -95,9 +95,6 @@ data = DataFrame(time = append!([0.083, 0.167, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0,
                                 1.65627, 1.52832, 1.71787, 1.66199, 1.79697])) |>
     (data -> unstack(data, :variable, :value))
 
-# At some point in the future, eachcol(data) should be sufficient
-foreach(col -> replace!(col, missing => NaN), eachcol(data, false))
-
 subject = Subject(obs = data,
                   evs = DosageRegimen(8e4, addl = 14, ii = 12))
 
