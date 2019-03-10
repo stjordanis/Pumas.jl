@@ -287,7 +287,7 @@ function dynamics_obj(odeexpr::Expr, pre, odevars, bvars, eqs, isstatic)
     end
   end
 end
-function dynamics_obj(odename::Symbol, pre, odevars, vars_, eqs, isstatic)
+function dynamics_obj(odename::Symbol, pre, odevars, bvars, eqs, isstatic)
   quote
     ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
   end
@@ -391,14 +391,17 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
 end
 
 function broadcasted_vars(vars)
-  filter!(ex -> isa(ex, Expr), vars.args)
-  map(vars.args) do ex
+  foreach(vars.args) do ex
+    isa(ex, Expr) || return
     ex.args[2] = :(@. $(ex.args[2]))
   end
   return vars
 end
 
-add_vars!(ex, vars) = (ex.args[3] = Expr(:block, vars, ex.args[3]); ex)
+function add_vars(ex::Expr, vars)
+  args = ex.head === :block ? ex.args : [ex]
+  return Expr(:block, [vars.args; args]...)
+end
 
 macro model(expr)
 
@@ -440,18 +443,15 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@vars")
       bvars = broadcasted_vars(ex.args[3])
     elseif ex.args[1] == Symbol("@init")
-      add_vars!(ex, bvars)
-      extract_defs!(vars,ode_init, ex.args[3])
+      extract_defs!(vars,ode_init, add_vars(ex.args[3], bvars))
     elseif ex.args[1] == Symbol("@dynamics")
       isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
     elseif ex.args[1] == Symbol("@derived")
-      add_vars!(ex, bvars)
-      extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
+      extract_randvars!(vars, derivedvars, derivedexpr, add_vars(ex.args[3], bvars))
       observedvars = copy(derivedvars)
     elseif ex.args[1] == Symbol("@observed")
-      add_vars!(ex, bvars)
-      extract_randvars!(vars, observedvars, observedexpr, ex.args[3])
+      extract_randvars!(vars, observedvars, observedexpr, add_vars(ex.args[3], bvars))
     else
       throw(ArgumentError("Invalid macro $(ex.args[1])"))
     end
