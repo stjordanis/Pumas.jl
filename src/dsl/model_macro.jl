@@ -356,16 +356,6 @@ function extract_randvars!(vars, randvars, distvars, postexpr, expr)
   end
 end
 
-function broadcasted_vars(vars)
-  if !isempty(vars)
-    for ex in first(vars).args
-      ex isa LineNumberNode && continue
-      ex.args[2] = :(@. $(ex.args[2]))
-    end
-  end
-  vars
-end
-
 function bvar_def(collection, indvars)
   quote
     if $collection isa DataFrame
@@ -415,10 +405,10 @@ macro model(expr)
   lnndict = Dict{Symbol,LineNumberNode}()
   for (i,ex) in enumerate(expr.args)
 
-    if ex isa LineNumberNode
-      continue
-    end
-    @assert ex isa Expr && ex.head == :macrocall
+    isa(ex, LineNumberNode) && continue
+
+    (isa(ex, Expr) && ex.head === :macrocall) || throw(ArgumentError("expected macro call, got $ex"))
+
     if ex.args[1] == Symbol("@param")
       extract_params!(vars, params, ex.args[3])
     elseif ex.args[1] == Symbol("@random")
@@ -431,22 +421,17 @@ macro model(expr)
       vars_ = ex.args[3:end]
     elseif ex.args[1] == Symbol("@init")
       # Add in @vars
-      ex.args[3].args = [ex.args[3].args[1],copy(vars_)...,ex.args[3].args[2:end]...]
+      prepend!(ex.args[3].args, vars_)
       extract_defs!(vars,ode_init, ex.args[3])
     elseif ex.args[1] == Symbol("@dynamics")
-      # Add in @vars only if not an analytical solution
-      if !(typeof(ex.args[3]) <: Symbol)
-        ex.args[3].args = [ex.args[3].args[1],ex.args[3].args[2:end]...]
-      end
       isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
     elseif ex.args[1] == Symbol("@derived")
       # Add in @vars
-      bvars = broadcasted_vars(copy(vars_))
-      ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
+      prepend!(ex.args[3].args, vars_)
       extract_randvars!(vars, derivedvars, distvars, derivedexpr, ex.args[3])
     else
-      error("Invalid macro $(ex.args[1])")
+      throw(ArgumentError("Invalid macro $(ex.args[1])"))
     end
     #return nothing
   end
