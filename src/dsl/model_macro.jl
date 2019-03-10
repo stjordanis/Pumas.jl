@@ -390,6 +390,8 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
   end
 end
 
+add_vars!(ex, vars_) = prepend!(ex.args[3].args, vars_)
+
 macro model(expr)
 
   vars = Set{Symbol}([:t]) # t is the only reserved symbol
@@ -409,7 +411,7 @@ macro model(expr)
   observedexpr = Expr(:block)
   local vars, params, randoms, covariates, prevars, preexpr, odeexpr, odevars
   local ode_init, eqs, derivedexpr, derivedvars, observedvars, observedexpr
-  local isstatic, bvars
+  local isstatic
 
   isstatic = true
   odeexpr = :()
@@ -431,21 +433,17 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@vars")
       vars_ = ex.args[3:end]
     elseif ex.args[1] == Symbol("@init")
-      # Add in @vars
-      prepend!(ex.args[3].args, vars_)
+      add_vars!(ex, vars_)
       extract_defs!(vars,ode_init, ex.args[3])
     elseif ex.args[1] == Symbol("@dynamics")
       isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
     elseif ex.args[1] == Symbol("@derived")
-      # Add in @vars
-      prepend!(ex.args[3].args, vars_)
-      ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
+      add_vars!(ex, vars_)
       extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
       observedvars = copy(derivedvars)
     elseif ex.args[1] == Symbol("@observed")
-      # Add in @vars
-      ex.args[3].args = [ex.args[3].args[1],bvars...,ex.args[3].args[2:end]...]
+      add_vars!(ex, vars_)
       extract_randvars!(vars, observedvars, observedexpr, ex.args[3])
     else
       throw(ArgumentError("Invalid macro $(ex.args[1])"))
