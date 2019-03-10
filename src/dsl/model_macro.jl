@@ -52,7 +52,7 @@ function extract_params!(vars, params, exprs)
   end
 
   for expr in _exprs
-    expr isa LineNumberNode && continue
+    islinenum(expr) && continue
     @assert expr isa Expr
     if expr.head == :call && expr.args[1] in (:∈, :in)
       p = expr.args[2]
@@ -95,7 +95,7 @@ function extract_randoms!(vars, randoms, exprs)
   end
 
   for expr in _exprs
-    expr isa LineNumberNode && continue
+    islinenum(expr) && continue
     @assert expr isa Expr
     if expr.head == :call && expr.args[1] == :~
       p = expr.args[2]
@@ -125,7 +125,7 @@ end
 
 function extract_syms!(vars, subvars, syms)
   for p in syms
-    p isa LineNumberNode && continue
+    islinenum(p) && continue
     p in vars && error("Variable $p already defined")
     push!(subvars, p)
     push!(vars, p)
@@ -308,7 +308,7 @@ function extract_defs!(vars, defsdict, exprs)
   end
 
   for expr in _exprs
-    expr isa LineNumberNode && continue
+    islinenum(expr) && continue
     @assert expr isa Expr
     if expr.head == :(=)
       p = expr.args[1]
@@ -398,7 +398,7 @@ function broadcasted_vars(vars)
   return vars
 end
 
-add_vars!(ex, vars) = pushfirst!(ex.args[3].args, vars)
+add_vars!(ex, vars) = (ex.args[3] = Expr(:block, vars, ex.args[3]); ex)
 
 macro model(expr)
 
@@ -424,10 +424,9 @@ macro model(expr)
   isstatic = true
   odeexpr = :()
   lnndict = Dict{Symbol,LineNumberNode}()
-  for (i,ex) in enumerate(expr.args)
 
-    isa(ex, LineNumberNode) && continue
-
+  for ex ∈ expr.args
+    islinenum(ex) && continue
     (isa(ex, Expr) && ex.head === :macrocall) || throw(ArgumentError("expected macro call, got $ex"))
 
     if ex.args[1] == Symbol("@param")
