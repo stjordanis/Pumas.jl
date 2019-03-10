@@ -19,7 +19,7 @@ include("models/params.jl")
 include("models/simulated_observations.jl")
 include("models/model_api.jl")
 
-include("models/transforms.jl")
+include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
