@@ -2,12 +2,12 @@ using LogDensityProblems, DynamicHMC
 import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
 
 
-function dim_param(m::PKPDModel)
+function dim_param(m::PuMaSModel)
   t_param = totransform(m.param)
   dimension(t_param)
 end
 
-function dim_rfx(m::PKPDModel)
+function dim_rfx(m::PuMaSModel)
   x = init_param(m)
   rfx = m.random(x)
   t_rfx = totransform(rfx)
@@ -127,7 +127,7 @@ end
 
 struct BayesMCMC <: LikelihoodApproximation end
 
-function Distributions.fit(model::PKPDModel, data::Population, ::BayesMCMC,
+function Distributions.fit(model::PuMaSModel, data::Population, ::BayesMCMC,
                            args...; nsamples=5000, kwargs...)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
   chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)

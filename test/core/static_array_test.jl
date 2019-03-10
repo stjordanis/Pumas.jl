@@ -83,7 +83,7 @@ end
 
 observed_f(col,sol,obstimes,samples) = samples
 
-mstatic = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -114,7 +114,7 @@ function derived_f(col,sol,obstimes)
     (conc = conc,)
 end
 
-mstatic2 = PKPDModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
+mstatic2 = PuMaSModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 

@@ -82,7 +82,7 @@ end
         cmax = maximum(conc)
         (conc = conc, cmax = cmax, dv = @. Normal(conc, conc*col.σ))
     end
-    model_ip = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
+    model_ip = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
 
     # Initial data
     θ0 = [2.268,74.17,468.6,0.5876]

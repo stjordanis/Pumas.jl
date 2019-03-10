@@ -1,4 +1,4 @@
-function _solve_analytical(m::PKPDModel, subject::Subject, u0, tspan, col, args...; kwargs...)
+function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col, args...; kwargs...)
   f = m.prob
 
   # we don't want to promote units

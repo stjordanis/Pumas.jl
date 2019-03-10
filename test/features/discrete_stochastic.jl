@@ -44,7 +44,7 @@ function derived_f(col,sol,obstimes)
     (dv=dv,)
 end
 
-model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,jump_prob,derived_f)
+model = PuMaS.PuMaSModel(p,randomfx,pre_f,init_f,jump_prob,derived_f)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

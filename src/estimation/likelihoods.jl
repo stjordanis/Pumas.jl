@@ -43,16 +43,16 @@ function _lpdf(ds::AbstractVector, xs::AbstractVector)
 end
 
 """
-    conditional_nll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    conditional_nll(m::PuMaSModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `rfx`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
+conditional_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, args...; kwargs...) =
   first(conditional_nll_ext(m, subject, x0, args...; kwargs...))
 
-function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
+function conditional_nll_ext(m::PuMaSModel, subject::Subject, x0::NamedTuple,
                              y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
@@ -84,7 +84,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
   return -ll, derived_dist
 end
 
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+function conditional_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   l, dist    = conditional_nll_ext(m, subject, x0, y0, args...; kwargs...)
   if isinf(l)
     return l
@@ -94,7 +94,7 @@ function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::Nam
 end
 
 # FIXME! Having both a method for y0::NamedTuple and vy0::AbstractVector shouldn't really be necessary. Clean it up!
-function conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
+function conditional_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
   rfxset = m.random(x0)
   y0 = TransformVariables.transform(totransform(rfxset), vy0)
   conditional_nll(m, subject, x0, y0, approx, args...; kwargs...)
@@ -110,7 +110,7 @@ function conditional_nll(derived_dist, derived_dist0, subject)
 end
 
 """
-    penalized_conditional_nll(m::PKPDModel, subject::Subject, param, rfx, args...; kwargs...)
+    penalized_conditional_nll(m::PuMaSModel, subject::Subject, param, rfx, args...; kwargs...)
 
 Compute the penalized conditional negative log-likelihood. This is the same as
 [`conditional_nll`](@ref), except that it incorporates the penalty from the prior
@@ -119,31 +119,31 @@ distribution of the random effects.
 Here `rfx` can be either a `NamedTuple` or a vector (representing a transformation of the
 random effects to Cartesian space).
 """
-function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...;kwargs...)
+function penalized_conditional_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, args...;kwargs...)
   rfxset = m.random(x0)
   conditional_nll(m, subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
 end
 
-function penalized_conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, args...;kwargs...)
+function penalized_conditional_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, args...;kwargs...)
   rfxset = m.random(x0)
   y0 = TransformVariables.transform(totransform(rfxset), vy0)
   conditional_nll(m, subject, x0, y0, args...;kwargs...) - _lpdf(rfxset.params, y0)
 end
 
-function penalized_conditional_nll_fn(m::PKPDModel, subject::Subject, x0::NamedTuple, args...;kwargs...)
+function penalized_conditional_nll_fn(m::PuMaSModel, subject::Subject, x0::NamedTuple, args...;kwargs...)
   y -> penalized_conditional_nll(m, subject, x0, y, args...; kwargs...)
 end
 
 
 
 """
-    penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::Subject, param, rfx, args...;
+    penalized_conditional_nll!(diffres::DiffResult, m::PuMaSModel, subject::Subject, param, rfx, args...;
                                hessian=diffres isa HessianResult, kwargs...)
 
 Compute the penalized conditional negative log-likelihood (see [`penalized_conditional_nll`](@ref)),
 storing the gradient (and optionally, the Hessian) wrt to `rfx` in `diffres`.
 """
-function penalized_conditional_nll!(diffres::DiffResult, m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, args...;
+function penalized_conditional_nll!(diffres::DiffResult, m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, args...;
                                     hessian=isa(diffres, DiffResult{2}), kwargs...)
   f = penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...)
   if hessian
@@ -163,7 +163,7 @@ particular subject at a particular parameter values. The result is returned as a
 """
 rfx_estimate
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
+function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
@@ -172,7 +172,7 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, x0, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
@@ -181,7 +181,7 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
-function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
+function rfx_estimate(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
   rfxset = m.random(x0)
   p = TransformVariables.dimension(totransform(rfxset))
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
@@ -197,7 +197,7 @@ Estimate the distribution of random effects (typically a Normal approximation of
 empirical Bayes posterior) of a particular subject at a particular parameter values. The
 result is returned as a vector (transformed into Cartesian space).
 """
-function rfx_estimate_dist(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
+function rfx_estimate_dist(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::LaplaceI, args...; kwargs...)
   vy0 = rfx_estimate(m, subject, x0, approx, args...; kwargs...)
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
@@ -214,14 +214,14 @@ from the data.
 
 See also [`marginal_nll_nonmem`](@ref).
 """
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::LikelihoodApproximation, args...;
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, approx::LikelihoodApproximation, args...;
                       kwargs...)
   rfxset = m.random(x0)
   vy0 = TransformVariables.inverse(totransform(rfxset), y0)
   marginal_nll(m, subject, x0, vy0, approx, args...; kwargs...)
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::LaplaceI, args...;
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::LaplaceI, args...;
                       kwargs...)
   diffres = DiffResults.HessianResult(vy0)
   penalized_conditional_nll!(diffres, m, subject, x0, vy0, args...; hessian=true, kwargs...)
@@ -231,7 +231,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, args...; kwargs...)
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l,dist = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
   w = FIM(m, subject, x0, vy0, approx, dist, args...; kwargs...)
@@ -239,7 +239,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   return l
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
   W = FIM(m,subject, x0, vy0, approx, args...; kwargs...)
@@ -252,7 +252,7 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   end
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   l0, dist0 = conditional_nll_ext(m, subject, x0, (η=zero(vy0),), args...; kwargs...)
   W, dldη = FIM(m, subject, x0, zero(vy0), approx, dist0, args...; kwargs...)
@@ -266,19 +266,19 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   end
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
   W = ForwardDiff.hessian(s -> conditional_nll(m, subject, x0, s, approx, args...; kwargs...), vy0)
   return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + W))/2
 end
 
-function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
+function marginal_nll(m::PuMaSModel, subject::Subject, x0::NamedTuple, approx::LikelihoodApproximation, args...;
                       kwargs...)
   vy0 = rfx_estimate(m, subject, x0, approx, args...; kwargs...)
   marginal_nll(m, subject, x0, vy0, approx, args...; kwargs...)
 end
-function marginal_nll(m::PKPDModel, data::Population, args...;
+function marginal_nll(m::PuMaSModel, data::Population, args...;
                       kwargs...)
   sum(subject -> marginal_nll(m, subject, args...; kwargs...), data.subjects)
 end
@@ -291,9 +291,9 @@ end
 Compute the NONMEM-equivalent marginal negative loglikelihood of a subject or dataset:
 this is scaled and shifted slightly from [`marginal_nll`](@ref).
 """
-marginal_nll_nonmem(m::PKPDModel, subject::Subject, args...; kwargs...) =
+marginal_nll_nonmem(m::PuMaSModel, subject::Subject, args...; kwargs...) =
     2marginal_nll(m, subject, args...; kwargs...) - length(first(subject.observations))*log(2π)
-marginal_nll_nonmem(m::PKPDModel, data::Population, args...; kwargs...) =
+marginal_nll_nonmem(m::PuMaSModel, data::Population, args...; kwargs...) =
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data.subjects)*log(2π)
 # NONMEM doesn't allow ragged, so this suffices for testing
 
@@ -306,7 +306,7 @@ In named tuple nt, replace the value x.var by y
   k ∉ x.names ? :x : :( (x..., $k=y) )
 end
 
-function generate_enclosed_likelihood(ll, model::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, v, args...; kwargs...)
+function generate_enclosed_likelihood(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, v, args...; kwargs...)
   function (z)
     _x0 = setindex(x0,z,v)
     _y0 = setindex(y0,z,v)
@@ -314,11 +314,11 @@ function generate_enclosed_likelihood(ll, model::PKPDModel, subject::Subject, x0
   end
 end
 
-function ll_derivatives(ll, model::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, var::Symbol, args...; kwargs...)
+function ll_derivatives(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple, var::Symbol, args...; kwargs...)
   ll_derivatives(ll, model, subject::Subject, x0::NamedTuple, y0::NamedTuple, Val(var), args...; kwargs...)
 end
 
-@generated function ll_derivatives(ll, model::PKPDModel, subject::Subject, x0::NamedTuple, y0::NamedTuple,
+@generated function ll_derivatives(ll, model::PuMaSModel, subject::Subject, x0::NamedTuple, y0::NamedTuple,
                                    v::Val{var}, args...;
                                    hessian_required = true,
                                    transform=false, kwargs...) where var
@@ -352,7 +352,7 @@ function _mean0(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwar
   _mean(model, subject, x0, map(zero, y0), i, args...; kwargs...)
 end
 
-function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
+function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
   f_res     = DiffResults.GradientResult(vy0)
   del_r_res = DiffResults.GradientResult(vy0)
   fim = sum(1:length(subject.observations.dv)) do j
@@ -368,7 +368,7 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   fim
 end
 
-function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
+function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
   l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),), args...; kwargs...)
   fim = sum(1:length(subject.observations.dv)) do j
     r_inv = inv(var(dist0.dv[j]))
@@ -380,7 +380,7 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
   fim
 end
 
-function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
+function FIM(m::PuMaSModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
   r = var(dist0.dv[1])
   f = ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), 1, args...; kwargs...), vy0)
   fdr = f/r
@@ -403,14 +403,14 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
 end
 
 # Fitting methods
-struct FittedPKPDModel{T1<:PKPDModel,T2<:Population,T3<:NamedTuple,T4<:LikelihoodApproximation}
+struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3<:NamedTuple,T4<:LikelihoodApproximation}
   model::T1
   data::T2
   x0::T3
   approx::T4
 end
 
-function Distributions.fit(m::PKPDModel,
+function Distributions.fit(m::PuMaSModel,
                            data::Population,
                            x0::NamedTuple,
                            approx::LikelihoodApproximation;
@@ -424,127 +424,8 @@ function Distributions.fit(m::PKPDModel,
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
+  return FittedPuMaSModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
 end
 
-marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
-marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
-
-function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
-  yi = subject.observations.dv
-  sims = []
-  for i in 1:nsim
-    vals = simobs(m, subject, x0)
-    push!(sims, vals.observed.dv)
-  end
-  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  covm_yi = cov(sims)
-  covm_yi = sqrt(inv(covm_yi))
-  yi_decorr = (covm_yi)*(yi .- mean_yi)
-  phi = []
-  for i in 1:nsim
-    yi_i = sims[i]
-    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
-    push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
-  end
-  phi = sum(phi)/nsim
-  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations.dv)]
-end
-
-function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
-  mean_yi = (mean.(dist0.dv))
-  Ω = cov(m.random(x0).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
-  (var_yi)*(yi .- mean_yi)
-end
-
-function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  Ω = cov(m.random(x0).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
-  mean_yi = (mean.(dist.dv)) .- vec(f*vy0')
-  (var_yi)*(yi .- mean_yi)
-end
-
-function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
-  yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  Ω = cov(m.random(x0).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist.dv))) + (f*Ω*f')))
-  mean_yi = (mean.(dist.dv)) .- vec(f*vy0')
-  (var_yi)*(yi .- mean_yi)
-end
-
-function pred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
-  mean_yi = (mean.(dist0.dv))
-  mean_yi
-end
-
-function cpred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations.dv)]
-  mean_yi = (mean.(dist.dv)) .- vec(f*vy0')
-  mean_yi
-end
-
-function cpredi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations.dv)]
-  mean_yi = (mean.(dist.dv)) .- vec(f*vy0')
-  mean_yi
-end
-
-function epred(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
-  sims = []
-  for i in 1:nsim
-    vals = simobs(m, subject, x0)
-    push!(sims, vals.observed.dv)
-  end
-  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  mean_yi
-end
-
-function iwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
-  mean_yi = (mean.(dist0.dv))
-  sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
-end
-
-function icwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  mean_yi = (mean.(dist.dv))
-  sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
-end
-
-function icwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
-  yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
-  mean_yi = (mean.(dist.dv))
-  sqrt(inv((Diagonal(var.(dist.dv)))))*(yi .- mean_yi)
-end
-
-function eiwres(m::PKPDModel,subject::Subject, x0::NamedTuple, nsim)
-  yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,x0)
-  mean_yi = (mean.(dist.dv))
-  covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
-  sims_sum = (covm_yi)*(yi .- mean_yi)
-  for i in 2:nsim
-    l, dist = conditional_nll_ext(m,subject,x0)
-    mean_yi = (mean.(dist.dv))
-    covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
-    sims_sum .+= (covm_yi)*(yi .- mean_yi)
-  end
-  sims_sum./nsim
-end
+marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
+marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)

@@ -1,5 +1,5 @@
 """
-    PKPDModel
+    PuMaSModel
 
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
@@ -20,7 +20,7 @@ Note:
 Todo:
 - auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
-mutable struct PKPDModel{P,Q,R,S,T,V,W}
+mutable struct PuMaSModel{P,Q,R,S,T,V,W}
   param::P
   random::Q
   pre::R
@@ -29,22 +29,22 @@ mutable struct PKPDModel{P,Q,R,S,T,V,W}
   derived::V
   observed::W
 end
-PKPDModel(param,random,pre,init,prob,derived) =
-    PKPDModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
+PuMaSModel(param,random,pre,init,prob,derived) =
+    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
 
-init_param(m::PKPDModel) = init(m.param)
-init_random(m::PKPDModel, param) = init(m.random(param))
+init_param(m::PuMaSModel) = init(m.param)
+init_random(m::PuMaSModel, param) = init(m.random(param))
 
 """
-    rand_random(m::PKPDModel, param)
+    rand_random(m::PuMaSModel, param)
 
 Generate a random set of random effects for model `m`, using parameters `param`.
 """
-rand_random(m::PKPDModel, param) = rand(m.random(param))
+rand_random(m::PuMaSModel, param) = rand(m.random(param))
 
 
 """
-    sol = pkpd_solve(m::PKPDModel, subject::Subject, param,
+    sol = pkpd_solve(m::PuMaSModel, subject::Subject, param,
                      rfx=rand_random(m, param),
                      args...; kwargs...)
 
@@ -55,7 +55,7 @@ in the model.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
-function DiffEqBase.solve(m::PKPDModel, subject::Subject,
+function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
                           param = init_param(m),
                           rfx = rand_random(m, param),
                           args...; kwargs...)
@@ -65,7 +65,7 @@ function DiffEqBase.solve(m::PKPDModel, subject::Subject,
 end
 
 @enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
-function DiffEqBase.solve(m::PKPDModel, pop::Population,
+function DiffEqBase.solve(m::PuMaSModel, pop::Population,
                           param = init_param(m),
                           args...; parallel_type = Threading,
                           kwargs...)
@@ -89,7 +89,7 @@ end
 This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
 """
-function _solve(m::PKPDModel, subject, col, args...;
+function _solve(m::PuMaSModel, subject, col, args...;
                 tspan=nothing, kwargs...)
   m.prob === nothing && return nothing
   if tspan === nothing
@@ -105,7 +105,7 @@ function _solve(m::PKPDModel, subject, col, args...;
   if m.prob isa ExplicitModel
     return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
   else
-    mtmp = PKPDModel(m.param,
+    mtmp = PuMaSModel(m.param,
                      m.random,
                      m.pre,
                      m.init,
@@ -130,7 +130,7 @@ sample(d) = d
 zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
-function derivedfun(m::PKPDModel, subject::Subject,
+function derivedfun(m::PuMaSModel, subject::Subject,
                     param = init_param(m),
                     rfx=rand_random(m, param),
                     args...; continuity=:right,kwargs...)
@@ -139,7 +139,7 @@ function derivedfun(m::PKPDModel, subject::Subject,
   derivedfun(m,col,sol;continuity=continuity)
 end
 
-function derivedfun(m::PKPDModel, col, sol; continuity=:left)
+function derivedfun(m::PuMaSModel, col, sol; continuity=:left)
   if sol === nothing
     derived = obstimes -> m.derived(col,nothing,obstimes)
   else
@@ -149,7 +149,7 @@ function derivedfun(m::PKPDModel, col, sol; continuity=:left)
 end
 
 """
-    simobs(m::PKPDModel, subject::Subject, param[, rfx, [args...]];
+    simobs(m::PuMaSModel, subject::Subject, param[, rfx, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
 Simulate random observations from model `m` for `subject` with parameters `param` at
@@ -157,7 +157,7 @@ Simulate random observations from model `m` for `subject` with parameters `param
 `rfx` is provided, then random ones are generated according to the distribution
 in the model.
 """
-function simobs(m::PKPDModel, subject::Subject,
+function simobs(m::PuMaSModel, subject::Subject,
                 param = init_param(m),
                 rfx=rand_random(m, param),
                 args...;
@@ -176,7 +176,7 @@ function simobs(m::PKPDModel, subject::Subject,
   SimulatedObservations(subject,obstimes,obs) # the first component is observed values
 end
 
-function simobs(m::PKPDModel, pop::Population, args...;
+function simobs(m::PuMaSModel, pop::Population, args...;
                 parallel_type = Threading, kwargs...)
   time = @elapsed if parallel_type == Serial
     sims = [simobs(m,subject,args...;kwargs...) for subject in pop]
@@ -195,13 +195,13 @@ function simobs(m::PKPDModel, pop::Population, args...;
 end
 
 """
-    pre(m::PKPDModel, subject::Subject, param, rfx)
+    pre(m::PuMaSModel, subject::Subject, param, rfx)
 
 Returns the parameters of the differential equation for a specific subject
 subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
-function pre(m::PKPDModel, subject::Subject, param, rfx)
+function pre(m::PuMaSModel, subject::Subject, param, rfx)
   m.pre(param, rfx, subject.covariates)
 end
 

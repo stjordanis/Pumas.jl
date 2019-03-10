@@ -101,7 +101,7 @@ function observed_f(col,sol,obstimes,samples)
      dv = samples.dv)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -135,7 +135,7 @@ function onecompartment_f_iip(du,u,p,t)
 end
 prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
-mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
+mobj_iip = PuMaSModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test conditional_nll(mobj_iip,subject,x0,y0) ≈ conditional_nll(mobj,subject,x0,y0) rtol=5e-3

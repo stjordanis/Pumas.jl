@@ -44,7 +44,7 @@ function derived_f(col,sol,obstimes,obs)
     (conc = conc,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
+mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
 
 x0 = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
