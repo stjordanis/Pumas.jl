@@ -21,7 +21,8 @@ The log pdf: this differs from `Distributions.logdpf` definintion in a couple of
 _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
 _lpdf(d::ConstDomain, x) = _lpdf(d.val, x)
 _lpdf(d::Distributions.Sampleable,x::Missing) = zval(d)
-_lpdf(d::Distributions.MultivariateDistribution,x::AbstractVector) = logpdf(d,x)
+_lpdf(d::Distributions.MultivariateDistribution,x::AbstractArray) = logpdf(d,x)
+_lpdf(d::Distributions.Sampleable,x::PDMat) = logpdf(d,x)
 _lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
