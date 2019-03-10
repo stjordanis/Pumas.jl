@@ -261,29 +261,27 @@ end
 
 function dynamics_obj(odeexpr::Expr, pre, odevars, vars_, eqs, isstatic)
   odeexpr == :() && return nothing
-  ivar  = :(@parameters t)
-  dvar  = :(@variables)
-  der   = :(@derivatives ___D'~t)
-  param = :(@parameters)
+  dvars = :(begin end)
+  params = :(begin end)
   version = isstatic ? ModelingToolkit.SArrayFunction : ModelingToolkit.ArrayFunction
   diffeq = :(ODEProblem(ODEFunction(DiffEqSystem($eqs, t, [], Variable[]),version=$version),nothing,nothing,nothing))
 
   # DVar
   for v in odevars
-    push!(dvar.args, :($v(t)))
+    push!(dvars.args, :($v = Variable($(Meta.quot(v)), [t])))
     push!(diffeq.args[2].args[2].args[4].args, v)
   end
   # Param
   for p in pre
-    push!(param.args, p)
+    push!(params.args, :($p = Variable($(Meta.quot(p)); known = true)))
     push!(diffeq.args[2].args[2].args[5].args, p)
   end
   quote
     let
-      $ivar
-      $dvar
-      $der
-      $param
+      t = Variable(:t; known = true)
+      $dvars
+      ___D = Differential(t)
+      $params
       $(vars_...)
       $diffeq
     end
