@@ -52,3 +52,15 @@ end
   pop3 = Population(s3)
   @test Population(s1, s2, s3) == Population(pop1, pop2, pop3)
 end
+@testset "Missing Observables" begin
+  data = process_nmtran(DataFrame(time = [0, 1, 2, 4],
+                                  evid = [1, 1, 0, 0],
+                                  dv1 = [0, 0, 1, missing],
+                                  dv2 = [0, 0, missing, 2],
+                                  x = [missing, missing, 0.5, 0.75],
+                                  amt = [0.25, 0.25, 0, 0]),
+                         [:x],
+                         [:dv1, :dv2])
+  @test isa(data, Population)
+  isa(data[1].observations[1], NamedTuple{(:dv1,:dv2),NTuple{2, Union{Missing,Float64}}})
+end

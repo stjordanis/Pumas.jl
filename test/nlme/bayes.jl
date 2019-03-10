@@ -40,28 +40,31 @@ theopmodel_bayes = @model begin
 end
 
 Random.seed!(1)
-b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC(),
-              nsamples = 10_000)
+try
+  b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC(),
+                nsamples = 10_000)
 
-m = PuMaS.param_mean(b)
+  m = PuMaS.param_mean(b)
 
-@test m.θ[1] ≈ 1.72E+00 rtol=0.1
-@test m.θ[2] ≈ 8.57E-02 rtol=0.1
-@test m.θ[3] ≈ 3.90E-02 rtol=0.1
-@test m.θ[4] ≈ 1.73E+00 rtol=0.1
-@test m.θ[5] ≈ 4.32E-01 rtol=0.1
-@test_broken m.Ω[1] ≈ 1.09E+00 rtol=0.1
-@test m.σ ≈ 1.24E+00 rtol=0.1
+  @test m.θ[1] ≈ 1.72E+00 rtol=0.1
+  @test m.θ[2] ≈ 8.57E-02 rtol=0.1
+  @test m.θ[3] ≈ 3.90E-02 rtol=0.1
+  @test m.θ[4] ≈ 1.73E+00 rtol=0.1
+  @test m.θ[5] ≈ 4.32E-01 rtol=0.1
+  @test_broken m.Ω[1] ≈ 1.09E+00 rtol=0.1
+  @test m.σ ≈ 1.24E+00 rtol=0.1
 
-s = PuMaS.param_std(b)
-@test s.θ[1] ≈ 4.62E-01 rtol=0.2
-@test s.θ[2] ≈ 6.92E-03 rtol=0.1
-@test s.θ[3] ≈ 2.16E-03 rtol=0.1
-@test s.θ[4] ≈ 4.74E-01 rtol=0.2
-@test s.θ[5] ≈ 1.54E-01 rtol=0.1
-@test_broken s.Ω[1] ≈ 7.00E-01 rtol=0.1
-@test s.σ ≈  1.68E-01 rtol=0.1
-
+  s = PuMaS.param_std(b)
+  @test s.θ[1] ≈ 4.62E-01 rtol=0.2
+  @test s.θ[2] ≈ 6.92E-03 rtol=0.1
+  @test s.θ[3] ≈ 2.16E-03 rtol=0.1
+  @test s.θ[4] ≈ 4.74E-01 rtol=0.2
+  @test s.θ[5] ≈ 1.54E-01 rtol=0.1
+  @test_broken s.Ω[1] ≈ 7.00E-01 rtol=0.1
+  @test s.σ ≈  1.68E-01 rtol=0.1
+catch e
+  show(e)
+end
 
 
 theopmodel_bayes2 = @model begin
@@ -105,24 +108,28 @@ theopmodel_bayes2 = @model begin
 end
 
 Random.seed!(1)
-b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
-              nsamples = 10_000)
+try
+  b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
+                nsamples = 10_000)
 
-m = PuMaS.param_mean(b)
+  m = PuMaS.param_mean(b)
 
-@test m.θ[1] ≈ 1.72E+00 rtol=0.1
-@test m.θ[2] ≈ 8.57E-02 rtol=0.1
-@test m.θ[3] ≈ 3.90E-02 rtol=0.1
-@test m.θ[4] ≈ 1.73E+00 rtol=0.1
-@test m.θ[5] ≈ 4.32E-01 rtol=0.1
-@test_broken m.Ω[1] ≈ 1.09E+00 rtol=0.1
-@test m.σ ≈ 1.24E+00 rtol=0.1
+  @test m.θ[1] ≈ 1.72E+00 rtol=0.1
+  @test m.θ[2] ≈ 8.57E-02 rtol=0.1
+  @test m.θ[3] ≈ 3.90E-02 rtol=0.1
+  @test m.θ[4] ≈ 1.73E+00 rtol=0.1
+  @test m.θ[5] ≈ 4.32E-01 rtol=0.1
+  @test_broken m.Ω[1] ≈ 1.09E+00 rtol=0.1
+  @test m.σ ≈ 1.24E+00 rtol=0.1
 
-s = PuMaS.param_std(b)
-@test s.θ[1] ≈ 4.62E-01 rtol=0.2
-@test s.θ[2] ≈ 6.92E-03 rtol=0.1
-@test s.θ[3] ≈ 2.16E-03 rtol=0.1
-@test s.θ[4] ≈ 4.74E-01 rtol=0.2
-@test s.θ[5] ≈ 1.54E-01 rtol=0.1
-@test_broken s.Ω[1] ≈ 7.00E-01 rtol=0.1
-@test s.σ ≈  1.68E-01 rtol=0.1
+  s = PuMaS.param_std(b)
+  @test s.θ[1] ≈ 4.62E-01 rtol=0.2
+  @test s.θ[2] ≈ 6.92E-03 rtol=0.1
+  @test s.θ[3] ≈ 2.16E-03 rtol=0.1
+  @test s.θ[4] ≈ 4.74E-01 rtol=0.2
+  @test s.θ[5] ≈ 1.54E-01 rtol=0.1
+  @test_broken s.Ω[1] ≈ 7.00E-01 rtol=0.1
+  @test s.σ ≈  1.68E-01 rtol=0.1
+catch e
+  show(e)
+end
