@@ -30,7 +30,7 @@ mutable struct PKPDModel{P,Q,R,S,T,V,W}
   observed::W
 end
 PKPDModel(param,random,pre,init,prob,derived) =
-    PKPDModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples
+    PKPDModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
 
 init_param(m::PKPDModel) = init(m.param)
 init_random(m::PKPDModel, param) = init(m.random(param))
