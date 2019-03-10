@@ -90,9 +90,10 @@ end
         central = map(x->x.Central, sol)
         _conc = @. central / col.V
         _cmax = maximum(_conc)
-        (conc = _conc, cmax = _cmax), ()
+        (conc = _conc, cmax = _cmax)
     end
-    model = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+    observed_f(col,sol,obstimes,samples) = samples
+    model = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
