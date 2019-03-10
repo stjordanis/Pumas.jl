@@ -259,7 +259,7 @@ function init_obj(ode_init,odevars,prevars,isstatic)
   end
 end
 
-function dynamics_obj(odeexpr::Expr, pre, odevars, vars_, eqs, isstatic)
+function dynamics_obj(odeexpr::Expr, pre, odevars, bvars, eqs, isstatic)
   odeexpr == :() && return nothing
   dvars = :(begin end)
   params = :(begin end)
@@ -282,7 +282,7 @@ function dynamics_obj(odeexpr::Expr, pre, odevars, vars_, eqs, isstatic)
       $dvars
       ___D = Differential(t)
       $params
-      $(vars_...)
+      $bvars
       $diffeq
     end
   end
@@ -390,7 +390,15 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
   end
 end
 
-add_vars!(ex, vars_) = prepend!(ex.args[3].args, vars_)
+function broadcasted_vars(vars)
+  filter!(ex -> isa(ex, Expr), vars.args)
+  map(vars.args) do ex
+    ex.args[2] = :(@. $(ex.args[2]))
+  end
+  return vars
+end
+
+add_vars!(ex, vars) = pushfirst!(ex.args[3].args, vars)
 
 macro model(expr)
 
@@ -404,14 +412,14 @@ macro model(expr)
   preexpr = :()
   derivedvars = OrderedSet{Symbol}()
   eqs = Expr(:vect)
-  vars_ = Expr[]
   derivedvars = OrderedSet{Symbol}()
   derivedexpr = Expr(:block)
   observedvars = OrderedSet{Symbol}()
   observedexpr = Expr(:block)
+  bvars = :(begin end)
   local vars, params, randoms, covariates, prevars, preexpr, odeexpr, odevars
   local ode_init, eqs, derivedexpr, derivedvars, observedvars, observedexpr
-  local isstatic
+  local isstatic, bvars
 
   isstatic = true
   odeexpr = :()
@@ -431,19 +439,19 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@pre")
       preexpr = extract_pre!(vars,prevars,ex.args[3])
     elseif ex.args[1] == Symbol("@vars")
-      vars_ = ex.args[3:end]
+      bvars = broadcasted_vars(ex.args[3])
     elseif ex.args[1] == Symbol("@init")
-      add_vars!(ex, vars_)
+      add_vars!(ex, bvars)
       extract_defs!(vars,ode_init, ex.args[3])
     elseif ex.args[1] == Symbol("@dynamics")
       isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
     elseif ex.args[1] == Symbol("@derived")
-      add_vars!(ex, vars_)
+      add_vars!(ex, bvars)
       extract_randvars!(vars, derivedvars, derivedexpr, ex.args[3])
       observedvars = copy(derivedvars)
     elseif ex.args[1] == Symbol("@observed")
-      add_vars!(ex, vars_)
+      add_vars!(ex, bvars)
       extract_randvars!(vars, observedvars, observedexpr, ex.args[3])
     else
       throw(ArgumentError("Invalid macro $(ex.args[1])"))
@@ -459,7 +467,7 @@ macro model(expr)
     $(random_obj(randoms,params)),
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
     $(init_obj(ode_init,odevars,prevars,isstatic)),
-    $(dynamics_obj(odeexpr,prevars,odevars,eqs,isstatic)),
+    $(dynamics_obj(odeexpr,prevars,odevars,bvars,eqs,isstatic)),
     $(derived_obj(derivedexpr,derivedvars,prevars,odevars)),
     $(observed_obj(observedexpr,observedvars,prevars,odevars,derivedvars)))
     function Base.show(io::IO, ::typeof(x))
