@@ -3,7 +3,7 @@ DiffEqBase 3.0.0
 OrdinaryDiffEq 4.12.1
 Distributions
 Reexport
-StaticArrays
+StaticArrays 0.10.3
 DiffEqJump 1.0.0
 DiffEqMonteCarlo
 DataStructures
@@ -12,15 +12,18 @@ DelayDiffEq
 PDMats
 ModelingToolkit 0.1.0
 LabelledArrays 0.4
-DataFrames
+DataFrames 0.17
 GLM
 Unitful
 TreeViews
 CSV
-ForwardDiff
+ForwardDiff 0.10.3
 DiffResults
 Optim
 TransformVariables
 RecipesBase
 Missings
-Tables 0.1.14 0.1.15
+Tables 0.1.15
+LogDensityProblems
+DynamicHMC
+StructArrays

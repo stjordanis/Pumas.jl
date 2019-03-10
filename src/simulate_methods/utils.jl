@@ -63,11 +63,11 @@ function sorted_approx_unique(events)
 end
 
 function set_value(A :: StaticVector{L,T}, x,k) where {T,L}
-  SVector(ntuple(i->ifelse(i == k, x, A[i]), Val(L)))
+  typeof(A)(ntuple(i->ifelse(i == k, x, A[i]), Val(L)))
 end
 
 function increment_value(A :: StaticVector{L,T}, x,k) where {T,L}
-  SVector(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val(L)))
+  typeof(A)(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val(L)))
 end
 
 function increment_value(A::Number,x,k)
@@ -109,6 +109,7 @@ end
 numtype(::Type{T}) where {T<:Number} = T
 numtype(x::Number)        = typeof(x)
 numtype(x::AbstractArray) = eltype(x)
+numtype(x::Factorization) = eltype(x)
 numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 # numtype(x::Tuple)         = reduce(promote_type, map(numtype,x))
 numtype(x::Tuple)         = promote_type(map(numtype, x)...)

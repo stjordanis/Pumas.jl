@@ -19,11 +19,41 @@ The log pdf: this differs from `Distributions.logdpf` definintion in a couple of
 - if `d` is a `NamedTuple` of distributions, and `x` is a `NamedTuple` of observations, it computes the sum of the observed variables.
 """
 _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
+_lpdf(d::ConstDomain, x) = _lpdf(d.val, x)
 _lpdf(d::Distributions.Sampleable,x) = x === missing ? zval(d) : logpdf(d,x)
 _lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
+_lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   sum(keys(xs)) do k
     haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
+  end
+end
+_lpdf(d::Domain, x) = 0.0
+# Define two vectorized helper functions __lpdf. Once we can do two argument mapreduce
+# or the equivalent without allocations, it should be possible to get rid of these.
+function __lpdf(ds::Distributions.Sampleable, xs::AbstractVector)
+  l = _lpdf(ds, xs[1])
+  @inbounds for i in 2:length(ds)
+    l += _lpdf(ds, xs[i])
+  end
+  return l
+end
+function __lpdf(ds::AbstractVector, xs::AbstractVector)
+  if length(ds) != length(xs)
+    throw(DimensionMismatch("vectors must have same length"))
+  end
+  l = _lpdf(ds[1], xs[1])
+  @inbounds for i in 2:length(ds)
+    l += _lpdf(ds[i], xs[i])
+  end
+  return l
+end
+function _lpdf(derived_dist::NamedTuple, observations::StructArray)
+  obs = StructArrays.fieldarrays(observations)
+  sum(keys(obs)) do k
+    if haskey(derived_dist, k)
+      __lpdf(getfield(derived_dist, k), getfield(obs, k))
+    end
   end
 end
 
@@ -40,7 +70,7 @@ conditional_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, args...; kwargs.
 function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
                              y0::NamedTuple=rand_random(m, x0), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
-  obstimes = [obs.time for obs in subject.observations]
+  obstimes = subject.time
   isempty(obstimes) && throw(ArgumentError("no observations for subject"))
 
   # collate that arguments
@@ -56,7 +86,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     path = solution.(obstimes, continuity=:right)
 
     # if solution contains NaN return Inf
-    if any(isnan, last(path))
+    if any(isnan, last(path)) || solution.retcode != :Success
       # FIXME! Do we need to make this type stable?
       return Inf, nothing, nothing
     end
@@ -65,16 +95,7 @@ function conditional_nll_ext(m::PKPDModel, subject::Subject, x0::NamedTuple,
     vals, derived_dist = m.derived(collated, path, obstimes) # the second component is distributions
   end
 
-  # compute the log-likelihood value
-  ll = let derived_dist=derived_dist
-    sum(enumerate(subject.observations)) do (idx,obs)
-      if eltype(derived_dist) <: Array
-        _lpdf(NamedTuple{Base._nt_names(obs.val)}(ntuple(i->derived_dist[i][idx], length(derived_dist))), obs.val)
-      else
-        _lpdf(derived_dist, obs.val)
-      end
-    end
-  end
+  ll = _lpdf(derived_dist, subject.observations)
   return -ll, vals, derived_dist
 end
 
@@ -99,9 +120,9 @@ function conditional_nll(derived_dist, derived_dist0, subject)
   n = length(derived_dist)
   x = sum(enumerate(subject.observations)) do (idx,obs)
     if eltype(derived_dist) <: Array
-      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs.val)
+      _lpdf(typ(ntuple(i->Normal(mean(derived_dist[i][idx]),sqrt(var(derived_dist0[i][idx]))), n)), obs)
     else
-      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs.val)
+      _lpdf(Normal(mean(derived_dist),sqrt(var(derived_dist0))), obs)
     end
   end
   return -x
@@ -176,7 +197,7 @@ function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Un
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(x0), numtype(x0))
-  Optim.minimizer(Optim.optimize(t -> penalized_conditional_nll(m, subject, x0, (η=t,), Laplace(), args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
+  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, x0, (η=s,), approx, args...; kwargs...), zeros(T, p), BFGS(); autodiff=:forward))
 end
 
 function rfx_estimate(m::PKPDModel, subject::Subject, x0::NamedTuple, approx::Union{FO,FOI}, args...; kwargs...)
@@ -233,7 +254,8 @@ function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::Abstr
   Ω = cov(m.random(x0).params.η)
   l,val,dist = conditional_nll_ext(m, subject, x0, (η=vy0,), args...; kwargs...)
   w = FIM(m, subject, x0, vy0, approx, dist, args...; kwargs...)
-  return l + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  l += (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + w))/2
+  return l
 end
 
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCE, args...; kwargs...)
@@ -266,7 +288,7 @@ end
 function marginal_nll(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::Laplace, args...; kwargs...)
   Ω = cov(m.random(x0).params.η)
   nl = conditional_nll(m, subject, x0, vy0, approx, args...; kwargs...)
-  W = ForwardDiff.hessian(t -> conditional_nll(m, subject, x0, t, approx, args...; kwargs...), vy0)
+  W = ForwardDiff.hessian(s -> conditional_nll(m, subject, x0, s, approx, args...; kwargs...), vy0)
   return nl + (logdet(Ω) + vy0'*(Ω\vy0) + logdet(inv(Ω) + W))/2
 end
 
@@ -350,15 +372,17 @@ function _mean0(model, subject, x0::NamedTuple, y0::NamedTuple, i, args...; kwar
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FOCEI, dist, args...; kwargs...)
+  f_res     = DiffResults.GradientResult(vy0)
+  del_r_res = DiffResults.GradientResult(vy0)
   fim = sum(1:length(subject.observations)) do j
     r_inv = inv(var(dist[1][j]))
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...; kwargs...)
-    f = DiffResults.gradient(res)
+    ForwardDiff.gradient!(f_res, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
+    f = DiffResults.gradient(f_res)
     # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_var, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    del_r = DiffResults.gradient(res)
-    f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
+    ForwardDiff.gradient!(del_r_res, s -> _var(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
+    del_r = DiffResults.gradient(del_r_res)
+    return f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
   end
   fim
 end
@@ -376,23 +400,25 @@ function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector
 end
 
 function FIM(m::PKPDModel, subject::Subject, x0::NamedTuple, vy0::AbstractVector, approx::FO, dist0, args...; kwargs...)
-  fim = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(dist0[1][j]))
-    # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    f = DiffResults.gradient(res)
-    f*r_inv*f'
-  end
-  dldη = sum(1:length(subject.observations)) do j
-    r_inv = inv(var(dist0[1][j]))
-    # FIXME! Wrapping vy0 shouldn't be necessary
+  r = var(dist0[1][1])
+  f = ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), 1, args...; kwargs...), vy0)
+  fdr = f/r
+  H = fdr*f'
+  mean0 = _mean0(m, subject, x0, (η=vy0,), 1, args...; kwargs...)
+  # FIXME! This is not correct when there are more than a single dependent variable
+  dldη = fdr*(subject.observations[1][1] - mean0)
+
+  for j in 2:length(subject.observations)
+    r = var(dist0[1][j])
+    ForwardDiff.gradient!(f, s -> _mean(m, subject, x0, (η=s,), j, args...; kwargs...), vy0)
+    fdr = f/r
+    H += fdr*f'
     mean0 = _mean0(m, subject, x0, (η=vy0,), j, args...; kwargs...)
-    # FIXME! Wrapping vy0 shouldn't be necessary but currently the names are used inside ll_derivatives
-    res = ll_derivatives(_mean, m, subject, x0, (η=vy0,), :η, j, args...;kwargs...)
-    f = DiffResults.gradient(res)
-    f*r_inv*(subject.observations[j].val[1] - mean0)
+    # FIXME! This is not correct when there are more than a single dependent variable
+    dldη += fdr*(subject.observations[j][1] - mean0)
   end
-  fim, dldη
+
+  return H, dldη
 end
 
 # Fitting methods
@@ -414,7 +440,7 @@ function Distributions.fit(m::PKPDModel,
                                                                      g_tol=1e-5))
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
-  o = optimize(t -> marginal_nll(m, data, TransformVariables.transform(trf, t), approx),
+  o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
   return FittedPKPDModel(m, data, TransformVariables.transform(trf, o.minimizer), approx)
@@ -422,3 +448,122 @@ end
 
 marginal_nll(       f::FittedPKPDModel) = marginal_nll(       f.model, f.data, f.x0, f.approx)
 marginal_nll_nonmem(f::FittedPKPDModel) = marginal_nll_nonmem(f.model, f.data, f.x0, f.approx)
+
+function npde(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
+  yi = [obs.dv for obs in subject.observations]
+  sims = []
+  for i in 1:nsim
+    vals = simobs(m, subject, x0)
+    push!(sims, vals.derived.dv)
+  end
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  covm_yi = cov(sims)
+  covm_yi = sqrt(inv(covm_yi))
+  yi_decorr = (covm_yi)*(yi .- mean_yi)
+  phi = []
+  for i in 1:nsim
+    yi_i = sims[i]
+    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
+    push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
+  end
+  phi = sum(phi)/nsim
+  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
+end
+
+function wres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  (var_yi)*(yi .- mean_yi)  
+end
+
+function cwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist0[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  (var_yi)*(yi .- mean_yi)  
+end
+
+function cwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  Ω = cov(m.random(x0).params.η)
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  var_yi = sqrt(inv((Diagonal(var.(dist[1]))) + (f*Ω*f')))
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  (var_yi)*(yi .- mean_yi)  
+end
+
+function pred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  mean_yi
+end
+
+function cpred(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
+
+function cpredi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  f = [ForwardDiff.gradient(s -> _mean(m, subject, x0, (η=s,), i), vy0)[1] for i in 1:length(subject.observations)]
+  mean_yi = (mean.(dist[1])) .- vec(f*vy0')
+  mean_yi
+end
+
+function epred(m::PKPDModel,subject::Subject, x0::NamedTuple,nsim)
+  sims = []
+  for i in 1:nsim
+    vals = simobs(m, subject, x0)
+    push!(sims, vals.derived.dv)
+  end
+  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
+  mean_yi
+end
+
+function iwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FO()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  mean_yi = (mean.(dist0[1]))
+  sqrt(inv((Diagonal(var.(dist0[1])))))*(yi .- mean_yi)
+end
+
+function icwres(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCE()))
+  yi = [obs.dv for obs in subject.observations]
+  l0, vals0, dist0 = conditional_nll_ext(m,subject,x0, (η=zero(vy0),))
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  mean_yi = (mean.(dist[1]))
+  sqrt(inv((Diagonal(var.(dist0[1])))))*(yi .- mean_yi)
+end
+
+function icwresi(m::PKPDModel,subject::Subject, x0::NamedTuple, vy0::AbstractVector=rfx_estimate(m, subject, x0, FOCEI()))
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0, (η=vy0,))
+  mean_yi = (mean.(dist[1]))
+  sqrt(inv((Diagonal(var.(dist[1])))))*(yi .- mean_yi)
+end
+
+function eiwres(m::PKPDModel,subject::Subject, x0::NamedTuple, nsim)
+  yi = [obs.dv for obs in subject.observations]
+  l, vals, dist = conditional_nll_ext(m,subject,x0)
+  mean_yi = (mean.(dist[1]))
+  covm_yi = sqrt(inv((Diagonal(var.(dist[1])))))
+  sims_sum = (covm_yi)*(yi .- mean_yi)
+  for i in 2:nsim
+    l, vals, dist = conditional_nll_ext(m,subject,x0)
+    mean_yi = (mean.(dist[1]))
+    covm_yi = sqrt(inv((Diagonal(var.(dist[1])))))
+    sims_sum .+= (covm_yi)*(yi .- mean_yi)
+  end
+  sims_sum./nsim
+end

@@ -1,7 +1,13 @@
-struct SimulatedObservations{S,T,T2}
+struct SimulatedObservations{S,T,TAD,T2}
   subject::S
   times::T
+  time_after_doses::TAD
   derived::T2
+  function SimulatedObservations(subject::S, times::T,
+    derived::T2) where {S,T,T2}
+    time_after_doses = tad(times, subject.events)
+    new{S,T,typeof(time_after_doses),T2}(subject,times,time_after_doses,derived)
+  end
 end
 
 # indexing
@@ -12,7 +18,9 @@ end
   obs.derived[I...] = x
 end
 function DataFrames.DataFrame(obs::SimulatedObservations)
-  DataFrame(merge((time=obs.times,),obs.derived))
+  DataFrame(merge((time=obs.times,
+                   time_after_dose=obs.time_after_doses),
+                  obs.derived))
 end
 
 @recipe function f(obs::SimulatedObservations)
@@ -50,8 +58,8 @@ end
   pop.sims[I...] = x
 end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
-  dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],),
-                          (time=s.times,),
+  dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],
+                          time=s.times, time_after_dose=s.time_after_doses),
                           s.derived)) for s in pop.sims]
   reduce(vcat,dfs)
 end

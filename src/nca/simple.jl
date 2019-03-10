@@ -345,14 +345,14 @@ function swing(nca::NCASubject; kwargs...)
 end
 
 """
-  c0(nca::NCASubject; method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...)
+  c0(nca::NCASubject; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...)
 
 Estimate the concentration at dosing time for an IV bolus dose. It takes the
 following methods:
 
-- c0: If the observed `conc` at `dose.time` is nonzero, return that. This method should usually be used first for single-dose IV bolus data in case nominal time zero is measured. (single-dose only)
-- logslope: Compute the semilog line between the first two measured times, and use that line to extrapolate backward to `dose.time`. (single-dose only)
-- c1: Use the first point after `dose.time`. (single-dose only)
+- c0: If the observed `conc` at `dose.time` is nonzero, return that. This method should usually be used first for single-dose IV bolus data in case nominal time zero is measured.
+- logslope: Compute the semilog line between the first two measured times, and use that line to extrapolate backward to `dose.time`.
+- c1: Use the first point after `dose.time`.
 - cmin: Set c0 to cmin during the interval. This method should usually be used for multiple-dose oral data and IV infusion data.
 - set0: Set c0 to zero (regardless of any other data). This method should usually be used first for single-dose oral data.
 """
@@ -360,17 +360,19 @@ function c0(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; c0method=(:
   ret = missing
   # if we get one method, then convert it to a tuple anyway
   c0method isa Symbol && (c0method = tuple(c0method))
+  dosetime = D === Nothing ? zero(eltype(nca.time)) : first(nca.dose).time
+  nca = D <: AbstractArray ? subject_at_ithdose(nca, 1) : nca
   while ismissing(ret) && !isempty(c0method)
     current_method = c0method[1]
-    c0method = c0method[2:end]
+    c0method = Base.tail(c0method)
     if current_method == :c0
-      ret = _c0_method_c0(nca)
+      ret = _c0_method_c0(nca, dosetime)
     elseif current_method == :logslope
-      ret = _c0_method_logslope(nca)
+      ret = _c0_method_logslope(nca, dosetime)
     elseif current_method == :c1
-      ret = _c0_method_c1(nca)
+      ret = _c0_method_c1(nca, dosetime)
     elseif current_method == :cmin
-      ret = cmin(nca)
+      ret = cmin(nca, dosetime)
     elseif current_method == :set0
       ret = nca.dose isa AbstractArray ? fill(zero(eltype(eltype(nca.conc))), length(nca.dose)) : zero(eltype(nca.conc))
     else
@@ -380,10 +382,7 @@ function c0(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; c0method=(:
   return ret
 end
 
-function _c0_method_c0(nca::NCASubject)
-  eltype(nca.time) <: AbstractArray && return missing
-  nca.dose isa Nothing && return missing
-  dosetime = nca.dose.time
+function _c0_method_c0(nca::NCASubject, dosetime)
   for i in eachindex(nca.time)
     c = nca.conc[i]
     t = nca.time[i]
@@ -392,10 +391,7 @@ function _c0_method_c0(nca::NCASubject)
   return missing
 end
 
-function _c0_method_logslope(nca::NCASubject)
-  eltype(nca.time) <: AbstractArray && return missing
-  nca.dose isa Nothing && return missing
-  dosetime = nca.dose.time
+function _c0_method_logslope(nca::NCASubject, dosetime)
   idxs = findall(eachindex(nca.time)) do i
     nca.time[i] > dosetime && !ismissing(nca.conc[i])
   end
@@ -403,17 +399,14 @@ function _c0_method_logslope(nca::NCASubject)
   # If there is enough data, proceed to calculate
   c1 = ustrip(nca.conc[idxs[1]]); t1 = ustrip(nca.time[idxs[1]])
   c2 = ustrip(nca.conc[idxs[2]]); t2 = ustrip(nca.time[idxs[2]])
-  if c2 < c1 && iszero(c1)
+  if c2 < c1 && !iszero(c1)
     return exp(log(c1) - (t1 - ustrip(dosetime))*(log(c2)-log(c1))/(t2-t1))*oneunit(eltype(nca.conc))
   else
     return missing
   end
 end
 
-function _c0_method_c1(nca::NCASubject)
-  eltype(nca.time) <: AbstractArray && return missing
-  nca.dose isa Nothing && return missing
-  dosetime = nca.dose.time
+function _c0_method_c1(nca::NCASubject, dosetime)
   idx = findfirst(eachindex(nca.time)) do i
     nca.time[i] > dosetime && !ismissing(nca.conc[i])
   end

@@ -17,10 +17,6 @@ end
 Base.axes(A::Population) = axes(A.subjects)
 Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
 
-function process_nmtran(filepath::String,kwargs...)
-  process_nmtran(CSV.read(filepath),kwargs...)
-end
-
 """
   to_nt(obj)::NamedTuple{PN,VT}
 
@@ -37,18 +33,26 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(filename, cvs=[], dvs=[:dv])
-    process_nmtran(data, cvs=[], dvs=[:dv])
+    process_nmtran(filepath::String, args...; kwargs...)
+    process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
+                   id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                   ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                   event_data = true)
 
 Import NMTRAN-formatted data.
 
 - `cvs` covariates specified by either names or column numbers
 - `dvs` dependent variables specified by either names or column numbers
-
+- `event_data` toggles assertions applicable to event data
 """
+function process_nmtran(filepath::AbstractString, args...; kwargs...)
+  process_nmtran(CSV.read(filepath, missingstrings="."), args...; kwargs...)
+end
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss)
+                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                        event_data = true)
+  data = copy(data)
   Names = names(data)
 
   if id ∉ Names
@@ -58,7 +62,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
     data[time] = 0.0
   end
   if evid ∉ Names
-    data[evid] = Int8(1)
+    data[evid] = Int8(0)
   end
   if cvs isa AbstractVector{<:Integer}
     cvs = Names[cvs]
@@ -68,26 +72,20 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   end
   Population(Subject.(groupby(data, :id), Ref(Names),
                       id, time, evid, amt, addl, ii, cmt, rate, ss,
-                      Ref(cvs), Ref(dvs)))
-end
-build_observation_list(obs::AbstractVector{<:Observation}) = obs
-function build_observation_list(obs::AbstractDataFrame)
-  isempty(obs) && return Observation[]
-  #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
-  time = obs[:time]
-  vars = setdiff(names(obs), (:time, :cmt))
-  if isa(time, Unitful.Time)
-    time = convert.(Float64, getfield(uconvert.(u"hr", time), :val))
-  else
-    time = float(time)
-  end
-  return Observation.(time,
-                      NamedTuple{Tuple(vars),NTuple{length(vars),Float64}}.(values.(eachrow(obs[vars]))))
+                      Ref(cvs), Ref(dvs), event_data))
 end
 
-build_event_list(evs::AbstractVector{<:Event}) = evs
-function build_event_list(regimen::DosageRegimen)
-  data = getfield(regimen, :data)
+function build_observation_list(obs::AbstractDataFrame)
+  #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
+  vars = setdiff(names(obs), (:time, :cmt))
+  _obs = ntuple(i -> convert(AbstractVector{Float64}, obs[vars[i]]), length(vars))
+  return StructArray(NamedTuple{tuple(vars...),typeof(_obs)}(_obs))
+end
+build_observation_list(obs::StructArray) = obs
+
+build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
+function build_event_list(regimen::DosageRegimen, event_data::Bool)
+  data = regimen.data
   events = Event[]
   for i in 1:size(data, 1)
     t    = data[:time][i]
@@ -102,9 +100,9 @@ function build_event_list(regimen::DosageRegimen)
     for j = 0:addl  # addl==0 means just once
       _ss = iszero(j) ? ss : zero(Int8)
       duration = amt/rate
-      @assert amt != zero(amt) || _ss == 1 || evid == 2
+      event_data && @assert amt != zero(amt) || _ss == 1 || evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
       if iszero(amt) && evid != 2
-        @assert rate > zero(rate)
+        event_data && @assert rate > zero(rate) "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
         # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
         # Such an event consists of infusion with the stated rate,
         # starting at time −∞, and ending at the time on the dose
@@ -120,5 +118,5 @@ function build_event_list(regimen::DosageRegimen)
       t += ii
     end
   end
-  sort!(events)
+  sort!(Vector{typeof(first(events))}(events))
 end

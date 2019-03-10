@@ -17,23 +17,27 @@ function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, method=n
   return out
 end
 
-function interpolateconc(nca::NCASubject, timeout::Number; method, concorigin=nothing, kwargs...)
+function interpolateconc(nca::NCASubject, timeout::Number; method, kwargs...)
   conc, time = nca.conc, nca.time
-  concorigin === nothing && (concorigin=zero(eltype(conc)))
   len = length(time)
-  !(concorigin isa Number) && !(concorigin isa Bool) && throw(ArgumentError("concorigin must be a scalar"))
   _tlast = tlast(nca)
   !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("Interpolation method must be :linear, :linuplogdown or :linlog"))
-  if timeout < first(time)
-    return concorigin
-  elseif timeout > _tlast
+  if timeout > _tlast
     throw(ArgumentError("interpolateconc can only works through Tlast, please use interpextrapconc to combine both interpolation and extrapolation"))
   elseif (idx2=searchsortedfirst(time, timeout)) != len+1 && time[idx2] == timeout # if there is an exact time match
     return conc[idx2]
   else
-    idx1 = idx2 - 1
-    time1 = ustrip(time[idx1]); time2 = ustrip(time[idx2])
-    conc1 = ustrip(conc[idx1]); conc2 = ustrip(conc[idx2])
+    if time[1] > zero(time[1]) && zero(timeout) <= timeout < time[1] # if we need to calculate `c0`
+      c0′ = c0(nca; c0method=(:logslope, :c1))
+      timeout == zero(timeout) && return c0′
+      idx1  = 1
+      time1 = ustrip(zero(time[idx1])); time2 = ustrip(time[idx1])
+      conc1 = ustrip(c0′); conc2 = ustrip(conc[idx1])
+    else
+      idx1 = idx2 - 1
+      time1 = ustrip(time[idx1]); time2 = ustrip(time[idx2])
+      conc1 = ustrip(conc[idx1]); conc2 = ustrip(conc[idx2])
+    end
     timeout = ustrip(timeout)
     m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, method)
     if m === Linear

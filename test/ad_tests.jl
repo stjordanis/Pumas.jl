@@ -16,9 +16,9 @@ end
     # Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations
     # off the scale (variance of the simulated distribution is too small).
     for subject in data.subjects
-        obs1 = subject.observations[1]
-        if obs1.time == 0
-            popfirst!(subject.observations)
+        if subject.time[1] == 0
+            popfirst!(subject.time)
+            popfirst!(subject.observations.dv)
         end
     end
 

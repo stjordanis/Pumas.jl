@@ -231,7 +231,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
                  firstpoint, points,                      # lambdaz related cache
-                 auc, aumc                                # AUC related cache
+                 auc, aumc, nca.method                    # AUC related cache
                 )
   end
 end

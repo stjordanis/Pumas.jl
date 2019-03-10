@@ -9,10 +9,10 @@ matrix:
   allow_failures:
     - julia: nightly
 env:
-  - GROUP=Core
-  - GROUP=Features
-  - GROUP=NLME
-  - GROUP=NCA
+  #- GROUP=Core
+  #- GROUP=Features
+  #- GROUP=NLME
+  #- GROUP=NCA
 notifications:
   email: false
 git:

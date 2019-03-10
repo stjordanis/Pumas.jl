@@ -1,4 +1,4 @@
-using PuMaS, Test
+using PuMaS, Test, CSV
 
 @testset "nmtran" begin
   data = process_nmtran(example_nmtran_data("event_data/data1"))
@@ -24,9 +24,21 @@ using PuMaS, Test
   end
 end
 @testset "Time Variant Covariates" begin
-  data = process_nmtran(example_nmtran_data("time_variant_cvs"), [:weight, :dih])
-  @test data[1].covariates.weight |> (x -> isa(x, Vector{Int}) && length(x) == 9)
+  data = process_nmtran(example_nmtran_data("time_varying_covariates"), [:weight, :dih])
+  @test data[1].covariates.weight |> (x -> isa(x, Vector{Int}) && length(x) == 7)
   @test data[1].covariates.dih == 2
+end
+@testset "Chronological Observations" begin
+  data = DataFrame(time = [0, 1, 2, 2], dv = rand(4), evid = 0)
+  @test isa(process_nmtran(data), Population)
+  append!(data, DataFrame(time = 1, dv = rand(), evid = 0))
+  @test_throws AssertionError process_nmtran(data)
+  @test_throws AssertionError Subject(obs=DataFrame(x=[2:3;]), time=1:-1:0)
+end
+@testset "event_data" begin
+  data = DataFrame(time = [0, 1, 2, 2], amt = zeros(4), dv = rand(4), evid = 1)
+  @test_throws AssertionError process_nmtran(data)
+  @test isa(process_nmtran(data, event_data = false), Population)
 end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)

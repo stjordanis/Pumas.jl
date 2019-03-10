@@ -71,7 +71,8 @@ Extrapolate the first moment to the infinite.
   end
 end
 
-@inline function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log)
+@inline function intervalauc(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol, linear, log, ret_typ)
+  t1 == t2 && return zero(ret_typ)
   m = choosescheme(c1, c2, t1, t2, i, maxidx, method)
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
@@ -86,10 +87,27 @@ end
   end
 end
 
+function isaucinf(auctype, interval)
+  auctype === :last && return false
+  interval === nothing ? auctype === :inf : !isfinite(interval[2])
+end
+
+function cacheauc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auclast, interval, method, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+  if interval == nothing # only cache when interval is nothing
+    if isauc
+      AUC <: AbstractArray  ? nca.auc_last[1] = auclast  : nca.auc_last = auclast
+    else
+      AUMC <: AbstractArray ? nca.aumc_last[1] = auclast : nca.aumc_last = auclast
+    end
+    nca.method = method
+  end
+  nothing
+end
+
 function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf, ret_typ;
               auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   # fast return
-  if interval === nothing
+  if interval === nothing && nca.method === method
     if auctype === :inf
       _clast = clast(nca; kwargs...)
       _tlast = tlast(nca)
@@ -101,18 +119,31 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
       !isauc && iscached(nca, :aumc) && return nca.aumc_last[1]::ret_typ
     end
   end
+
   conc, time = nca.conc, nca.time
+
   auctype in (:inf, :last) || throw(ArgumentError("auctype must be either :inf or :last"))
-  isinf = auctype === :inf
-  !(method in (:linear, :linuplogdown, :linlog)) && throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
-  if !(interval === nothing)
-    if isinf && isfinite(interval[2])
-      auctype === :inf && (auctype = :last)
-      isinf = false
+  method in (:linear, :linuplogdown, :linlog) || throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
+  _clast = clast(nca; kwargs...)
+  _tlast = tlast(nca)
+  if ismissing(_clast)
+    if all(x->x<=nca.llq, conc)
+      auc = zero(auc)
+      cacheauc(nca, auc, interval, method, isauc)
+      return auc
+    else
+      error("Unknown error with missing `tlast` but non-BLQ concentrations")
     end
+  end
+
+  # type assert `auc`
+  auc::ret_typ = zero(ret_typ)
+  if interval !== nothing
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
-    lo < first(time) && @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
+    if lo < first(time) && first(time) == zero(eltype(time))
+      @warn "Requesting an AUC range starting $lo before the first measurement $(first(time)) is not allowed"
+    end
     lo > last(time) && @warn "AUC start time $lo is after the maximum observed time $(last(time))"
     # TODO: handle `auclinlog` with IV bolus.
     #
@@ -126,65 +157,46 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
       findfirst(x->x>=lo, time),
       findlast( x->x<=hi, time)
     end
+    # auc of the first interval
+    auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
+    int_idxs = idx1:idx2-1
+    # auc of the last interval
+    if isfinite(hi)
+      concend = interpextrapconc(nca, hi; method=method, kwargs...)
+      auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+    end
   else
     idx1, idx2 = firstindex(time), lastindex(time)
-    lo, hi = first(time), last(time)
-    concstart = conc[idx1]
-  end
-  # assert the type here because we know that `auc` won't be `missing`
-  __auc = linear(concstart, conc[idx1], lo, time[idx1]) # this must be zero
-  auc::ret_typ = __auc
-  # auc of the bounary intervals
-  if time[idx1] != lo # if the interpolation point does not hit the exact data point
-    auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log)
-    int_idxs = idx1:idx2-1
-  elseif !isassigned(time, idx1+1) # if idx1+1 is not assigned
-    int_idxs = 0:-1 # no iteration
-  else # we compute the first interval in the data
-    auc = intervalauc(conc[idx1], conc[idx1+1], time[idx1], time[idx1+1], idx1, nca.maxidx, method, linear, log)
-    int_idxs = idx1+1:idx2-1
-  end
-  if isfinite(hi)
-    concend = interpextrapconc(nca, hi; method=method, kwargs...)
-    if conc[idx2] != concend
-      auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log)
+    auc = zero(auc)
+    # handle C0
+    time0 = zero(time[idx1])
+    c0′   = c0(nca; c0method=(:logslope, :c1))
+    if time[idx1] > time0
+      auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
     end
   end
-
-  _clast = clast(nca; kwargs...)
-  _tlast = tlast(nca)
-  if ismissing(_clast)
-    if all(x->x<=nca.llq, conc)
-      return zero(auc)
-    else
-      error("Unknown error with missing `tlast` but non-BLQ concentrations")
-    end
+  if !isassigned(time, idx1+1) # if idx1+1 is not assigned
+    idx1 = idx2 # no iteration
   end
 
   # Compute the AUxC
   # Include the first point after `tlast` if it exists and we are computing AUCall
   # do not support :AUCall for now
   # auctype === :AUCall && tlast > hi && (idx2 = idx2 + 1)
-  for i in int_idxs
-    auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log)
-  end
-  if isinf
-    λz = lambdaz(nca; recompute=false, kwargs...)
-    aucinf′ = inf(_clast, _tlast, λz) # the extrapolation part
-  else
-    aucinf′= zero(auc)
+  #
+  # iterate over the interior points
+  for i in idx1:idx2-1
+    auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log, ret_typ)
   end
 
   # cache results
-  if interval == nothing # only cache when interval is nothing
-    if isauc
-      AUC <: AbstractArray  ? nca.auc_last[1] = auc  : nca.auc_last = auc
-    else
-      AUMC <: AbstractArray ? nca.aumc_last[1] = auc : nca.aumc_last = auc
-    end
-  end
+  cacheauc(nca, auc, interval, method, isauc)
 
-  auc += aucinf′ # add the infinite part
+  # add the extrapolation part
+  if isaucinf(auctype, interval)
+    λz = lambdaz(nca; recompute=false, kwargs...)
+    auc += inf(_clast, _tlast, λz)
+  end
 
   return auc
 end
