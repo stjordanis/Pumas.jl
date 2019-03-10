@@ -47,8 +47,11 @@ mdsl = @model begin
 
     @derived begin
       dv ~ @. Normal(conc, conc*Σ)
-      obs_cmax = maximum(dv)
       T_max = maximum(t)
+    end
+
+    @observed begin
+      obs_cmax = maximum(dv)
     end
 end
 
@@ -88,14 +91,17 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    ___dv = @. Normal(conc, conc*col.Σ)
-    dv = @. rand(___dv)
-    (obs_cmax = maximum(dv),
-     T_max = maximum(obstimes),
-     dv=dv), (dv=___dv,)
+    dv = @. Normal(conc, conc*col.Σ)
+    (dv=dv,)
 end
 
-mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+function observed_f(col,sol,obstimes,samples)
+    (obs_cmax = maximum(samples.dv),
+     T_max = maximum(obstimes),
+     dv = samples.dv)
+end
+
+mobj = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(mdsl)
 y0 = init_random(mdsl, x0)
@@ -112,8 +118,8 @@ sol2 = solve(mobj,subject,x0,y0)
 Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
 Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
 
-@test obs_dsl.derived.obs_cmax == obs_obj.derived.obs_cmax > 0
-@test obs_dsl.derived.T_max == obs_obj.derived.T_max
+@test obs_dsl.observed.obs_cmax == obs_obj.observed.obs_cmax > 0
+@test obs_dsl.observed.T_max == obs_obj.observed.T_max
 
 @test obs_dsl[:dv] ≈ obs_obj[:dv]
 
@@ -129,7 +135,7 @@ function onecompartment_f_iip(du,u,p,t)
 end
 prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
-mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,prob,derived_f)
+mobj_iip = PKPDModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
 sol2 = solve(mobj_iip,subject,x0,y0)
 
 @test conditional_nll(mobj_iip,subject,x0,y0) ≈ conditional_nll(mobj,subject,x0,y0) rtol=5e-3
@@ -160,8 +166,11 @@ mdsl = @model begin
 
     @derived begin
       dv ~ @. Binomial(30,Ka*CL)
-      obs_cmax = maximum(dv)
-      T_max = maximum(t)
+    end
+
+    @observed begin
+        obs_cmax = maximum(dv)
+        T_max = maximum(t)
     end
 end
 x0 = init_param(mdsl)

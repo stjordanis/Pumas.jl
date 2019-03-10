@@ -34,14 +34,16 @@ prob = DDEProblem(f,nothing,h,nothing,nothing)
 function derived_f(col,sol,obstimes)
     central = map(x->x[2], sol)
     conc = @. central / col.V
-    ___dv = @. Normal(conc, conc*col.Σ)
+    dv = @. Normal(conc, conc*col.Σ)
     dv = @. rand(___dv)
-    (obs_cmax = maximum(dv),
-     T_max = maximum(obstimes),
-     dv=dv), (dv=___dv,)
+    (dv=dv,)
 end
 
-model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,prob,derived_f)
+function observed_f(col,sol,obstimes,samples)
+    samples
+end
+
+model = PuMaS.PKPDModel(p,randomfx,pre_f,init_f,prob,derived_f,observed_f)
 
 x0 = init_param(model)
 y0 = init_random(model, x0)

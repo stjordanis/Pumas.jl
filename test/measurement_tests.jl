@@ -87,9 +87,10 @@ end
         central = map(x->x.Central, sol)
         _conc = @. central / col.V
         _cmax = maximum(_conc)
-        (conc = _conc, cmax = _cmax), ()
+        (conc = _conc, cmax = _cmax)
     end
-    model = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f)
+    observed_f(col,sol,obstimes,samples) = samples
+    model = PKPDModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
@@ -184,15 +185,15 @@ end
     model = @model begin
         @param   θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
         @random  η ~ MvNormal(Matrix{Float64}(I, 2, 2))
-    
+
         @pre begin
             Ka = θ[1]
             CL = θ[2]*exp(η[1])
             V  = θ[3]*exp(η[2])
         end
-    
+
         @dynamics OneCompartmentModel
-    
+
         @derived begin
             cp = @. Central / V
             cmax = maximum(cp)
