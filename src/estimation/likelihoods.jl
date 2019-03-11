@@ -440,15 +440,17 @@ end
 function Distributions.fit(m::PuMaSModel,
                            data::Population,
                            x0::NamedTuple,
-                           approx::LikelihoodApproximation;
+                           approx::LikelihoodApproximation,
+                           args...;
                            verbose=false,
                            optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
                            optimautodiff=:finite,
                            optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
-                                                                     g_tol=1e-3))
+                                                                     g_tol=1e-3),
+                           kwargs...)
   trf = totransform(m.param)
   vx0 = TransformVariables.inverse(trf, x0)
-  o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx),
+  o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...),
                vx0, optimmethod, optimoptions, autodiff=optimautodiff)
 
   return FittedPKPDModel(m, data, o, approx)
