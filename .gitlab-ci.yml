@@ -13,6 +13,7 @@ build:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
+                          Pkg.update();
                           Pkg.clone(pwd(), "PuMaS");
                           Pkg.build("PuMaS");
                           using PuMaS;'
