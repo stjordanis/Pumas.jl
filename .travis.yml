@@ -4,12 +4,12 @@ os:
   - linux
 julia:
   - 1.1
-  - nightly
-matrix:
-  allow_failures:
-    - julia: nightly
+#  - nightly
+#matrix:
+#  allow_failures:
+#    - julia: nightly
 env:
-  #- GROUP=Core
+  - GROUP=Core
   #- GROUP=Features
   #- GROUP=NLME
   #- GROUP=NCA
