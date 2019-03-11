@@ -31,13 +31,13 @@ poisson_model = @model begin
 end
 
 
-x0 = init_param(poisson_model)
-y0 = init_random(poisson_model, x0)
+fixeffs = init_param(poisson_model)
+randeffs = init_random(poisson_model, fixeffs)
 
-@test solve(poisson_model,df[1],x0,y0) === nothing
-@test simobs(poisson_model,df,x0,y0) != nothing
+@test solve(poisson_model,df[1],fixeffs,randeffs) === nothing
+@test simobs(poisson_model,df,fixeffs,randeffs) != nothing
 
-res = simobs(poisson_model,df,x0,y0)
+res = simobs(poisson_model,df,fixeffs,randeffs)
 
 initial_estimates = [-8.31130E-01,
                      -9.51865E-01,
@@ -62,9 +62,9 @@ initial_estimates = [-8.31130E-01,
 
 @testset "initial" begin
   for (i,est) in enumerate(initial_estimates)
-    @test PuMaS.rfx_estimate(poisson_model, df[i], x0, PuMaS.LaplaceI()) ≈ [est] atol=1e-5
+    @test PuMaS.rfx_estimate(poisson_model, df[i], fixeffs, PuMaS.LaplaceI()) ≈ [est] atol=1e-5
   end
-  @test 2*PuMaS.marginal_nll(poisson_model,df,x0,PuMaS.LaplaceI()) ≈ 4015.70427796336 atol=1e-1
+  @test 2*PuMaS.marginal_nll(poisson_model,df,fixeffs,PuMaS.LaplaceI()) ≈ 4015.70427796336 atol=1e-1
 end
 
 
