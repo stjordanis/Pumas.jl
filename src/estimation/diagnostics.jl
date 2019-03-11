@@ -21,7 +21,7 @@ function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
     push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
   end
   phi = sum(phi)/nsim
-  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
+  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations.dv)]
 end
 
 """
@@ -177,7 +177,7 @@ function eiwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, nsim)
   sims_sum./nsim
 end
 
-function ηshrinkage(m::PKPDModel, data::Population, x0::NamedTuple, approx)
+function ηshrinkage(m::PuMaSModel, data::Population, x0::NamedTuple, approx)
   sd_vy0 = std([rfx_estimate(m, subject, x0, approx) for subject in data])
   Ω = (x0.Ω)
   if size(Ω)[1] == 1
@@ -188,6 +188,6 @@ function ηshrinkage(m::PKPDModel, data::Population, x0::NamedTuple, approx)
   shk
 end
 
-function ϵshrinkage(m::PKPDModel, subject::Subject, x0::NamedTuple)
-  1 - std(iwres(m, subject, x0))
+function ϵshrinkage(m::PuMaSModel, data::Population, x0::NamedTuple)
+  1 - std(vec([iwres(m, subject, x0) for subject in data]))[1]
 end
