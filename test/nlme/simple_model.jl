@@ -52,13 +52,13 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, x0, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPKPDModel
+    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPKPDModel
+    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
+    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
 @test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPKPDModel
+    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
 
 println([npde(mdsl1,data[i],x0,10000) for i in 1:10])
 println([epred(mdsl1,data[i],x0,10000) for i in 1:10])
