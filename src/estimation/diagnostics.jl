@@ -21,7 +21,7 @@ function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
     push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
   end
   phi = sum(phi)/nsim
-  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations)]
+  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations.dv)]
 end
 
 """
