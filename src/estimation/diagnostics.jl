@@ -180,6 +180,11 @@ function eiwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, nsim)
   l, dist = conditional_nll_ext(m,subject,fixeffs)
   mean_yi = (mean.(dist.dv))
   covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
+"""
+  eiwres(model, subject, param[, rfx], simulations_count)
+
+To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES). 
+"""
   sims_sum = (covm_yi)*(yi .- mean_yi)
   for i in 2:nsim
     l, dist = conditional_nll_ext(m,subject,fixeffs)
