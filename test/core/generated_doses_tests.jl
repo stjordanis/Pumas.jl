@@ -4,17 +4,20 @@ using PuMaS
 # Gut dosing model
 m_diffeq = @model begin
     @param begin
-        θ ∈ VectorDomain(3, lower=zeros(3), init=ones(3))
+        θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
     end
 
     @random begin
-        η ~ MvNormal(Matrix{Float64}(I, 2, 2))
+        η ~ MvNormal(Matrix{Float64}(I, 3, 3))
     end
 
+    @covariates isPM Wt
+
     @pre begin
-        Ka = θ[1]
-        CL = θ[2]*exp(η[1])
-        V  = θ[3]*exp(η[2])
+        TVCL = isPM == "yes" ? θ[1] : θ[4]
+        CL = θ[1]*(Wt/70)^0.75*exp(η[1])
+        V = θ[2]*(Wt/70)^0.75*exp(η[2])
+        Ka = θ[3]*exp(η[3])
     end
 
     @vars begin
@@ -32,17 +35,19 @@ m_diffeq = @model begin
     end
 end
 
-x0 = (θ = [
-     1.5,  #Ka
-     1.0,  #CL
-     30.0  #V
-     ],)
-y0 = init_random(m_diffeq, x0)
+p = (
+    θ = [0.4,20,1.1,2],
+    Ω = PDMat(diagm(0 => [0.04,0.04,0.04])),
+    σ_prop = 0.04
+    )
 
-subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
+rfx = (η=randn(3),)
+
+subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2),
+                  cvs = cvs=(isPM="no", Wt=70))
 
 # Make sure simobs works without time, defaults to 1 day, obs at each hour
-obs = simobs(m_diffeq, subject, x0, y0)
+obs = simobs(m_diffeq, subject, p, rfx)
 @test obs.times == 0.0:1.0:84.0
 @test DataFrame(obs).time == 0.0:1.0:84.0
 
@@ -54,8 +59,8 @@ plot(obs)
 pop = Population([Subject(id = id,
             evs = DosageRegimen([10rand(), 20rand()],
             ii = 24, addl = 2, ss = 1:2, time = [0, 12],
-            cmt = 2)) for id in 1:10])
-pop_obs = simobs(m_diffeq, pop, x0, y0)
+            cmt = 2),cvs = cvs=(isPM="no", Wt=70)) for id in 1:10])
+pop_obs = simobs(m_diffeq, pop, p, rfx)
 DataFrame(pop_obs)
 
 #=
