@@ -18,6 +18,7 @@ include("dsl/model_macro.jl")
 include("models/params.jl")
 include("models/simulated_observations.jl")
 include("models/model_api.jl")
+include("models/derived_utils.jl")
 
 include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
@@ -41,6 +42,7 @@ example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*fi
 export Subject, Population, DosageRegimen
 export PuMaSModel, init_fixeffs, init_randeffs, sample_randeffs
 export simobs, pre
+export tad, eventnum
 export conditional_nll, FIM
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
 export process_nmtran, example_nmtran_data

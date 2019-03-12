@@ -56,7 +56,8 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(fixeffs,randeffs,cov)
+function col_f(fixeffs,randeffs,subject)
+    cov = subject.covariates
     (Σ  = fixeffs.Σ,
     Ka = fixeffs.θ[1],  # pre
     CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
@@ -74,14 +75,14 @@ function static_onecompartment_f(u,p,t)
 end
 prob = ODEProblem(static_onecompartment_f,nothing,nothing,nothing)
 
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv = dv,)
 end
 
-observed_f(col,sol,obstimes,samples) = samples
+observed_f(col,sol,obstimes,samples,subject) = samples
 
 mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
@@ -99,7 +100,7 @@ subject = data.subjects[1]
 p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
               Ω = PSDDomain(2))),
 
-function col_f2(fixeffs,randeffs,cov)
+function col_f2(fixeffs,randeffs,subject)
     (Ka = fixeffs.θ[1],
      CL = fixeffs.θ[2] * exp(randeffs.η[1]),
      V  = fixeffs.θ[3] * exp(randeffs.η[2]))
@@ -108,7 +109,7 @@ end
 function post_f(col,u,t)
     (conc = u[2] / col.V,)
 end
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     (conc = conc,)

@@ -166,7 +166,8 @@ end
 
 function pre_obj(preexpr, prevars, params, randoms, covariates)
   quote
-    function (_param, _random, _covariates)
+    function (_param, _random, _subject)
+      _covariates = _subject.covariates
       $(var_def(:_param, params))
       $(var_def(:_random, randoms))
       $(var_def(:_covariates, covariates))
@@ -363,7 +364,7 @@ end
 
 function derived_obj(derivedexpr, derivedvars, pre, odevars)
   quote
-    function (_pre,_sol,_obstimes)
+    function (_pre,_sol,_obstimes,_subject)
       $(var_def(:_pre, pre))
       if _sol != nothing
         $(bvar_def(:(_sol), odevars))
@@ -377,7 +378,7 @@ end
 
 function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
   quote
-    function (_pre,_sol,_obstimes,_samples)
+    function (_pre,_sol,_obstimes,_samples,_subject)
       $(var_def(:_pre, pre))
       $(var_def(:_samples, derivedvars))
       if _sol != nothing

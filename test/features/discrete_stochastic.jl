@@ -11,7 +11,7 @@ function randomfx(p)
   ParamSet((η=MvNormal(p.Ω),))
 end
 
-function pre_f(params, randoms, covars)
+function pre_f(params, randoms, subject)
     θ = params.θ
     η = randoms.η
     (Ka = θ[1],
@@ -37,7 +37,7 @@ jump_prob = JumpProblem(prob,Direct(),jump1,jump2)
 
 init_f = (col,t) -> [0.0,0.0]
 
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)

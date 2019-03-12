@@ -66,11 +66,11 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(fixeffs,randeffs,cov)
+function col_f(fixeffs,randeffs,subject)
     (Σ  = fixeffs.Σ,
     Ka = fixeffs.θ[1],  # pre
-    CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
-         (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
+    CL = fixeffs.θ[2] * ((subject.covariates.wt/70)^0.75) *
+         (fixeffs.θ[4]^subject.covariates.sex) * exp(randeffs.η[1]),
     V  = fixeffs.θ[3] * exp(randeffs.η[2]))
 end
 
@@ -88,14 +88,14 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 
 # In the function interface, the first return value is a named tuple of sampled
 # values, the second is a named tuple of distributions
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv=dv,)
 end
 
-function observed_f(col,sol,obstimes,samples)
+function observed_f(col,sol,obstimes,samples,subject)
     (obs_cmax = maximum(samples.dv),
      T_max = maximum(obstimes),
      dv = samples.dv)

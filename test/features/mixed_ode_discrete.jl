@@ -37,7 +37,7 @@ jump_prob = JumpProblem(prob,Direct(),jump)
 
 init_f = (col,t) -> [0.0,0.0]
 
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
 

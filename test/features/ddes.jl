@@ -11,7 +11,7 @@ function randomfx(p)
   ParamSet((η=MvNormal(p.Ω),))
 end
 
-function pre_f(params, randoms, covars)
+function pre_f(params, randoms, subject)
     θ = params.θ
     η = randoms.η
     (Ka = θ[1],
@@ -31,7 +31,7 @@ h(p,t) = zeros(2)
 
 prob = DDEProblem(f,nothing,h,nothing,nothing)
 
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
@@ -39,7 +39,7 @@ function derived_f(col,sol,obstimes)
     (dv=dv,)
 end
 
-function observed_f(col,sol,obstimes,samples)
+function observed_f(col,sol,obstimes,samples,subject)
     samples
 end
 

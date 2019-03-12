@@ -3,22 +3,12 @@
 
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
-- `data`: a `Population` object
 - `random`: a mapping from a named tuple of parameters -> `DistSet`
-- `pre`: a mapping from the (params, randeffs, covars) -> ODE params
-- `ode`: an ODE system (either exact or analytical)
+- `pre`: a mapping from the (params, randeffs, subject) -> ODE params
+- `init`: a mapping (col,t0) -> inital conditions
+- `prob`: a DEProblem describing the dynamics (either exact or analytical)
 - `derived`: the derived variables and error distributions (fixeffs, randeffs, data, ode vals) -> sampling dist
 - `observed`: simulated values from the error model and post processing: (fixeffs, randeffs, data, ode vals, samples) -> vals
-
-The idea is that a user can then do
-    fit(model, FOCE)
-etc. which would return a FittedModel object
-
-Note:
-- we include the data in the model, since they are pretty tightly coupled
-
-Todo:
-- auxiliary mappings which don't affect the fitting (e.g. concentrations)
 """
 mutable struct PuMaSModel{P,Q,R,S,T,V,W}
   param::P
@@ -30,7 +20,7 @@ mutable struct PuMaSModel{P,Q,R,S,T,V,W}
   observed::W
 end
 PuMaSModel(param,random,pre,init,prob,derived) =
-    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
+    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples,subject)->samples)
 
 init_fixeffs(m::PuMaSModel) = init(m.param)
 init_randeffs(m::PuMaSModel, param) = init(m.random(param))
@@ -60,7 +50,7 @@ function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
                           randeffs = sample_randeffs(m, fixeffs),
                           args...; kwargs...)
   m.prob === nothing && return nothing
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   _solve(m,subject,col,args...;kwargs...)
 end
 
@@ -134,16 +124,16 @@ function derivedfun(m::PuMaSModel, subject::Subject,
                     fixeffs = init_fixeffs(m),
                     randeffs=sample_randeffs(m, fixeffs),
                     args...; continuity=:right,kwargs...)
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   sol = _solve(m, subject, col, args...; kwargs...)
-  derivedfun(m,col,sol;continuity=continuity)
+  derivedfun(m,subject,col,sol;continuity=continuity)
 end
 
-function derivedfun(m::PuMaSModel, col, sol; continuity=:left)
+function derivedfun(m::PuMaSModel, subject::Subject, col, sol::Union{DESolution,Nothing}; continuity=:left)
   if sol === nothing
-    derived = obstimes -> m.derived(col,nothing,obstimes)
+    derived = obstimes -> m.derived(col,nothing,obstimes,subject)
   else
-    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
+    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes,subject)
   end
   derived
 end
@@ -163,7 +153,7 @@ function simobs(m::PuMaSModel, subject::Subject,
                 args...;
                 continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   if :saveat in keys(kwargs)
     isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
     sol = _solve(m, subject, col, args...; kwargs...)
@@ -171,9 +161,9 @@ function simobs(m::PuMaSModel, subject::Subject,
     isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
     sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   end
-  derived = derivedfun(m,col,sol;continuity=continuity)(obstimes)
-  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived))
-  SimulatedObservations(subject,obstimes,obs) # the first component is observed values
+  derived = derivedfun(m,subject,col,sol;continuity=continuity)(obstimes)
+  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived),subject)
+  SimulatedObservations(subject,obstimes,obs)
 end
 
 function simobs(m::PuMaSModel, pop::Population, args...;
@@ -202,40 +192,5 @@ subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
 function pre(m::PuMaSModel, subject::Subject, fixeffs, randeffs)
-  m.pre(fixeffs, randeffs, subject.covariates)
-end
-
-"""
-    tad(t, events) -> time after most recent dose
-
-Converts absolute time `t` (scalar or array) to relative time after the
-most recent dose. If `t` is earlier than all dose times, then the (negative)
-difference between `t` and the first dose time is returned instead. If no
-dose events exist, `t` is returned unmodified.
-"""
-function tad(t::T, events::AbstractArray{E}) where {T<:Real, E<:Event}
-  dose_times = [ev.time for ev in events if ev.evid == 1 || ev.evid == 4]
-  isempty(dose_times) && return t
-  sort!(dose_times)
-  ind = searchsortedlast(dose_times, t)
-  if ind > 0
-    t - dose_times[ind]
-  else
-    t - dose_times[1]
-  end
-end
-function tad(t::AbstractArray{T}, events::AbstractArray{E}) where {T<:Real, E<:Event}
-  dose_times = [ev.time for ev in events if ev.evid == 1 || ev.evid == 4]
-  isempty(dose_times) && return t
-  sort!(dose_times)
-  tout = similar(t)
-  for i in eachindex(t)
-    ind = searchsortedlast(dose_times, t[i])
-    if ind > 0
-      tout[i] = t[i] - dose_times[ind]
-    else
-      tout[i] = t[i] - dose_times[1]
-    end
-  end
-  tout
+  m.pre(fixeffs, randeffs, subject)
 end
