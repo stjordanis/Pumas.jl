@@ -45,7 +45,7 @@ randeffs = (η=randn(3),)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2),
                   cvs = cvs=(isPM="no", Wt=70))
-
+                  
 # Make sure simobs works without time, defaults to 1 day, obs at each hour
 obs = simobs(m_diffeq, subject, fixeffs, randeffs)
 @test obs.times == 0.0:1.0:84.0

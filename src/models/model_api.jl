@@ -137,7 +137,7 @@ function simobs(m::PuMaSModel, subject::Subject,
                 saveat=obstimes,kwargs...)
   col = m.pre(fixeffs, randeffs, subject)
   isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-  sol = _solve(m, subject, col, args...; kwargs...)
+  sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   derived = m.derived(col,sol,obstimes,subject)
   obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived),subject)
   SimulatedObservations(subject,obstimes,obs)
