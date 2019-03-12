@@ -164,7 +164,7 @@ end
 
   o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO())
 
-  x_optim = o.x0
+  x_optim = o.fixeffs
 
   @test_broken PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
   @testset "test parameter $k" for k in keys(x_optim)
