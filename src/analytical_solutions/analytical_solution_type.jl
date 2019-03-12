@@ -40,7 +40,7 @@ function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs
     t = ts[j]
     u[j] = sol(t,deriv;idxs=idxs,continuity=continuity)
   end
-  u
+  DiffEqBase.DiffEqArray(u,ts)
 end
 
 Base.summary(A::PKPDAnalyticalSolution) = string("Timeseries Solution with uType ",eltype(A.u)," and tType ",eltype(A.t))

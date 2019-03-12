@@ -32,7 +32,7 @@ h(p,t) = zeros(2)
 prob = DDEProblem(f,nothing,h,nothing,nothing)
 
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     dv = @. rand(___dv)
