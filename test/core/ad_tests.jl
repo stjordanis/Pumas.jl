@@ -63,7 +63,8 @@ end
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
     rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
-    function col_f(fixeffs,randeffs,cov)
+    function col_f(fixeffs,randeffs,subject)
+        cov = subject.covariates
         (Ka = fixeffs.θ[1],
         CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) * (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
         V  = fixeffs.θ[3] * exp(randeffs.η[2]),

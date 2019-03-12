@@ -4,7 +4,7 @@
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
 - `random`: a mapping from a named tuple of parameters -> `DistSet`
-- `pre`: a mapping from the (params, randeffs, covars) -> ODE params
+- `pre`: a mapping from the (params, randeffs, subject) -> ODE params
 - `init`: a mapping (col,t0) -> inital conditions
 - `prob`: a DEProblem describing the dynamics (either exact or analytical)
 - `derived`: the derived variables and error distributions (fixeffs, randeffs, data, ode vals) -> sampling dist
@@ -50,7 +50,7 @@ function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
                           randeffs = sample_randeffs(m, fixeffs),
                           args...; kwargs...)
   m.prob === nothing && return nothing
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   _solve(m,subject,col,args...;kwargs...)
 end
 
@@ -124,7 +124,7 @@ function derivedfun(m::PuMaSModel, subject::Subject,
                     fixeffs = init_fixeffs(m),
                     randeffs=sample_randeffs(m, fixeffs),
                     args...; continuity=:right,kwargs...)
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
 end
@@ -153,7 +153,7 @@ function simobs(m::PuMaSModel, subject::Subject,
                 args...;
                 continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
-  col = m.pre(fixeffs, randeffs, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject)
   if :saveat in keys(kwargs)
     isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
     sol = _solve(m, subject, col, args...; kwargs...)
@@ -192,5 +192,5 @@ subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
 function pre(m::PuMaSModel, subject::Subject, fixeffs, randeffs)
-  m.pre(fixeffs, randeffs, subject.covariates)
+  m.pre(fixeffs, randeffs, subject)
 end

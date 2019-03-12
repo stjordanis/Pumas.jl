@@ -166,7 +166,8 @@ end
 
 function pre_obj(preexpr, prevars, params, randoms, covariates)
   quote
-    function (_param, _random, _covariates)
+    function (_param, _random, _subject)
+      _covariates = subject.covariates
       $(var_def(:_param, params))
       $(var_def(:_random, randoms))
       $(var_def(:_covariates, covariates))

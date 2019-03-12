@@ -19,7 +19,8 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(fixeffs,randeffs,cov)
+function col_f(fixeffs,randeffs,subject)
+    cov = subject.covariates
    (Ka = t->t*fixeffs.θ[1],  # pre
     CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
          (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),

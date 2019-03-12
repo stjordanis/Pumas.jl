@@ -11,7 +11,7 @@ function randomfx(p)
   ParamSet((η=MvNormal(p.Ω),))
 end
 
-function pre_f(params, randoms, covars)
+function pre_f(params, randoms, subject)
     θ = params.θ
     η = randoms.η
     (Ka = θ[1],
