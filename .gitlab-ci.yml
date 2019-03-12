@@ -17,6 +17,11 @@ build:
                           Pkg.clone(pwd(), "PuMaS");
                           Pkg.build("PuMaS");
                           using PuMaS;'
+  only:
+  - master
+  - tags
+  - external
+  - pushes
 
 
 test-core:
@@ -28,6 +33,12 @@ test-core:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
+  only:
+  - master
+  - tags
+  - external
+  - pushes
+
 
 test-nca:
   stage: test
@@ -38,6 +49,12 @@ test-nca:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
+  only:
+  - master
+  - tags
+  - external
+  - pushes
+
 
 test-nlme-nobayes:
   stage: test
@@ -48,6 +65,11 @@ test-nlme-nobayes:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
+  only:
+    - master
+    - tags
+    - external
+    - pushes
 
 test-nlme-bayes:
   stage: test
@@ -59,6 +81,12 @@ test-nlme-bayes:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
+  only:
+    - master
+    - tags
+    - external
+    - pushes
+
 
 test-features:
   stage: test
@@ -69,3 +97,9 @@ test-features:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.test("PuMaS"; coverage=true);'
+  only:
+  - master
+  - tags
+  - external
+  - pushes
+
