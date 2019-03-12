@@ -1,4 +1,4 @@
-struct SimulatedObservations{S,T,TAD,T2}
+struct SimulatedObservations{S,T,T2}
   subject::S
   times::T
   observed::T2
