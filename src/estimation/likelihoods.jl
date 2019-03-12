@@ -68,7 +68,7 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTupl
      derived_dist = m.derived(collated, nothing, obstimes, subject)
   else
     # if solution contains NaN return Inf
-    if any(isnan, solution[end]) || solution.retcode != :Success
+    if (solution.retcode != :Success && solution.retcode != :Terminated) || any(isnan, solution(obstimes[end]))
       # FIXME! Do we need to make this type stable?
       return Inf, nothing
     end

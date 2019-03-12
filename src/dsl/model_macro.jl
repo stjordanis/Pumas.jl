@@ -387,8 +387,8 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
       $(var_def(:_pre, pre))
       $(var_def(:_samples, derivedvars))
       if _sol != nothing
-        _solarr = _sol(_obstimes,continuity=:right)
-        $(solvars_def(:(_sol), odevars))
+        _solarr = _sol(_obstimes)
+        $(solvars_def(:(_solarr), odevars))
       end
       $(esc(:t)) = _obstimes
       $(esc(observedexpr))

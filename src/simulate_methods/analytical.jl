@@ -36,6 +36,7 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col,
   ss_cmt = 0
   ss_dropoff_event = false
   start_val = 0
+  retcode = :Success
   local dose
   # Now loop through the rest
   while i <= length(times)
@@ -137,6 +138,12 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col,
         end
       end
     end
+
+    if isnan(u[i])
+      retcode = :Unstable
+      break
+    end
+
     # Don't update i for duplicate events
     t0 = t
     if ss_dropoff_event || (event_counter != length(events) && events[event_counter+1].time != t) || event_counter == length(events)
@@ -153,7 +160,7 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col,
                          typeof(rates),
                          typeof(col),
                          typeof(prob)}(u,times,doses,rates,col,prob,
-                                       true,0,:Success,continuity)
+                                       true,0,retcode,continuity)
 end
 
 function create_dose_rate_vector(cur_ev,u0,rate,bioav)
