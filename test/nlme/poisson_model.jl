@@ -62,7 +62,7 @@ initial_estimates = [-8.31130E-01,
 
 @testset "initial" begin
   for (i,est) in enumerate(initial_estimates)
-    @test PuMaS.rfx_estimate(poisson_model, df[i], fixeffs, PuMaS.LaplaceI()) ≈ [est] atol=1e-5
+    @test PuMaS.randeffs_estimate(poisson_model, df[i], fixeffs, PuMaS.LaplaceI()) ≈ [est] atol=1e-5
   end
   @test 2*PuMaS.marginal_nll(poisson_model,df,fixeffs,PuMaS.LaplaceI()) ≈ 4015.70427796336 atol=1e-1
 end

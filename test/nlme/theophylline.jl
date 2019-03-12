@@ -388,7 +388,7 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], fixeffs, PuMaS.Laplace()) ≈ η rtol=1e-4
+      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], fixeffs, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
     @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, fixeffs, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
@@ -422,7 +422,7 @@ end
 
   @testset "Laplace fitted" begin
     for (i,η) in enumerate(nonmem_ebes_estimated)
-      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
+      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
     end
 
     @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
