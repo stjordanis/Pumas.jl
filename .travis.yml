@@ -1,15 +1,15 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
-language: julia
-os:
-  - linux
-julia:
+#language: julia
+#os:
+#  - linux
+#julia:
   - 1.1
 #  - nightly
 #matrix:
 #  allow_failures:
 #    - julia: nightly
-env:
-  - GROUP=Core
+#env:
+  #- GROUP=Core
   #- GROUP=Features
   #- GROUP=NLME
   #- GROUP=NCA
