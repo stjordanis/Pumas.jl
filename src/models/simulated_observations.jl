@@ -12,7 +12,7 @@ end
   obs.observed[I...] = x
 end
 function DataFrames.DataFrame(obs::SimulatedObservations)
-  DataFrame(merge((time=obs.times,obs.observed))
+  DataFrame(merge((time=obs.times,),obs.observed))
 end
 
 @recipe function f(obs::SimulatedObservations)
