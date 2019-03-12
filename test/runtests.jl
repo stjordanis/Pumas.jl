@@ -3,7 +3,7 @@ using PuMaS, SafeTestsets
 if haskey(ENV,"GROUP")
     group = ENV["GROUP"]
 else
-    group = "NLME_BAYES"
+    group = "All"
 end
 
 is_APPVEYOR = ( Sys.iswindows() && haskey(ENV,"APPVEYOR") )
