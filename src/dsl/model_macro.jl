@@ -353,7 +353,7 @@ function bvar_def(collection, indvars)
     if $collection isa DataFrame
       $(Expr(:block, [:($(esc(v)) = $collection.$v) for v in indvars]...))
     elseif $collection isa DESolution
-      $(Expr(:block, [:($(esc(v)) = map(x -> x[$i], $collection.u)) for (i,v) in enumerate(indvars)]...))
+      $(Expr(:block, [:($(esc(v)) = $collection[$i,:]) for (i,v) in enumerate(indvars)]...))
     else eltype($collection) <: SArray
       $(Expr(:block, [:($(esc(v)) = map(x -> x[$i], $collection)) for (i,v) in enumerate(indvars)]...))
       #else
@@ -367,7 +367,8 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
     function (_pre,_sol,_obstimes,_subject)
       $(var_def(:_pre, pre))
       if _sol != nothing
-        $(bvar_def(:(_sol), odevars))
+        _solarr = _sol(_obstimes,continuity=:right)
+        $(bvar_def(:(_solarr), odevars))
       end
       $(esc(:t)) = _obstimes
       $(esc(derivedexpr))
@@ -382,6 +383,7 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
       $(var_def(:_pre, pre))
       $(var_def(:_samples, derivedvars))
       if _sol != nothing
+        _solarr = _sol(_obstimes,continuity=:right)
         $(bvar_def(:(_sol), odevars))
       end
       $(esc(:t)) = _obstimes

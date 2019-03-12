@@ -89,7 +89,7 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 # In the function interface, the first return value is a named tuple of sampled
 # values, the second is a named tuple of distributions
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv=dv,)

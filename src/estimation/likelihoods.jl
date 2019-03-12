@@ -67,17 +67,14 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTupl
   if solution === nothing
      derived_dist = m.derived(collated, nothing, obstimes, subject)
   else
-    # compute solution values
-    path = solution(obstimes, continuity=:right)
-
     # if solution contains NaN return Inf
-    if any(isnan, last(path)) || solution.retcode != :Success
+    if any(isnan, solution[end]) || solution.retcode != :Success
       # FIXME! Do we need to make this type stable?
       return Inf, nothing
     end
 
     # extract distributions
-    derived_dist = m.derived(collated, [p for p in path], obstimes, subject)
+    derived_dist = m.derived(collated, solution, obstimes, subject)
   end
 
   ll = _lpdf(derived_dist, subject.observations)
