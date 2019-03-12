@@ -19,7 +19,7 @@ function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
   [quantile(Normal(),phi[i]) for i in 1:length(subject.observations.dv)]
 end
 
-function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FO()))
+function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   yi = subject.observations.dv
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
@@ -29,7 +29,7 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
   (var_yi)*(yi .- mean_yi)
 end
 
-function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCE()))
+function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   yi = subject.observations.dv
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
@@ -40,7 +40,7 @@ function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   (var_yi)*(yi .- mean_yi)
 end
 
-function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCEI()))
+function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   Ω = cov(m.random(fixeffs).params.η)
@@ -50,20 +50,20 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   (var_yi)*(yi .- mean_yi)
 end
 
-function pred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FO()))
+function pred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
   mean_yi
 end
 
-function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCE()))
+function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
   mean_yi
 end
 
-function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCEI()))
+function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
@@ -80,14 +80,14 @@ function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
   mean_yi
 end
 
-function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FO()))
+function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   yi = subject.observations.dv
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
 
-function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCE()))
+function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   yi = subject.observations.dv
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
@@ -95,7 +95,7 @@ function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
 
-function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=rfx_estimate(m, subject, fixeffs, FOCEI()))
+function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   mean_yi = (mean.(dist.dv))
