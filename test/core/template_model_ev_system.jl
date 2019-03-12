@@ -791,7 +791,7 @@ fixeffs = (θ = [
            30.0 #V
            ],)
 
-sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity = :right)
 @test sim[:cp][1:19] ≈ subject.observations.cp[1:19]  rtol=1e-6
 @test sim[:cp]       ≈ subject.observations.cp        rtol=1e-6
 
@@ -893,9 +893,9 @@ fixeffs = (θ = [
 
 col = pre(m_diffeq, subject, fixeffs, randeffs)
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test sol(subject.time .+ 1e-14)[2,:]/col.V ≈ subject.observations.cp rtol=1e-6
+@test sol(subject.time; continuity = :right)[2,:]/col.V ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity = :right)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)

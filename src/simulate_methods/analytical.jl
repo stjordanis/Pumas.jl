@@ -1,4 +1,5 @@
-function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col, args...; kwargs...)
+function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col,
+                           args...; continuity = :right, kwargs...)
   f = m.prob
 
   # we don't want to promote units
@@ -151,7 +152,8 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col, args
                          typeof(doses),
                          typeof(rates),
                          typeof(col),
-                         typeof(prob)}(u,times,doses,rates,col,prob,true,0,:Success)
+                         typeof(prob)}(u,times,doses,rates,col,prob,
+                                       true,0,:Success,continuity)
 end
 
 function create_dose_rate_vector(cur_ev,u0,rate,bioav)

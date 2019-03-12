@@ -371,7 +371,7 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
     function (_pre,_sol,_obstimes,_subject)
       $(var_def(:_pre, pre))
       if _sol != nothing
-        _solarr = _sol(_obstimes,continuity=:right)
+        _solarr = _sol(_obstimes)
         $(solvars_def(:(_solarr), odevars))
       end
       $(esc(:t)) = _obstimes

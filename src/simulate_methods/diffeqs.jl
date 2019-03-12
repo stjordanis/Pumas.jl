@@ -1,4 +1,4 @@
-function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; save_discont=true, alg=AutoTsit5(Rosenbrock23()), kwargs...)
+function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[], save_discont=isempty(saveat), continuity=:right, alg=AutoTsit5(Rosenbrock23()), kwargs...)
   prob = typeof(m.prob) <: DiffEqBase.AbstractJumpProblem ? m.prob.prob : m.prob
   tspan = prob.tspan
   col = prob.p
@@ -18,7 +18,7 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; save_discont=tr
   ft = DiffEqBase.parameterless_type(typeof(prob.f))
 
   # figure out callbacks and convert type for tspan if necessary
-  tstops,cb = ith_subject_cb(col,subject,Tu0,tspan[1],typeof(prob),save_discont)
+  tstops,cb = ith_subject_cb(col,subject,Tu0,tspan[1],typeof(prob),saveat,save_discont,continuity)
   Tt = promote_type(numtype(tstops), numtype(tspan))
   tspan = Tt.(tspan)
   prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
@@ -30,6 +30,7 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; save_discont=tr
   _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
 
   sol = solve(_prob,alg,args...;
+              saveat = saveat,
               save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
               tstops=tstops,   # extra times that the timestepping algorithm must step to
               kwargs...)
@@ -64,7 +65,7 @@ end
 #                   callback=cb)
 #end
 
-function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
+function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,continuity)
   ss_abstol = 1e-12 # TODO: Make an option
   ss_reltol = 1e-12 # TODO: Make an option
   ss_max_iters = 1000
@@ -89,6 +90,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
   ss_rate_multiplier = Ref(0)
   ss_dropoff_counter = Ref(0)
   ss_tstop_cache = Vector{eltype(tstops)}()
+  ss_reset_cache = similar(u0) # TODO: Make this handle static arrays better.
   last_restart = Ref(-one(eltype(tstops)))
   save_on_cache = Ref(true)
 
@@ -164,6 +166,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
           ss_rate_end[] = integrator.t + ss_overlap_duration[]
           ss_idx[] = length(integrator.sol)
           ss_cache .= integrator.u
+          ss_reset_cache .= integrator.u
           ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
           add_tstop!(integrator,ss_end[])
           cur_ev.rate > 0 && add_tstop!(integrator,ss_rate_end[])
@@ -190,16 +193,24 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
 
             if cur_ev.ss == 2
               if typeof(integrator.u) <: Union{SArray,SLArray,Number,FieldVector}
-                integrator.u += integrator.sol.u[end]
+                integrator.u += ss_reset_cache
               else
-                integrator.u .+= integrator.sol.u[end]
+                integrator.u .+= ss_reset_cache
               end
             end
 
             ss_dose!(integrator,integrator.u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
+
+            if integrator.t == integrator.sol.prob.tspan[2]
+              # If there was a steady state that went over, it will have added
+              # a tstop to keep walking. Easiest fix is just to clamp it.
+              terminate!(integrator)
+            end
+
             if cur_ev.rate > 0 && cur_ev.amt != 0 # amt = 0 means it never turns off
               ss_duration[] == cur_ev.ii ? start_k = 1 : start_k = 0
               for k in start_k:ss_rate_multiplier[]-1
+                # check integrator.t + ss_overlap_duration[] + k*ss_ii[] < integrator.sol.prob.tspan[2] ?
                 add_tstop!(integrator,integrator.t + ss_overlap_duration[] + k*ss_ii[])
               end
               ss_dropoff_counter[] = start_k
@@ -233,6 +244,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
               for t in ss_tstop_cache
+                # check t <= integrator.sol.prob.tspan[2] ?
                 add_tstop!(integrator,t)
               end
               resize!(ss_tstop_cache,0)
@@ -284,6 +296,17 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,save_discont)
         end
       end
       # TODO: Optimize by setting f.f.rates_on = false
+    end
+
+
+    # When not doing continuous mode, when not steady state, correct the saves for right continuity
+    if !save_discont && !isempty(saveat) && !ss_mode[] && continuity == :right
+      if integrator.t ∈ saveat && integrator.t == integrator.sol.t[end]
+        integrator.sol.u[end] = DiffEqBase.recursivecopy(integrator.u)
+      elseif integrator.t == integrator.sol.prob.tspan[1]
+        # First value gets special save treatment so it's not in saveat, override when necessary
+        integrator.sol.u[end] = DiffEqBase.recursivecopy(integrator.u)
+      end
     end
   end
   save_positions = save_discont ? (true, true) : (false, false)
