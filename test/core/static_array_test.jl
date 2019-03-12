@@ -47,7 +47,7 @@ mdsl = @model begin
     end
 end
 
-fixeffs = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
+p = ParamSet((θ = VectorDomain(4, lower=zeros(4), init=ones(4)), # parameters
               Ω = PSDDomain(2),
               Σ = RealDomain(lower=0.0, init=1.0),
               a = ConstDomain(0.2)))
@@ -85,8 +85,8 @@ observed_f(col,sol,obstimes,samples) = samples
 
 mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-fixeffs = init_param(mdsl)
-randeffs = init_random(mdsl, fixeffs)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
 subject = data.subjects[1]
 

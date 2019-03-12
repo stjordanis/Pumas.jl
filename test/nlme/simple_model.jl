@@ -32,7 +32,7 @@ mdsl1 = @model begin
     end
 end
 
-fixeffs = init_param(mdsl1)
+fixeffs = init_fixeffs(mdsl1)
 
 PuMaS.rfx_estimate(mdsl1, data[1], fixeffs, PuMaS.Laplace())
 
@@ -51,7 +51,7 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, fixeffs, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, fixeffs, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel

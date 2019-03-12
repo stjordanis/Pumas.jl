@@ -51,7 +51,7 @@ fixeffs = (θ = [2.268,74.17,468.6,0.5876],
                  0.0 0.2]),
       σ = 0.1)
 subject1 = data.subjects[1]
-randeffs = init_random(mobj, fixeffs)
+randeffs = init_randeffs(mobj, fixeffs)
 
 sol_mobj = solve(mobj,subject1,fixeffs,randeffs)
 

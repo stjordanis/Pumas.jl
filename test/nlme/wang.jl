@@ -31,7 +31,7 @@ wang_additive = @model begin
     end
 end
 
-fixeffs = init_param(wang_additive)
+fixeffs = init_fixeffs(wang_additive)
 
 mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_additive,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
@@ -68,7 +68,7 @@ wang_prop = @model begin
     end
 end
 
-fixeffs = init_param(wang_prop)
+fixeffs = init_fixeffs(wang_prop)
 
 mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_prop,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
@@ -106,7 +106,7 @@ wang_exp = @model begin
     end
 end
 
-fixeffs = init_param(wang_exp)
+fixeffs = init_fixeffs(wang_exp)
 
 mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_exp,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]

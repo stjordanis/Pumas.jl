@@ -31,8 +31,8 @@ poisson_model = @model begin
 end
 
 
-fixeffs = init_param(poisson_model)
-randeffs = init_random(poisson_model, fixeffs)
+fixeffs = init_fixeffs(poisson_model)
+randeffs = init_randeffs(poisson_model, fixeffs)
 
 @test solve(poisson_model,df[1],fixeffs,randeffs) === nothing
 @test simobs(poisson_model,df,fixeffs,randeffs) != nothing

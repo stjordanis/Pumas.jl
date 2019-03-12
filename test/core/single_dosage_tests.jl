@@ -84,7 +84,7 @@ fixeffs = (θ = [2.268,74.17,468.6,0.5876],
 
 subject1 = data.subjects[1]
 
-randeffs = init_random(m_diffeq, fixeffs)
+randeffs = init_randeffs(m_diffeq, fixeffs)
 
 sol_diffeq   = solve(m_diffeq,subject1,fixeffs,randeffs)
 sol_analytic = solve(m_analytic,subject1,fixeffs,randeffs)

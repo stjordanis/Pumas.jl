@@ -33,7 +33,7 @@ tdist = @model begin
 end
 
 
-fixeffs = init_param(tdist)
+fixeffs = init_fixeffs(tdist)
 
 for (d, v) in zip(data, [-0.110095703125000, 0.035454025268555, -0.024982604980469,
                          -0.085317642211914, 0.071675025939941, 0.059612709045410,

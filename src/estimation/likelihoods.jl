@@ -53,7 +53,7 @@ conditional_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, args...; k
   first(conditional_nll_ext(m, subject, fixeffs, args...; kwargs...))
 
 function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple,
-                             randeffs::NamedTuple=rand_random(m, fixeffs), args...; kwargs...)
+                             randeffs::NamedTuple=rand_randeffs(m, fixeffs), args...; kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
   isnothing(obstimes) && throw(ArgumentError("no observations for subject"))

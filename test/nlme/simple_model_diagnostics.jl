@@ -32,7 +32,7 @@ mdsl1 = @model begin
     end
 end
 
-fixeffs = init_param(mdsl1)
+fixeffs = init_fixeffs(mdsl1)
 
 println([npde(mdsl1,data[i],fixeffs,10000) for i in 1:10])
 println([epred(mdsl1,data[i],fixeffs,10000) for i in 1:10])

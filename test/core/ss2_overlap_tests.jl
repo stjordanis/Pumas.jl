@@ -42,7 +42,7 @@ fixeffs = (θ = [
      1.0,  #CL
      30.0  #V
      ],)
-randeffs = init_random(m_diffeq, fixeffs)
+randeffs = init_randeffs(m_diffeq, fixeffs)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 sol = solve(m_diffeq, subject, fixeffs, randeffs; tspan=(0.0,12.0+1e-14), abstol=1e-14, reltol=1e-14)

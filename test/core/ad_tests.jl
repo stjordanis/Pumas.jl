@@ -87,7 +87,7 @@ end
     # Initial data
     θ0 = [2.268,74.17,468.6,0.5876]
     fixeffs = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_random(model, fixeffs)
+    Random.seed!(0); randeffs = init_randeffs(model, fixeffs)
 
     # Test gradient and hessian of an observable w.r.t. θ
     function test_obs(model)

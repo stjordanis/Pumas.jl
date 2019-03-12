@@ -103,8 +103,8 @@ end
 
 mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-fixeffs = init_param(mdsl)
-randeffs = init_random(mdsl, fixeffs)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
 subject = data.subjects[1]
 
@@ -173,8 +173,8 @@ mdsl = @model begin
         T_max = maximum(t)
     end
 end
-fixeffs = init_param(mdsl)
-randeffs = init_random(mdsl, fixeffs)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
 @test solve(mdsl,subject,fixeffs,randeffs) === nothing
 @test simobs(mdsl,subject,fixeffs,randeffs) != nothing

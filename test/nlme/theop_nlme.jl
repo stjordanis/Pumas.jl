@@ -37,6 +37,6 @@ mdsl2 = @model begin
     end
 end
 
-fixeffs = init_param(mdsl2)
+fixeffs = init_fixeffs(mdsl2)
 @test @inferred(PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,fixeffs,PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
 @test fit(mdsl2, theopp_nlme, fixeffs, PuMaS.FOCE()) isa PuMaS.FittedPuMaSModel
