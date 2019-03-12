@@ -98,13 +98,13 @@ data = DataFrame(time = append!([0.083, 0.167, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0,
 subject = Subject(obs = data,
                   evs = DosageRegimen(8e4, addl = 14, ii = 12))
 
-x0 = PuMaS.init_param(m_neut)
+fixeffs = PuMaS.init_fixeffs(m_neut)
 
-sol_diffeq = solve(m_neut,subject,x0)
+sol_diffeq = solve(m_neut,subject,fixeffs)
 
 # Should be made into a population test
-sol_diffeq = solve(m_neut,subject,x0, parallel_type = PuMaS.Threading)
+sol_diffeq = solve(m_neut,subject,fixeffs, parallel_type = PuMaS.Threading)
 
-@test PuMaS.conditional_nll(m_neut, subject, x0, NamedTuple()) ≈ 79.54079056760992 rtol=5e-5
+@test PuMaS.conditional_nll(m_neut, subject, fixeffs, NamedTuple()) ≈ 79.54079056760992 rtol=5e-5
 
-obs = simobs(m_neut,subject,x0)
+obs = simobs(m_neut,subject,fixeffs)

@@ -66,12 +66,12 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(p,rfx,cov)
-    (Σ  = p.Σ,
-    Ka = p.θ[1],  # pre
-    CL = p.θ[2] * ((cov.wt/70)^0.75) *
-         (p.θ[4]^cov.sex) * exp(rfx.η[1]),
-    V  = p.θ[3] * exp(rfx.η[2]))
+function col_f(fixeffs,randeffs,cov)
+    (Σ  = fixeffs.Σ,
+    Ka = fixeffs.θ[1],  # pre
+    CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
+         (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
+    V  = fixeffs.θ[3] * exp(randeffs.η[2]))
 end
 
 OneCompartmentVector = @SLVector (:Depot,:Central)
@@ -103,20 +103,20 @@ end
 
 mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-x0 = init_param(mdsl)
-y0 = init_random(mdsl, x0)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
 subject = data.subjects[1]
 
-sol1 = solve(mdsl,subject,x0,y0)
-sol2 = solve(mobj,subject,x0,y0)
+sol1 = solve(mdsl,subject,fixeffs,randeffs)
+sol2 = solve(mobj,subject,fixeffs,randeffs)
 
 @test sol1[10].Central ≈ sol2[10].Central
 
-@test conditional_nll(mdsl,subject,x0,y0) ≈ conditional_nll(mobj,subject,x0,y0) rtol=5e-3
+@test conditional_nll(mdsl,subject,fixeffs,randeffs) ≈ conditional_nll(mobj,subject,fixeffs,randeffs) rtol=5e-3
 
-Random.seed!(1); obs_dsl = simobs(mdsl,subject,x0,y0)
-Random.seed!(1); obs_obj = simobs(mobj,subject,x0,y0)
+Random.seed!(1); obs_dsl = simobs(mdsl,subject,fixeffs,randeffs)
+Random.seed!(1); obs_obj = simobs(mobj,subject,fixeffs,randeffs)
 
 @test obs_dsl.observed.obs_cmax == obs_obj.observed.obs_cmax > 0
 @test obs_dsl.observed.T_max == obs_obj.observed.T_max
@@ -136,12 +136,12 @@ end
 prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
 mobj_iip = PuMaSModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
-sol2 = solve(mobj_iip,subject,x0,y0)
+sol2 = solve(mobj_iip,subject,fixeffs,randeffs)
 
-@test conditional_nll(mobj_iip,subject,x0,y0) ≈ conditional_nll(mobj,subject,x0,y0) rtol=5e-3
+@test conditional_nll(mobj_iip,subject,fixeffs,randeffs) ≈ conditional_nll(mobj,subject,fixeffs,randeffs) rtol=5e-3
 
-@test (Random.seed!(1); simobs(mobj_iip,subject,x0,y0)[:dv]) ≈
-      (Random.seed!(1); simobs(mobj,subject,x0,y0)[:dv]) rtol=1e-4
+@test (Random.seed!(1); simobs(mobj_iip,subject,fixeffs,randeffs)[:dv]) ≈
+      (Random.seed!(1); simobs(mobj,subject,fixeffs,randeffs)[:dv]) rtol=1e-4
 
 mdsl = @model begin
     @param begin
@@ -173,9 +173,9 @@ mdsl = @model begin
         T_max = maximum(t)
     end
 end
-x0 = init_param(mdsl)
-y0 = init_random(mdsl, x0)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
-@test solve(mdsl,subject,x0,y0) === nothing
-@test simobs(mdsl,subject,x0,y0) != nothing
-@test conditional_nll(mdsl,subject,x0,y0) == Inf # since real-valued observations
+@test solve(mdsl,subject,fixeffs,randeffs) === nothing
+@test simobs(mdsl,subject,fixeffs,randeffs) != nothing
+@test conditional_nll(mdsl,subject,fixeffs,randeffs) == Inf # since real-valued observations

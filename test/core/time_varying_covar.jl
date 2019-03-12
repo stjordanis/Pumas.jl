@@ -19,11 +19,11 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(p,rfx,cov)
-   (Ka = t->t*p.θ[1],  # pre
-    CL = p.θ[2] * ((cov.wt/70)^0.75) *
-         (p.θ[4]^cov.sex) * exp(rfx.η[1]),
-    V  = p.θ[3] * exp(rfx.η[2]))
+function col_f(fixeffs,randeffs,cov)
+   (Ka = t->t*fixeffs.θ[1],  # pre
+    CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
+         (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
+    V  = fixeffs.θ[3] * exp(randeffs.η[2]))
 end
 
 #OneCompartmentVector = @SLVector (:Depot,:Central)
@@ -46,14 +46,14 @@ end
 
 mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,(col,sol,obstimes,samples)->samples)
 
-x0 = (θ = [2.268,74.17,468.6,0.5876],
+fixeffs = (θ = [2.268,74.17,468.6,0.5876],
       Ω = PDMat([0.05 0.0;
                  0.0 0.2]),
       σ = 0.1)
 subject1 = data.subjects[1]
-y0 = init_random(mobj, x0)
+randeffs = init_randeffs(mobj, fixeffs)
 
-sol_mobj = solve(mobj,subject1,x0,y0)
+sol_mobj = solve(mobj,subject1,fixeffs,randeffs)
 
 ## DSL
 
