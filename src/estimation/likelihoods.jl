@@ -59,13 +59,13 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTupl
   isnothing(obstimes) && throw(ArgumentError("no observations for subject"))
 
   # collate that arguments
-  collated = m.pre(fixeffs, randeffs, subject.covariates)
+  collated = m.pre(fixeffs, randeffs, subject)
 
   # create solution object
   solution = _solve(m, subject, collated, args...; kwargs...)
 
   if solution === nothing
-     derived_dist = m.derived(collated, nothing, obstimes)
+     derived_dist = m.derived(collated, nothing, obstimes, subject)
   else
     # compute solution values
     path = solution(obstimes, continuity=:right)
@@ -76,8 +76,8 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTupl
       return Inf, nothing
     end
 
-    # extract values and distributions
-    derived_dist = m.derived(collated, [p for p in path], obstimes) # the second component is distributions
+    # extract distributions
+    derived_dist = m.derived(collated, [p for p in path], obstimes, subject)
   end
 
   ll = _lpdf(derived_dist, subject.observations)

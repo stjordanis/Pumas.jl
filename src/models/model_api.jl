@@ -20,7 +20,7 @@ mutable struct PuMaSModel{P,Q,R,S,T,V,W}
   observed::W
 end
 PuMaSModel(param,random,pre,init,prob,derived) =
-    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
+    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples,subject)->samples)
 
 init_fixeffs(m::PuMaSModel) = init(m.param)
 init_randeffs(m::PuMaSModel, param) = init(m.random(param))
@@ -126,14 +126,14 @@ function derivedfun(m::PuMaSModel, subject::Subject,
                     args...; continuity=:right,kwargs...)
   col = m.pre(fixeffs, randeffs, subject)
   sol = _solve(m, subject, col, args...; kwargs...)
-  derivedfun(m,col,sol;continuity=continuity)
+  derivedfun(m,subject,col,sol;continuity=continuity)
 end
 
-function derivedfun(m::PuMaSModel, col, sol; continuity=:left)
+function derivedfun(m::PuMaSModel, subject::Subject, col, sol::Union{DESolution,Nothing}; continuity=:left)
   if sol === nothing
-    derived = obstimes -> m.derived(col,nothing,obstimes)
+    derived = obstimes -> m.derived(col,nothing,obstimes,subject)
   else
-    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes)
+    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes,subject)
   end
   derived
 end
@@ -161,8 +161,8 @@ function simobs(m::PuMaSModel, subject::Subject,
     isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
     sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   end
-  derived = derivedfun(m,col,sol;continuity=continuity)(obstimes)
-  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived))
+  derived = derivedfun(m,subject,col,sol;continuity=continuity)(obstimes)
+  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived),subject)
   SimulatedObservations(subject,obstimes,obs)
 end
 

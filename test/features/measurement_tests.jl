@@ -87,13 +87,13 @@ end
         du.Central = p.Ka*u.Depot - p.CL*cp
     end
     prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
-    function derived_f(col,sol,obstimes)
+    function derived_f(col,sol,obstimes,subject)
         central = map(x->x.Central, sol)
         _conc = @. central / col.V
         _cmax = maximum(_conc)
         (conc = _conc, cmax = _cmax)
     end
-    observed_f(col,sol,obstimes,samples) = samples
+    observed_f(col,sol,obstimes,samples,subject) = samples
     model = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
     # Initial data

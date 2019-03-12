@@ -88,14 +88,14 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 
 # In the function interface, the first return value is a named tuple of sampled
 # values, the second is a named tuple of distributions
-function derived_f(col,sol,obstimes)
+function derived_f(col,sol,obstimes,subject)
     central = map(x->x[2], sol)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv=dv,)
 end
 
-function observed_f(col,sol,obstimes,samples)
+function observed_f(col,sol,obstimes,samples,subject)
     (obs_cmax = maximum(samples.dv),
      T_max = maximum(obstimes),
      dv = samples.dv)
