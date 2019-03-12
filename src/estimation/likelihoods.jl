@@ -169,7 +169,7 @@ function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple,
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(fixeffs), numtype(fixeffs))
 
-  return randeffs_estimate(m, subject, x0, zeros(T, p), approx, args...; kwargs...)
+  return randeffs_estimate(m, subject, fixeffs, zeros(T, p), approx, args...; kwargs...)
 end
 
 function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
