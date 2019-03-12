@@ -32,7 +32,7 @@ h(p,t) = zeros(2)
 prob = DDEProblem(f,nothing,h,nothing,nothing)
 
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     dv = @. rand(___dv)
@@ -55,4 +55,4 @@ data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time =
 sol  = solve(model,data,fixeffs,randeffs,alg=MethodOfSteps(Tsit5()))
 
 # Regression test on interpolation issue
-@test all(sol(24:0.5:30)[2,:] .< 45)
+@test all(sol(24:0.5:30)[2,:] .< 53)

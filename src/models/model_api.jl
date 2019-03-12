@@ -120,24 +120,6 @@ sample(d) = d
 zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
-function derivedfun(m::PuMaSModel, subject::Subject,
-                    fixeffs = init_fixeffs(m),
-                    randeffs=sample_randeffs(m, fixeffs),
-                    args...; continuity=:right,kwargs...)
-  col = m.pre(fixeffs, randeffs, subject)
-  sol = _solve(m, subject, col, args...; kwargs...)
-  derivedfun(m,subject,col,sol;continuity=continuity)
-end
-
-function derivedfun(m::PuMaSModel, subject::Subject, col, sol::Union{DESolution,Nothing}; continuity=:left)
-  if sol === nothing
-    derived = obstimes -> m.derived(col,nothing,obstimes,subject)
-  else
-    derived = obstimes -> m.derived(col,sol.(obstimes,continuity=continuity),obstimes,subject)
-  end
-  derived
-end
-
 """
     simobs(m::PuMaSModel, subject::Subject, fixeffs[, randeffs, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
@@ -151,17 +133,12 @@ function simobs(m::PuMaSModel, subject::Subject,
                 fixeffs = init_fixeffs(m),
                 randeffs=sample_randeffs(m, fixeffs),
                 args...;
-                continuity=:right,
-                obstimes=observationtimes(subject),kwargs...)
+                obstimes=observationtimes(subject),
+                saveat=obstimes,kwargs...)
   col = m.pre(fixeffs, randeffs, subject)
-  if :saveat in keys(kwargs)
-    isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
-    sol = _solve(m, subject, col, args...; kwargs...)
-  else
-    isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
-    sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
-  end
-  derived = derivedfun(m,subject,col,sol;continuity=continuity)(obstimes)
+  isempty(obstimes) && throw(ArgumentError("obstimes is not specified."))
+  sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
+  derived = m.derived(col,sol,obstimes,subject)
   obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived),subject)
   SimulatedObservations(subject,obstimes,obs)
 end

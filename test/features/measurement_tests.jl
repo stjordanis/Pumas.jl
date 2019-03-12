@@ -88,7 +88,7 @@ end
     end
     prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
     function derived_f(col,sol,obstimes,subject)
-        central = map(x->x.Central, sol)
+        central = sol(obstimes;idxs=2)
         _conc = @. central / col.V
         _cmax = maximum(_conc)
         (conc = _conc, cmax = _cmax)

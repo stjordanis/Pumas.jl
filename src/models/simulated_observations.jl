@@ -19,7 +19,7 @@ end
   t = obs.times
   names = Symbol[]
   plot_vars = []
-  for (n,v) in pairs(obs.obs)
+  for (n,v) in pairs(obs.observed)
     push!(names,n)
     push!(plot_vars,v)
   end

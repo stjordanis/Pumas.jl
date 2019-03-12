@@ -40,7 +40,7 @@ end
 prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 
 function derived_f(col,sol,obstimes,obs)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     (conc = conc,)
 end

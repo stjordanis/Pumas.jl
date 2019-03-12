@@ -76,7 +76,7 @@ end
 prob = ODEProblem(static_onecompartment_f,nothing,nothing,nothing)
 
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv = dv,)
@@ -110,7 +110,7 @@ function post_f(col,u,t)
     (conc = u[2] / col.V,)
 end
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     (conc = conc,)
 end

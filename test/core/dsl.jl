@@ -89,7 +89,7 @@ prob = ODEProblem(onecompartment_f,nothing,nothing,nothing)
 # In the function interface, the first return value is a named tuple of sampled
 # values, the second is a named tuple of distributions
 function derived_f(col,sol,obstimes,subject)
-    central = map(x->x[2], sol)
+    central = sol(obstimes;idxs=2)
     conc = @. central / col.V
     dv = @. Normal(conc, conc*col.Σ)
     (dv=dv,)
@@ -114,6 +114,8 @@ sol2 = solve(mobj,subject,fixeffs,randeffs)
 @test sol1[10].Central ≈ sol2[10].Central
 
 @test conditional_nll(mdsl,subject,fixeffs,randeffs) ≈ conditional_nll(mobj,subject,fixeffs,randeffs) rtol=5e-3
+
+sol1(0.0:0.01:1.0)[2,:]
 
 Random.seed!(1); obs_dsl = simobs(mdsl,subject,fixeffs,randeffs)
 Random.seed!(1); obs_obj = simobs(mobj,subject,fixeffs,randeffs)
