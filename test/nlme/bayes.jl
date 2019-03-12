@@ -1,6 +1,10 @@
 using PuMaS, Test, CSV, Random, Distributions, LinearAlgebra, TransformVariables
 
-nsamples = ENV["BAYES_N"]
+if haskey(ENV,"BAYES_N")
+    nsamples = ENV["BAYES_N"]
+else
+    nsamples = 10_000
+end
 
 theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
 
@@ -43,7 +47,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
   end
 
   @testset "Test logdensity" begin
-    vfixeffs = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes.param), PuMaS.init_param(theopmodel_bayes))
+    vfixeffs = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes.param), PuMaS.init_fixeffs(theopmodel_bayes))
     ldp = PuMaS.BayesLogDensity(theopmodel_bayes, theopp)
     vfixeffs_aug = [vfixeffs; zeros(length(theopp)*ldp.dim_rfx)]
     v = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp, vfixeffs_aug)
@@ -90,7 +94,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
 
     s = PuMaS.param_std(b)
 
-    if nsamples >= 10000
+    if nsamples >= 10_000
       @test s.θ[1] ≈ 4.62E-01 rtol=0.2
       @test s.θ[2] ≈ 6.92E-03 rtol=0.1
       @test s.θ[3] ≈ 2.16E-03 rtol=0.1
@@ -146,7 +150,7 @@ end
   end
 
   @testset "Test logdensity" begin
-    vfixeffs2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_param(theopmodel_bayes2))
+    vfixeffs2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_fixeffs(theopmodel_bayes2))
     ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp)
     vfixeffs2_aug = [vfixeffs2; zeros(length(theopp)*ldp2.dim_rfx)]
     v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vfixeffs2_aug)
