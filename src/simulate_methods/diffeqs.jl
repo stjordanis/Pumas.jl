@@ -31,7 +31,7 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
 
   sol = solve(_prob,alg,args...;
               saveat = saveat,
-              save_start=true, # whether the initial condition should be included in the solution type as the first timepoint
+              save_first = tspan[1] ∈ saveat,
               tstops=tstops,   # extra times that the timestepping algorithm must step to
               kwargs...)
 end
@@ -300,8 +300,8 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
 
 
     # When not doing continuous mode, when not steady state, correct the saves for right continuity
-    if !save_discont && !isempty(saveat) && !ss_mode[] && continuity == :right
-      if integrator.t ∈ saveat && integrator.t == integrator.sol.t[end]
+    if !save_discont && !isempty(saveat) && !ss_mode[] && continuity == :right && !isempty(integrator.sol.t)
+      if integrator.t ∈ saveat && !isempty(integrator.sol.t) && integrator.t == integrator.sol.t[end]
         integrator.sol.u[end] = DiffEqBase.recursivecopy(integrator.u)
       elseif integrator.t == integrator.sol.prob.tspan[1]
         # First value gets special save treatment so it's not in saveat, override when necessary

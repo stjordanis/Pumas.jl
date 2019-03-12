@@ -62,6 +62,12 @@ fixeffs = (θ = [1.5,  #Ka
            ],)
 randeffs = (η = [0.0,0.0],)
 
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
+
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
@@ -134,6 +140,16 @@ fixeffs = (θ = [1.5,  #Ka
            30.0, #V
            5.0   #lags
            ],)
+
+using Plots
+gr()
+plot(sol)
+
+sol = solve(mlag_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
+
+sol = solve(mlag_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
 
 sim = simobs(mlag_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
@@ -213,6 +229,12 @@ fixeffs = (θ = [1.5,  #Ka
            5.0,  #lags
            0.412,#bioav
            ],)
+
+sol = solve(mlagbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
+
+sol = solve(mlagbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
 
 sim = simobs(mlagbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
@@ -313,6 +335,13 @@ sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-1
 sol = solve(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+@test 1000sol[2,1]/30 ≈ subject.observations.cp[1] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
@@ -381,6 +410,12 @@ sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-1
 sol = solve(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
@@ -424,6 +459,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             30.0, #V
             1,    #BIOAV
             ],)
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
 
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
@@ -471,6 +512,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             1,    #BIOAV
             ],)
 
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -517,6 +564,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             0.412,#BIOAV
             ],)
 
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
@@ -558,6 +611,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             30.0, #V
             1,    #BIOAV
             ],)
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
 
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
@@ -602,6 +661,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             1.0, #BIOAV
             ],)
 
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -640,6 +705,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             30.0, #V
             ],)
 
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
+
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -676,6 +747,12 @@ fixeffs = (θ = [ 1.5,  #Ka
             30.0, #V
             1.0, #BIOAV
             ],)
+
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
 
 sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
@@ -762,6 +839,13 @@ fixeffs = (θ = [
           9.0  #duration
           ],)
 
+
+sol = solve(mbld_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
+
 sim = simobs(mbld_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -791,8 +875,13 @@ fixeffs = (θ = [
            30.0 #V
            ],)
 
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
+@test sol(subject.time; idxs=2, continuity = :right)[2:end]/col.V ≈ subject.observations.cp[2:end] rtol=1e-6
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+@test sol.t == subject.time
+
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity = :right)
-@test sim[:cp][1:19] ≈ subject.observations.cp[1:19]  rtol=1e-6
 @test sim[:cp]       ≈ subject.observations.cp        rtol=1e-6
 
 # Also, for some reason this is unscaled?
@@ -831,13 +920,17 @@ fixeffs = (θ = [
               30.0 #V
               ],)
 
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
+@test 1000sol(subject.time; idxs=2, continuity = :left)[2:end]/col.V ≈ subject.observations.cp[2:end] rtol=1e-6
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
+@test sol.t == subject.time
+
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-
-col = pre(m_analytic, subject, fixeffs, randeffs)
 sol = solve(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test 1000*sol(subject.time .- 1e-14; idxs=2)/col.V ≈ subject.observations.cp rtol=1e-6
+@test 1000*sol(subject.time; idxs=2, continuity = :left)/col.V ≈ subject.observations.cp rtol=1e-6
 
 sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 # Uses pre-dose observations
@@ -865,6 +958,12 @@ fixeffs = (θ = [
               1.0,  #CL
               30.0 #V
               ],)
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
+@test sol(subject.time; idxs=2)/col.V ≈ subject.observations.cp rtol=1e-6
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
+@test sol.t == subject.time
 
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
@@ -894,6 +993,9 @@ fixeffs = (θ = [
 col = pre(m_diffeq, subject, fixeffs, randeffs)
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sol(subject.time; continuity = :right)[2,:]/col.V ≈ subject.observations.cp rtol=1e-6
+
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
+@test sol.t == subject.time
 
 sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity = :right)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
