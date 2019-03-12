@@ -5,10 +5,10 @@ A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
 - `data`: a `Population` object
 - `random`: a mapping from a named tuple of parameters -> `DistSet`
-- `pre`: a mapping from the (params, rfx, covars) -> ODE params
+- `pre`: a mapping from the (params, randeffs, covars) -> ODE params
 - `ode`: an ODE system (either exact or analytical)
-- `derived`: the derived variables and error distributions (param, rfx, data, ode vals) -> sampling dist
-- `observed`: simulated values from the error model and post processing: (param, rfx, data, ode vals, samples) -> vals
+- `derived`: the derived variables and error distributions (fixeffs, randeffs, data, ode vals) -> sampling dist
+- `observed`: simulated values from the error model and post processing: (fixeffs, randeffs, data, ode vals, samples) -> vals
 
 The idea is that a user can then do
     fit(model, FOCE)
@@ -32,53 +32,53 @@ end
 PuMaSModel(param,random,pre,init,prob,derived) =
     PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples)->samples)
 
-init_param(m::PuMaSModel) = init(m.param)
-init_random(m::PuMaSModel, param) = init(m.random(param))
+init_fixeffs(m::PuMaSModel) = init(m.param)
+init_randeffs(m::PuMaSModel, param) = init(m.random(param))
 
 """
-    rand_random(m::PuMaSModel, param)
+    sample_randeffs(m::PuMaSModel, param)
 
 Generate a random set of random effects for model `m`, using parameters `param`.
 """
-rand_random(m::PuMaSModel, param) = rand(m.random(param))
+sample_randeffs(m::PuMaSModel, param) = rand(m.random(param))
 
 
 """
-    sol = pkpd_solve(m::PuMaSModel, subject::Subject, param,
-                     rfx=rand_random(m, param),
+    sol = pkpd_solve(m::PuMaSModel, subject::Subject, fixeffs,
+                     randeffs=sample_randeffs(m, param),
                      args...; kwargs...)
 
-Compute the ODE for model `m`, with parameters `param` and random effects
-`rfx`. `alg` and `kwargs` are passed to the ODE solver. If no `rfx` are
+Compute the ODE for model `m`, with parameters `fixeffs` and random effects
+`randeffs`. `alg` and `kwargs` are passed to the ODE solver. If no `randeffs` are
 given, then they are generated according to the distribution determined
 in the model.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
 function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
-                          param = init_param(m),
-                          rfx = rand_random(m, param),
+                          fixeffs = init_fixeffs(m),
+                          randeffs = sample_randeffs(m, fixeffs),
                           args...; kwargs...)
   m.prob === nothing && return nothing
-  col = m.pre(param, rfx, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject.covariates)
   _solve(m,subject,col,args...;kwargs...)
 end
 
 @enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
 function DiffEqBase.solve(m::PuMaSModel, pop::Population,
-                          param = init_param(m),
+                          fixeffs = init_fixeffs(m),
                           args...; parallel_type = Threading,
                           kwargs...)
   time = @elapsed if parallel_type == Serial
-    sols = [solve(m,subject,param,args...;kwargs...) for subject in pop]
+    sols = [solve(m,subject,fixeffs,args...;kwargs...) for subject in pop]
   elseif parallel_type == Threading
     _sols = Vector{Any}(undef,length(pop))
     Threads.@threads for i in 1:length(pop)
-      _sols[i] = solve(m,pop[i],param,args...;kwargs...)
+      _sols[i] = solve(m,pop[i],fixeffs,args...;kwargs...)
     end
     sols = [sol for sol in _sols] # Make strict typed
   elseif parallel_type == Distributed
-    sols = pmap((subject)->solve(m,subject,param,args...;kwargs...),pop)
+    sols = pmap((subject)->solve(m,subject,fixeffs,args...;kwargs...),pop)
   elseif parallel_type == SplitThreads
     error("SplitThreads is not yet implemented")
   end
@@ -131,10 +131,10 @@ zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
 function derivedfun(m::PuMaSModel, subject::Subject,
-                    param = init_param(m),
-                    rfx=rand_random(m, param),
+                    fixeffs = init_fixeffs(m),
+                    randeffs=sample_randeffs(m, fixeffs),
                     args...; continuity=:right,kwargs...)
-  col = m.pre(param, rfx, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject.covariates)
   sol = _solve(m, subject, col, args...; kwargs...)
   derivedfun(m,col,sol;continuity=continuity)
 end
@@ -149,21 +149,21 @@ function derivedfun(m::PuMaSModel, col, sol; continuity=:left)
 end
 
 """
-    simobs(m::PuMaSModel, subject::Subject, param[, rfx, [args...]];
+    simobs(m::PuMaSModel, subject::Subject, fixeffs[, randeffs, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
-Simulate random observations from model `m` for `subject` with parameters `param` at
+Simulate random observations from model `m` for `subject` with parameters `fixeffs` at
 `obstimes` (by default, use the times of the existing observations for the subject). If no
-`rfx` is provided, then random ones are generated according to the distribution
+`randeffs` is provided, then random ones are generated according to the distribution
 in the model.
 """
 function simobs(m::PuMaSModel, subject::Subject,
-                param = init_param(m),
-                rfx=rand_random(m, param),
+                fixeffs = init_fixeffs(m),
+                randeffs=sample_randeffs(m, fixeffs),
                 args...;
                 continuity=:right,
                 obstimes=observationtimes(subject),kwargs...)
-  col = m.pre(param, rfx, subject.covariates)
+  col = m.pre(fixeffs, randeffs, subject.covariates)
   if :saveat in keys(kwargs)
     isempty(kwargs[:saveat]) && throw(ArgumentError("saveat is empty."))
     sol = _solve(m, subject, col, args...; kwargs...)
@@ -195,14 +195,14 @@ function simobs(m::PuMaSModel, pop::Population, args...;
 end
 
 """
-    pre(m::PuMaSModel, subject::Subject, param, rfx)
+    pre(m::PuMaSModel, subject::Subject, fixeffs, randeffs)
 
 Returns the parameters of the differential equation for a specific subject
 subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
-function pre(m::PuMaSModel, subject::Subject, param, rfx)
-  m.pre(param, rfx, subject.covariates)
+function pre(m::PuMaSModel, subject::Subject, fixeffs, randeffs)
+  m.pre(fixeffs, randeffs, subject.covariates)
 end
 
 """

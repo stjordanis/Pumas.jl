@@ -31,13 +31,13 @@ wang_additive = @model begin
     end
 end
 
-x0 = init_param(wang_additive)
+fixeffs = init_fixeffs(wang_additive)
 
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_additive,subject, x0, (η=η,))
+mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_additive,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,x0,(η=[0.0],),FO()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,fixeffs,(η=[0.0],),FO()), data.subjects)
 @test η0_mll ≈ 0.026 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,x0,(η=[0.0],),FOCE()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,fixeffs,(η=[0.0],),FOCE()), data.subjects)
 @test η0_mll ≈ -2.059 atol = 1e-3
 
 
@@ -68,15 +68,15 @@ wang_prop = @model begin
     end
 end
 
-x0 = init_param(wang_prop)
+fixeffs = init_fixeffs(wang_prop)
 
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_prop,subject, x0, (η=η,))
+mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_prop,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,x0,(η=[0.0],),FO()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,fixeffs,(η=[0.0],),FO()), data.subjects)
 @test η0_mll ≈ 39.213 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,x0,(η=[0.0],),FOCE()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,fixeffs,(η=[0.0],),FOCE()), data.subjects)
 @test η0_mll ≈ 39.207 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,x0,(η=[0.0],),FOCEI()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,fixeffs,(η=[0.0],),FOCEI()), data.subjects)
 @test η0_mll ≈ 39.458 atol = 1e-3
 
 wang_exp = @model begin
@@ -106,15 +106,15 @@ wang_exp = @model begin
     end
 end
 
-x0 = init_param(wang_exp)
+fixeffs = init_fixeffs(wang_exp)
 
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_exp,subject, x0, (η=η,))
+mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_exp,subject, fixeffs, (η=η,))
 ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,x0,(η=[0.0],),FO()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,fixeffs,(η=[0.0],),FO()), data.subjects)
 #@test η0_mll ≈ 
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,x0,(η=[0.0],),FOCE()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,fixeffs,(η=[0.0],),FOCE()), data.subjects)
 #@test η0_mll ≈ 
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,x0,(η=[0.0],),FOCEI()), data.subjects)
+η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,fixeffs,(η=[0.0],),FOCEI()), data.subjects)
 #@test η0_mll ≈ 
 
 end

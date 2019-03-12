@@ -63,11 +63,11 @@ end
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
     rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
-    function col_f(p,rfx,cov)
-        (Ka = p.θ[1],
-        CL = p.θ[2] * ((cov.wt/70)^0.75) * (p.θ[4]^cov.sex) * exp(rfx.η[1]),
-        V  = p.θ[3] * exp(rfx.η[2]),
-        σ = p.σ)
+    function col_f(fixeffs,randeffs,cov)
+        (Ka = fixeffs.θ[1],
+        CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) * (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
+        V  = fixeffs.θ[3] * exp(randeffs.η[2]),
+        σ = fixeffs.σ)
     end
     init_f(col,t0) = @LArray [0.0, 0.0] (:Depot, :Central)
     function onecompartment_f(du,u,p,t)
@@ -86,14 +86,14 @@ end
 
     # Initial data
     θ0 = [2.268,74.17,468.6,0.5876]
-    x0 = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); y0 = init_random(model, x0)
+    fixeffs = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    Random.seed!(0); randeffs = init_randeffs(model, fixeffs)
 
     # Test gradient and hessian of an observable w.r.t. θ
     function test_obs(model)
         function (θ)
-            _x0 = (θ = θ, Ω = x0.Ω, σ = x0.σ)
-            sim = simobs(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+            _fixeffs = (θ = θ, Ω = fixeffs.Ω, σ = fixeffs.σ)
+            sim = simobs(model, subject, _fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
             sim[:cmax]
         end
     end
@@ -109,8 +109,8 @@ end
     # Test gradient and hessian of the total conditional_nll w.r.t. θ
     function test_conditional_nll(model)
         function (θ)
-            _x0 = (θ = θ, Ω = x0.Ω, σ = x0.σ)
-            conditional_nll(model, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+            _fixeffs = (θ = θ, Ω = fixeffs.Ω, σ = fixeffs.σ)
+            conditional_nll(model, subject, _fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
         end
     end
 
@@ -126,7 +126,7 @@ end
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD  ≈ hes_AD  atol=5e-3
 
-    PuMaS.marginal_nll(model_ip,subject,x0,PuMaS.LaplaceI())
+    PuMaS.marginal_nll(model_ip,subject,fixeffs,PuMaS.LaplaceI())
 end
 
 @testset "Magic argument - lags" begin
@@ -157,12 +157,12 @@ end
                          [], [:cp])[1]
 
     θ0 = [1.5, 1.0, 30.0, 5.0]
-    x0 = (θ = θ0,)
-    y0 = (η = [0.0,0.0],)
+    fixeffs = (θ = θ0,)
+    randeffs = (η = [0.0,0.0],)
 
     test_fun = function(θ)
-        _x0 = (θ = θ,)
-        sim = simobs(mlag, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+        _fixeffs = (θ = θ,)
+        sim = simobs(mlag, subject, _fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
         sim[:cmax]
     end
 
@@ -199,12 +199,12 @@ end
                          [], [:cp])[1]
 
     θ0 = [1.5, 1.0, 30.0, 0.412]
-    x0 = (θ = θ0,)
-    y0 = (η = [0.0,0.0],)
+    fixeffs = (θ = θ0,)
+    randeffs = (η = [0.0,0.0],)
 
     test_fun = function(θ)
-        _x0 = (θ = θ,)
-        sim = simobs(mbioav, subject, _x0, y0; abstol=1e-14, reltol=1e-14)
+        _fixeffs = (θ = θ,)
+        sim = simobs(mbioav, subject, _fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
         sim[:cmax]
     end
 

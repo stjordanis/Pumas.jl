@@ -56,12 +56,12 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(p,rfx,cov)
-    (Σ  = p.Σ,
-    Ka = p.θ[1],  # pre
-    CL = p.θ[2] * ((cov.wt/70)^0.75) *
-         (p.θ[4]^cov.sex) * exp(rfx.η[1]),
-    V  = p.θ[3] * exp(rfx.η[2]))
+function col_f(fixeffs,randeffs,cov)
+    (Σ  = fixeffs.Σ,
+    Ka = fixeffs.θ[1],  # pre
+    CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
+         (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
+    V  = fixeffs.θ[3] * exp(randeffs.η[2]))
 end
 
 OneCompartmentVector = @SLVector (:Depot,:Central)
@@ -85,24 +85,24 @@ observed_f(col,sol,obstimes,samples) = samples
 
 mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-x0 = init_param(mdsl)
-y0 = init_random(mdsl, x0)
+fixeffs = init_fixeffs(mdsl)
+randeffs = init_randeffs(mdsl, fixeffs)
 
 subject = data.subjects[1]
 
-@test conditional_nll(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12) ≈ conditional_nll(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)
+@test conditional_nll(mdsl,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12) ≈ conditional_nll(mstatic,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)
 
-@test (Random.seed!(1); simobs(mdsl,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv]) ≈
-      (Random.seed!(1); simobs(mstatic,subject,x0,y0,abstol=1e-12,reltol=1e-12)[:dv])
+@test (Random.seed!(1); simobs(mdsl,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)[:dv]) ≈
+      (Random.seed!(1); simobs(mstatic,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)[:dv])
 
 
 p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
               Ω = PSDDomain(2))),
 
-function col_f2(p,rfx,cov)
-    (Ka = p.θ[1],
-     CL = p.θ[2] * exp(rfx.η[1]),
-     V  = p.θ[3] * exp(rfx.η[2]))
+function col_f2(fixeffs,randeffs,cov)
+    (Ka = fixeffs.θ[1],
+     CL = fixeffs.θ[2] * exp(randeffs.η[1]),
+     V  = fixeffs.θ[3] * exp(randeffs.η[2]))
 end
 
 function post_f(col,u,t)
@@ -118,15 +118,15 @@ mstatic2 = PuMaSModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 
-x0 = (θ = [
+fixeffs = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0 #V
               ],
          Ω = Matrix{Float64}(I, 2, 2))
-y0 = (η = zeros(2),)
+randeffs = (η = zeros(2),)
 
-sol = solve(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+sol = solve(mstatic2,subject,fixeffs,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 
-p = simobs(mstatic2,subject,x0,y0;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+p = simobs(mstatic2,subject,fixeffs,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 @test 1000p[:conc] ≈ [605.3220736386598;1616.4036675452326]

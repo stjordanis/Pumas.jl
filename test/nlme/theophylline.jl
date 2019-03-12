@@ -58,7 +58,7 @@ end
     end
   end
 
-  x0 = (
+  fixeffs = (
     θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
     θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
     θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
@@ -68,7 +68,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO()) ≈ 137.16573310096661
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, fixeffs, PuMaS.FO()) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -82,9 +82,9 @@ end
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = fit(theopmodel_fo, theopp, x0, PuMaS.FO())
+  o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO())
 
-  x_optim = o.x0
+  x_optim = o.fixeffs
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
   @testset "test parameter $k" for k in keys(x_optim)
@@ -138,7 +138,7 @@ end
     end
   end
 
-  x0 = (
+  fixeffs = (
     θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
     θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
     θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
@@ -148,7 +148,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, x0, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
+  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, fixeffs, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -162,7 +162,7 @@ end
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = fit(theopmodel_fo, theopp, x0, PuMaS.FO())
+  o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO())
 
   x_optim = o.x0
 
@@ -209,7 +209,7 @@ end
     end
   end
 
-  x0 = (θ₁ = 2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+  fixeffs = (θ₁ = 2.77,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
         θ₂ = 0.0781,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
@@ -219,7 +219,7 @@ end
         #σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, x0, PuMaS.FOCE()) ≈ 138.90111320972699
+  @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, fixeffs, PuMaS.FOCE()) ≈ 138.90111320972699
 
   foce_estimated_params = (
     θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -232,9 +232,9 @@ end
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
 
-  o = fit(theopmodel_foce, theopp, x0, PuMaS.FOCE())
+  o = fit(theopmodel_foce, theopp, fixeffs, PuMaS.FOCE())
 
-  x_optim = o.x0
+  x_optim = o.fixeffs
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849118143030
   @testset "test parameter $k" for k in keys(x_optim)
@@ -279,7 +279,7 @@ end
     end
   end
 
-  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+  fixeffs = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
         θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
@@ -289,7 +289,7 @@ end
         σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_focei, theopp, x0, PuMaS.FOCEI()) ≈ 287.08854688950419
+  @test PuMaS.marginal_nll_nonmem(theopmodel_focei, theopp, fixeffs, PuMaS.FOCEI()) ≈ 287.08854688950419
 
   focei_estimated_params = (
     θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -304,9 +304,9 @@ end
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
-  o = fit(theopmodel_focei, theopp, x0, PuMaS.FOCEI())
+  o = fit(theopmodel_focei, theopp, fixeffs, PuMaS.FOCEI())
 
-  x_optim = o.x0
+  x_optim = o.fixeffs
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505381367598 rtol=1e-5
   @testset "test parameter $k" for k in keys(x_optim)
@@ -352,7 +352,7 @@ end
     end
   end
 
-  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+  fixeffs = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
         θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
@@ -377,10 +377,10 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], x0, PuMaS.Laplace()) ≈ η rtol=1e-4
+      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], fixeffs, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
-    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, x0, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
+    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, fixeffs, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
   end
 
   laplace_estimated_params = (
@@ -411,16 +411,16 @@ end
 
   @testset "Laplace fitted" begin
     for (i,η) in enumerate(nonmem_ebes_estimated)
-      @test PuMaS.rfx_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
+      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
     end
 
     @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
   end
 
   @testset "Test optimization" begin
-    o = fit(theopmodel_laplace, theopp, x0, PuMaS.Laplace())
+    o = fit(theopmodel_laplace, theopp, fixeffs, PuMaS.Laplace())
 
-    x_optim = o.x0
+    x_optim = o.fixeffs
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
     @testset "test parameter $k" for k in keys(x_optim)
@@ -468,7 +468,7 @@ end
     end
   end
 
-  x0 = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+  fixeffs = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
         θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
@@ -478,7 +478,7 @@ end
         σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI()) ≈ 288.30901928585990
+  @test PuMaS.marginal_nll_nonmem(theopmodel_laplacei, theopp, fixeffs, PuMaS.LaplaceI()) ≈ 288.30901928585990
 
   laplacei_estimated_params = (
     θ₁ = 1.60941E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -494,9 +494,9 @@ end
   # Elapsed covariance time in seconds:     0.32
 
   @testset "Test optimization" begin
-    o = fit(theopmodel_laplacei, theopp, x0, PuMaS.LaplaceI())
+    o = fit(theopmodel_laplacei, theopp, fixeffs, PuMaS.LaplaceI())
 
-    x_optim = o.x0
+    x_optim = o.fixeffs
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
     @testset "test parameter $k" for k in keys(x_optim)

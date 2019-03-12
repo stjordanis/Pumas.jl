@@ -56,16 +56,16 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data2"),
                          [], [:cp])[1]
 
-x0 = (θ = [1.5,  #Ka
+fixeffs = (θ = [1.5,  #Ka
            1.0,  #CL
            30.0 #V
            ],)
-y0 = (η = [0.0,0.0],)
+randeffs = (η = [0.0,0.0],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
 ###############################
@@ -129,16 +129,16 @@ subject = process_nmtran(example_nmtran_data("event_data/data3"),
                          [], [:cp])[1]
 
 
-x0 = (θ = [1.5,  #Ka
+fixeffs = (θ = [1.5,  #Ka
            1.0,  #CL
            30.0, #V
            5.0   #lags
            ],)
 
-sim = simobs(mlag_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlag_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
-sim = simobs(mlag_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlag_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
 
@@ -207,17 +207,17 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data4"),
                          [], [:cp])[1]
 
-x0 = (θ = [1.5,  #Ka
+fixeffs = (θ = [1.5,  #Ka
            1.0,  #CL
            30.0, #V
            5.0,  #lags
            0.412,#bioav
            ],)
 
-sim = simobs(mlagbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlagbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
-sim = simobs(mlagbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sim = simobs(mlagbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sim[:cp] ≈ subject.observations.cp
 
 
@@ -284,7 +284,7 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data5"),
                          [], [:cp])[1]
 
-x0 = (θ = [1.5,  #Ka
+fixeffs = (θ = [1.5,  #Ka
            1.0,  #CL
            30.0, #V
            0.412,#bioav
@@ -303,20 +303,20 @@ u0 = 0.0
 let
   global u0
   for i in 1:200
-      u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],12)
+      u0 = analytical_ss_update(u0,10,10,fixeffs.θ[2]/fixeffs.θ[3],fixeffs.θ[4],12)
   end
 end
 
-sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[2][2] ≈ u0
 
-sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -351,7 +351,7 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, conti
 subject = process_nmtran(example_nmtran_data("event_data/data6"),
                          [], [:cp])[1]
 
-x0 = (θ = [1.5,  #Ka
+fixeffs = (θ = [1.5,  #Ka
            1.0,  #CL
            30.0, #V
            0.812,#bioav
@@ -371,20 +371,20 @@ u0 = 0.0
 let
   global u0
   for i in 1:200
-      u0 = analytical_ss_update(u0,10,10,x0.θ[2]/x0.θ[3],x0.θ[4],6)
+      u0 = analytical_ss_update(u0,10,10,fixeffs.θ[2]/fixeffs.θ[3],fixeffs.θ[4],6)
   end
 end
 
-sol = solve(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[2][2] ≈ u0
 
-sol = solve(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -419,16 +419,16 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, conti
 subject = process_nmtran(example_nmtran_data("event_data/data7"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             1,    #BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -465,16 +465,16 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, conti
 subject = process_nmtran(example_nmtran_data("event_data/data8"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             1,    #BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -511,16 +511,16 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-14, reltol=1e-14, conti
 subject = process_nmtran(example_nmtran_data("event_data/data9"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             0.412,#BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-5
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -553,16 +553,16 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, conti
 subject = process_nmtran(example_nmtran_data("event_data/data10"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             1,    #BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -596,16 +596,16 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, conti
 subject = process_nmtran(example_nmtran_data("event_data/data11"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             1.0, #BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -635,15 +635,15 @@ sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, conti
 subject = process_nmtran(example_nmtran_data("event_data/data12"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 
@@ -671,16 +671,16 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_nmtran(example_nmtran_data("event_data/data13"),
                          [], [:cp])[1]
 
-x0 = (θ = [ 1.5,  #Ka
+fixeffs = (θ = [ 1.5,  #Ka
             1.0,  #CL
             30.0, #V
             1.0, #BIOAV
             ],)
 
-sim = simobs(mbioav_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbioav_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbioav_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -753,7 +753,7 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data14"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
           1.5,  #Ka
           1.0,  #CL
           30.0,  #V
@@ -762,10 +762,10 @@ x0 = (θ = [
           9.0  #duration
           ],)
 
-sim = simobs(mbld_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbld_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbld_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 
@@ -785,18 +785,18 @@ sim = simobs(mbld_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_nmtran(example_nmtran_data("event_data/data15"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
            1.5,  #Ka
            1.0,  #CL
            30.0 #V
            ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp][1:19] ≈ subject.observations.cp[1:19]  rtol=1e-6
 @test sim[:cp]       ≈ subject.observations.cp        rtol=1e-6
 
 # Also, for some reason this is unscaled?
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 maximum(sim[:cp] - subject.observations.cp)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -825,21 +825,21 @@ maximum(sim[:cp] - subject.observations.cp)
 subject = process_nmtran(example_nmtran_data("event_data/data16"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0 #V
               ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 
-col = pre(m_analytic, subject, x0, y0)
-sol = solve(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+col = pre(m_analytic, subject, fixeffs, randeffs)
+sol = solve(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test 1000*sol(subject.time .- 1e-14; idxs=2)/col.V ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 # Uses pre-dose observations
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
@@ -860,16 +860,16 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity
 subject = process_nmtran(example_nmtran_data("event_data/data17"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
               1.0,  #Ka
               1.0,  #CL
               30.0 #V
               ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -885,20 +885,20 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_nmtran(example_nmtran_data("event_data/data18"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
             1.0,  #Ka
             1.0,  #CL
             30.0  #V
           ],)
 
-col = pre(m_diffeq, subject, x0, y0)
-sol = solve(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+col = pre(m_diffeq, subject, fixeffs, randeffs)
+sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sol(subject.time .+ 1e-14)[2,:]/col.V ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 
@@ -963,7 +963,7 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data19"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
             0.8,  #Ka1
             0.6,  #Ka2
             50.0, #V # V needs to be 3 for the test to scale the result properly
@@ -972,10 +972,10 @@ x0 = (θ = [
             5     #lag2
            ],)
 
-sim = simobs(mparbl_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mparbl_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mparbl_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mparbl_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -1034,7 +1034,7 @@ end
 subject = process_nmtran(example_nmtran_data("event_data/data20"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
             0.5,  #Ka1
             5.0,  #CL
             50.0, #V
@@ -1042,10 +1042,10 @@ x0 = (θ = [
             0.5   #bioav1
            ],)
 
-sim = simobs(mbl2_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbl2_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
+sim = simobs(mbl2_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
 @test sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -1066,16 +1066,16 @@ sim = simobs(mbl2_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12)
 subject = process_nmtran(example_nmtran_data("event_data/data21"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
             1.5,  #Ka
             1.0,  #CL
             30.0  #V
           ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 ###############################
@@ -1097,14 +1097,14 @@ sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity
 subject = process_nmtran(example_nmtran_data("event_data/data22"),
                          [], [:cp])[1]
 
-x0 = (θ = [
+fixeffs = (θ = [
             1.5,  #Ka
             1.0,  #CL
             30.0  #V
           ],)
 
-sim = simobs(m_diffeq, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
-sim = simobs(m_analytic, subject, x0, y0; abstol=1e-12, reltol=1e-12, continuity=:left)
+sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
