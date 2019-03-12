@@ -141,10 +141,6 @@ fixeffs = (θ = [1.5,  #Ka
            5.0   #lags
            ],)
 
-using Plots
-gr()
-plot(sol)
-
 sol = solve(mlag_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
 
