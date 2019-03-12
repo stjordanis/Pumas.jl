@@ -872,7 +872,7 @@ fixeffs = (θ = [
            ],)
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test sol(subject.time; idxs=2, continuity = :right)[2:end]/col.V ≈ subject.observations.cp[2:end] rtol=1e-6
+@test sol(subject.time; idxs=2, continuity = :right)[2:end]/30 ≈ subject.observations.cp[2:end] rtol=1e-6
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
 @test sol.t == subject.time
@@ -917,7 +917,7 @@ fixeffs = (θ = [
               ],)
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test 1000sol(subject.time; idxs=2, continuity = :left)[2:end]/col.V ≈ subject.observations.cp[2:end] rtol=1e-6
+@test 1000sol(subject.time; idxs=2, continuity = :left)[2:end]/30 ≈ subject.observations.cp[2:end] rtol=1e-6
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
 @test sol.t == subject.time
@@ -926,7 +926,7 @@ sim = simobs(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, c
 @test 1000sim[:cp] ≈ subject.observations.cp rtol=1e-6
 
 sol = solve(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test 1000*sol(subject.time; idxs=2, continuity = :left)/col.V ≈ subject.observations.cp rtol=1e-6
+@test 1000*sol(subject.time; idxs=2, continuity = :left)/30 ≈ subject.observations.cp rtol=1e-6
 
 sim = simobs(m_analytic, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, continuity=:left)
 # Uses pre-dose observations
@@ -956,7 +956,7 @@ fixeffs = (θ = [
               ],)
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test sol(subject.time; idxs=2)/col.V ≈ subject.observations.cp rtol=1e-6
+@test sol(subject.time; idxs=2)/30 ≈ subject.observations.cp rtol=1e-6
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
 @test sol.t == subject.time
@@ -988,7 +988,7 @@ fixeffs = (θ = [
 
 col = pre(m_diffeq, subject, fixeffs, randeffs)
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12)
-@test sol(subject.time; continuity = :right)[2,:]/col.V ≈ subject.observations.cp rtol=1e-6
+@test sol(subject.time; continuity = :right)[2,:]/30 ≈ subject.observations.cp rtol=1e-6
 
 sol = solve(m_diffeq, subject, fixeffs, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)
 @test sol.t == subject.time
