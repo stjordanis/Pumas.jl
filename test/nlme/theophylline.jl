@@ -150,8 +150,6 @@ end
 
   @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, fixeffs, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
-  #=
-  # Would stall Travis
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
                          θ₃ = 3.57499E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
@@ -164,23 +162,14 @@ end
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = optimize(t -> PuMaS.marginal_nll_nonmem(theopmodel_fo, # The marginal likelihood is the objective
-                                              theopp,
-                                              TransformVariables.transform(totransform(theopmodel_fo.param), t),
-                                              PuMaS.FO()),
-               TransformVariables.inverse(totransform(theopmodel_fo.param), fixeffs), # The initial values
-               BFGS(),                                                           # The optimization method
-               Optim.Options(show_trace=verbose,                                 # Print progress
-                             g_tol=1e-5))                                        # Adjust convergence tolerance
+  o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO())
 
-  x_optim = TransformVariables.transform(totransform(theopmodel_fo.param), o.minimizer)
+  x_optim = o.fixeffs
 
-  @test o.f_converged
-  @test o.minimum ≈ 71.979975297638589
+  @test_broken PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
   end
-  =#
 end
 
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin

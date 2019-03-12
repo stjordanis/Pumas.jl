@@ -51,7 +51,11 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, fixeffs, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, fixeffs, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
-@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=BFGS(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(), optimmethod=Newton(), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(),
+    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(),
+    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(),
+    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
+@test fit(mdsl1, data, init_fixeffs(mdsl1), PuMaS.LaplaceI(),
+    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
