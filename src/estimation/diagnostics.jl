@@ -1,7 +1,7 @@
 """
   npde(model, subject, param[, rfx], simulations_count)
 
-To calculate the Normalised Prediction Distribution Errors (NPDE). 
+To calculate the Normalised Prediction Distribution Errors (NPDE).
 """
 function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
   yi = subject.observations.dv
@@ -27,7 +27,7 @@ end
 """
 
   wres(model, subject, param[, rfx])
-To calculate the Weighted Residuals (WRES). 
+To calculate the Weighted Residuals (WRES).
 """
 function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   yi = subject.observations.dv
@@ -40,7 +40,7 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
 end
 
 """
-To calculate the Conditional Weighted Residuals (CWRES). 
+To calculate the Conditional Weighted Residuals (CWRES).
 
   cwres(model, subject, param[, rfx])
 """
@@ -58,7 +58,7 @@ end
 """
 
   cwresi(model, subject, param[, rfx])
-  To calculate the Conditional Weighted Residuals with Interaction (CWRESI). 
+  To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
 """
 function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   yi = subject.observations.dv
@@ -71,7 +71,7 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
 end
 
 """
-To calculate the Population Predictions (PRED). 
+To calculate the Population Predictions (PRED).
 
   pred(model, subject, param[, rfx])
 """
@@ -82,7 +82,7 @@ function pred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
 end
 
 """
-To calculate the Conditional Population Predictions (CPRED). 
+To calculate the Conditional Population Predictions (CPRED).
 
   cpred(model, subject, param[, rfx])
 """
@@ -94,7 +94,7 @@ function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
 end
 
 """
-To calculate the Conditional Population Predictions with Interaction (CPREDI). 
+To calculate the Conditional Population Predictions with Interaction (CPREDI).
 
   cpredi(model, subject, param[, rfx])
 """
@@ -106,7 +106,7 @@ function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
 end
 
 """
-To calculate the Expected Simulation based Population Predictions. 
+To calculate the Expected Simulation based Population Predictions.
 
   epred(model, subject, param[, rfx], simulations_count)
 """
@@ -121,7 +121,7 @@ function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
 end
 
 """
-To calculate the Individual Weighted Residuals (IWRES). 
+To calculate the Individual Weighted Residuals (IWRES).
 
   iwres(model, subject, param[, rfx])
 """
@@ -133,7 +133,7 @@ function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
 end
 
 """
-To calculate the Individual Conditional Weighted Residuals (ICWRES). 
+To calculate the Individual Conditional Weighted Residuals (ICWRES).
 
   icwres(model, subject, param[, rfx])
 """
@@ -146,7 +146,7 @@ function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
 end
 
 """
-To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI). 
+To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
 
   icwresi(model, subject, param[, rfx])
 """
@@ -158,7 +158,7 @@ function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs:
 end
 
 """
-To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES). 
+To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 
   eiwres(model, subject, param[, rfx], simulations_count)
 """
@@ -178,7 +178,7 @@ function eiwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, nsim)
 end
 
 function ηshrinkage(m::PuMaSModel, data::Population, x0::NamedTuple, approx)
-  sd_vy0 = std([rfx_estimate(m, subject, x0, approx) for subject in data])
+  sd_vy0 = std([randeffs_estimate(m, subject, x0, approx) for subject in data])
   Ω = (x0.Ω)
   if size(Ω)[1] == 1
     shk = [1 - (sd_vy0/sqrt.(diag(Ω)))[1]]
