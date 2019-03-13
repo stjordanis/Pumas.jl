@@ -6,7 +6,7 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames
+@reexport using Distributions, PDMats, DataFrames, StatsBase
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 

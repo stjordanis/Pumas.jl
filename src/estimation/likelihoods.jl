@@ -548,7 +548,7 @@ function FIM(obs::NamedTuple, dist::NamedTuple, ::FO)
 end
 
 # Fitting methods
-struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation}
+struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation} <: StatsBase.StatisticalModel
   model::T1
   data::T2
   optim::T3
@@ -585,3 +585,53 @@ end
 
 marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.param, f.approx)
 marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.param, f.approx)
+
+"""
+    vcov(f::FittedPuMaSModel) -> Matrix
+
+Compute the covariance matrix of the population parameters
+"""
+function StatsBase.vcov(f::FittedPuMaSModel)
+  # Transformation the NamedTuple of parameters to a Vector
+  # without applying any bounds (identity transform)
+  trf = toidentitytransform(f.model.param)
+  vfixeffs = big.(TransformVariables.inverse(trf, f.fixeffs))
+
+  # Compute the Hessian matrix of the population parameters. Use AD for
+  # inner gradient and FD for outer Jacobian since using nested AD is
+  # currently too heavy for the compiler
+  H = Optim.DiffEqDiffTools.finite_difference_jacobian(vfixeffs) do tout, tin
+    tout[:] = Optim.DiffEqDiffTools.finite_difference_gradient(tin) do s
+      _fixeffs = PuMaS.TransformVariables.transform(trf, s)
+      return PuMaS.marginal_nll(f.model, f.data, _fixeffs, f.approx)
+    end
+    return nothing
+  end
+
+  # Compute the first order approximation to the Hessian, i.e. the sum of
+  # outer product of the gradients per subject
+  S = sum(1:length(f.data)) do i
+    g = Optim.DiffEqDiffTools.finite_difference_gradient(vfixeffs) do t
+      _fixeffs = PuMaS.TransformVariables.transform(trf, t)
+      return PuMaS.marginal_nll(f.model, f.data[i], _fixeffs, f.approx)
+    end
+    return g*g'
+  end
+
+  F = eigen(Symmetric(Float64.(H)), Symmetric(Float64.(S)))
+
+  return F.vectors*Diagonal(inv.(abs2.(F.values)))*F.vectors'
+end
+
+"""
+    stderror(f::FittedPuMaSModel) -> NamedTuple
+
+Compute the standard errors of the population parameters and return
+the result as a `NamedTuple` matching the `NamedTuple` of population
+parameters.
+"""
+function StatsBase.stderror(f::FittedPuMaSModel)
+  trf = toidentitytransform(f.model.param)
+  ss = sqrt.(diag(vcov(f)))
+  return TransformVariables.transform(trf, ss)
+end
