@@ -25,8 +25,8 @@ function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
 end
 
 """
-
   wres(model, subject, param[, rfx])
+
 To calculate the Weighted Residuals (WRES).
 """
 function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
@@ -40,9 +40,9 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
 end
 
 """
-To calculate the Conditional Weighted Residuals (CWRES).
-
   cwres(model, subject, param[, rfx])
+
+To calculate the Conditional Weighted Residuals (CWRES).
 """
 function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   yi = subject.observations.dv
@@ -53,18 +53,14 @@ function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
   (var_yi)*(yi .- mean_yi)
-"""
-  cwres(model, subject, param[, rfx])
-
-To calculate the Conditional Weighted Residuals (CWRES). 
-"""
 end
 
 """
-
   cwresi(model, subject, param[, rfx])
-  To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
+
+To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
 """
+
 function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
@@ -73,74 +69,49 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   var_yi = sqrt(inv((Diagonal(var.(dist.dv))) + (f*Ω*f')))
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
   (var_yi)*(yi .- mean_yi)
-"""
-  cwresi(model, subject, param[, rfx])
-
-To calculate the Conditional Weighted Residuals with Interaction (CWRESI). 
-"""
 end
 
 """
-To calculate the Population Predictions (PRED).
-
   pred(model, subject, param[, rfx])
+
+To calculate the Population Predictions (PRED).
 """
 function pred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
-"""
-  pred(model, subject, param[, rfx])
-
-To calculate the Population Predictions (PRED). 
-"""
   mean_yi
 end
 
 """
-To calculate the Conditional Population Predictions (CPRED).
-
   cpred(model, subject, param[, rfx])
+
+To calculate the Conditional Population Predictions (CPRED).
 """
 function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
-"""
-  cpred(model, subject, param[, rfx])
-
-To calculate the Conditional Population Predictions (CPRED). 
-"""
   mean_yi
 end
 
 """
-To calculate the Conditional Population Predictions with Interaction (CPREDI).
-
   cpredi(model, subject, param[, rfx])
+
+To calculate the Conditional Population Predictions with Interaction (CPREDI).
 """
 function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
-"""
-  cpredi(model, subject, param[, rfx])
-
-To calculate the Conditional Population Predictions with Interaction (CPREDI). 
-"""
   mean_yi
 end
 
-"""
-To calculate the Expected Simulation based Population Predictions.
-
-  epred(model, subject, param[, rfx], simulations_count)
-"""
-function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
 """
   epred(model, subject, param[, rfx], simulations_count)
 
 To calculate the Expected Simulation based Population Predictions. 
 """
+function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
   sims = []
   for i in 1:nsim
     vals = simobs(m, subject, fixeffs)
@@ -151,26 +122,21 @@ To calculate the Expected Simulation based Population Predictions.
 end
 
 """
-To calculate the Individual Weighted Residuals (IWRES).
-
   iwres(model, subject, param[, rfx])
+
+To calculate the Individual Weighted Residuals (IWRES).
 """
 function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
   yi = subject.observations.dv
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
-"""
-  iwres(model, subject, param[, rfx])
-
-To calculate the Individual Weighted Residuals (IWRES). 
-"""
 end
 
 """
-To calculate the Individual Conditional Weighted Residuals (ICWRES).
-
   icwres(model, subject, param[, rfx])
+
+To calculate the Individual Conditional Weighted Residuals (ICWRES).
 """
 function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   yi = subject.observations.dv
@@ -178,45 +144,30 @@ function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   mean_yi = (mean.(dist.dv))
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
-"""
-  icwres(model, subject, param[, rfx])
-
-To calculate the Individual Conditional Weighted Residuals (ICWRES). 
-"""
 end
 
 """
-To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
-
   icwresi(model, subject, param[, rfx])
+
+To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
 """
 function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   mean_yi = (mean.(dist.dv))
   sqrt(inv((Diagonal(var.(dist.dv)))))*(yi .- mean_yi)
-"""
-  icwresi(model, subject, param[, rfx])
-
-To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI). 
-"""
 end
 
 """
-To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
-
   eiwres(model, subject, param[, rfx], simulations_count)
+
+To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 """
 function eiwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, nsim)
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs)
   mean_yi = (mean.(dist.dv))
   covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
-"""
-  eiwres(model, subject, param[, rfx], simulations_count)
-
-To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES). 
-"""
   sims_sum = (covm_yi)*(yi .- mean_yi)
   for i in 2:nsim
     l, dist = conditional_nll_ext(m,subject,fixeffs)
@@ -227,14 +178,10 @@ To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES
   sims_sum./nsim
 end
 
-function ηshrinkage(m::PuMaSModel, data::Population, x0::NamedTuple, approx)
-  sd_vy0 = std([randeffs_estimate(m, subject, x0, approx) for subject in data])
-  Ω = (x0.Ω)
-  if size(Ω)[1] == 1
-    shk = [1 - (sd_vy0/sqrt.(diag(Ω)))[1]]
-  else
-    shk = [1 - (sd_vy0/std(diag(Ω,i)))[1] for i in 0:size(Ω)[1]-1]
-  end
+function ηshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple, approx)
+  sd_vy0 = std([randeffs_estimate(m, subject, fixeffs, approx) for subject in data])
+  Ω = (fixeffs.Ω)
+  shk = 1 .- (sd_vy0 ./ sqrt.(diag(Ω)))
   shk
 end
 
