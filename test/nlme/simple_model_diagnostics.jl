@@ -67,3 +67,6 @@ for (sub_icwresi, dt) in zip([[0.180566054,1.56991766],[-1.35845124,-0.236161082
 end
 
 println([eiwres(mdsl1,data[i],fixeffs,10000) for i in 1:10])
+
+x0 = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
+@test ηshrinkage(mdsl1,data,x0,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
