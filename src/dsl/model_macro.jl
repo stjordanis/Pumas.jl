@@ -371,7 +371,11 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
     function (_pre,_sol,_obstimes,_subject)
       $(var_def(:_pre, pre))
       if _sol != nothing
-        _solarr = _sol(_obstimes)
+        if typeof(_sol) <: PKPDAnalyticalSolution
+          _solarr = _sol(_obstimes)
+        else
+          _solarr = _sol
+        end
         $(solvars_def(:(_solarr), odevars))
       end
       $(esc(:t)) = _obstimes
@@ -387,7 +391,11 @@ function observed_obj(observedexpr, observedvars, pre, odevars, derivedvars)
       $(var_def(:_pre, pre))
       $(var_def(:_samples, derivedvars))
       if _sol != nothing
-        _solarr = _sol(_obstimes)
+        if typeof(_sol) <: PKPDAnalyticalSolution
+          _solarr = _sol(_obstimes)
+        else
+          _solarr = _sol
+        end
         $(solvars_def(:(_solarr), odevars))
       end
       $(esc(:t)) = _obstimes
