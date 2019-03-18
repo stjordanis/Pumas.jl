@@ -61,14 +61,15 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, fixeffs::NamedTupl
   # collate that arguments
   collated = m.pre(fixeffs, randeffs, subject)
 
-  # create solution object
-  solution = _solve(m, subject, collated, args...; kwargs...)
+  # create solution object. By passing saveat=obstimes, we compute the solution only
+  # at obstimes such that we can simply pass solution.u to m.derived
+  solution = _solve(m, subject, collated, args...; saveat=obstimes, kwargs...)
 
   if solution === nothing
-     derived_dist = m.derived(collated, nothing, obstimes, subject)
+     derived_dist = m.derived(collated, solution, obstimes, subject)
   else
     # if solution contains NaN return Inf
-    if (solution.retcode != :Success && solution.retcode != :Terminated) || any(isnan, solution(obstimes[end]))
+    if (solution.retcode != :Success && solution.retcode != :Terminated) || any(isnan, solution.u[end])
       # FIXME! Do we need to make this type stable?
       return Inf, nothing
     end
