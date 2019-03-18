@@ -89,7 +89,7 @@ fixeffs = (θ = θ,
     Σ_dv = 0.04,
     Σ_pddv = 1)
 
-@test_throws ArgumentError simobs(model, population[1], fixeffs)
+@test_throws ArgumentError simobs(model, population[1], fixeffs, obstimes=Float64[])
 @test_throws ArgumentError conditional_nll(model, population[1], fixeffs)
 @test_throws MethodError conditional_nll(model, population[1])
 @test_nowarn simobs(model, population[1], fixeffs,obstimes=0.1:0.1:300.0)
