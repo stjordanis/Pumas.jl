@@ -230,13 +230,17 @@ function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vran
   end
 end
 
+@noinline function _init_duals(f::Function, ::Val{N}, x::AbstractVector{V}, ::T = ForwardDiff.Tag(f, V)) where {N,V,T}
+  seeds = ForwardDiff.construct_seeds(ForwardDiff.Partials{N,V})
+  return [ForwardDiff.Dual{T,V,N}(x[i], seeds[i]) for i in 1:N]
+end
+
+_init_duals(f::Function, x::StridedVector) = _init_duals(f, Val(length(x)), x)
+
 function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, ::FOCEI, args...; kwargs...)
 
-  # The dimension of the random effect vector
-  nrfx = length(vrandeffs)
-
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vrandeffs)))}(vrandeffs[j], ntuple(i -> eltype(vrandeffs)(i == j), nrfx)...) for j in 1:nrfx]
+  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
   nl_d, dist_d = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffsdual,), args...; kwargs...)
@@ -261,11 +265,8 @@ end
 
 function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, ::FOCE, args...; kwargs...)
 
-  # The dimension of the random effect vector
-  nrfx = length(vrandeffs)
-
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vrandeffs)))}(vrandeffs[j], ntuple(i -> eltype(vrandeffs)(i == j), nrfx)...) for j in 1:nrfx]
+  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
   nl_d, dist_d = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffsdual,), args...; kwargs...)
@@ -296,11 +297,8 @@ function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vran
   # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vrandeffs)
 
-  # The dimension of the random effect vector
-  nrfx = length(vrandeffs)
-
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = [ForwardDiff.Dual{typeof(ForwardDiff.Tag(conditional_nll_ext,eltype(vrandeffs)))}(vrandeffs[j], ntuple(i -> eltype(vrandeffs)(i == j), nrfx)...) for j in 1:nrfx]
+  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
   l_d, dist_d = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffsdual,), args...; kwargs...)

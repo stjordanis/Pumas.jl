@@ -11,7 +11,7 @@ struct PKPDAnalyticalSolution{T,N,uType,tType,dType,rType,pType,P} <: DiffEqBase
   continuity::Symbol
 end
 
-function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing,continuity=sol.continuity)
+function (sol::PKPDAnalyticalSolution)(t,deriv::Type{<:Val}=Val{0};idxs=nothing,continuity=sol.continuity)
   i = searchsortedfirst(sol.t,t) - 1
   if i < length(sol.t) && t == sol.t[i+1] && continuity == :right
     # If at a dose time and using right continuity, return the saved value
@@ -31,7 +31,7 @@ function (sol::PKPDAnalyticalSolution)(t,deriv::Type=Val{0};idxs=nothing,continu
   idxs==nothing ? res : res[idxs]
 end
 
-function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type=Val{0};idxs=nothing,continuity=sol.continuity)
+function (sol::PKPDAnalyticalSolution)(ts::AbstractArray,deriv::Type{<:Val}=Val{0};idxs=nothing,continuity=sol.continuity)
   if idxs != nothing
     u = Vector{eltype(sol.u[1][idxs])}(undef, length(ts))
   else
