@@ -3,7 +3,7 @@ module PuMaS
 using DiffEqBase, DiffEqMonteCarlo, Reexport,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings, RecipesBase, StructArrays
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
