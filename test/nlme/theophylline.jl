@@ -170,6 +170,11 @@ end
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
   end
+
+  # Test that the types work on both stiff and non-stiff solver methods
+  o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO(),alg=Tsit5())
+  o = fit(theopmodel_fo, theopp, fixeffs, PuMaS.FO(),alg=Rosenbrock23())
+  
 end
 
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error, \$COV = sandwich matrix" begin
