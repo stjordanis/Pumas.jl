@@ -39,6 +39,7 @@ end
   data = DataFrame(time = [0, 1, 2, 2], amt = zeros(4), dv = rand(4), evid = 1)
   @test_throws AssertionError process_nmtran(data)
   @test isa(process_nmtran(data, event_data = false), Population)
+  @test isa(DosageRegimen(100, rate = -2, cmt = 2, ii = 24, addl = 3), DosageRegimen)
 end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)

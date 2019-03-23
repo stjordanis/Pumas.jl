@@ -127,7 +127,7 @@ mutable struct DosageRegimen
     ii ≥ zero(ii) || throw(ArgumentError("ii must be non-negative"))
     addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
     addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
-    rate .>= zero(rate) || throw(ArgumentError("rate is invalid"))
+    rate ≥ zero(rate) || rate == -2 || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
     return new(DataFrame(time = time, cmt = cmt, amt = amt,
                          evid = evid, ii = ii, addl = addl,
