@@ -156,7 +156,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
           if typeof(bioav) <: Number
             _duration = (bioav*cur_ev.amt)/cur_ev.rate
           else
-            _duration = (bioav[cur_ev.amt]*cur_ev.amt)/cur_ev.rate
+            _duration = (bioav[cur_ev.cmt]*cur_ev.amt)/cur_ev.rate
           end
           ss_duration[] = _duration
           ss_overlap_duration[] = mod(_duration,cur_ev.ii)
