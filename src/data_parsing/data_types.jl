@@ -120,7 +120,7 @@ mutable struct DosageRegimen
     addl = convert(Int, addl)
     rate = float(rate)
     ss = convert(Int8, ss)
-    amt > zero(amt) || throw(ArgumentError("amt must be non-negative"))
+    amt > zero(amt) || evid == 3 || throw(ArgumentError("amt must be non-negative"))
     time ≥ zero(time) || throw(ArgumentError("time must be non-negative"))
     evid == 0 && throw(ArgumentError("observations are not allowed"))
     evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
