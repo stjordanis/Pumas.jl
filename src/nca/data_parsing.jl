@@ -18,28 +18,29 @@ function parse_ncadata(df; group=nothing, kwargs...)
     ___parse_ncadata(df; kwargs...)
   else
     dfs = groupby(df, group)
-    map(dfs) do df
+    dfpops = map(dfs) do df
       ___parse_ncadata(df; kwargs...)
     end
+    pops = map(i->dfpops[i][2], 1:length(dfpops))
   end
 end
 
 function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing,
-                       concu=true, timeu=true, amtu=true, kwargs...)
+                       concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
-    ids   = df[id]
-    times = df[time]
-    concs = df[conc]
-    amts  = amt === nothing ? nothing : df[amt]
-    formulations = formulation === nothing ? nothing : df[formulation]
+    df[id]
+    df[time]
+    df[conc]
+    amt === nothing ? nothing : df[amt]
+    formulation === nothing ? nothing : df[formulation]
   catch x
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
-  hasdose = !(amts === nothing) && !(formulation === nothing) && !(iv === nothing)
-  if !hasdose
+  hasdose = !(amt === nothing) && !(formulation === nothing) && !(iv === nothing)
+  if warn && !hasdose
     @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by
     `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`"
   end
@@ -47,6 +48,12 @@ function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
+  ids   = df[id]
+  times = df[time]
+  concs = df[conc]
+  amts  = amt === nothing ? nothing : df[amt]
+  formulations = formulation === nothing ? nothing : df[formulation]
+  occasions = occasion === nothing ? nothing : df[occasion]
   uids = unique(ids)
   idx  = -1
   ncas = map(uids) do id
@@ -72,8 +79,13 @@ function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
       formulation = map(i -> formulations[i] == iv ? IVBolus : EV, dose_idx)
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, formulation)
     elseif occasion !== nothing
-
-      doses = NCADose.(dose_time*timeu, zero(amtu), formulation)
+      subjoccasion = @view occasions[idx]
+      occs = unique(subjoccasion)
+      doses = map(occs) do occ
+        dose_idx = findfirst(isequal(occ), subjoccasion)
+        dose_time = subjtime[dose_idx]
+        NCADose(dose_time*timeu, zero(amtu), DosingUnknown)
+      end
     else
       doses = nothing
     end

@@ -66,7 +66,9 @@ function NCASubject(conc′, time′;
     conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
     time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
   end
-  conc, time = clean ? cleanblq(conc′, time′; llq=llq, kwargs...) : (conc′, time′)
+  multidose = T <: AbstractArray
+  # we check monotonic later, because multidose could have TAD or TIME
+  conc, time = clean ? cleanblq(conc′, time′; llq=llq, monotonictime=!multidose, kwargs...) : (conc′, time′)
   abstime = time # leave `abstime` untouched
   unitconc = oneunit(eltype(conc))
   unittime = oneunit(eltype(time))
@@ -76,13 +78,13 @@ function NCASubject(conc′, time′;
   intercept = r2_proto = ustrip(unittime/unitconc)
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
-  multidose = T <: AbstractArray
   if multidose
     n = length(dose)
     ct = let time=time, dose=dose
       map(eachindex(dose)) do i
         idxs = ithdoseidxs(time, dose, i)
-        conc[idxs], time[idxs].-time[idxs[1]]
+        clean && checkmonotonic(time, idxs)
+        iszero(time[idxs[1]]) ? (conc[idxs], time[idxs]) : (conc[idxs], time[idxs].-time[idxs[1]])
       end
     end
     conc = map(x->x[1], ct)

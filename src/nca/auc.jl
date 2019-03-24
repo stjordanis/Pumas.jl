@@ -268,7 +268,7 @@ function aumc_extrap_percent(nca::NCASubject; kwargs...)
   @. (aumcinf-aumclast)/aumcinf * 100
 end
 
-fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
+fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(replace(x->iszero(x) ? eps() : x, y)))
 
 """
   lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> lambdaz
@@ -285,8 +285,8 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
   _Z = eltype(Z)
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
-  maxadjr2::_F = -oneunit(_F)*true
-  λ::_Z = oneunit(_Z)*false
+  maxadjr2::_F = -oneunit(_F)
+  λ::_Z = zero(_Z)
   time′ = reinterpret(typeof(one(eltype(time))), time)
   conc′ = reinterpret(typeof(one(eltype(conc))), conc)
   outlier = false
