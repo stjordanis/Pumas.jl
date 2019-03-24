@@ -18,16 +18,16 @@ function parse_ncadata(df; group=nothing, kwargs...)
     ___parse_ncadata(df; kwargs...)
   else
     dfs = groupby(df, group)
+    groupnum = length(dfs)
     dfpops = map(dfs) do df
-      ___parse_ncadata(df; kwargs...)
+      ___parse_ncadata(df; group=first(df[group]), kwargs...)
     end
-    groups = map(i->first(dfpops[i][1]), 1:length(dfpops))
-    pops = map(i->dfpops[i][2], 1:length(dfpops))
+    pops = map(i->dfpops[i][2], 1:groupnum)
     NCAPopulation(vcat(pops...))
   end
 end
 
-function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
+function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing,
                        concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
@@ -92,7 +92,7 @@ function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
       doses = nothing
     end
     try
-      NCASubject(concs[idx], times[idx]; id=id, dose=doses, concu=concu, timeu=timeu, kwargs...)
+      NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, kwargs...)
     catch
       @info "ID $id errored"
       rethrow()
