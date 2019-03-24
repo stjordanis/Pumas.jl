@@ -13,7 +13,18 @@ parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); k
 # TODO: add ploting time
 # TODO: infusion
 # TODO: plot time
-function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=nothing,
+function parse_ncadata(df; group=nothing, kwargs...)
+  if group === nothing
+    ___parse_ncadata(df; kwargs...)
+  else
+    dfs = groupby(df, group)
+    map(dfs) do df
+      ___parse_ncadata(df; kwargs...)
+    end
+  end
+end
+
+function ___parse_ncadata(df; id=:ID, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, iv=nothing,
                        concu=true, timeu=true, amtu=true, kwargs...)
   local ids, times, concs, amts, formulations
@@ -43,7 +54,6 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
     # the time array for the i-th subject
     subjtime = @view times[idx]
-    # we already sorted by occasions, so we don't have to think about it now.
     if hasdose
       dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
       length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")
@@ -59,8 +69,11 @@ function parse_ncadata(df::DataFrame; id=:ID, time=:time, conc=:conc, occasion=n
           dose_time[n] = subjtime[i]
         end
       end
-      formulation = map(i -> formulations[i] == iv ? IV : EV, dose_idx)
+      formulation = map(i -> formulations[i] == iv ? IVBolus : EV, dose_idx)
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, formulation)
+    elseif occasion !== nothing
+
+      doses = NCADose.(dose_time*timeu, zero(amtu), formulation)
     else
       doses = nothing
     end

@@ -5,7 +5,6 @@ using GLM
 using DataFrames
 using RecipesBase
 using Pkg, Dates, Printf, LinearAlgebra
-import ..PuMaS: Formulation, IV, EV
 
 include("type.jl")
 include("data_parsing.jl")

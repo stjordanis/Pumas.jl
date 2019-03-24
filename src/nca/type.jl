@@ -2,6 +2,16 @@ using Unitful
 using Markdown
 
 """
+    Formulation
+
+Type of formulations. There are IV (intravenous) and EV (extravascular).
+"""
+@enum Formulation IVBolus IVInfusion EV DosingUnknown
+# Formulation behaves like scalar
+Broadcast.broadcastable(x::Formulation) = Ref(x)
+isiv(x) = x === IVBolus || x === IVInfusion
+
+"""
   NCADose
 
 `NCADose` takes the following arguments

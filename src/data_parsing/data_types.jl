@@ -1,16 +1,6 @@
 ## Types
 
 """
-    Formulation
-
-Type of formulations. There are IV (intravenous) and EV (extravascular).
-"""
-@enum Formulation IV EV
-
-# Formulation behaves like scalar
-Broadcast.broadcastable(x::Formulation) = Ref(x)
-
-"""
     Event
 
 A single event

@@ -216,7 +216,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; ithdose=mis
   _clf = clf(nca; kwargs...)
   dose = nca.dose
   if D <: NCADose # single dose
-    dose.formulation === IV || return missing
+    isiv(dose.formulation) || return missing
     _bioav = one(AUC)
     return _bioav*_clf
   else # multiple doses
@@ -226,9 +226,9 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; ithdose=mis
       subj = subject_at_ithdose(nca, idx)
       formulation = subj.dose.formulation
       if idx == ithdose
-        formulation === IV || throw(ArgumentError("the formulation of `ithdose` must be IV"))
+        isiv(formulation) || throw(ArgumentError("the formulation of `ithdose` must be IV"))
       end
-      if formulation === IV
+      if isiv(formulation)
         one(eltype(AUC))*_clf[idx]
       else
         missing
@@ -245,7 +245,7 @@ The time prior to the first increase in concentration.
 function tlag(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
   #D === Nothing && throw(ArgumentError("Dose must be known to compute tlag"))
   D === Nothing && return missing
-  nca.dose.formulation === IV && return missing
+  isiv(nca.dose.formulation) && return missing
   idx = findfirst(c->c > nca.llq, nca.conc)
   return nca.time[idx]
 end
@@ -283,7 +283,7 @@ function mat(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}; kwargs...)
   mrt_po = mrt_iv = zero(eltype(eltype(T)))
   for idx in eachindex(nca.dose)
     subj = subject_at_ithdose(nca, idx)
-    if subj.dose.formulation === IV
+    if isiv(subj.dose.formulation)
       mrt_iv += mrt(subj; kwargs...)
     else
       mrt_po += mrt(subj; kwargs...)
