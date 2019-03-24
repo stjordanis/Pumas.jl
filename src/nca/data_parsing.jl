@@ -21,7 +21,9 @@ function parse_ncadata(df; group=nothing, kwargs...)
     dfpops = map(dfs) do df
       ___parse_ncadata(df; kwargs...)
     end
+    groups = map(i->first(dfpops[i][1]), 1:length(dfpops))
     pops = map(i->dfpops[i][2], 1:length(dfpops))
+    NCAPopulation(vcat(pops...))
   end
 end
 
