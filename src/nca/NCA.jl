@@ -30,7 +30,7 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
-  @eval function $f(pop::NCAPopulation, args...; id_occ=true, kwargs...) # NCAPopulation handling
+  @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
     if ismultidose(pop)
       sol = map(enumerate(pop)) do (i, subj)
         try
@@ -44,11 +44,11 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           @info "ID $(subj.id) errored"
           rethrow()
         end
-        id_occ ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame($f=sol)
+        label ? subj.group === nothing ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame(id=subj.id, occasion=eachindex(sol), group=subj.group, $f=sol) : DataFrame($f=sol)
       end
     else
       sol = map(pop) do subj
-        id_occ ? DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...)) : DataFrame($f=$f(subj, args...; kwargs...))
+        label ? subj.group === nothing ? DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...)) : DataFrame(id=subj.id, group=subj.group, $f=$f(subj, args...; kwargs...)) : DataFrame($f=$f(subj, args...; kwargs...))
       end
     end
     return vcat(sol...) # splat is faster than `reduce(vcat, sol)`

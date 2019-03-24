@@ -156,6 +156,7 @@ end
 function Base.show(io::IO, n::NCASubject)
   println(io, "NCASubject:")
   println(io, "  ID: $(n.id)")
+  n.group === nothing || println(io, "  Group: $(n.group)")
   showunits(io, n, 4)
 end
 
@@ -173,6 +174,7 @@ Base.show(io::IO, pop::NCAPopulation) = show(io, MIME"text/plain"(), pop)
 function Base.show(io::IO, ::MIME"text/plain", pop::NCAPopulation)
   println(io, "NCAPopulation ($(length(pop)) subjects):")
   println(io, "  ID: $([subj.id for subj in pop])")
+  first(pop).group === nothing || println(io, "  Group: $(unique([subj.group for subj in pop]))")
   showunits(io, first(pop), 4)
 end
 
@@ -204,7 +206,7 @@ function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
    cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
-  values = NamedTuple{names}(f(nca; id_occ = i==1, kwargs...) for (i, f) in enumerate(funcs))
+  values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))
 
   NCAReport(settings, values)
 end
