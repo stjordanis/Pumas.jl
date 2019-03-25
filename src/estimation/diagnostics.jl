@@ -34,8 +34,8 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   mean_yi = (mean.(dist0.dv))
   Ω = cov(m.random(fixeffs).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
+  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
+  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + ((f'*Ω)*f)))
   (var_yi)*(yi .- mean_yi)
 end
 
@@ -49,9 +49,9 @@ function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   Ω = cov(m.random(fixeffs).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
-  mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
+  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
+  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + ((f'*Ω)*f)))
+  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
   (var_yi)*(yi .- mean_yi)
 end
 
@@ -65,9 +65,9 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
   Ω = cov(m.random(fixeffs).params.η)
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
-  var_yi = sqrt(inv((Diagonal(var.(dist.dv))) + (f*Ω*f')))
-  mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
+  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
+  var_yi = sqrt(inv((Diagonal(var.(dist.dv))) + ((f'*Ω)*f)))
+  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
   (var_yi)*(yi .- mean_yi)
 end
 
@@ -89,8 +89,8 @@ To calculate the Conditional Population Predictions (CPRED).
 """
 function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
-  mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
+  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
+  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
   mean_yi
 end
 
@@ -101,8 +101,8 @@ To calculate the Conditional Population Predictions with Interaction (CPREDI).
 """
 function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
-  mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
+  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
+  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
   mean_yi
 end
 

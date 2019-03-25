@@ -68,5 +68,6 @@ end
 
 println([eiwres(mdsl1,data[i],fixeffs,10000) for i in 1:10])
 
-x0 = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
-@test ηshrinkage(mdsl1,data,x0,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
+fixeffs = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
+@test ηshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
+# println(ϵshrinkage(mdsl1,data,fixeffs))
