@@ -43,6 +43,7 @@ m_diffeq = @model begin
     nca := NCASubject(cp,t,dose=convert.(NCADose, events),clean=false)
     auc =  NCA.auc(nca)
     thalf =  NCA.thalf(nca)
+    cmax = NCA.cmax(nca)
   end
 end
 
@@ -57,4 +58,9 @@ p = (  θ = [1.5,  #Ka
     )
 
 
-@test_nowarn sim = simobs(m_diffeq, ev2, p; abstol=1e-14, reltol=1e-14, parallel_type=PuMaS.Serial)
+sim = @test_nowarn simobs(m_diffeq, ev2, p; abstol=1e-14, reltol=1e-14, parallel_type=PuMaS.Serial)
+for i in eachindex(sim.sims)
+  @test NCA.auc(sim[i].observed.cp, sim[i].times) === sim[i].observed.auc
+  @test NCA.thalf(sim[i].observed.cp, sim[i].times) === sim[i].observed.thalf
+  @test NCA.cmax(sim[i].observed.cp, sim[i].times) === sim[i].observed.cmax
+end
