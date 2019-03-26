@@ -168,6 +168,23 @@ mutable struct DosageRegimen
   DosageRegimen(regimens) =
   reduce((x, y) -> DosageRegimen(x, y), regimens)
 end
+"""
+  DataFrame(evs::DosageRegimen, expand::Bool = false)
+  
+  Create a DataFrame with the information in the dosage regimen.
+  If expand, creates a DataFrame with the information in the event list (expanded form).
+"""
+function DataFrames.DataFrame(evs::DosageRegimen, expand::Bool = false)
+  !expand && return evs.data
+  evs = build_event_list(evs, true)
+  output = DataFrame(fill(Float64, 10),
+                     [:amt, :time, :evid, :cmt, :rate, :duration, :ss, :ii, :base_time, :rate_dir],
+                     length(evs))
+  for col ∈ [:amt, :time, :evid, :cmt, :rate, :duration, :ss, :ii, :base_time, :rate_dir]
+    output[col] .= getproperty.(evs, col)
+  end
+  sort!(output, [:time])
+end
 
 """
     Subject

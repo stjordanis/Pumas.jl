@@ -67,3 +67,11 @@ end
   @test isa(data, Population)
   isa(data[1].observations[1], NamedTuple{(:dv1,:dv2),NTuple{2, Union{Missing,Float64}}})
 end
+@testset "DataFrames Constructors" begin
+  e1 = DosageRegimen(100, ii = 24, addl = 6)
+  e2 = DosageRegimen(50, ii = 12, addl = 13)
+  e3 = DosageRegimen(200, ii = 24, addl = 2)
+  evs = reduce(DosageRegimen, [e1, e2, e3])
+  data = DataFrame(evs, true)
+  @test size(data, 1) == 24
+end
