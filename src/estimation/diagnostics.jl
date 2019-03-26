@@ -26,6 +26,20 @@ end
 
 """
 
+  wresiduals(fpm::FittedPumasModel)
+Calculates a vector of weighted residual according to the approximation method used in
+the fitting procedure whose resilt is saved in `fpm`.
+"""
+function wresiduals(fpm)
+  n_obs = length(fpm.data)
+  [wresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+end
+function iwresiduals(fpm)
+  n_obs = length(fpm.data)
+  [iwresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+end
+"""
+
   wres(model, subject, param[, rfx])
 To calculate the Weighted Residuals (WRES).
 """
@@ -37,6 +51,13 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
   f = [ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs)[1] for i in 1:length(subject.observations.dv)]
   var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + (f*Ω*f')))
   (var_yi)*(yi .- mean_yi)
+end
+function wresiduals(approx::FO, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  wres(model, subject, fixeffs, randeffs)
 end
 
 """
@@ -54,7 +75,13 @@ function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
   (var_yi)*(yi .- mean_yi)
 end
-
+function wresiduals(approx::FOCE, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  cwres(model, subject, fixeffs, randeffs)
+end
 """
 
   cwresi(model, subject, param[, rfx])
@@ -69,7 +96,13 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   mean_yi = (mean.(dist.dv)) .- vec(f*vrandeffs')
   (var_yi)*(yi .- mean_yi)
 end
-
+function wresiduals(approx::FOCEI, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  cwresi(model, subject, fixeffs, randeffs)
+end
 """
 To calculate the Population Predictions (PRED).
 
@@ -131,7 +164,13 @@ function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   mean_yi = (mean.(dist0.dv))
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
-
+function iwresiduals(approx::FO, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  iwres(model, subject, fixeffs, randeffs)
+end
 """
 To calculate the Individual Conditional Weighted Residuals (ICWRES).
 
@@ -144,7 +183,13 @@ function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   mean_yi = (mean.(dist.dv))
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
-
+function iwresiduals(approx::FOCE, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  icwres(model, subject, fixeffs, randeffs)
+end
 """
 To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
 
@@ -156,7 +201,13 @@ function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs:
   mean_yi = (mean.(dist.dv))
   sqrt(inv((Diagonal(var.(dist.dv)))))*(yi .- mean_yi)
 end
-
+function iwresiduals(approx::FOCEI, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  icwresi(model, subject, fixeffs, randeffs)
+end
 """
 To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 
