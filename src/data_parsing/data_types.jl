@@ -112,6 +112,7 @@ mutable struct DosageRegimen
                          addl::Number,
                          rate::Number,
                          ss::Number)
+    # amt = evid ∈ [0, 3] ? float(zero(amt)) : float(amt)
     amt = float(amt)
     time = float(time)
     cmt = convert(Int, cmt)
@@ -120,14 +121,18 @@ mutable struct DosageRegimen
     addl = convert(Int, addl)
     rate = float(rate)
     ss = convert(Int8, ss)
-    amt > zero(amt) || throw(ArgumentError("amt must be non-negative"))
+    if evid ∈ [0, 3]
+      iszero(amt) || throw(ArgumentError("amt must be 0 for evid = $evid"))
+    else
+      amt > zero(amt) || throw(ArgumentError("amt must be positive for evid = $evid"))
+    end
     time ≥ zero(time) || throw(ArgumentError("time must be non-negative"))
     evid == 0 && throw(ArgumentError("observations are not allowed"))
     evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
     ii ≥ zero(ii) || throw(ArgumentError("ii must be non-negative"))
     addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
     addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
-    rate .>= zero(rate) || throw(ArgumentError("rate is invalid"))
+    rate ≥ zero(rate) || rate == -2 || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
     return new(DataFrame(time = time, cmt = cmt, amt = amt,
                          evid = evid, ii = ii, addl = addl,
