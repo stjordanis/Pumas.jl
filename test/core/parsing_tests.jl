@@ -51,7 +51,6 @@ end
   ev = reduce(DosageRegimen, [firstdose, seconddose, thirddose])
   @test isa(generate_population(ev), Population)
 end
-end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)
   e2 = DosageRegimen(50,  ii = 12, addl = 13)
