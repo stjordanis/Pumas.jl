@@ -345,3 +345,30 @@ TreeViews.hastreeview(::Population) = true
 function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
   show(io, mime, Text(summary(data)))
 end
+
+# Convert to NCA types
+using .NCA: NCAPopulation, NCASubject, NCADose
+using .NCA: Formulation, IVBolus, IVInfusion, EV, DosingUnknown
+function Base.convert(::Type{NCADose}, ev::Event)
+  ev.evid === Int8(1) || return nothing
+  time = ev.time
+  amt = ev.amt
+  rate = ev.rate
+  duration = !isfinite(ev.duration) ? zero(ev.duration) : ev.duration
+  formulation = if iszero(rate)
+    IVBolus
+  elseif rate > zero(rate)
+    IVInfusion
+  else
+    DosingUnknown
+  end
+  NCADose(time, amt, rate, duration, formulation)
+end
+
+function Base.convert(::Type{NCASubject}, subj::Subject)
+  dose = convert.(NCADose, subj.events)
+  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id = subj.id, dose=dose, clean=false)
+  NCASubject(map(first, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
+end
+
+Base.convert(::Type{NCAPopulation}, pop::Population) = NCAPopulation(map(subj->convert(NCASubject, subj), pop))

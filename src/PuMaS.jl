@@ -10,6 +10,8 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
+include("nca/NCA.jl")
+
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
@@ -32,8 +34,6 @@ include("analytical_solutions/standard_models.jl")
 include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
-
-include("nca/NCA.jl")
 
 @reexport using .NCA
 

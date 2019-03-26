@@ -29,8 +29,10 @@ struct NCADose{T,A,R,D}
     formulation′ = if formulation === EV
       EV
     else # IV
-      (rate !== nothing && duration !== nothing) && throw(ArgumentError("Both duration and rate cannot be given at the same time"))
-      rate === nothing && (duration === nothing || iszero(duration)) ? IVBolus : IVInfusion
+      has_rate = rate !== nothing && !iszero(rate)
+      has_duration = rate !== nothing && !iszero(rate)
+      (has_rate && has_duration) && throw(ArgumentError("Both duration and rate cannot be given at the same time"))
+      has_rate || has_duration ? IVInfusion : IVBolus
     end
     return new{typeof(time), typeof(amt), typeof(rate), typeof(duration)}(time, amt, rate, duration, formulation′)
   end
@@ -78,7 +80,7 @@ function NCASubject(conc′, time′;
     conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
     time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
   end
-  multidose = T <: AbstractArray
+  multidose = T <: AbstractArray && length(dose) > 1
   # we check monotonic later, because multidose could have TAD or TIME
   conc, time = clean ? cleanblq(conc′, time′; llq=llq, monotonictime=!multidose, kwargs...) : (conc′, time′)
   abstime = time # leave `abstime` untouched
@@ -113,6 +115,7 @@ function NCASubject(conc′, time′;
                         fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
+  dose !== nothing && (dose = first(dose))
   _, maxidx = conc_maximum(conc, eachindex(conc))
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
   NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
@@ -230,12 +233,14 @@ function Base.show(io::IO, report::NCAReport)
 end
 
 # units go under the header
-function to_dataframe(report::NCAReport)
+to_dataframe(report::NCAReport) = convert(DataFrame, report)
+function Base.convert(::Type{DataFrame}, report::NCAReport)
   report.settings[:subject] && return DataFrame(map(x->[x], report.values))
   hcat(report.values...)
 end
 
-function to_markdown(report::NCAReport)
+to_markdown(report::NCAReport) = convert(Markdown.MD, report)
+function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   _io = IOBuffer()
   println(_io, "# Noncompartmental Analysis Report")
   println(_io, "PuMaS version " * string(Pkg.installed()["PuMaS"]))
