@@ -370,6 +370,7 @@ function derived_obj(derivedexpr, derivedvars, pre, odevars)
   quote
     function (_pre,_sol,_obstimes,_subject)
       $(var_def(:_pre, pre))
+      $(esc(:events)) = _subject.events
       if _sol != nothing
         if typeof(_sol) <: PKPDAnalyticalSolution
           _solarr = _sol(_obstimes)
