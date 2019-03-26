@@ -28,8 +28,8 @@ function parse_ncadata(df; group=nothing, kwargs...)
 end
 
 function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
-                       amt=nothing, formulation=nothing, iv=nothing,
-                       concu=true, timeu=true, amtu=true, warn=true, kwargs...)
+                       amt=nothing, formulation=nothing, iv=nothing, ev=nothing,# rate=nothing,
+                       duration=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
     df[id]
@@ -37,11 +37,13 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
     df[conc]
     amt === nothing ? nothing : df[amt]
     formulation === nothing ? nothing : df[formulation]
+    #rate === nothing ? nothing : df[rate]
+    duration === nothing ? nothing : df[duration]
   catch x
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
-  hasdose = !(amt === nothing) && !(formulation === nothing) && !(iv === nothing)
+  hasdose = amt !== nothing && formulation !== nothing && iv !== nothing
   if warn && !hasdose
     @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by
     `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`"
@@ -78,15 +80,19 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
           dose_time[n] = subjtime[i]
         end
       end
-      formulation = map(i -> formulations[i] == iv ? IVBolus : EV, dose_idx)
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, formulation)
+      formulation = map(dose_idx) do i
+        f = formulations[i]
+        f == iv ? IVBolus : (ev !== nothing && @assert(ev == f); EV)
+      end
+      duration′ = duration === nothing ? nothing : df[duration][dose_idx]
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, nothing, duration′, formulation)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]
       occs = unique(subjoccasion)
       doses = map(occs) do occ
         dose_idx = findfirst(isequal(occ), subjoccasion)
         dose_time = subjtime[dose_idx]
-        NCADose(dose_time*timeu, zero(amtu), DosingUnknown)
+        NCADose(dose_time*timeu, zero(amtu), nothing, nothing, DosingUnknown)
       end
     else
       doses = nothing

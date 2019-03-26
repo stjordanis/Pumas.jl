@@ -19,10 +19,21 @@ isiv(x) = x === IVBolus || x === IVInfusion
 - `amt`: The amount of dosage
 - `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
 """
-struct NCADose{T,A}
+struct NCADose{T,A,R,D}
   time::T
   amt::A
+  rate::R
+  duration::D
   formulation::Formulation
+  function NCADose(time, amt, rate, duration, formulation)
+    formulation′ = if formulation === EV
+      EV
+    else # IV
+      (rate !== nothing && duration !== nothing) && throw(ArgumentError("Both duration and rate cannot be given at the same time"))
+      rate === nothing && (duration === nothing || iszero(duration)) ? IVBolus : IVInfusion
+    end
+    return new{typeof(time), typeof(amt), typeof(rate), typeof(duration)}(time, amt, rate, duration, formulation′)
+  end
 end
 
 # NCADose should behave like a scalar in broadcast
