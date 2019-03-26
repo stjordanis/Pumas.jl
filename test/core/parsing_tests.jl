@@ -40,6 +40,8 @@ end
   @test_throws AssertionError process_nmtran(data)
   @test isa(process_nmtran(data, event_data = false), Population)
   @test isa(DosageRegimen(100, rate = -2, cmt = 2, ii = 24, addl = 3), DosageRegimen)
+  @test isa(DosageRegimen(0, time = 50, evid = 3, cmt = 2), DosageRegimen)
+  @test_throws ArgumentError("amt must be 0 for evid = 3") DosageRegimen(1, time = 50, evid = 3, cmt = 2)
 end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)
