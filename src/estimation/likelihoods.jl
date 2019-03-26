@@ -86,11 +86,14 @@ end
 
 function conditional_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, randeffs::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
   l, dist    = conditional_nll_ext(m, subject, fixeffs, randeffs, args...; kwargs...)
-  if isinf(l)
+
+  # If (negative) likehood is infinity or the model is Homoscedastic, we just return l
+  if isinf(l) || _is_homoscedast(dist)
     return l
+  else # compute the adjusted (negative) likelihood where the variance is evaluated at η=0
+    l0, dist0 = conditional_nll_ext(m, subject, fixeffs, map(zero, randeffs), args...; kwargs...)
+    return _conditional_nll(dist, dist0, subject)
   end
-  l0, dist0 = conditional_nll_ext(m, subject, fixeffs, map(zero, randeffs), args...; kwargs...)
-  conditional_nll(dist, dist0, subject)
 end
 
 # FIXME! Having both a method for randeffs::NamedTuple and vrandeffs::AbstractVector shouldn't really be necessary. Clean it up!
@@ -100,7 +103,7 @@ function conditional_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, v
   conditional_nll(m, subject, fixeffs, randeffs, approx, args...; kwargs...)
 end
 
-function conditional_nll(derived_dist, derived_dist0, subject)
+function _conditional_nll(derived_dist::NamedTuple, derived_dist0::NamedTuple, subject::Subject)
   x = sum(propertynames(subject.observations)) do k
     sum(zip(getproperty(derived_dist,k),getproperty(derived_dist0,k),getproperty(subject.observations,k))) do (d,d0,obs)
       _lpdf(Normal(mean(d),sqrt(var(d0))), obs)
@@ -119,18 +122,29 @@ distribution of the random effects.
 Here `fixeffs` can be either a `NamedTuple` or a vector (representing a transformation of the
 random effects to Cartesian space).
 """
-function penalized_conditional_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, randeffs::NamedTuple, args...;kwargs...)
+function penalized_conditional_nll(m::PuMaSModel,
+                                   subject::Subject,
+                                   fixeffs::NamedTuple,
+                                   randeffs::NamedTuple,
+                                   args...;kwargs...)
   rfxset = m.random(fixeffs)
   conditional_nll(m, subject, fixeffs, randeffs, args...;kwargs...) - _lpdf(rfxset.params, randeffs)
 end
 
-function penalized_conditional_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, args...;kwargs...)
+function penalized_conditional_nll(m::PuMaSModel,
+                                   subject::Subject,
+                                   fixeffs::NamedTuple,
+                                   vrandeffs::AbstractVector,
+                                   args...;kwargs...)
   rfxset = m.random(fixeffs)
   randeffs = TransformVariables.transform(totransform(rfxset), vrandeffs)
   conditional_nll(m, subject, fixeffs, randeffs, args...;kwargs...) - _lpdf(rfxset.params, randeffs)
 end
 
-function penalized_conditional_nll_fn(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, args...;kwargs...)
+function penalized_conditional_nll_fn(m::PuMaSModel,
+                                      subject::Subject,
+                                      fixeffs::NamedTuple,
+                                      args...;kwargs...)
   y -> penalized_conditional_nll(m, subject, fixeffs, y, args...; kwargs...)
 end
 
@@ -143,8 +157,14 @@ end
 Compute the penalized conditional negative log-likelihood (see [`penalized_conditional_nll`](@ref)),
 storing the gradient (and optionally, the Hessian) wrt to `fixeffs` in `diffres`.
 """
-function penalized_conditional_nll!(diffres::DiffResult, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, args...;
-                                    hessian=isa(diffres, DiffResult{2}), kwargs...)
+function penalized_conditional_nll!(diffres::DiffResult,
+                                    m::PuMaSModel,
+                                    subject::Subject,
+                                    fixeffs::NamedTuple,
+                                    vrandeffs::AbstractVector,
+                                    args...;
+                                    hessian=isa(diffres, DiffResult{2}),
+                                    kwargs...)
   f = penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...)
   if hessian
     ForwardDiff.hessian!(diffres, f, vrandeffs)
@@ -170,24 +190,45 @@ The point-estimate the random effects (being the mode of the empirical Bayes est
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
-function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
+function randeffs_estimate(m::PuMaSModel,
+                           subject::Subject,
+                           fixeffs::NamedTuple,
+                           approx::LikelihoodApproximation,
+                           args...; kwargs...)
   initial_randeff = _initial_randeffs(m, fixeffs)
 
   return randeffs_estimate!(initial_randeff, m, subject, fixeffs, approx, args...; kwargs...)
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
-  vrandeffs .= Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...),
-                                 vrandeffs,
-                                 BFGS(linesearch=Optim.LineSearches.BackTracking());
-                                 autodiff=:forward))
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel, subject::Subject,
+                            fixeffs::NamedTuple,
+                            approx::Union{LaplaceI,FOCEI},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
-  vrandeffs .= Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
-                                 vrandeffs,
-                                 BFGS(linesearch=Optim.LineSearches.BackTracking());
-                                 autodiff=:forward))
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
+                            fixeffs::NamedTuple,
+                            approx::Union{Laplace,FOCE},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
 end
 
 randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, ::Union{FO,FOI}, args...; kwargs...) = zero(vrandeffs)
@@ -270,6 +311,15 @@ function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vran
   return nl
 end
 
+# Helper function to detect homoscedasticity. For now, it is assumed the input is a NamedTuple
+# with a dv field containing a vector of distributions with ForwardDiff element types.
+function _is_homoscedast(dist::NamedTuple)
+  # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
+  dv = dist.dv
+  v1 = ForwardDiff.value(var(first(dv)))
+  return all(t -> ForwardDiff.value(var(t)) == v1, dv)
+end
+
 function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, ::FOCE, args...; kwargs...)
 
   # Construct vector of dual numbers for the random effects to track the partial derivatives
@@ -279,13 +329,24 @@ function marginal_nll(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vran
   nl_d, dist_d = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffsdual,), args...; kwargs...)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
-  nl_0, dist_0 = conditional_nll_ext(m, subject, fixeffs, (η=zero(vrandeffs),), args...; kwargs...)
+  # If the model is homoscedastic, it is not necessary to recompute the variances at η=0
+  if _is_homoscedast(dist_d)
+    nl = ForwardDiff.value(nl_d)
 
-  # Extract the value of the conditional likelihood
-  nl = ForwardDiff.value(conditional_nll(dist_d, dist_0, subject))
+    # FIXME! Don't hardcode for dv
+    d_d = first(dist_d.dv)
+    d_0 = Normal(ForwardDiff.value(mean(d_d)), ForwardDiff.value(std(d_d)))
+    W = FIM(dist_d.dv, d_0, FOCE())
+  else # in the Heteroscedastic case, compute the variances at η=0
+    nl_0, dist_0 = conditional_nll_ext(m, subject, fixeffs, (η=zero(vrandeffs),), args...; kwargs...)
 
-  # Compute the Hessian approxmation in the random effect vector η
-  W = FIM(dist_d, dist_0, FOCE())
+    # Extract the value of the conditional likelihood
+    nl = ForwardDiff.value(_conditional_nll(dist_d, dist_0, subject))
+
+    # Compute the Hessian approxmation in the random effect vector η
+    # FIXME! Don't hardcode for dv
+    W = FIM(dist_d.dv, dist_0.dv, FOCE())
+  end
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   Ω = cov(m.random(fixeffs).params.η)
@@ -390,11 +451,20 @@ function FIM(dist::NamedTuple, ::FOCEI)
   return H
 end
 
-function FIM(dist::NamedTuple, dist0::NamedTuple, ::FOCE)
-  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-  dv  = dist.dv
-  dv0 = dist0.dv
+# Homoscedastic case
+function FIM(dv::AbstractVector, dv0::Distribution, ::FOCE)
+  # Loop through the distribution vector and extract derivative information
+  H = sum(1:length(dv)) do j
+    r_inv = inv(var(dv0))
+    f = SVector(ForwardDiff.partials(mean(dv[j])).values)
+    f*r_inv*f'
+  end
 
+  return H
+end
+
+# Heteroscedastic case
+function FIM(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0[j]))
