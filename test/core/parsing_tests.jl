@@ -21,6 +21,10 @@ using PuMaS, Test, CSV
     @test data[1].id == gen_subject.id
     @test data[1].covariates == gen_subject.covariates
     @test data[1].events == gen_subject.events
+    e1 = DosageRegimen(100, ii = 24, addl = 6)
+    e2 = DosageRegimen(50,  ii = 12, addl = 13)
+    e3 = DosageRegimen(200, ii = 24, addl = 2)
+    @test isa(DosageRegimen(e1, e2, e3), DosageRegimen)
   end
 end
 @testset "Time Variant Covariates" begin

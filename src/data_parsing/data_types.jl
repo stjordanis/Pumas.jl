@@ -165,8 +165,8 @@ mutable struct DosageRegimen
     end
     return new(output)
   end
-  DosageRegimen(regimens) =
-  reduce((x, y) -> DosageRegimen(x, y), regimens)
+  DosageRegimen(regimens::AbstractVector{<:DosageRegimen}) = reduce(DosageRegimen, regimens)
+  DosageRegimen(regimens::DosageRegimen...) = reduce(DosageRegimen, regimens)
 end
 """
   DataFrame(evs::DosageRegimen, expand::Bool = false)
