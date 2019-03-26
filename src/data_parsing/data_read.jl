@@ -107,7 +107,7 @@ function build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate
 end
 function build_event_list(regimen::DosageRegimen, event_data::Bool)
   data = regimen.data
-  events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
+  events = Event[]
   for i in 1:size(data, 1)
     t    = data[:time][i]
     evid = data[:evid][i]
