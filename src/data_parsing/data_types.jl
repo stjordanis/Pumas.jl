@@ -347,7 +347,7 @@ function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
 end
 
 # Convert to NCA types
-using .NCA: NCAPopulation, NCASubject, NCADose
+import .NCA: NCAPopulation, NCASubject, NCADose
 using .NCA: Formulation, IVBolus, IVInfusion, EV, DosingUnknown
 function Base.convert(::Type{NCADose}, ev::Event)
   ev.evid === Int8(1) || return nothing
@@ -364,11 +364,14 @@ function Base.convert(::Type{NCADose}, ev::Event)
   end
   NCADose(time, amt, rate, duration, formulation)
 end
+NCADose(dose::Event) = convert(NCADose, dose)
 
 function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
   dose = convert.(NCADose, subj.events)
   (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id = subj.id, dose=dose, clean=false)
   NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
 end
+NCASubject(subj::Subject) = convert(NCASubject, subj)
 
 Base.convert(::Type{NCAPopulation}, pop::Population) = NCAPopulation(map(subj->convert(NCASubject, subj), pop))
+NCAPopulation(pop::Population) = convert(NCAPopulation, pop)
