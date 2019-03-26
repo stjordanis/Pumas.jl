@@ -186,6 +186,15 @@ function penalized_conditional_nll!(diffres::DiffResult,
   end
 end
 
+function _initial_randeffs(m::PuMaSModel, fixeffs::NamedTuple)
+  rfxset = m.random(fixeffs)
+  p = TransformVariables.dimension(totransform(rfxset))
+
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(fixeffs), numtype(fixeffs))
+  zeros(T, p)
+end
 
 function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
   rfxset = m.random(param)
