@@ -365,10 +365,10 @@ function Base.convert(::Type{NCADose}, ev::Event)
   NCADose(time, amt, rate, duration, formulation)
 end
 
-function Base.convert(::Type{NCASubject}, subj::Subject)
+function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
   dose = convert.(NCADose, subj.events)
   (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id = subj.id, dose=dose, clean=false)
-  NCASubject(map(first, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
+  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
 end
 
 Base.convert(::Type{NCAPopulation}, pop::Population) = NCAPopulation(map(subj->convert(NCASubject, subj), pop))

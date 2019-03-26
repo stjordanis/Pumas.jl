@@ -46,6 +46,6 @@ export tad, eventnum
 export conditional_nll, FIM
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, ηshrinkage, ϵshrinkage
 export process_nmtran, example_nmtran_data
-export @model
+export @model, @nca
 
 end # module

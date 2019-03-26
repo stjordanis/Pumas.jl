@@ -40,7 +40,7 @@ m_diffeq = @model begin
 
   @derived begin
     cp = @. 1000*(Central / V)
-    nca := NCASubject(cp,t,dose=convert.(NCADose, events),clean=false)
+    nca := @nca cp
     auc =  NCA.auc(nca)
     thalf =  NCA.thalf(nca)
     cmax = NCA.cmax(nca)

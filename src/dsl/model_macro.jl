@@ -419,6 +419,10 @@ function add_vars(ex::Expr, vars)
   return Expr(:block, [vars.args; args]...)
 end
 
+macro nca(name)
+  esc(:(NCASubject($name, t, dose=map(ev->convert(NCADose, ev), events), clean=false)))
+end
+
 macro model(expr)
 
   vars = Set{Symbol}([:t]) # t is the only reserved symbol
