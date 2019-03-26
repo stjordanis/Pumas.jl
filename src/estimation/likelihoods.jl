@@ -153,6 +153,15 @@ function penalized_conditional_nll!(diffres::DiffResult, m::PuMaSModel, subject:
   end
 end
 
+function _initial_randeffs(m::PuMaSModel, fixeffs::NamedTuple)
+  rfxset = m.random(fixeffs)
+  p = TransformVariables.dimension(totransform(rfxset))
+
+  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
+  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
+  T = promote_type(numtype(fixeffs), numtype(fixeffs))
+  zeros(T, p)
+end
 
 """
     randeffs_estimate(model, subject, param, approx, ...)
@@ -162,31 +171,26 @@ particular subject at a particular parameter values. The result is returned as a
 (transformed into Cartesian space).
 """
 function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
-  rfxset = m.random(fixeffs)
-  p = TransformVariables.dimension(totransform(rfxset))
+  initial_randeff = _initial_randeffs(m, fixeffs)
 
-  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
-  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
-  T = promote_type(numtype(fixeffs), numtype(fixeffs))
-
-  return randeffs_estimate(m, subject, fixeffs, zeros(T, p), approx, args...; kwargs...)
+  return randeffs_estimate!(initial_randeff, m, subject, fixeffs, approx, args...; kwargs...)
 end
 
-function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
-  Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...),
+function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::Union{LaplaceI,FOCEI}, args...; kwargs...)
+  vrandeffs .= Optim.minimizer(Optim.optimize(penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...),
                                  vrandeffs,
                                  BFGS(linesearch=Optim.LineSearches.BackTracking());
                                  autodiff=:forward))
 end
 
-function randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
-  Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
+function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+  vrandeffs .= Optim.minimizer(Optim.optimize(s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
                                  vrandeffs,
                                  BFGS(linesearch=Optim.LineSearches.BackTracking());
                                  autodiff=:forward))
 end
 
-randeffs_estimate(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector, ::Union{FO,FOI}, args...; kwargs...) = zero(vrandeffs)
+randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, ::Union{FO,FOI}, args...; kwargs...) = zero(vrandeffs)
 
 """
     randeffs_estimate_dist(model, subject, param, approx, ...)
@@ -342,7 +346,6 @@ function marginal_nll(m::PuMaSModel, data::Population, args...;
   sum(subject -> marginal_nll(m, subject, args...; kwargs...), data.subjects)
 end
 
-
 """
     marginal_nll_nonmem(model, subject, param[, fixeffs], approx, ...)
     marginal_nll_nonmem(model, data, param, approx, ...)
@@ -428,11 +431,12 @@ function FIM(obs::NamedTuple, dist::NamedTuple, ::FO)
 end
 
 # Fitting methods
-struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation}
+struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
   model::T1
   data::T2
   optim::T3
   approx::T4
+  vrandeffs::T5
 end
 
 function Distributions.fit(m::PuMaSModel,
@@ -451,7 +455,8 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...),
                vfixeffs, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  return FittedPuMaSModel(m, data, o, approx)
+  vrandeffs = [randeffs_estimate(m, subject, fixeffs, approx, args...) for subject in data.subjects]
+  return FittedPuMaSModel(m, data, o, approx, vrandeffs)
 end
 
 function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
