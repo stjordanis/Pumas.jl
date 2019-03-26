@@ -85,7 +85,16 @@ build_observation_list(obs::Nothing) = obs
 
 build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
 function build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate, ss)
-  event_data && evid ≠ 3 && @assert amt != zero(amt) || ss == 1 || evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
+  @assert evid ∈ 0:4 "evid must be in 0:4"
+  # Dose-related data items
+  drdi = iszero(amt) && (rate == 0) && iszero(ii) && iszero(addl) && iszero(ss)
+  if event_data
+    if evid ∈ [0, 2, 3]
+      @assert drdi "Dose-related data items must be zero when evid = $evid"
+    else
+      @assert !drdi "Some dose-related data items must be non-zero when evid = $evid"
+    end
+  end
   duration = isnothing(rate) ? Inf : amt / rate
   for j = 0:addl  # addl==0 means just once
     _ss = iszero(j) ? ss : zero(Int8)
