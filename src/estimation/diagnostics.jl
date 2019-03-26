@@ -3,10 +3,10 @@
 
 To calculate the Normalised Prediction Distribution Errors (NPDE).
 """
-function npde(m::PuMaSModel, 
-              subject::Subject, 
-              param::NamedTuple, 
-              randeffs::NamedTuple, 
+function npde(m::PuMaSModel,
+              subject::Subject,
+              param::NamedTuple,
+              randeffs::NamedTuple,
               nsim::Integer)
   y = subject.observations.dv
   sims = [simobs(m, subject, param, randeffs).observed.dv for i in 1:nsim]
@@ -24,6 +24,21 @@ function npde(m::PuMaSModel,
 end
 
 """
+
+  wresiduals(fpm::FittedPumasModel)
+Calculates a vector of weighted residual according to the approximation method used in
+the fitting procedure whose resilt is saved in `fpm`.
+"""
+function wresiduals(fpm)
+  n_obs = length(fpm.data)
+  [wresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+end
+function iwresiduals(fpm)
+  n_obs = length(fpm.data)
+  [iwresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+end
+"""
+
   wres(model, subject, param[, rfx])
 
 To calculate the Weighted Residuals (WRES).
@@ -38,6 +53,13 @@ function wres(m::PuMaSModel,
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv))
+end
+function wresiduals(approx::FO, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  wres(model, subject, fixeffs, randeffs)
 end
 
 """
@@ -57,7 +79,13 @@ function cwres(m::PuMaSModel,
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
-
+function wresiduals(approx::FOCE, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  cwres(model, subject, fixeffs, randeffs)
+end
 """
   cwresi(model, subject, param[, rfx])
 
@@ -75,7 +103,13 @@ function cwresi(m::PuMaSModel,
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
-
+function wresiduals(approx::FOCEI, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  cwresi(model, subject, fixeffs, randeffs)
+end
 """
   pred(model, subject, param[, rfx])
 
@@ -144,7 +178,13 @@ function iwres(m::PuMaSModel,
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
-
+function iwresiduals(approx::FO, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  iwres(model, subject, fixeffs, randeffs)
+end
 """
   icwres(model, subject, param[, rfx])
 
@@ -159,7 +199,13 @@ function icwres(m::PuMaSModel,
   nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist0.dv)
 end
-
+function iwresiduals(approx::FOCE, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  icwres(model, subject, fixeffs, randeffs)
+end
 """
   icwresi(model, subject, param[, rfx])
 
@@ -173,15 +219,21 @@ function icwresi(m::PuMaSModel,
   l, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
-
+function iwresiduals(approx::FOCEI, fpm, subject_index)
+  model = fpm.m
+  subject = fpm.data.subjects[subject_index]
+  fixeffs = fpm.fixeffs
+  randeffs = fpm.vrandeffs[subject_index]
+  icwresi(model, subject, fixeffs, randeffs)
+end
 """
   eiwres(model, subject, param[, rfx], simulations_count)
 
 To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 """
 function eiwres(m::PuMaSModel,
-                subject::Subject, 
-                param::NamedTuple, 
+                subject::Subject,
+                param::NamedTuple,
                 nsim::Integer)
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,param)
@@ -197,8 +249,8 @@ function eiwres(m::PuMaSModel,
   sims_sum./nsim
 end
 
-function ipred(m::PuMaSModel, 
-                subject::Subject, 
+function ipred(m::PuMaSModel,
+                subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
   nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
@@ -210,7 +262,7 @@ function cipred(m::PuMaSModel,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
   nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
-  return mean.(dist.dv) 
+  return mean.(dist.dv)
 end
 
 function cipredi(m::PuMaSModel,
@@ -221,9 +273,9 @@ function cipredi(m::PuMaSModel,
   return mean.(dist.dv)
 end
 
-function ηshrinkage(m::PuMaSModel, 
-                    data::Population, 
-                    param::NamedTuple, 
+function ηshrinkage(m::PuMaSModel,
+                    data::Population,
+                    param::NamedTuple,
                     approx::LikelihoodApproximation)
   sd_randeffs = std([randeffs_estimate(m, subject, param, approx) for subject in data])
   Ω = Matrix(param.Ω)
