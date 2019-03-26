@@ -84,9 +84,30 @@ build_observation_list(obs::NamedTuple) = obs
 build_observation_list(obs::Nothing) = obs
 
 build_event_list(evs::AbstractVector{<:Event}, event_data::Bool) = evs
+function build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate, ss)
+  event_data && evid ≠ 3 && @assert amt != zero(amt) || ss == 1 || evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
+  duration = isnothing(rate) ? Inf : amt / rate
+  for j = 0:addl  # addl==0 means just once
+    _ss = iszero(j) ? ss : zero(Int8)
+    if iszero(amt) && evid ≠ 2
+      # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
+      # Such an event consists of infusion with the stated rate,
+      # starting at time −∞, and ending at the time on the dose
+      # ev event record. Bioavailability fractions do not apply
+      # to these doses.
+      push!(events, Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
+    else
+      push!(events, Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
+      if !iszero(rate) && iszero(_ss)
+        push!(events, Event(amt, t + duration, Int8(-1), cmt, rate, duration, _ss, ii, t, Int8(-1)))
+      end
+    end
+    t += ii
+  end
+end
 function build_event_list(regimen::DosageRegimen, event_data::Bool)
   data = regimen.data
-  events = Event[]
+  events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
   for i in 1:size(data, 1)
     t    = data[:time][i]
     evid = data[:evid][i]
@@ -96,27 +117,7 @@ function build_event_list(regimen::DosageRegimen, event_data::Bool)
     cmt  = data[:cmt][i]
     rate = data[:rate][i]
     ss   = data[:ss][i]
-
-    for j = 0:addl  # addl==0 means just once
-      _ss = iszero(j) ? ss : zero(Int8)
-      duration = amt/rate
-      event_data && @assert amt != zero(amt) || _ss == 1 || evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
-      if iszero(amt) && evid != 2
-        event_data && @assert rate > zero(rate) "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
-        # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
-        # Such an event consists of infusion with the stated rate,
-        # starting at time −∞, and ending at the time on the dose
-        # ev event record. Bioavailability fractions do not apply
-        # to these doses.
-        push!(events, Event(amt, t, evid, cmt, rate, ii, _ss, ii, t, Int8(1)))
-      else
-        push!(events, Event(amt, t, evid, cmt, rate, duration, _ss, ii, t, Int8(1)))
-        if rate != zero(rate) && _ss == 0
-          push!(events, Event(amt, t + duration, Int8(-1), cmt, rate, duration, _ss, ii, t, Int8(-1)))
-        end
-      end
-      t += ii
-    end
+    build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate, ss)
   end
-  sort!(Vector{typeof(first(events))}(events))
+  sort!(events)
 end
