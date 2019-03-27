@@ -371,7 +371,9 @@ function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
   (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id = subj.id, dose=dose, clean=false)
   NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
 end
-NCASubject(subj::Subject) = convert(NCASubject, subj)
+NCASubject(subj::Subject; name=:dv) = convert(NCASubject, subj; name=name)
 
-Base.convert(::Type{NCAPopulation}, pop::Population) = NCAPopulation(map(subj->convert(NCASubject, subj), pop))
-NCAPopulation(pop::Population) = convert(NCAPopulation, pop)
+Base.convert(::Type{NCAPopulation}, pop::Population; name=:dv) = NCAPopulation(map(subj->let name = name
+                                                                                     convert(NCASubject, subj; name=name)
+                                                                                    end, pop))
+NCAPopulation(pop::Population; name=:dv) = convert(NCAPopulation, pop; name=name)
