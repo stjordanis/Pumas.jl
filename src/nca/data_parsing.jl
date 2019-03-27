@@ -20,9 +20,16 @@ function parse_ncadata(df; group=nothing, kwargs...)
     dfs = groupby(df, group)
     groupnum = length(dfs)
     dfpops = map(dfs) do df
-      ___parse_ncadata(df; group=first(df[group]), kwargs...)
+      if group isa AbstractArray && length(group) > 1
+        groupname = map(string, first(df[group]))
+        grouplabel = map(string, group)
+        currentgroup = join(Base.Iterators.flatten(zip(grouplabel, groupname)), ' ')
+      else
+        currentgroup = group isa Symbol ? first(df[group]) : first(df[group[1]])
+      end
+      ___parse_ncadata(df; group=currentgroup, kwargs...)
     end
-    pops = map(i->dfpops[i][2], 1:groupnum)
+    pops = map(i->dfpops[i][end], 1:groupnum)
     NCAPopulation(vcat(pops...))
   end
 end
