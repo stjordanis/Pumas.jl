@@ -158,7 +158,9 @@ for i in 1:24
     @test data[:Vz_obs][i]*u"L" ≈ NCA.vz(nca) atol = 1e-6*u"L"
   end
   aucs = NCA.auc(nca, dose=dose, method=:linear, auctype=:last)
+  @test aucs == NCA.auclast(nca, dose=dose, method=:linear)
   aumcs = NCA.aumc(nca, dose=dose, method=:linear, auctype=:last)
+  @test aumcs == NCA.aumclast(nca, dose=dose, method=:linear)
   @test normalizedose(aucs, nca) == aucs/doses[i]
   @test data[:AUClast][i]*timeu*concu ≈ aucs atol = 1e-6*timeu*concu
   @test data[:AUMClast][i]*timeu^2*concu ≈ aumcs atol = 1e-6*timeu^2*concu

@@ -256,6 +256,20 @@ end
   return sol
 end
 
+"""
+    auclast(nca::NCASubject; method::Symbol, interval=nothing, kwargs...)
+
+Alias for `auc(subj; auctype=:last)`.
+"""
+auclast(nca::NCASubject; kwargs...) = auc(nca; auctype=:last, kwargs...)
+
+"""
+    aumclast(nca::NCASubject; method::Symbol, interval=nothing, kwargs...)
+
+Alias for `aumc(subj; auctype=:last)`.
+"""
+aumclast(nca::NCASubject; kwargs...) = aumc(nca; auctype=:last, kwargs...)
+
 function auc_extrap_percent(nca::NCASubject; kwargs...)
   aucinf  = auc(nca; auctype=:inf, kwargs...)
   auclast = auc(nca; auctype=:last, kwargs...)

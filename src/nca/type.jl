@@ -217,7 +217,7 @@ function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
 
   # Calculate summary values
   funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
-   cmax, tmax, cmin, tmin, c0, clast, tlast, thalf, auc, aumc, auc_extrap_percent, aumc_extrap_percent,
+   cmax, tmax, cmin, tmin, c0, clast, tlast, thalf, auc, auclast, aumc, aumclast, auc_extrap_percent, aumc_extrap_percent,
    cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
