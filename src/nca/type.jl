@@ -186,8 +186,9 @@ end
 Base.setindex!(n::NCAPopulation, X, I...) = setindex!(n.subjects, X, I...)
 Base.show(io::IO, pop::NCAPopulation) = show(io, MIME"text/plain"(), pop)
 function Base.show(io::IO, ::MIME"text/plain", pop::NCAPopulation)
-  println(io, "NCAPopulation ($(length(pop)) subjects):")
-  println(io, "  ID: $([subj.id for subj in pop])")
+  ids = [subj.id for subj in pop]
+  println(io, "NCAPopulation ($(length(unique(ids))) subjects):")
+  println(io, "  ID: $(ids)")
   first(pop).group === nothing || println(io, "  Group: $(unique([subj.group for subj in pop]))")
   showunits(io, first(pop), 4)
 end
