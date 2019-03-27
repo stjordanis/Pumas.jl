@@ -55,7 +55,7 @@ function wres(m::PuMaSModel,
   return cholesky(V).U'\(y .- mean.(dist.dv))
 end
 function wresiduals(approx::FO, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -80,7 +80,7 @@ function cwres(m::PuMaSModel,
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
 function wresiduals(approx::FOCE, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -104,7 +104,7 @@ function cwresi(m::PuMaSModel,
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
 function wresiduals(approx::FOCEI, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -179,7 +179,7 @@ function iwres(m::PuMaSModel,
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
 function iwresiduals(approx::FO, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -200,7 +200,7 @@ function icwres(m::PuMaSModel,
   return (y .- mean.(dist.dv)) ./ std.(dist0.dv)
 end
 function iwresiduals(approx::FOCE, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -220,7 +220,7 @@ function icwresi(m::PuMaSModel,
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
 function iwresiduals(approx::FOCEI, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
