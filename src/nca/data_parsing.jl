@@ -2,7 +2,7 @@ using CSV, DataFrames
 
 """
   parse_ncadata(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
-    conc=:conc, occasion=nothing, amt=nothing, formulation=nothing, iv=nothing,
+    conc=:conc, occasion=nothing, amt=nothing, formulation=nothing, reference=nothing,
     kwargs...) -> NCAPopulation
 
 Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
@@ -35,7 +35,7 @@ function parse_ncadata(df; group=nothing, kwargs...)
 end
 
 function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
-                       amt=nothing, formulation=nothing, iv=nothing, ev=nothing,# rate=nothing,
+                       amt=nothing, formulation=nothing, reference=nothing,# rate=nothing,
                        duration=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
@@ -50,10 +50,9 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
-  hasdose = amt !== nothing && formulation !== nothing && iv !== nothing
+  hasdose = amt !== nothing && formulation !== nothing && reference !== nothing
   if warn && !hasdose
-    @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by
-    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`"
+    @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, reference=\"IV\"`, where `reference` is the IV administration, and anything that is not `reference` is EV administration."
   end
   sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
@@ -89,7 +88,7 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
       end
       formulation = map(dose_idx) do i
         f = formulations[i]
-        f == iv ? IVBolus : (ev !== nothing && @assert(ev == f); EV)
+        f == reference ? IVBolus : EV
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, nothing, duration′, formulation)

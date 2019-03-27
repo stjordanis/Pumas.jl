@@ -9,7 +9,7 @@ timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
-                                     iv="IV", timeu=timeu, concu=concu, amtu=amtu)
+                                     reference="IV", timeu=timeu, concu=concu, amtu=amtu)
 
 # test caching
 @test_nowarn NCA.auc(mncapop)
