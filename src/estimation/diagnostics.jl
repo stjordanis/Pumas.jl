@@ -53,7 +53,7 @@ function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::Ab
   (var_yi)*(yi .- mean_yi)
 end
 function wresiduals(approx::FO, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -76,7 +76,7 @@ function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   (var_yi)*(yi .- mean_yi)
 end
 function wresiduals(approx::FOCE, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -97,7 +97,7 @@ function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   (var_yi)*(yi .- mean_yi)
 end
 function wresiduals(approx::FOCEI, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -165,7 +165,7 @@ function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::A
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
 function iwresiduals(approx::FO, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -184,7 +184,7 @@ function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::
   sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
 end
 function iwresiduals(approx::FOCE, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
@@ -202,7 +202,7 @@ function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs:
   sqrt(inv((Diagonal(var.(dist.dv)))))*(yi .- mean_yi)
 end
 function iwresiduals(approx::FOCEI, fpm, subject_index)
-  model = fpm.m
+  model = fpm.model
   subject = fpm.data.subjects[subject_index]
   fixeffs = fpm.fixeffs
   randeffs = fpm.vrandeffs[subject_index]
