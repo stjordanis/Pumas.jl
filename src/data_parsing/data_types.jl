@@ -354,7 +354,7 @@ function Base.convert(::Type{NCADose}, ev::Event)
   time = ev.time
   amt = ev.amt
   rate = ev.rate
-  duration = !isfinite(ev.duration) ? zero(ev.duration) : ev.duration
+  duration = isinf(ev.duration) ? zero(ev.duration) : ev.duration
   formulation = if iszero(rate)
     IVBolus
   elseif rate > zero(rate)
