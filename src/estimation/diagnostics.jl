@@ -1,27 +1,22 @@
 """
-  npde(model, subject, param[, rfx], simulations_count)
+  npde(model, subject, fixeffs, randeffs, simulations_count)
 
 To calculate the Normalised Prediction Distribution Errors (NPDE).
 """
-function npde(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
-  yi = subject.observations.dv
-  sims = []
-  for i in 1:nsim
-    vals = simobs(m, subject, fixeffs)
-    push!(sims, vals.observed.dv)
+function npde(m::PuMaSModel, subject::Subject, fixeffs::NamedTuple, randeffs::NamedTuple, nsim::Integer)
+  y = subject.observations.dv
+  sims = [simobs(m, subject, fixeffs, randeffs).observed.dv for i in 1:nsim]
+  mean_y = mean(sims)
+  cov_y = Symmetric(cov(sims))
+  Fcov_y = cholesky(cov_y)
+  y_decorr = Fcov_y.U'\(y .- mean_y)
+
+  φ = mean(sims) do y_l
+    y_decorr_l = Fcov_y\(y_l .- mean_y)
+    Int.(y_decorr_l .< y_decorr)
   end
-  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  covm_yi = cov(sims)
-  covm_yi = sqrt(inv(covm_yi))
-  yi_decorr = (covm_yi)*(yi .- mean_yi)
-  phi = []
-  for i in 1:nsim
-    yi_i = sims[i]
-    yi_decorr_i = (covm_yi)*(yi_i .- mean_yi)
-    push!(phi,[yi_decorr_i[j]>=yi_decorr[j] ? 0 : 1 for j in 1:length(yi_decorr_i)])
-  end
-  phi = sum(phi)/nsim
-  [quantile(Normal(),phi[i]) for i in 1:length(subject.observations.dv)]
+
+  return quantile.(Normal(), φ)
 end
 
 """

@@ -316,7 +316,8 @@ end
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
   end
 
-  # npde(   theopmodel_focei, theopp[1], fixeffs, 1000)
+  npde(   theopmodel_focei, theopp[1], fixeffs,
+      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs),), 1000)
   epred(  theopmodel_focei, theopp[1], fixeffs, 1000)
   cpred(  theopmodel_focei, theopp[1], fixeffs)
   cpredi( theopmodel_focei, theopp[1], fixeffs)
