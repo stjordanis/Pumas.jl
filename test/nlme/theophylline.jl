@@ -317,8 +317,9 @@ end
   end
 
   npde(   theopmodel_focei, theopp[1], fixeffs,
-      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs),), 1000)
-  epred(  theopmodel_focei, theopp[1], fixeffs, 1000)
+      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs, PuMaS.FOCEI()),), 1000)
+  epred(  theopmodel_focei, theopp[1], fixeffs,
+      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs, PuMaS.FOCEI()),), 1000)
   cpred(  theopmodel_focei, theopp[1], fixeffs)
   cpredi( theopmodel_focei, theopp[1], fixeffs)
   pred(   theopmodel_focei, theopp[1], fixeffs)
