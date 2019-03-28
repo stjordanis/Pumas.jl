@@ -311,23 +311,24 @@ end
   o = fit(theopmodel_focei, theopp, fixeffs, PuMaS.FOCEI())
 
   x_optim = o.fixeffs
-  # println(npde(theopmodel_focei,theopp[1],fixeffs,10000))
-  println(epred(theopmodel_focei,theopp[1],fixeffs,10000))
-  println(cpred(theopmodel_focei,theopp[1],fixeffs))
-  println(cpredi(theopmodel_focei,theopp[1],fixeffs))
-  println(pred(theopmodel_focei,theopp[1],fixeffs))
-  println(wres(theopmodel_focei,theopp[1],fixeffs))
-  println(cwres(theopmodel_focei,theopp[1],fixeffs))
-  println(cwresi(theopmodel_focei,theopp[1],fixeffs))
-  println(iwres(theopmodel_focei,theopp[1],fixeffs))
-  println(icwres(theopmodel_focei,theopp[1],fixeffs))
-  println(icwresi(theopmodel_focei,theopp[1],fixeffs))
-  println(eiwres(theopmodel_focei,theopp[1],fixeffs,10000))
-  println(cwres(theopmodel_focei, theopp[1], x_optim))
   @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505381367598 rtol=1e-5
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
   end
+
+  # npde(   theopmodel_focei, theopp[1], fixeffs, 1000)
+  epred(  theopmodel_focei, theopp[1], fixeffs, 1000)
+  cpred(  theopmodel_focei, theopp[1], fixeffs)
+  cpredi( theopmodel_focei, theopp[1], fixeffs)
+  pred(   theopmodel_focei, theopp[1], fixeffs)
+  wres(   theopmodel_focei, theopp[1], fixeffs)
+  cwres(  theopmodel_focei, theopp[1], fixeffs)
+  cwresi( theopmodel_focei, theopp[1], fixeffs)
+  iwres(  theopmodel_focei, theopp[1], fixeffs)
+  icwres( theopmodel_focei, theopp[1], fixeffs)
+  icwresi(theopmodel_focei, theopp[1], fixeffs)
+  eiwres( theopmodel_focei, theopp[1], fixeffs, 1000)
+  cwres(  theopmodel_focei, theopp[1], fixeffs)
 end
 
 @testset "run4_foce.mod FOCE, diagonal omega and additive + proportional error" begin

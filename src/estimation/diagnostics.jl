@@ -29,14 +29,16 @@ end
 
 To calculate the Weighted Residuals (WRES).
 """
-function wres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
-  mean_yi = (mean.(dist0.dv))
-  Ω = cov(m.random(fixeffs).params.η)
-  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + ((f'*Ω)*f)))
-  (var_yi)*(yi .- mean_yi)
+function wres(m::PuMaSModel,
+              subject::Subject,
+              fixeffs::NamedTuple,
+              vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
+  y = subject.observations.dv
+  nl, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  Ω = Matrix(fixeffs.Ω)
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
+  V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
+  return cholesky(V).U'\(y .- mean.(dist.dv))
 end
 
 """
@@ -44,15 +46,17 @@ end
 
 To calculate the Conditional Weighted Residuals (CWRES).
 """
-function cwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
-  l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  Ω = cov(m.random(fixeffs).params.η)
-  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
-  var_yi = sqrt(inv((Diagonal(var.(dist0.dv))) + ((f'*Ω)*f)))
-  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
-  (var_yi)*(yi .- mean_yi)
+function cwres(m::PuMaSModel,
+               subject::Subject,
+               fixeffs::NamedTuple,
+               vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
+  y = subject.observations.dv
+  nl0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
+  nl , dist  = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  Ω = Matrix(fixeffs.Ω)
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
+  V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
+  return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
 
 """
@@ -61,14 +65,16 @@ end
 To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
 """
 
-function cwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
-  yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  Ω = cov(m.random(fixeffs).params.η)
-  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
-  var_yi = sqrt(inv((Diagonal(var.(dist.dv))) + ((f'*Ω)*f)))
-  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
-  (var_yi)*(yi .- mean_yi)
+function cwresi(m::PuMaSModel,
+                subject::Subject,
+                fixeffs::NamedTuple,
+                vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
+  y = subject.observations.dv
+  nl, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  Ω = Matrix(fixeffs.Ω)
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
+  V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
+  return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
 
 """
@@ -109,7 +115,7 @@ end
 """
   epred(model, subject, param[, rfx], simulations_count)
 
-To calculate the Expected Simulation based Population Predictions. 
+To calculate the Expected Simulation based Population Predictions.
 """
 function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
   sims = []
@@ -126,11 +132,13 @@ end
 
 To calculate the Individual Weighted Residuals (IWRES).
 """
-function iwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
-  mean_yi = (mean.(dist0.dv))
-  sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
+function iwres(m::PuMaSModel,
+               subject::Subject,
+               fixeffs::NamedTuple,
+               vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
+  y = subject.observations.dv
+  nl, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
 
 """
@@ -138,12 +146,14 @@ end
 
 To calculate the Individual Conditional Weighted Residuals (ICWRES).
 """
-function icwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
-  yi = subject.observations.dv
-  l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
-  l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  mean_yi = (mean.(dist.dv))
-  sqrt(inv((Diagonal(var.(dist0.dv)))))*(yi .- mean_yi)
+function icwres(m::PuMaSModel,
+                subject::Subject,
+                fixeffs::NamedTuple,
+                vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
+  y = subject.observations.dv
+  nl0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
+  nl , dist  = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  return (y .- mean.(dist.dv)) ./ std.(dist0.dv)
 end
 
 """
@@ -151,11 +161,13 @@ end
 
 To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
 """
-function icwresi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
-  yi = subject.observations.dv
+function icwresi(m::PuMaSModel,
+                 subject::Subject,
+                 fixeffs::NamedTuple,
+                 vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
+  y = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  mean_yi = (mean.(dist.dv))
-  sqrt(inv((Diagonal(var.(dist.dv)))))*(yi .- mean_yi)
+  return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
 
 """
