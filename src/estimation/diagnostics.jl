@@ -191,12 +191,11 @@ function eiwres(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, nsim)
 end
 
 function ηshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple, approx)
-  sd_randeffs = std(Matrix(VectorOfArray([randeffs_estimate(m, subject, fixeffs, approx) for subject in data])),dims=2)
-  Ω = (fixeffs.Ω)
-  shk = 1 .- (sd_randeffs ./ sqrt.(diag(Ω)))
-  shk
+  sd_randeffs = std([randeffs_estimate(m, subject, fixeffs, approx) for subject in data])
+  Ω = Matrix(fixeffs.Ω)
+  return  1 .- sd_randeffs ./ sqrt.(diag(Ω))
 end
 
 function ϵshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple)
-  1 - std(vec([iwres(m, subject, fixeffs) for subject in data]))[1]
+  1 .- std([iwres(m, subject, fixeffs) for subject in data])
 end
