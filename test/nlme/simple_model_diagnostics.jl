@@ -34,12 +34,12 @@ end
 
 fixeffs = init_fixeffs(mdsl1)
 
-println([npde(mdsl1, data[i], fixeffs, 10000) for i in 1:10])
-println([epred(mdsl1, data[i], fixeffs, 10000) for i in 1:10])
-println([cpred(mdsl1, data[i], fixeffs) for i in 1:10])
-println([cpredi(mdsl1, data[i], fixeffs) for i in 1:10])
+[npde( mdsl1, data[i], fixeffs, (η=PuMaS.randeffs_estimate(mdsl1, data[i], fixeffs, PuMaS.FOCE()),), 10000) for i in 1:10]
+[epred(mdsl1, data[i], fixeffs, (η=PuMaS.randeffs_estimate(mdsl1, data[i], fixeffs, PuMaS.FOCE()),), 10000) for i in 1:10]
+[cpred(mdsl1, data[i], fixeffs) for i in 1:10]
+[cpredi(mdsl1, data[i], fixeffs) for i in 1:10]
 
-@testtest "pred" for
+@testset "pred" for
     (sub_pred, dt) in zip([[10.0000000, 6.06530660],
                            [10.0000000, 6.06530660],
                            [10.0000000, 6.06530660],
@@ -144,7 +144,7 @@ end
     @test icwresi(mdsl1, dt, fixeffs) ≈ sub_icwresi
 end
 
-println([eiwres(mdsl1,data[i],fixeffs,10000) for i in 1:10])
+[eiwres(mdsl1,data[i],fixeffs,10000) for i in 1:10]
 
 fixeffs = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
 @test ηshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6

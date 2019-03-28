@@ -65,7 +65,7 @@ function cwresi(m::PuMaSModel,
                 fixeffs::NamedTuple,
                 vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
   y = subject.observations.dv
-  nl, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  nl, dist = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffs,))
   Ω = Matrix(fixeffs.Ω)
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
@@ -77,10 +77,12 @@ end
 
 To calculate the Population Predictions (PRED).
 """
-function pred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
-  l0, dist0 = conditional_nll_ext(m,subject,fixeffs, (η=zero(vrandeffs),))
-  mean_yi = (mean.(dist0.dv))
-  mean_yi
+function pred(m::PuMaSModel,
+              subject::Subject,
+              fixeffs::NamedTuple,
+              vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FO()))
+  nl, dist = conditional_nll_ext(m, subject, fixeffs, (η=vrandeffs,))
+  return mean.(dist.dv)
 end
 
 """
@@ -88,11 +90,13 @@ end
 
 To calculate the Conditional Population Predictions (CPRED).
 """
-function cpred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
-  l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
-  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
-  mean_yi
+function cpred(m::PuMaSModel,
+               subject::Subject,
+               fixeffs::NamedTuple,
+               vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCE()))
+  nl, dist = conditional_nll_ext(m, subject,fixeffs, (η=vrandeffs,))
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
+  return mean.(dist.dv) .- F*vrandeffs
 end
 
 """
@@ -100,11 +104,13 @@ end
 
 To calculate the Conditional Population Predictions with Interaction (CPREDI).
 """
-function cpredi(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple, vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
-  l, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
-  f = Matrix(VectorOfArray([ForwardDiff.gradient(s -> _mean(m, subject, fixeffs, (η=s,), i), vrandeffs) for i in 1:length(subject.observations.dv)]))
-  mean_yi = (mean.(dist.dv)) .- vec(f'*vrandeffs)
-  mean_yi
+function cpredi(m::PuMaSModel,
+                subject::Subject,
+                fixeffs::NamedTuple,
+                vrandeffs::AbstractVector=randeffs_estimate(m, subject, fixeffs, FOCEI()))
+  nl, dist = conditional_nll_ext(m,subject,fixeffs, (η=vrandeffs,))
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, fixeffs, (η=s,))[2].dv), vrandeffs)
+  return mean.(dist.dv) .- F*vrandeffs
 end
 
 """
@@ -112,14 +118,13 @@ end
 
 To calculate the Expected Simulation based Population Predictions.
 """
-function epred(m::PuMaSModel,subject::Subject, fixeffs::NamedTuple,nsim)
-  sims = []
-  for i in 1:nsim
-    vals = simobs(m, subject, fixeffs)
-    push!(sims, vals.observed.dv)
-  end
-  mean_yi = [mean(sims[:][i]) for i in 1:length(sims[1])]
-  mean_yi
+function epred(m::PuMaSModel,
+               subject::Subject,
+               fixeffs::NamedTuple,
+               randeffs::NamedTuple,
+               nsim::Integer)
+  sims = [simobs(m, subject, fixeffs, randeffs).observed.dv for i in 1:nsim]
+  return mean(sims)
 end
 
 """
