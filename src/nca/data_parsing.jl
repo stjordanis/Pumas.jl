@@ -91,14 +91,14 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
         f == reference ? IVBolus : EV
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, nothing, duration′, formulation)
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, formulation)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]
       occs = unique(subjoccasion)
       doses = map(occs) do occ
         dose_idx = findfirst(isequal(occ), subjoccasion)
         dose_time = subjtime[dose_idx]
-        NCADose(dose_time*timeu, zero(amtu), nothing, nothing, DosingUnknown)
+        NCADose(dose_time*timeu, zero(amtu), nothing, DosingUnknown)
       end
     else
       doses = nothing

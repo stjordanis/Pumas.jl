@@ -68,4 +68,4 @@ end
 pop = Population(map(i->sim.sims[i].subject, eachindex(sim.sims)))
 @test_nowarn NCAPopulation(pop, name=:dv)
 @test_nowarn NCASubject(pop[1], name=:dv)
-@test NCADose(ev2.subjects[1].events[1]) === NCADose(0.0, 100.0, 0.0, 0.0, NCA.IVBolus)
+@test NCADose(ev2.subjects[1].events[1]) === NCADose(0.0, 100.0, 0.0, NCA.IVBolus)

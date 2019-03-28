@@ -353,16 +353,8 @@ function Base.convert(::Type{NCADose}, ev::Event)
   ev.evid === Int8(1) || return nothing
   time = ev.time
   amt = ev.amt
-  rate = ev.rate
   duration = isinf(ev.duration) ? zero(ev.duration) : ev.duration
-  formulation = if iszero(rate)
-    IVBolus
-  elseif rate > zero(rate)
-    IVInfusion
-  else
-    DosingUnknown
-  end
-  NCADose(time, amt, rate, duration, formulation)
+  NCADose(time, amt, duration, IVBolus) # FIXME: when is an event extravascular?
 end
 NCADose(dose::Event) = convert(NCADose, dose)
 

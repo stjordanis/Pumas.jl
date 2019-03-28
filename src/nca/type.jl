@@ -19,28 +19,29 @@ isiv(x) = x === IVBolus || x === IVInfusion
 - `amt`: The amount of dosage
 - `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
 """
-struct NCADose{T,A,R,D}
+struct NCADose{T,A}
   time::T
   amt::A
-  rate::R
-  duration::D
+  duration::T
   formulation::Formulation
-  function NCADose(time, amt, rate, duration, formulation)
-    formulation′ = if formulation === EV
-      EV
-    else # IV
-      has_rate = rate !== nothing && !iszero(rate)
-      has_duration = rate !== nothing && !iszero(rate)
-      (has_rate && has_duration) && throw(ArgumentError("Both duration and rate cannot be given at the same time"))
-      has_rate || has_duration ? IVInfusion : IVBolus
-    end
-    return new{typeof(time), typeof(amt), typeof(rate), typeof(duration)}(time, amt, rate, duration, formulation′)
+  function NCADose(time, amt, duration::D, formulation) where D
+    duration′ = D === Nothing ? zero(time) : duration
+    formulation′ = formulation === EV ? EV : iszero(duration′) ? IVBolus : IVInfusion
+    return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′)
   end
 end
 
 # NCADose should behave like a scalar in broadcast
 Broadcast.broadcastable(x::NCADose) = Ref(x)
 Base.first(x::NCADose) = x
+
+function Base.show(io::IO, n::NCADose)
+  println(io, "NCADose:")
+  println(io, "  time:         $(n.time)")
+  println(io, "  amt:          $(n.amt)")
+  println(io, "  duration:     $(n.amt)")
+  print(  io, "  formulation:  $(n.formulation)")
+end
 
 # any changes in here must be reflected to ./simple.jl, too
 mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
