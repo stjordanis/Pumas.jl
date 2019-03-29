@@ -44,7 +44,7 @@ function Base.show(io::IO, n::NCADose)
 end
 
 # any changes in here must be reflected to ./simple.jl, too
-mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   # allow id to be non-int, e.g. 001-100-1001 or STUD011001
   id::ID
   group::G
@@ -58,6 +58,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   maxidx::I
   lastidx::I
   dose::D
+  ii::II
   lambdaz::Z
   llq::N
   r2::F
@@ -76,7 +77,7 @@ To be completed
 function NCASubject(conc′, time′;
                     concu=true, timeu=true,
                     id=1, group=nothing, dose::T=nothing, llq=nothing, clean=true,
-                    lambdaz=nothing, kwargs...) where T
+                    lambdaz=nothing, ii=nothing, kwargs...) where T
   if concu !== true || timeu !== true
     conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
     time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
@@ -106,12 +107,13 @@ function NCASubject(conc′, time′;
     time = map(x->x[2], ct)
     maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
     lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
+    ii = ii === nothing ? zero(eltype(eltype(time))) : ii # `time` is a vector of vectors
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
-                      Vector{Int}, typeof(id), typeof(group)}(id, group,
-                        conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
+                      Vector{Int}, typeof(id), typeof(group), typeof(ii)}(id, group,
+                        conc, time, abstime, maxidx, lastidx, dose, ii, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
@@ -123,14 +125,14 @@ function NCASubject(conc′, time′;
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),
           typeof(r2_proto),  typeof(llq), typeof(lastidx),
-          Int, typeof(id), typeof(group)}(id, group,
-            conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
+          Int, typeof(id), typeof(group), Nothing}(id, group,
+            conc, time, abstime, maxidx, lastidx, dose, nothing, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, 0,
             auc_proto, aumc_proto, :___)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[2]
@@ -196,13 +198,13 @@ end
 
 ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
 ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
-function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   return D <: AbstractArray
 end
 
 hasdose(nca::NCASubject) = hasdose(typeof(nca))
 hasdose(nca::NCAPopulation) = hasdose(eltype(nca.subjects))
-function hasdose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+function hasdose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   return D !== Nothing
 end
 
@@ -270,7 +272,7 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   return Markdown.parse(String(take!(_io)))
 end
 
-@recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+@recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
@@ -302,7 +304,7 @@ end
   end
 end
 
-@recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+@recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2

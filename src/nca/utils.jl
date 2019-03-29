@@ -190,7 +190,7 @@ end
 
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
@@ -221,8 +221,8 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
-                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
@@ -243,7 +243,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                  nca.id,  nca.group,
                  conc,    time,    abstime,               # NCA measurements
                  maxidx,  lastidx,                        # idx cache
-                 dose,                                    # dose
+                 dose,    nca.ii,                         # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
                  firstpoint, points,                      # lambdaz related cache
                  auc, aumc, nca.method                    # AUC related cache
