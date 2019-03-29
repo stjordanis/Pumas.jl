@@ -39,7 +39,7 @@ function Base.show(io::IO, n::NCADose)
   println(io, "NCADose:")
   println(io, "  time:         $(n.time)")
   println(io, "  amt:          $(n.amt)")
-  println(io, "  duration:     $(n.amt)")
+  println(io, "  duration:     $(n.duration)")
   print(  io, "  formulation:  $(n.formulation)")
 end
 

@@ -257,14 +257,16 @@ Mean residence time from the time of dosing to the time of the last measurable
 concentration.
 
 IV infusion:
-  ``AUMC/AUC - TI/2`` not implemented yet.
+  ``AUMC/AUC - TI/2`` where ``TI`` is the length of infusion.
 non-infusion:
-  ``AUMC/AUC``
+  ``AUMC/AUC``.
 """
 function mrt(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   #D === Nothing && throw(ArgumentError("Dose must be known to compute mrt"))
   D === Nothing && return missing
-  aumc(nca; kwargs...) / auc(nca; kwargs...)
+  dose = nca.dose
+  quotient = aumclast(nca; kwargs...) / auclast(nca; kwargs...)
+  return dose.formulation === IVInfusion ? quotient - dose.duration*1//2 : quotient
 end
 
 """
