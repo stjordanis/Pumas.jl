@@ -22,3 +22,18 @@ end
 data3 = @test_nowarn parse_ncadata(df, id=:ID, time=:TIME, conc=:TCONC, group=[:PERIOD, :METABOLITE], warn=false) # multi-group
 aucs = @test_nowarn NCA.auc(data3)
 @test aucs[:group][1] == "PERIOD 1 METABOLITE Metabolite 1"
+
+# test ii
+ii1 = [0.1 * i for i in eachindex(data1)]
+pop = @test_nowarn parse_ncadata(df, id=:ID, time=:TIME, conc=:TCONC, occasion=:PERIOD, group=[:METABOLITE], warn=false, ii=ii1)
+@test all(i -> pop[i].ii == ii1[i], eachindex(pop))
+ii2 = [0.1 * i for i in 1:5]
+pop = @test_nowarn parse_ncadata(df, id=:ID, time=:TIME, conc=:TCONC, occasion=:PERIOD, group=[:METABOLITE], warn=false, ii=ii2)
+fullii2 = repeat(ii2, 5)
+@test all(i -> pop[i].ii == fullii2[i], eachindex(pop))
+add_ii!(pop, 0.0) # test add_ii
+add_ii!(pop, ii2)
+@test all(i -> pop[i].ii == fullii2[i], eachindex(pop))
+# length error
+ii3 = [0.1 * i for i in 1:6]
+@test_throws ArgumentError parse_ncadata(df, id=:ID, time=:TIME, conc=:TCONC, occasion=:PERIOD, group=[:METABOLITE], warn=false, ii=ii3)

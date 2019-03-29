@@ -50,3 +50,19 @@ popncareport = NCAReport(mncapop, ithdose=1)
 @test_nowarn popncareport
 @test_broken display(NCA.to_markdown(popncareport))
 @test_nowarn NCA.to_dataframe(popncareport)
+
+# test ii
+# scalar
+ii1 = 0.1timeu
+pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
+@test all(subj -> subj.ii == ii1, pop)
+# vector
+ii2 = [i*timeu for i in eachindex(pop)]
+pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
+@test all(i -> pop[i].ii == ii2[i], eachindex(pop))
+# length error
+ii3 = [i*timeu for i in 1:100]
+@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=ii3)
+# type error
+@test_throws Unitful.DimensionError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=2)
+@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=:ID)

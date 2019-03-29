@@ -250,3 +250,29 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                 )
   end
 end
+
+add_ii!(subj::NCASubject, ii::Number) = (subj.ii = ii; subj)
+function add_ii!(pop::NCAPopulation, ii::Number)
+  for subj in pop
+    add_ii!(subj, ii)
+  end
+  return pop
+end
+function add_ii!(pop::NCAPopulation, ii::AbstractArray)
+  if length(pop) == length(ii)
+    for idx in eachindex(pop)
+      add_ii!(pop[idx], ii[idx])
+    end
+  elseif (uids = unique(map(subj->subj.id, pop)); length(uids) == length(ii)) # this path is super slow, but thankful we will never run it internally
+    for i in eachindex(uids)
+      idxs = findall(subj -> subj.id == uids[i], pop)
+      for idx in idxs
+        add_ii!(pop[idx], ii[i])
+      end
+    end
+  else
+    throw(ArgumentError("`ii` ($(length(ii))) must be as long as the population ($(length(pop))) or the length of unique IDs ($(length(uids)))."))
+  end
+  return pop
+end
+add_ii!(nca::Union{NCASubject, NCAPopulation}, @nospecialize(ii)) = throw(ArgumentError("`ii::$(typeof(ii))` must be an vector or a scalar with the element type of time."))

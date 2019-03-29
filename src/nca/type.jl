@@ -107,7 +107,7 @@ function NCASubject(conc′, time′;
     time = map(x->x[2], ct)
     maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
     lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
-    ii = ii === nothing ? zero(eltype(eltype(time))) : ii # `time` is a vector of vectors
+    ii = ii === nothing ? zero(float(eltype(eltype(time)))) : ii # `time` is a vector of vectors
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},

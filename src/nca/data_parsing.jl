@@ -13,12 +13,13 @@ parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); k
 # TODO: add ploting time
 # TODO: infusion
 # TODO: plot time
-function parse_ncadata(df; group=nothing, kwargs...)
-  if group === nothing
-    ___parse_ncadata(df; kwargs...)
+function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
+  pop, added_ii = if group === nothing
+    ___parse_ncadata(df; ii=ii, kwargs...)
   else
     dfs = groupby(df, group)
     groupnum = length(dfs)
+    added_ii = true
     dfpops = map(dfs) do df
       if group isa AbstractArray && length(group) > 1
         groupname = map(string, first(df[group]))
@@ -27,16 +28,20 @@ function parse_ncadata(df; group=nothing, kwargs...)
       else
         currentgroup = group isa Symbol ? first(df[group]) : first(df[group[1]])
       end
-      ___parse_ncadata(df; group=currentgroup, kwargs...)
+      pop, tmp = ___parse_ncadata(df; group=currentgroup, ii=ii, kwargs...)
+      added_ii &= tmp
+      return pop
     end
     pops = map(i->dfpops[i][end], 1:groupnum)
-    NCAPopulation(vcat(pops...))
+    NCAPopulation(vcat(pops...)), added_ii
   end
+  ii !== nothing && (added_ii || add_ii!(pop, ii)) # avoiding recomputing the fast path
+  return pop
 end
 
 function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, formulation=nothing, reference=nothing,# rate=nothing,
-                       duration=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
+                       duration=nothing, ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
     df[id]
@@ -110,5 +115,8 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
       rethrow()
     end
   end
-  return NCAPopulation(ncas)
+  pop = NCAPopulation(ncas)
+  added_ii = ii !== nothing && (ii isa Number || (ii isa Array && length(pop) == length(ii)))
+  added_ii && add_ii!(pop, ii) # fast path
+  return pop, added_ii
 end
