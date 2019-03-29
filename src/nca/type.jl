@@ -131,6 +131,8 @@ function NCASubject(conc′, time′;
             auc_proto, aumc_proto, :___)
 end
 
+has_ii(subj::NCASubject) = subj.ii !== nothing && !iszero(subj.ii)
+
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
 function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   pad   = " "^indent
@@ -174,7 +176,9 @@ function Base.show(io::IO, n::NCASubject)
   println(io, "NCASubject:")
   println(io, "  ID: $(n.id)")
   n.group === nothing || println(io, "  Group: $(n.group)")
-  showunits(io, n, 4)
+  pad = 4
+  showunits(io, n, pad)
+  has_ii(n) && print(  io, "\n$(" "^pad)ii:            $(n.ii)")
 end
 
 struct NCAPopulation{T<:NCASubject} <: AbstractVector{T}

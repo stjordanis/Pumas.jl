@@ -300,6 +300,7 @@ end
 Dosing interval. For multiple dosing only.
 """
 function tau(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+  has_ii(nca) && return nca.ii
   D === Nothing && return missing
   D <: NCADose && return tlast(nca; kwargs...)-nca.dose.time
   dose = nca.dose
@@ -329,7 +330,7 @@ fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; k
 """
   accumulationindex(nca::NCASubject; kwargs...)
 
-Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-Lambda_z*Tau))``.
+Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-λ_z*Tau))``.
 """
 function accumulationindex(nca::NCASubject; kwargs...)
   tmp = -lambdaz(nca; recompute=false, kwargs...)*tau(nca)

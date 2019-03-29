@@ -56,6 +56,8 @@ popncareport = NCAReport(mncapop, ithdose=1)
 ii1 = 0.1timeu
 pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
 @test all(subj -> subj.ii == ii1, pop)
+@test NCA.tau(pop[1]) == [ii1 for i in 1:4]
+@test NCA.accumulationindex(pop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*ii1))
 # vector
 ii2 = [i*timeu for i in eachindex(pop)]
 pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, reference="IV", timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
