@@ -148,4 +148,4 @@ end
 
 fixeffs = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
 @test ηshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
-# println(ϵshrinkage(mdsl1,data,fixeffs))
+ϵshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI())
