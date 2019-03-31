@@ -316,6 +316,22 @@ end
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
   end
+
+  npde(   theopmodel_focei, theopp[1], fixeffs,
+      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs, PuMaS.FOCEI()),), 1000)
+  epred(  theopmodel_focei, theopp[1], fixeffs,
+      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], fixeffs, PuMaS.FOCEI()),), 1000)
+  cpred(  theopmodel_focei, theopp[1], fixeffs)
+  cpredi( theopmodel_focei, theopp[1], fixeffs)
+  pred(   theopmodel_focei, theopp[1], fixeffs)
+  wres(   theopmodel_focei, theopp[1], fixeffs)
+  cwres(  theopmodel_focei, theopp[1], fixeffs)
+  cwresi( theopmodel_focei, theopp[1], fixeffs)
+  iwres(  theopmodel_focei, theopp[1], fixeffs)
+  icwres( theopmodel_focei, theopp[1], fixeffs)
+  icwresi(theopmodel_focei, theopp[1], fixeffs)
+  eiwres( theopmodel_focei, theopp[1], fixeffs, 1000)
+  cwres(  theopmodel_focei, theopp[1], fixeffs)
 end
 
 @testset "run4_foce.mod FOCE, diagonal omega and additive + proportional error" begin
