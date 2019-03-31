@@ -196,18 +196,18 @@ function ηshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple, appro
   return  1 .- sd_randeffs ./ sqrt.(diag(Ω))
 end
 
-function ϵshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple,approx::FOCEI;randeffs=nothing)
-  if randeffs == nothing
-    1 - std(vec(VectorOfArray([icwresi(m, subject, fixeffs) for subject in data])),corrected = false)
-  else
-    1 - std(vec(VectorOfArray([icwresi(m, subject, fixeffs, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
-  end
+function ϵshrinkage(m::PuMaSModel, 
+                    data::Population, 
+                    fixeffs::NamedTuple,
+                    approx::FOCEI,
+                    randeffs=[randeffs_estimate(m, subject, fixeffs, FOCEI()) for subject in data])
+  1 - std(vec(VectorOfArray([icwresi(m, subject, fixeffs, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
 end
 
-function ϵshrinkage(m::PuMaSModel, data::Population, fixeffs::NamedTuple,approx::FOCE;randeffs=nothing)
-  if randeffs == nothing
-    1 - std(vec(VectorOfArray([icwres(m, subject, fixeffs) for subject in data])),corrected = false)
-  else
-    1 - std(vec(VectorOfArray([icwres(m, subject, fixeffs,vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
-  end
+function ϵshrinkage(m::PuMaSModel, 
+  data::Population, 
+  fixeffs::NamedTuple,
+  approx::FOCE,
+  randeffs=[randeffs_estimate(m, subject, fixeffs, FOCE()) for subject in data])
+  1 - std(vec(VectorOfArray([icwres(m, subject, fixeffs, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
 end
