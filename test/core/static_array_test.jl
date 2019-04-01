@@ -56,13 +56,13 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(fixeffs,randeffs,subject)
+function col_f(param,randeffs,subject)
     cov = subject.covariates
-    (Σ  = fixeffs.Σ,
-    Ka = fixeffs.θ[1],  # pre
-    CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) *
-         (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
-    V  = fixeffs.θ[3] * exp(randeffs.η[2]))
+    (Σ  = param.Σ,
+    Ka = param.θ[1],  # pre
+    CL = param.θ[2] * ((cov.wt/70)^0.75) *
+         (param.θ[4]^cov.sex) * exp(randeffs.η[1]),
+    V  = param.θ[3] * exp(randeffs.η[2]))
 end
 
 OneCompartmentVector = @SLVector (:Depot,:Central)
@@ -86,24 +86,24 @@ observed_f(col,sol,obstimes,samples,subject) = samples
 
 mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-fixeffs = init_fixeffs(mdsl)
-randeffs = init_randeffs(mdsl, fixeffs)
+param = init_param(mdsl)
+randeffs = init_randeffs(mdsl, param)
 
 subject = data.subjects[1]
 
-@test conditional_nll(mdsl,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12) ≈ conditional_nll(mstatic,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)
+@test conditional_nll(mdsl,subject,param,randeffs,abstol=1e-12,reltol=1e-12) ≈ conditional_nll(mstatic,subject,param,randeffs,abstol=1e-12,reltol=1e-12)
 
-@test (Random.seed!(1); simobs(mdsl,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)[:dv]) ≈
-      (Random.seed!(1); simobs(mstatic,subject,fixeffs,randeffs,abstol=1e-12,reltol=1e-12)[:dv])
+@test (Random.seed!(1); simobs(mdsl,subject,param,randeffs,abstol=1e-12,reltol=1e-12)[:dv]) ≈
+      (Random.seed!(1); simobs(mstatic,subject,param,randeffs,abstol=1e-12,reltol=1e-12)[:dv])
 
 
 p = ParamSet((θ = VectorDomain(3, lower=zeros(3), init=ones(3)),
               Ω = PSDDomain(2))),
 
-function col_f2(fixeffs,randeffs,subject)
-    (Ka = fixeffs.θ[1],
-     CL = fixeffs.θ[2] * exp(randeffs.η[1]),
-     V  = fixeffs.θ[3] * exp(randeffs.η[2]))
+function col_f2(param,randeffs,subject)
+    (Ka = param.θ[1],
+     CL = param.θ[2] * exp(randeffs.η[1]),
+     V  = param.θ[3] * exp(randeffs.η[2]))
 end
 
 function post_f(col,u,t)
@@ -119,7 +119,7 @@ mstatic2 = PuMaSModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 
-fixeffs = (θ = [
+param = (θ = [
               1.5,  #Ka
               1.0,  #CL
               30.0 #V
@@ -127,7 +127,7 @@ fixeffs = (θ = [
          Ω = Matrix{Float64}(I, 2, 2))
 randeffs = (η = zeros(2),)
 
-sol = solve(mstatic2,subject,fixeffs,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+sol = solve(mstatic2,subject,param,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 
-p = simobs(mstatic2,subject,fixeffs,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
+p = simobs(mstatic2,subject,param,randeffs;obstimes=[i*12+1e-12 for i in 0:1],abstol=1e-12,reltol=1e-12)
 @test 1000p[:conc] ≈ [605.3220736386598;1616.4036675452326]

@@ -47,11 +47,11 @@ end
 
 model = PuMaS.PuMaSModel(p,randomfx,pre_f,init_f,jump_prob,derived_f)
 
-fixeffs = init_fixeffs(model)
-randeffs = init_randeffs(model, fixeffs)
+param = init_param(model)
+randeffs = init_randeffs(model, param)
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
-sol  = solve(model,data,fixeffs,randeffs,Tsit5())
+sol  = solve(model,data,param,randeffs,Tsit5())
 
 #data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 #sol  = simulate(pkpd,θ,η,data,Tsit5())

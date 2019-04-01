@@ -40,7 +40,7 @@ include("nca/NCA.jl")
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
 
 export Subject, Population, DosageRegimen
-export PuMaSModel, init_fixeffs, init_randeffs, sample_randeffs
+export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM

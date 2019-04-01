@@ -32,12 +32,12 @@ mdsl1 = @model begin
     end
 end
 
-fixeffs = init_fixeffs(mdsl1)
+param = init_param(mdsl1)
 
-[npde( mdsl1, data[i], fixeffs, (η=PuMaS.randeffs_estimate(mdsl1, data[i], fixeffs, PuMaS.FOCE()),), 10000) for i in 1:10]
-[epred(mdsl1, data[i], fixeffs, (η=PuMaS.randeffs_estimate(mdsl1, data[i], fixeffs, PuMaS.FOCE()),), 10000) for i in 1:10]
-[cpred(mdsl1, data[i], fixeffs) for i in 1:10]
-[cpredi(mdsl1, data[i], fixeffs) for i in 1:10]
+[npde( mdsl1, data[i], param, (η=PuMaS.randeffs_estimate(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
+[epred(mdsl1, data[i], param, (η=PuMaS.randeffs_estimate(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
+[cpred(mdsl1, data[i], param) for i in 1:10]
+[cpredi(mdsl1, data[i], param) for i in 1:10]
 
 @testset "pred" for
     (sub_pred, dt) in zip([[10.0000000, 6.06530660],
@@ -51,7 +51,7 @@ fixeffs = init_fixeffs(mdsl1)
                            [10.0000000, 6.06530660],
                            [10.0000000, 6.06530660]], data)
 
-    @test pred(mdsl1, dt, fixeffs) ≈ sub_pred rtol=1e-6
+    @test pred(mdsl1, dt, param) ≈ sub_pred rtol=1e-6
 end
 
 @testset "wres" for
@@ -66,7 +66,7 @@ end
                            [-1.38172560 , 0.984121759],
                            [ 0.905043866, 0.302785305]], data)
 
-    @test wres(mdsl1, dt, fixeffs) ≈ sub_wres
+    @test wres(mdsl1, dt, param) ≈ sub_wres
 end
 
 @testset "cwres" for
@@ -81,7 +81,7 @@ end
                             [-1.38172560 , 0.985428904],
                             [ 0.905043866, 0.302910385]], data)
 
-    @test cwres(mdsl1, dt, fixeffs) ≈ sub_cwres
+    @test cwres(mdsl1, dt, param) ≈ sub_cwres
 end
 
 @testset "cwresi" for
@@ -96,7 +96,7 @@ end
                              [-1.3817256  , 0.962485383],
                              [ 0.905043866, 0.302554671]], data)
 
-   @test cwresi(mdsl1, dt, fixeffs) ≈ sub_cwresi
+   @test cwresi(mdsl1, dt, param) ≈ sub_cwresi
 end
 
 @testset "iwres" for
@@ -111,7 +111,7 @@ end
                             [-1.38172560 , 1.03215561 ],
                             [ 0.905043866, 0.317563907]], data)
 
-    @test iwres(mdsl1, dt, fixeffs) ≈ sub_iwres
+    @test iwres(mdsl1, dt, param) ≈ sub_iwres
 end
 
 @testset "icwres" for
@@ -126,7 +126,7 @@ end
                              [-1.38172560 , 0.942045331],
                              [ 0.905043866, 0.289051786]], data)
 
-    @test icwres(mdsl1, dt, fixeffs) ≈ sub_icwres
+    @test icwres(mdsl1, dt, param) ≈ sub_icwres
 end
 
 @testset "icwresi" for
@@ -141,11 +141,11 @@ end
                               [-1.38172560 , 0.925641802],
                               [ 0.905043866, 0.314343255]], data)
 
-    @test icwresi(mdsl1, dt, fixeffs) ≈ sub_icwresi
+    @test icwresi(mdsl1, dt, param) ≈ sub_icwresi
 end
 
-[eiwres(mdsl1,data[i],fixeffs,10000) for i in 1:10]
+[eiwres(mdsl1,data[i],param,10000) for i in 1:10]
 
-fixeffs = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
-@test ηshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
-ϵshrinkage(mdsl1,data,fixeffs,PuMaS.FOCEI())
+param = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
+@test ηshrinkage(mdsl1,data,param,PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
+ϵshrinkage(mdsl1,data,param,PuMaS.FOCEI())
