@@ -31,15 +31,15 @@ using PuMaS, Test
 
     end
 
-    fixeffs = (θ=[0.01, 0.001], Ω=PuMaS.PDMat(fill(1.0, 1, 1)))
+    param = (θ=[0.01, 0.001], Ω=PuMaS.PDMat(fill(1.0, 1, 1)))
 
     @testset "testing with $approx approximation" for
         approx in (PuMaS.FO(), PuMaS.FOCE(), PuMaS.FOCEI(), PuMaS.Laplace(), PuMaS.LaplaceI())
 
         if approx == PuMaS.LaplaceI()
-            @test PuMaS.marginal_nll(mdsl, data, fixeffs, approx) isa Number
+            @test PuMaS.marginal_nll(mdsl, data, param, approx) isa Number
         else
-            @test_broken PuMaS.marginal_nll(mdsl, data, fixeffs, approx) isa Number
+            @test_broken PuMaS.marginal_nll(mdsl, data, param, approx) isa Number
         end
     end
 

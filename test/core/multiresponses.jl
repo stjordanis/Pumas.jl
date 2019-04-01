@@ -74,7 +74,7 @@ m23 = @model begin
 end
 
 
-fixeffs = (θ = [
+param = (θ = [
               1, # Ka1  Absorption rate constant 1 (1/time)
               1, # CL   Clearance (volume/time)
               20, # Vc   Central volume (volume)
@@ -89,7 +89,7 @@ fixeffs = (θ = [
               2  # Km   Michaelis constant (mass/volume)
               ],)
 randeffs = (η = zeros(11),)
-sim = simobs(m23, subject, fixeffs, randeffs, abstol=1e-12,reltol=1e-12, continuity=:left)
+sim = simobs(m23, subject, param, randeffs, abstol=1e-12,reltol=1e-12, continuity=:left)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
@@ -175,7 +175,7 @@ m24 = @model begin
 end
 
 
-sim = simobs(m24, subject, fixeffs, randeffs, abstol=1e-12,reltol=1e-12, continuity=:left)
+sim = simobs(m24, subject, param, randeffs, abstol=1e-12,reltol=1e-12, continuity=:left)
 
 # exclude discontinuities
 inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
