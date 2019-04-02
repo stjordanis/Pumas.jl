@@ -179,7 +179,7 @@ function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
 
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
-  T = promote_type(numtype(fixeffs), numtype(fixeffs))
+  T = promote_type(numtype(param), numtype(param))
   zeros(T, p)
 end
 
@@ -208,7 +208,23 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
                             args...; kwargs...)
   vrandeffs .= Optim.minimizer(
                  Optim.optimize(
-                   penalized_conditional_nll_fn(m, subject, fixeffs, args...; kwargs...),
+                   penalized_conditional_nll_fn(m, subject, param, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
+end
+
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
+                            fixeffs::NamedTuple,
+                            approx::Union{Laplace,FOCE},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
                    vrandeffs,
                    BFGS(linesearch=Optim.LineSearches.BackTracking());
                    autodiff=:forward
@@ -512,7 +528,7 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...),
                vparam, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  vrandeffs = [randeffs_estimate(m, subject, fixeffs, approx, args...) for subject in data.subjects]
+  vrandeffs = [randeffs_estimate(m, subject, param, approx, args...) for subject in data.subjects]
   return FittedPuMaSModel(m, data, o, approx, vrandeffs)
 end
 
