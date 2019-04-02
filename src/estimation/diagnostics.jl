@@ -1,3 +1,4 @@
+import StatsBase: predict
 """
   npde(model, subject, param, randeffs, simulations_count)
 
@@ -21,18 +22,25 @@ end
 
 """
 
-  wresiduals(fpm::FittedPumasModel)
+  wresiduals(fpm::FittedPuMasModel)
 Calculates a vector of weighted residual according to the approximation method used in
-the fitting procedure whose resilt is saved in `fpm`.
+the fitting procedure whose result is saved in `fpm`.
 """
-function wresiduals(fpm)
+function wresiduals(fpm, approx=fpm.approx)
   n_obs = length(fpm.data)
-  [wresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+  [wresiduals(approx, fpm, subject_index) for subject_index = 1:n_obs]
 end
-function iwresiduals(fpm)
+"""
+
+iwresiduals(fpm::FittedPuMasModel)
+Calculates a vector of weighted residual according to the approximation method used in
+the fitting procedure whose result is saved in `fpm`.
+"""
+function iwresiduals(fpm, approx=fpm.approx)
   n_obs = length(fpm.data)
-  [iwresiduals(fpm.approx, fpm, subject_index) for subject_index = 1:n_obs]
+  [iwresiduals(approx, fpm, subject_index) for subject_index = 1:n_obs]
 end
+
 """
 
   wres(model, subject, param[, rfx])
@@ -53,9 +61,9 @@ end
 function wresiduals(approx::FO, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
+  param = fpm.param
   randeffs = fpm.vrandeffs[subject_index]
-  wres(model, subject, fixeffs, randeffs)
+  wres(model, subject, param, randeffs)
 end
 
 """
@@ -78,9 +86,9 @@ end
 function wresiduals(approx::FOCE, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
+  param = fpm.param
   randeffs = fpm.vrandeffs[subject_index]
-  cwres(model, subject, fixeffs, randeffs)
+  cwres(model, subject, param, randeffs)
 end
 """
   cwresi(model, subject, param[, rfx])
@@ -102,10 +110,17 @@ end
 function wresiduals(approx::FOCEI, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
-  randeffs = fpm.vrandeffs[subject_index]
-  cwresi(model, subject, fixeffs, randeffs)
+  param = fpm.param
+  vrandeffs = fpm.vrandeffs[subject_index]
+  cwresi(model, subject, param, vrandeffs)
 end
+
+StatsBase.predict(fpm::FittedPuMaSModel) = predict(fpm, fpm.approx)
+function StatsBase.predict(fpm::FittedPuMaSModel, approx)
+  n_obs = length(fpm.data)
+  [predict(fpm, fpm.approx, subject_index) for subject_index = 1:n_obs]
+end
+
 """
   pred(model, subject, param[, rfx])
 
@@ -118,6 +133,14 @@ function pred(m::PuMaSModel,
   nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
+function predict(fpm, approx::FO, i)
+  model = fpm.model
+  subject = fpm.data.subjects[subject_index]
+  param = fpm.param
+  vrandeffs = fpm.vrandeffs[subject_index]
+  pred(m, subject, param, vrandeffs)
+end
+
 
 """
   cpred(model, subject, param[, rfx])
@@ -131,6 +154,13 @@ function cpred(m::PuMaSModel,
   nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
+end
+function predict(fpm, approx::FOCE, i)
+  model = fpm.model
+  subject = fpm.data.subjects[i]
+  param = fpm.param
+  vrandeffs = fpm.vrandeffs[i]
+  cpred(model, subject, param, vrandeffs)
 end
 
 """
@@ -146,7 +176,22 @@ function cpredi(m::PuMaSModel,
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
 end
+function predict(fpm, approx::FOCEI, i)
+  model = fpm.model
+  subject = fpm.data.subjects[subject_index]
+  param = fpm.param
+  vrandeffs = fpm.vrandeffs[subject_index]
+  cpredi(m, subject, param, vrandeffs)
+end
 
+function epredict(fpm::FittedPuMaSModel, nsim::Integer)
+  n_obs = length(fpm.data)
+  m = fpm.model
+  subjects = fpm.data.subjects
+  param = fpm.param
+  vrandeffs = fpm.vrandeffs
+  [epred(fpm.model, subjects[subject_index], param, (η=vrandeffs[subject_index],), nsim) for subject_index = 1:n_obs]
+end
 """
   epred(model, subject, param[, rfx], simulations_count)
 
@@ -177,9 +222,9 @@ end
 function iwresiduals(approx::FO, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
+  param = fpm.param
   randeffs = fpm.vrandeffs[subject_index]
-  iwres(model, subject, fixeffs, randeffs)
+  iwres(model, subject, param, randeffs)
 end
 """
   icwres(model, subject, param[, rfx])
@@ -198,9 +243,9 @@ end
 function iwresiduals(approx::FOCE, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
+  param = fpm.param
   randeffs = fpm.vrandeffs[subject_index]
-  icwres(model, subject, fixeffs, randeffs)
+  icwres(model, subject, param, randeffs)
 end
 """
   icwresi(model, subject, param[, rfx])
@@ -218,9 +263,9 @@ end
 function iwresiduals(approx::FOCEI, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
-  fixeffs = fpm.fixeffs
+  param = fpm.param
   randeffs = fpm.vrandeffs[subject_index]
-  icwresi(model, subject, fixeffs, randeffs)
+  icwresi(model, subject, param, randeffs)
 end
 """
   eiwres(model, subject, param[, rfx], simulations_count)

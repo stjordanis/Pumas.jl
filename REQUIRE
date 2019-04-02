@@ -28,3 +28,4 @@ LogDensityProblems
 DynamicHMC
 StructArrays
 RecursiveArrayTools
+StatsBase
