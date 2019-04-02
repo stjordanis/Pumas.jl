@@ -46,3 +46,5 @@ param = init_param(mdsl2)
 param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
 @test ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCEI(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
 @test ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
+AIC(mdsl2,theopp_nlme,param,PuMaS.FOCEI())
+BIC(mdsl2,theopp_nlme,param,PuMaS.FOCEI())

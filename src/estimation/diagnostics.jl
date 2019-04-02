@@ -211,3 +211,11 @@ function ϵshrinkage(m::PuMaSModel,
   randeffs=[randeffs_estimate(m, subject, param, FOCE()) for subject in data])
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
 end
+
+function AIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
+  marginal_nll_nonmem(m, data, param, approx) + length(param)
+end
+
+function BIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
+  marginal_nll_nonmem(m, data, param, approx) + length(param)*log(sum([length(subject.time) for subject in data]))
+end
