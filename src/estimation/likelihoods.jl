@@ -257,6 +257,22 @@ end
 function randeffs_estimate!(vrandeffs::AbstractVector,
                             m::PuMaSModel,
                             subject::Subject,
+                            fixeffs::NamedTuple,
+                            approx::Union{Laplace,FOCE},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
+end
+
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
                             param::NamedTuple,
                             ::Union{FO,FOI},
                             args...; kwargs...)
