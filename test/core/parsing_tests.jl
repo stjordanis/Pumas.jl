@@ -46,6 +46,14 @@ end
   @test isa(DosageRegimen(100, rate = -2, cmt = 2, ii = 24, addl = 3), DosageRegimen)
   @test isa(DosageRegimen(0, time = 50, evid = 3, cmt = 2), DosageRegimen)
   @test_throws ArgumentError("amt must be 0 for evid = 3") DosageRegimen(1, time = 50, evid = 3, cmt = 2)
+  choose_covariates() = (isPM = rand(["yes", "no"]), Wt = rand(55:80))
+  generate_population(events, nsubs = 24) =
+    Population([ Subject(id = i, evs = events, cvs = choose_covariates()) for i ∈ 1:nsubs ])
+  firstdose = DosageRegimen(100, ii = 12, addl = 3, rate = 50)
+  seconddose = DosageRegimen(0, time = 50, evid = 3, cmt = 2)
+  thirddose = DosageRegimen(120, time = 54, ii = 16, addl = 2)
+  ev = reduce(DosageRegimen, [firstdose, seconddose, thirddose])
+  @test isa(generate_population(ev), Population)
 end
 @testset "Population Constructors" begin
   e1 = DosageRegimen(100, ii = 24, addl = 6)

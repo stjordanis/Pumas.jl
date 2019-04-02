@@ -8,7 +8,7 @@ function dim_param(m::PuMaSModel)
 end
 
 function dim_rfx(m::PuMaSModel)
-  x = init_fixeffs(m)
+  x = init_param(m)
   rfx = m.random(x)
   t_rfx = totransform(rfx)
   dimension(t_rfx)

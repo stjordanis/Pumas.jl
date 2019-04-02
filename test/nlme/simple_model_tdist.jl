@@ -33,22 +33,22 @@ tdist = @model begin
 end
 
 
-fixeffs = init_fixeffs(tdist)
+param = init_param(tdist)
 
 for (d, v) in zip(data, [-0.110095703125000, 0.035454025268555, -0.024982604980469,
                          -0.085317642211914, 0.071675025939941, 0.059612709045410,
                          -0.110117317199707, -0.024778854370117, -0.053085464477539,
                          -0.002428230285645])
-  @test PuMaS.randeffs_estimate(tdist, d, fixeffs, PuMaS.LaplaceI())[1] ≈ v rtol=1e-6
+  @test PuMaS.randeffs_estimate(tdist, d, param, PuMaS.LaplaceI())[1] ≈ v rtol=1e-6
 end
 
-@test_broken PuMaS.marginal_nll_nonmem(tdist, data, fixeffs, PuMaS.FOCEI()) ≈ -10000 rtol = 1e-6 # Need to get the right value of the mll
-@test_broken PuMaS.marginal_nll_nonmem(tdist, data, fixeffs, PuMaS.FOCE())
-@test PuMaS.marginal_nll_nonmem(tdist, data, fixeffs, PuMaS.LaplaceI()) ≈ 57.112537604068990 rtol=1e-6
+@test_broken PuMaS.marginal_nll_nonmem(tdist, data, param, PuMaS.FOCEI()) ≈ -10000 rtol = 1e-6 # Need to get the right value of the mll
+@test_broken PuMaS.marginal_nll_nonmem(tdist, data, param, PuMaS.FOCE())
+@test PuMaS.marginal_nll_nonmem(tdist, data, param, PuMaS.LaplaceI()) ≈ 57.112537604068990 rtol=1e-6
 
 function full_ll(θ)
-  _fixeffs = (θ=θ, Ω=fill(0.04, 1, 1), Σ=0.1)
-  PuMaS.marginal_nll_nonmem(tdist, data,_fixeffs, PuMaS.LaplaceI())
+  _param = (θ=θ, Ω=fill(0.04, 1, 1), Σ=0.1)
+  PuMaS.marginal_nll_nonmem(tdist, data,_param, PuMaS.LaplaceI())
 end
 
 Optim.optimize(full_ll, [0.5], BFGS())

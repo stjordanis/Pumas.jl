@@ -35,7 +35,7 @@ m_diffeq = @model begin
     end
 end
 
-fixeffs = (
+param = (
     θ = [0.4,20,1.1,2],
     Ω = PDMat(diagm(0 => [0.04,0.04,0.04])),
     σ_prop = 0.04
@@ -47,7 +47,7 @@ subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, tim
                   cvs = cvs=(isPM="no", Wt=70))
                   
 # Make sure simobs works without time, defaults to 1 day, obs at each hour
-obs = simobs(m_diffeq, subject, fixeffs, randeffs)
+obs = simobs(m_diffeq, subject, param, randeffs)
 @test obs.times == 0.0:1.0:84.0
 @test DataFrame(obs).time == 0.0:1.0:84.0
 
@@ -60,7 +60,7 @@ pop = Population([Subject(id = id,
             evs = DosageRegimen([10rand(), 20rand()],
             ii = 24, addl = 2, ss = 1:2, time = [0, 12],
             cmt = 2),cvs = cvs=(isPM="no", Wt=70)) for id in 1:10])
-pop_obs = simobs(m_diffeq, pop, fixeffs, randeffs)
+pop_obs = simobs(m_diffeq, pop, param, randeffs)
 DataFrame(pop_obs)
 
 #=

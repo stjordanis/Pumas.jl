@@ -121,6 +121,7 @@ mutable struct DosageRegimen
     addl = convert(Int, addl)
     rate = float(rate)
     ss = convert(Int8, ss)
+    evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
     if evid ∈ [0, 3]
       iszero(amt) || throw(ArgumentError("amt must be 0 for evid = $evid"))
     else
@@ -128,7 +129,6 @@ mutable struct DosageRegimen
     end
     time ≥ zero(time) || throw(ArgumentError("time must be non-negative"))
     evid == 0 && throw(ArgumentError("observations are not allowed"))
-    evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
     ii ≥ zero(ii) || throw(ArgumentError("ii must be non-negative"))
     addl ≥ 0 || throw(ArgumentError("addl must be non-negative"))
     addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
@@ -248,28 +248,7 @@ struct Subject{T1,T2,T3,T4}
       _cmt  = n_cmt ? Int(data[cmt][i])     : 1
       _rate = n_rate ? float(data[rate][i]) : _amt === nothing ? 0.0 : zero(_amt)/oneunit(t)
       ss′   = n_ss ? Int8(data[ss][i])      : Int8(0)
-
-      for j = 0:_addl  # addl==0 means just once
-        _ss = iszero(j) ? ss′ : zero(Int8)
-        duration = isa(_rate, Nothing) ? Inf : _amt/_rate
-        event_data && @assert _amt != zero(_amt) || _ss == 1 || _evid == 2 "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
-        if _amt == zero(_amt) && _evid != 2
-          event_data && @assert _rate > zero(_rate) "One or more of amt, rate, ii, addl, ss data items must be non-zero to define the dose."
-          # These are dose events having AMT=0, RATE>0, SS=1, and II=0.
-          # Such an event consists of infusion with the stated rate,
-          # starting at time −∞, and ending at the time on the dose
-          # ev event record. Bioavailability fractions do not apply
-          # to these doses.
-
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, _ii, _ss, _ii, t, Int8(1)))
-        else
-          push!(events,Event(_amt, t, _evid, _cmt, _rate, duration, _ss, _ii, t, Int8(1)))
-          if _rate != 0 && _ss == 0
-            push!(events,Event(_amt, t + duration, Int8(-1), _cmt, _rate, duration, _ss, _ii, t, Int8(-1)))
-          end
-        end
-        t += _ii
-      end
+      build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
     end
     sort!(events)
     new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)

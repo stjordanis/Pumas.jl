@@ -66,12 +66,12 @@ function rfx_f(p)
     ParamSet((η=MvNormal(p.Ω),))
 end
 
-function col_f(fixeffs,randeffs,subject)
-    (Σ  = fixeffs.Σ,
-    Ka = fixeffs.θ[1],  # pre
-    CL = fixeffs.θ[2] * ((subject.covariates.wt/70)^0.75) *
-         (fixeffs.θ[4]^subject.covariates.sex) * exp(randeffs.η[1]),
-    V  = fixeffs.θ[3] * exp(randeffs.η[2]))
+function col_f(param,randeffs,subject)
+    (Σ  = param.Σ,
+    Ka = param.θ[1],  # pre
+    CL = param.θ[2] * ((subject.covariates.wt/70)^0.75) *
+         (param.θ[4]^subject.covariates.sex) * exp(randeffs.η[1]),
+    V  = param.θ[3] * exp(randeffs.η[2]))
 end
 
 OneCompartmentVector = @SLVector (:Depot,:Central)
@@ -103,22 +103,22 @@ end
 
 mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
-fixeffs = init_fixeffs(mdsl)
-randeffs = init_randeffs(mdsl, fixeffs)
+param = init_param(mdsl)
+randeffs = init_randeffs(mdsl, param)
 
 subject = data.subjects[1]
 
-sol1 = solve(mdsl,subject,fixeffs,randeffs)
-sol2 = solve(mobj,subject,fixeffs,randeffs)
+sol1 = solve(mdsl,subject,param,randeffs)
+sol2 = solve(mobj,subject,param,randeffs)
 
 @test sol1[10].Central ≈ sol2[10].Central
 
-@test conditional_nll(mdsl,subject,fixeffs,randeffs) ≈ conditional_nll(mobj,subject,fixeffs,randeffs) rtol=5e-3
+@test conditional_nll(mdsl,subject,param,randeffs) ≈ conditional_nll(mobj,subject,param,randeffs) rtol=5e-3
 
 sol1(0.0:0.01:1.0)[2,:]
 
-Random.seed!(1); obs_dsl = simobs(mdsl,subject,fixeffs,randeffs)
-Random.seed!(1); obs_obj = simobs(mobj,subject,fixeffs,randeffs)
+Random.seed!(1); obs_dsl = simobs(mdsl,subject,param,randeffs)
+Random.seed!(1); obs_obj = simobs(mobj,subject,param,randeffs)
 
 @test obs_dsl.observed.obs_cmax == obs_obj.observed.obs_cmax > 0
 @test obs_dsl.observed.T_max == obs_obj.observed.T_max
@@ -138,12 +138,12 @@ end
 prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
 mobj_iip = PuMaSModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
-sol2 = solve(mobj_iip,subject,fixeffs,randeffs)
+sol2 = solve(mobj_iip,subject,param,randeffs)
 
-@test conditional_nll(mobj_iip,subject,fixeffs,randeffs) ≈ conditional_nll(mobj,subject,fixeffs,randeffs) rtol=5e-3
+@test conditional_nll(mobj_iip,subject,param,randeffs) ≈ conditional_nll(mobj,subject,param,randeffs) rtol=5e-3
 
-@test (Random.seed!(1); simobs(mobj_iip,subject,fixeffs,randeffs)[:dv]) ≈
-      (Random.seed!(1); simobs(mobj,subject,fixeffs,randeffs)[:dv]) rtol=1e-4
+@test (Random.seed!(1); simobs(mobj_iip,subject,param,randeffs)[:dv]) ≈
+      (Random.seed!(1); simobs(mobj,subject,param,randeffs)[:dv]) rtol=1e-4
 
 mdsl = @model begin
     @param begin
@@ -175,9 +175,9 @@ mdsl = @model begin
         T_max = maximum(t)
     end
 end
-fixeffs = init_fixeffs(mdsl)
-randeffs = init_randeffs(mdsl, fixeffs)
+param = init_param(mdsl)
+randeffs = init_randeffs(mdsl, param)
 
-@test solve(mdsl,subject,fixeffs,randeffs) === nothing
-@test simobs(mdsl,subject,fixeffs,randeffs) != nothing
-@test conditional_nll(mdsl,subject,fixeffs,randeffs) == Inf # since real-valued observations
+@test solve(mdsl,subject,param,randeffs) === nothing
+@test simobs(mdsl,subject,param,randeffs) != nothing
+@test conditional_nll(mdsl,subject,param,randeffs) == Inf # since real-valued observations
