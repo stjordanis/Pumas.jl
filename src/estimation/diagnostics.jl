@@ -213,9 +213,11 @@ function ϵshrinkage(m::PuMaSModel,
 end
 
 function AIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
-  marginal_nll_nonmem(m, data, param, approx) + (sum(p -> length(p), values(param)))
+  numparam = TransformVariables.dimension(totransform(m.param))
+  marginal_nll_nonmem(m, data, param, approx) + numparam
 end
 
 function BIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
-  marginal_nll_nonmem(m, data, param, approx) + (sum(p -> length(p), values(param)))*log(sum(t -> length(t.time), data))
+  numparam = TransformVariables.dimension(totransform(m.param))
+  marginal_nll_nonmem(m, data, param, approx) + (numparam)*log(sum(t -> length(t.time), data))
 end
