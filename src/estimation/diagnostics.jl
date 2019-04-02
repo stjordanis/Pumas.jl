@@ -214,10 +214,10 @@ end
 
 function AIC(m::PuMaSModel, data::Population, param::NamedTuple, approx::LikelihoodApproximation)
   numparam = TransformVariables.dimension(totransform(m.param))
-  marginal_nll_nonmem(m, data, param, approx) + numparam
+  2*(marginal_nll(m, data, param, approx) + numparam)
 end
 
 function BIC(m::PuMaSModel, data::Population, param::NamedTuple, approx::LikelihoodApproximation)
   numparam = TransformVariables.dimension(totransform(m.param))
-  marginal_nll_nonmem(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
+  2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end
