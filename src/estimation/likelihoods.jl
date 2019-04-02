@@ -186,16 +186,6 @@ function penalized_conditional_nll!(diffres::DiffResult,
   end
 end
 
-function _initial_randeffs(m::PuMaSModel, fixeffs::NamedTuple)
-  rfxset = m.random(fixeffs)
-  p = TransformVariables.dimension(totransform(rfxset))
-
-  # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
-  # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
-  T = promote_type(numtype(fixeffs), numtype(fixeffs))
-  zeros(T, p)
-end
-
 function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
   rfxset = m.random(param)
   p = TransformVariables.dimension(totransform(rfxset))
@@ -231,22 +221,6 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
   vrandeffs .= Optim.minimizer(
                  Optim.optimize(
                    penalized_conditional_nll_fn(m, subject, param, args...; kwargs...),
-                   vrandeffs,
-                   BFGS(linesearch=Optim.LineSearches.BackTracking());
-                   autodiff=:forward
-                 )
-               )
-end
-
-function randeffs_estimate!(vrandeffs::AbstractVector,
-                            m::PuMaSModel,
-                            subject::Subject,
-                            fixeffs::NamedTuple,
-                            approx::Union{Laplace,FOCE},
-                            args...; kwargs...)
-  vrandeffs .= Optim.minimizer(
-                 Optim.optimize(
-                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
                    vrandeffs,
                    BFGS(linesearch=Optim.LineSearches.BackTracking());
                    autodiff=:forward

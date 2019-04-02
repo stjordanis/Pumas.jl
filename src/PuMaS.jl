@@ -3,7 +3,7 @@ module PuMaS
 using DiffEqBase, DiffEqMonteCarlo, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings, RecipesBase, StructArrays, RecursiveArrayTools
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools, StatsBase
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
@@ -45,6 +45,7 @@ export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
+export wresiduals
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
 export ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
