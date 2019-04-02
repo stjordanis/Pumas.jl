@@ -12,7 +12,28 @@ end
   obs.observed[I...] = x
 end
 function DataFrames.DataFrame(obs::SimulatedObservations)
-  DataFrame(merge((time=obs.times,),obs.observed))
+  nrows = length(obs.times)
+  # Generate the expanded event list
+  events = obs.subject.events
+  amt  = zeros(typeof(events[1].amt),  nrows)
+  evid = zeros(typeof(events[1].evid), nrows)
+  cmt  = zeros(typeof(events[1].cmt),  nrows)
+  rate = zeros(typeof(events[1].rate), nrows)
+  for ev in events
+    ind = searchsortedlast(obs.times, ev.time)
+    if obs.times[ind] == ev.time
+      amt[ind]  = ev.amt
+      evid[ind] = ev.evid
+      cmt[ind]  = ev.cmt
+      rate[ind] = ev.rate
+    else
+      @warn "Non-observing event encountered in siumulated observation"
+    end
+  end
+  df = DataFrame(merge(
+    (time=obs.times,), obs.observed,
+    (amt=amt, evid=evid, cmt=cmt, rate=rate)
+  ))
 end
 
 @recipe function f(obs::SimulatedObservations)
@@ -50,9 +71,13 @@ end
   pop.sims[I...] = x
 end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
-  dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],
-                          time=s.times),
-                          s.observed)) for s in pop.sims]
+  dfs = []
+  for s in pop.sims
+    id = [s.subject.id for i in 1:length(s.times)]
+    df = DataFrame(s)
+    insertcols!(df, 1, id=id)
+    push!(dfs, df)
+  end
   reduce(vcat,dfs)
 end
 
