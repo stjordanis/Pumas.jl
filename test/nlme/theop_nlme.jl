@@ -38,13 +38,13 @@ mdsl2 = @model begin
 end
 
 param = init_param(mdsl2)
-@test @inferred(PuMaS.marginal_nll_nonmem(mdsl2,theopp_nlme,param,PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test @inferred(PuMaS.marginal_nll_nonmem(mdsl2, theopp_nlme, param, PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
 @test fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()) isa PuMaS.FittedPuMaSModel
-@test ηshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
-@test ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCEI()) ≈ 0.09091845 rtol = 1e-6
-ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCE(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme])
+@test ηshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
+@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 0.09091845 rtol = 1e-6
+ϵshrinkage(mdsl2,theopp_nlme, param, PuMaS.FOCE(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme])
 param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
-@test ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCEI(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
-@test ϵshrinkage(mdsl2,theopp_nlme,param,PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
-AIC(mdsl2,theopp_nlme,param,PuMaS.FOCEI())
-BIC(mdsl2,theopp_nlme,param,PuMaS.FOCEI())
+@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
+@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
+AIC(mdsl2, theopp_nlme, param, PuMaS.FOCEI())
+BIC(mdsl2, theopp_nlme, param, PuMaS.FOCEI())

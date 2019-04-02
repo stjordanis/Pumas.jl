@@ -201,7 +201,7 @@ function ϵshrinkage(m::PuMaSModel,
                     param::NamedTuple,
                     approx::FOCEI,
                     randeffs=[randeffs_estimate(m, subject, param, FOCEI()) for subject in data])
-  1 - std(vec(VectorOfArray([icwresi(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
+  1 - std(vec(VectorOfArray([icwresi(m, subject, param, vrandeffs) for (subject, vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
 function ϵshrinkage(m::PuMaSModel,
@@ -209,13 +209,13 @@ function ϵshrinkage(m::PuMaSModel,
   param::NamedTuple,
   approx::FOCE,
   randeffs=[randeffs_estimate(m, subject, param, FOCE()) for subject in data])
-  1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data,randeffs)])),corrected = false)
+  1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
 function AIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
-  marginal_nll_nonmem(m, data, param, approx) + length(param)
+  marginal_nll_nonmem(m, data, param, approx) + (sum(p -> length(p), values(param)))
 end
 
 function BIC(m::PuMaSModel,data::Population,param::NamedTuple, approx::LikelihoodApproximation)
-  marginal_nll_nonmem(m, data, param, approx) + length(param)*log(sum([length(subject.time) for subject in data]))
+  marginal_nll_nonmem(m, data, param, approx) + (sum(p -> length(p), values(param)))*log(sum(t -> length(t.time), data))
 end
