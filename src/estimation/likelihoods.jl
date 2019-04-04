@@ -43,17 +43,24 @@ function _lpdf(ds::AbstractVector, xs::AbstractVector)
 end
 
 """
-    conditional_nll(m::PuMaSModel, subject::Subject, param, param, args...; kwargs...)
+    conditional_nll(m::PuMaSModel, subject::Subject, param, args...; kwargs...)
 
 Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `param`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-conditional_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, args...; kwargs...) =
+conditional_nll(m::PuMaSModel,
+                subject::Subject,
+                param::NamedTuple,
+                args...; kwargs...) =
   first(conditional_nll_ext(m, subject, param, args...; kwargs...))
 
-function conditional_nll_ext(m::PuMaSModel, subject::Subject, param::NamedTuple,
-                             randeffs::NamedTuple=sample_randeffs(m, param), args...; kwargs...)
+function conditional_nll_ext(m::PuMaSModel,
+                             subject::Subject,
+                             param::NamedTuple,
+                             randeffs::NamedTuple=sample_randeffs(m, param),
+                             args...; kwargs...)
+
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
   isnothing(obstimes) && throw(ArgumentError("no observations for subject"))
@@ -84,7 +91,12 @@ function conditional_nll_ext(m::PuMaSModel, subject::Subject, param::NamedTuple,
   return -ll, derived_dist
 end
 
-function conditional_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, approx::Union{Laplace,FOCE}, args...; kwargs...)
+function conditional_nll(m::PuMaSModel,
+                         subject::Subject,
+                         param::NamedTuple,
+                         randeffs::NamedTuple,
+                         approx::Union{Laplace,FOCE},
+                         args...; kwargs...)
   l, dist    = conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...)
 
   # If (negative) likehood is infinity or the model is Homoscedastic, we just return l
@@ -228,7 +240,12 @@ function randeffs_estimate(m::PuMaSModel,
   )
 end
 
-randeffs_estimate(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, ::Union{FO,FOI}, args...; kwargs...) = zero(vrandeffs)
+randeffs_estimate(m::PuMaSModel,
+                  subject::Subject,
+                  param::NamedTuple,
+                  vrandeffs::AbstractVector,
+                  ::Union{FO,FOI},
+                  args...; kwargs...) = zero(vrandeffs)
 
 """
     randeffs_estimate_dist(model, subject, param, approx, ...)
@@ -254,8 +271,12 @@ from the data.
 
 See also [`marginal_nll_nonmem`](@ref).
 """
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, approx::LikelihoodApproximation, args...;
-                      kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      randeffs::NamedTuple,
+                      approx::LikelihoodApproximation,
+                      args...; kwargs...)
   rfxset = m.random(param)
   vrandeffs = TransformVariables.inverse(totransform(rfxset), randeffs)
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
@@ -275,20 +296,24 @@ function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrande
   end
 end
 
-@noinline function _init_duals(f::Function, ::Val{N}, x::AbstractVector{V}, ::T = ForwardDiff.Tag(f, V)) where {N,V,T}
-  seeds = ForwardDiff.construct_seeds(ForwardDiff.Partials{N,V})
-  return [ForwardDiff.Dual{T,V,N}(x[i], seeds[i]) for i in 1:N]
-end
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      ::FOCEI,
+                      args...; kwargs...)
 
-_init_duals(f::Function, x::StridedVector) = _init_duals(f, Val(length(x)), x)
-
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, ::FOCEI, args...; kwargs...)
+  # Costruct closure for calling conditional_nll_ext as a function
+  # of a random effects vector. This makes it possible for ForwardDiff's
+  # tagging system to work properly
+  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
 
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
+  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
+  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = conditional_nll_ext(m, subject, param, (η=vrandeffsdual,), args...; kwargs...)
+  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
 
   nl = ForwardDiff.value(nl_d)
 
@@ -317,13 +342,24 @@ function _is_homoscedast(dist::NamedTuple)
   return all(t -> ForwardDiff.value(var(t)) == v1, dv)
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, ::FOCE, args...; kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      ::FOCE,
+                      args...; kwargs...)
+
+  # Costruct closure for calling conditional_nll_ext as a function
+  # of a random effects vector. This makes it possible for ForwardDiff's
+  # tagging system to work properly
+  _conditional_nll_ext =  _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
 
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
+  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
+  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = conditional_nll_ext(m, subject, param, (η=vrandeffsdual,), args...; kwargs...)
+  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
   # If the model is homoscedastic, it is not necessary to recompute the variances at η=0
@@ -357,19 +393,30 @@ function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrande
   end
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, ::FO, args...; kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      ::FO,
+                      args...; kwargs...)
 
   # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vrandeffs)
 
+  # Costruct closure for calling conditional_nll_ext as a function
+  # of a random effects vector. This makes it possible for ForwardDiff's
+  # tagging system to work properly
+  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
+
   # Construct vector of dual numbers for the random effects to track the partial derivatives
-  vrandeffsdual = _init_duals(conditional_nll_ext, vrandeffs)
+  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
+  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  l_d, dist_d = conditional_nll_ext(m, subject, param, (η=vrandeffsdual,), args...; kwargs...)
+  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
 
   # Extract the value of the conditional likelihood
-  l = ForwardDiff.value(l_d)
+  nl = ForwardDiff.value(nl_d)
 
   # Compute the gradient of the likelihood and Hessian approxmation in the random effect vector η
   W, dldη = FIM(subject.observations, dist_d, FO())
@@ -381,26 +428,36 @@ function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrande
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
   if issuccess(FΩ)
     invFΩ = inv(FΩ)
-    return l + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
+    return nl + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
   else # Ω is numerically singular
-    return typeof(l)(Inf)
+    return typeof(nl)(Inf)
   end
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, approx::Laplace, args...; kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      approx::Laplace,
+                      args...; kwargs...)
   Ω = cov(m.random(param).params.η)
   nl = conditional_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
   W = ForwardDiff.hessian(s -> conditional_nll(m, subject, param, s, approx, args...; kwargs...), vrandeffs)
   return nl + (logdet(Ω) + vrandeffs'*(Ω\vrandeffs) + logdet(inv(Ω) + W))/2
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, approx::LikelihoodApproximation, args...;
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      approx::LikelihoodApproximation,
+                      args...;
                       kwargs...)
   vrandeffs = randeffs_estimate(m, subject, param, approx, args...; kwargs...)
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
-function marginal_nll(m::PuMaSModel, data::Population, args...;
-                      kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      data::Population,
+                      args...; kwargs...)
   sum(subject -> marginal_nll(m, subject, args...; kwargs...), data.subjects)
 end
 
@@ -412,9 +469,14 @@ end
 Compute the NONMEM-equivalent marginal negative loglikelihood of a subject or dataset:
 this is scaled and shifted slightly from [`marginal_nll`](@ref).
 """
-marginal_nll_nonmem(m::PuMaSModel, subject::Subject, args...; kwargs...) =
+marginal_nll_nonmem(m::PuMaSModel,
+                    subject::Subject,
+                    args...; kwargs...) =
     2marginal_nll(m, subject, args...; kwargs...) - length(first(subject.observations))*log(2π)
-marginal_nll_nonmem(m::PuMaSModel, data::Population, args...; kwargs...) =
+
+marginal_nll_nonmem(m::PuMaSModel,
+                    data::Population,
+                    args...; kwargs...) =
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data.subjects)*log(2π)
 # NONMEM doesn't allow ragged, so this suffices for testing
 
