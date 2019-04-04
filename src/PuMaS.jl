@@ -22,6 +22,7 @@ include("models/derived_utils.jl")
 
 include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
+include("estimation/reporting.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 

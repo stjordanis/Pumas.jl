@@ -521,6 +521,8 @@ function Distributions.fit(m::PuMaSModel,
                            optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
                            optimautodiff=:finite,
                            optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
+                                                                     store_trace=true,
+                                                                     extended_trace=true,
                                                                      g_tol=1e-3),
                            kwargs...)
   trf = totransform(m.param)
