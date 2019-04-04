@@ -97,9 +97,13 @@ end
   o_stderror  = stderror(o)
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
-  @testset "test parameter $k" for k in keys(o_estimates)
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
-    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=1e-2
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
   end
 end
 
@@ -188,9 +192,13 @@ end
   o_stderror  = stderror(o)
 
   @test_broken PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
-  @testset "test parameter $k" for k in keys(o_estimates)
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
-    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=1e-2
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
   end
 
   # Test that the types work on both stiff and non-stiff solver methods
@@ -273,8 +281,12 @@ end
   o_stderror  = stderror(o)
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849119366599
-  @testset "test parameter $k" for k in keys(o_estimates)
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(foce_stderr, k))           rtol=1e-2
   end
 end
@@ -356,9 +368,12 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505379554628
-  @testset "test parameter $k" for k in keys(o_estimates)
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505379554628 rtol=1e-7
+  @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(focei_stderr, k))           rtol=1e-2
   end
 
@@ -444,6 +459,7 @@ end
   x_optim = o.param
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 102.871158475488 rtol=1e-5
+
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
   end
@@ -568,8 +584,12 @@ end
     o_stderror  = stderror(o)
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
-    @testset "test parameter $k" for k in keys(o_estimates)
+
+    @testset "test estimate of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+    end
+
+    @testset "test stderror of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplace_stderr, k))           rtol=1e-2
     end
   end
@@ -652,12 +672,16 @@ end
     o = fit(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI())
 
     o_estimates = o.param
-    # o_stderror  = stderror(o) Commented out because of https://github.com/JuliaDiff/DiffResults.jl/issues/8
+    o_stderror  = stderror(o)
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
-    @testset "test parameter $k" for k in keys(o_estimates)
+
+    @testset "test estimate of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
-      # @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplacei_stderr, k))           rtol=1e-2
+    end
+
+    @testset "test stderror of $k" for k in keys(o_estimates)
+      @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplacei_stderr, k))           rtol=4e-2
     end
   end
 end

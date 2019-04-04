@@ -586,40 +586,145 @@ end
 marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.param, f.approx)
 marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.param, f.approx)
 
+# Compute the gradient of marginal_nll without solving inner optimization
+# problem. This functions follows the approach of Almquist et al. (2015) by
+# computing the gradient
+#
+# dL/dθ = ∂ℓ/∂θ + dη/dθ'*∂ℓ/∂η
+#
+# where L is the marginal likelihood of the subject, ℓ is the penalized
+# conditional likelihood function and dη/dθ is the Jacobian of the optimal
+# value of η with respect to the population parameters θ
+function marginal_nll_gradient!(G::AbstractVector,
+                                model::PuMaSModel,
+                                subject::Subject,
+                                param::NamedTuple,
+                                randeffs::NamedTuple,
+                                approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
+                                trf::TransformVariables.TransformNamedTuple
+                                )
+
+  vparam = TransformVariables.inverse(trf, param)
+
+  # Compute first order derivatives of the marginal likelihood function
+  # with finite differencing to save compute time
+  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _param -> marginal_nll(
+      model,
+      subject,
+      TransformVariables.transform(trf, _param),
+      randeffs,
+      approx
+    ),
+    vparam
+  )
+
+  ∂ℓ∂η = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _η -> marginal_nll(
+      model,
+      subject,
+      param,
+      (η=_η,),
+      approx
+    ),
+    randeffs.η
+  )
+
+  # Compute second order derivatives in high precision with ForwardDiff
+  ∂²ℓ∂η² = ForwardDiff.hessian(
+    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx),
+    randeffs.η
+  )
+
+  ∂²ℓ∂η∂θ = ForwardDiff.jacobian(
+    _θ -> ForwardDiff.gradient(
+      _η -> penalized_conditional_nll(model,
+                                      subject,
+                                      TransformVariables.transform(trf, _θ),
+                                      (η=_η,),
+                                      approx),
+      randeffs.η
+    ),
+    vparam
+  )
+
+  dηdθ = -∂²ℓ∂η² \ ∂²ℓ∂η∂θ
+
+  G .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
+
+  return G
+end
+
+# Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
+# but much simpler since the expansion point in η is fixed. Hence,
+# the gradient is simply the partial derivative in θ
+function marginal_nll_gradient!(G::AbstractVector,
+                                model::PuMaSModel,
+                                subject::Subject,
+                                param::NamedTuple,
+                                randeffs::NamedTuple,
+                                approx::Union{FO,FOI},
+                                trf::TransformVariables.TransformNamedTuple
+                                )
+
+  # Compute first order derivatives of the marginal likelihood function
+  # with finite differencing to save compute time
+  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _param -> marginal_nll(
+      model,
+      subject,
+      TransformVariables.transform(trf, _param),
+      randeffs,
+      approx
+    ),
+    TransformVariables.inverse(trf, param)
+  )
+
+  G .= ∂ℓ∂θ
+
+  return G
+end
+
 """
     vcov(f::FittedPuMaSModel) -> Matrix
 
 Compute the covariance matrix of the population parameters
 """
 function StatsBase.vcov(f::FittedPuMaSModel)
+
   # Transformation the NamedTuple of parameters to a Vector
   # without applying any bounds (identity transform)
   trf = toidentitytransform(f.model.param)
-  vfixeffs = big.(TransformVariables.inverse(trf, f.fixeffs))
+  vparam = TransformVariables.inverse(trf, f.param)
 
-  # Compute the Hessian matrix of the population parameters. Use AD for
-  # inner gradient and FD for outer Jacobian since using nested AD is
-  # currently too heavy for the compiler
-  H = Optim.DiffEqDiffTools.finite_difference_jacobian(vfixeffs) do tout, tin
-    tout[:] = Optim.DiffEqDiffTools.finite_difference_gradient(tin) do s
-      _fixeffs = PuMaS.TransformVariables.transform(trf, s)
-      return PuMaS.marginal_nll(f.model, f.data, _fixeffs, f.approx)
+  # Initialize arrays
+  H = zeros(eltype(vparam), length(vparam), length(vparam))
+  S = copy(H)
+  g = similar(vparam, length(vparam))
+
+  # Loop through subject and compute Hessian and score contributions
+  for i in 1:length(f.data)
+    subject = f.data[i]
+
+    # Compute Hessian contribution and update Hessian
+    H .+= Optim.DiffEqDiffTools.finite_difference_jacobian(vparam) do _j, _param
+      param = TransformVariables.transform(trf, _param)
+      vrandeffs = randeffs_estimate(f.model, subject, param, f.approx)
+      marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf)
+      return nothing
     end
-    return nothing
+
+    # Compute score contribution
+    vrandeffs = randeffs_estimate(f.model, subject, f. param, f.approx)
+    marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf)
+
+    # Update outer product of scores
+    S .+= g .* g'
   end
 
-  # Compute the first order approximation to the Hessian, i.e. the sum of
-  # outer product of the gradients per subject
-  S = sum(1:length(f.data)) do i
-    g = Optim.DiffEqDiffTools.finite_difference_gradient(vfixeffs) do t
-      _fixeffs = PuMaS.TransformVariables.transform(trf, t)
-      return PuMaS.marginal_nll(f.model, f.data[i], _fixeffs, f.approx)
-    end
-    return g*g'
-  end
-
-  F = eigen(Symmetric(Float64.(H)), Symmetric(Float64.(S)))
-
+  # Use generialized eigenvalue decomposition to compute inv(H)*S*inv(H)
+  F = eigen(Symmetric(H), Symmetric(S))
+  any(t -> t <= 0, F.values) && @warn("Hessian is not positive definite")
   return F.vectors*Diagonal(inv.(abs2.(F.values)))*F.vectors'
 end
 
