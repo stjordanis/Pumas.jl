@@ -481,19 +481,6 @@ marginal_nll_nonmem(m::PuMaSModel,
 # NONMEM doesn't allow ragged, so this suffices for testing
 
 
-"""
-In named tuple nt, replace the value x.var by y
-"""
-@generated function Base.setindex(x::NamedTuple,y,v::Val)
-  k = first(v.parameters)
-  k ∉ x.names ? :x : :( (x..., $k=y) )
-end
-
-function _mean(model, subject, param::NamedTuple, randeffs::NamedTuple, i, args...; kwargs...)
-  x_, dist_ = conditional_nll_ext(model, subject, param, randeffs, args...; kwargs...)
-  mean(dist_.dv[i])
-end
-
 function FIM(dist::NamedTuple, ::FOCEI)
 
   # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
