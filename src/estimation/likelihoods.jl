@@ -100,7 +100,7 @@ function conditional_nll(m::PuMaSModel,
   l, dist    = conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...)
 
   # If (negative) likehood is infinity or the model is Homoscedastic, we just return l
-  if isinf(l) || _is_homoscedast(dist)
+  if isinf(l) || _is_homoscedastic(dist)
     return l
   else # compute the adjusted (negative) likelihood where the variance is evaluated at η=0
     l0, dist0 = conditional_nll_ext(m, subject, param, map(zero, randeffs), args...; kwargs...)
@@ -335,7 +335,7 @@ end
 
 # Helper function to detect homoscedasticity. For now, it is assumed the input is a NamedTuple
 # with a dv field containing a vector of distributions with ForwardDiff element types.
-function _is_homoscedast(dist::NamedTuple)
+function _is_homoscedastic(dist::NamedTuple)
   # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
   dv = dist.dv
   v1 = ForwardDiff.value(var(first(dv)))
@@ -363,7 +363,7 @@ function marginal_nll(m::PuMaSModel,
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
   # If the model is homoscedastic, it is not necessary to recompute the variances at η=0
-  if _is_homoscedast(dist_d)
+  if _is_homoscedastic(dist_d)
     nl = ForwardDiff.value(nl_d)
 
     # FIXME! Don't hardcode for dv
