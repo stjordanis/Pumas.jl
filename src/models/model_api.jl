@@ -106,15 +106,15 @@ function _solve(m::PuMaSModel, subject, col, args...;
   end
 end
 
-"""
-sample(d)
+#=
+_rand(d)
 
 Samples a random value from a distribution or if it's a number assumes it's the
 constant distribution and passes it through.
-"""
-sample(d::Distributions.Sampleable) = rand(d)
-sample(d::AbstractArray{<:Distributions.Sampleable}) = map(sample,d)
-sample(d) = d
+=#
+_rand(d::Distributions.Sampleable) = rand(d)
+_rand(d::AbstractArray{<:Distributions.Sampleable}) = map(_rand,d)
+_rand(d) = d
 
 
 zval(d) = 0.0
@@ -139,7 +139,7 @@ function simobs(m::PuMaSModel, subject::Subject,
   isempty(obstimes) && throw(ArgumentError("obstimes is empty."))
   sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
   derived = m.derived(col,sol,obstimes,subject)
-  obs = m.observed(col,sol,obstimes,map(PuMaS.sample,derived),subject)
+  obs = m.observed(col,sol,obstimes,map(_rand,derived),subject)
   SimulatedObservations(subject,obstimes,obs)
 end
 
