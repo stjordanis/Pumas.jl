@@ -176,17 +176,17 @@ function cpredi(m::PuMaSModel,
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
 end
-function predict(fpm, approx::FOCEI, i)
+function predict(fpm, approx::FOCEI, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
   vrandeffs = fpm.vrandeffs[subject_index]
-  cpredi(m, subject, param, vrandeffs)
+  cpredi(model, subject, param, vrandeffs)
 end
 
 function epredict(fpm::FittedPuMaSModel, nsim::Integer)
   n_obs = length(fpm.data)
-  m = fpm.model
+  model = fpm.model
   subjects = fpm.data.subjects
   param = fpm.param
   vrandeffs = fpm.vrandeffs
