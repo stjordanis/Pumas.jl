@@ -149,5 +149,5 @@ end
 param = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
 @test ηshrinkage(mdsl1, data, param, PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
 ϵshrinkage(mdsl1, data, param, PuMaS.FOCEI())
-AIC(mdsl1, data, param, PuMaS.FOCEI())
-BIC(mdsl1, data, param, PuMaS.FOCEI())
+@test AIC(mdsl1, data, param, PuMaS.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
+@test BIC(mdsl1, data, param, PuMaS.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test
