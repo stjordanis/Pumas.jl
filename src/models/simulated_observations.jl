@@ -88,8 +88,8 @@ end
 function DataFrames.DataFrame(pop::SimulatedPopulation)
   dfs = []
   for s in pop.sims
-    id = [s.subject.id for i in 1:length(s.times)]
     df = DataFrame(s)
+    id = [s.subject.id for i in 1:size(df, 1)]
     insertcols!(df, 1, id=id)
     push!(dfs, df)
   end
