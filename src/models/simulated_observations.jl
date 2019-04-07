@@ -14,7 +14,7 @@ end
 function DataFrames.DataFrame(obs::SimulatedObservations;
   include_events=true)
   nrows = length(obs.times)
-  df = DataFrame(merge((time=obs.times,), obs.observed))
+  df = DataFrame(merge((time=obs.times,), deepcopy(obs.observed)))
   obs_columns = [keys(obs.observed)...]
   if include_events
     # Append event columns
