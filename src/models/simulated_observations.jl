@@ -14,31 +14,41 @@ end
 function DataFrames.DataFrame(obs::SimulatedObservations;
   include_events=true)
   nrows = length(obs.times)
+  df = DataFrame(merge((time=obs.times,), obs.observed))
+  obs_columns = [keys(obs.observed)...]
   if include_events
-    # Generate the expanded event list
+    # Append event columns
+    ## For observations we have `evid=0` and `cmt=0`, the latter
+    ## subject to changes in the future
     events = obs.subject.events
-    amt  = zeros(typeof(events[1].amt),  nrows)
-    evid = zeros(typeof(events[1].evid), nrows)
-    cmt  = zeros(typeof(events[1].cmt),  nrows)
-    rate = zeros(typeof(events[1].rate), nrows)
+    df[:amt]  = zeros(typeof(events[1].amt),  nrows)
+    df[:evid] = zeros(typeof(events[1].evid), nrows)
+    df[:cmt]  = zeros(typeof(events[1].cmt),  nrows)
+    df[:rate] = zeros(typeof(events[1].rate), nrows)
+    # Add rows corresponding to the events
+    ## For events that have a matching observation at the event
+    ## time, the values of the derived variables are copied.
+    ## Otherwise they are set to `missing`.
     for ev in events
       ind = searchsortedlast(obs.times, ev.time)
       if obs.times[ind] == ev.time
-        amt[ind]  = ev.amt
-        evid[ind] = ev.evid
-        cmt[ind]  = ev.cmt
-        rate[ind] = ev.rate
+        ev_row = vcat(ev.time, df[ind, obs_columns]...,
+                      ev.amt, ev.evid, ev.cmt, ev.rate)
+        push!(df, ev_row)
       else
-        @warn "Non-observing event encountered in siumulated observation"
+        ev_row = vcat(ev.time, missings(length(obs_columns)),
+                      ev.amt, ev.evid, ev.cmt, ev.rate)
+        try
+          push!(df, ev_row)
+        catch # exception if df doesn't allow missing values yet
+          allowmissing!(df, obs_columns)
+          push!(df, ev_row)
+        end
       end
     end
-    DataFrame(merge(
-      (time=obs.times,), obs.observed,
-      (amt=amt, evid=evid, cmt=cmt, rate=rate)
-    ))
-  else
-    DataFrame(merge((time=obs.times,), obs.observed))
+    sort!(df, (:time, :evid))
   end
+  df
 end
 
 @recipe function f(obs::SimulatedObservations)
