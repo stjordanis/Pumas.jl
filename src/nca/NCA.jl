@@ -26,7 +26,7 @@ export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
           :cmax, :tmax, :cmin, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
-          :interpextrapconc, :auc, :auclast, :aumc, :aumclast, :auc_extrap_percent, :aumc_extrap_percent,
+          :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface

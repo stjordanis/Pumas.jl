@@ -94,6 +94,7 @@ function NCASubject(conc′, time′;
   intercept = r2_proto = ustrip(unittime/unitconc)
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
+  ii = ii === nothing ? zero(float(eltype(eltype(time)))) : ii # `time` is a vector of vectors
   if multidose
     n = length(dose)
     ct = let time=time, dose=dose
@@ -107,7 +108,6 @@ function NCASubject(conc′, time′;
     time = map(x->x[2], ct)
     maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
     lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
-    ii = ii === nothing ? zero(float(eltype(eltype(time)))) : ii # `time` is a vector of vectors
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
@@ -124,9 +124,9 @@ function NCASubject(conc′, time′;
   NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),
-          typeof(r2_proto),  typeof(llq), typeof(lastidx),
-          Int, typeof(id), typeof(group), Nothing}(id, group,
-            conc, time, abstime, maxidx, lastidx, dose, nothing, lambdaz_proto, llq,
+          typeof(r2_proto),  typeof(llq),   typeof(lastidx),
+          Int, typeof(id),   typeof(group), typeof(ii)}(id, group,
+            conc, time, abstime, maxidx, lastidx, dose, ii, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, 0,
             auc_proto, aumc_proto, :___)
 end

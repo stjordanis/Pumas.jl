@@ -270,6 +270,26 @@ Alias for `aumc(subj; auctype=:last)`.
 """
 aumclast(nca::NCASubject; kwargs...) = aumc(nca; auctype=:last, kwargs...)
 
+"""
+    auctau(subj::NCASubject; method::Symbol, kwargs...)
+
+Alias for `auctau(subj; auctype=:last, interval=(zero(τ), τ))`.
+"""
+function auctau(nca; kwargs...)
+  τ = tau(nca; kwargs...)
+  return auc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
+end
+
+"""
+    aumctau(subj::NCASubject; method::Symbol, kwargs...)
+
+Alias for `aumctau(subj; auctype=:last, interval=(zero(τ), τ))`.
+"""
+function aumctau(nca; kwargs...)
+  τ = tau(nca; kwargs...)
+  return aumc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
+end
+
 function auc_extrap_percent(nca::NCASubject; kwargs...)
   aucinf  = auc(nca; auctype=:inf, kwargs...)
   auclast = auc(nca; auctype=:last, kwargs...)
