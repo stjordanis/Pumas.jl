@@ -11,8 +11,10 @@ end
 @inline function Base.setindex!(obs::SimulatedObservations, x, I...)
   obs.observed[I...] = x
 end
+
+# DataFrame conversion
 function DataFrames.DataFrame(obs::SimulatedObservations;
-  include_events=true)
+  include_events=true, include_covariates=true)
   nrows = length(obs.times)
   df = DataFrame(merge((time=obs.times,), deepcopy(obs.observed)))
   obs_columns = [keys(obs.observed)...]
@@ -47,6 +49,12 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
       end
     end
     sort!(df, (:time, :evid))
+  end
+  if include_covariates
+    covariates = obs.subject.covariates
+    for (cov, value) in pairs(covariates)
+      df[cov] = value
+    end
   end
   df
 end
