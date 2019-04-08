@@ -480,6 +480,104 @@ marginal_nll_nonmem(m::PuMaSModel,
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data.subjects)*log(2π)
 # NONMEM doesn't allow ragged, so this suffices for testing
 
+# Compute the gradient of marginal_nll without solving inner optimization
+# problem. This functions follows the approach of Almquist et al. (2015) by
+# computing the gradient
+#
+# dL/dθ = ∂ℓ/∂θ + dη/dθ'*∂ℓ/∂η
+#
+# where L is the marginal likelihood of the subject, ℓ is the penalized
+# conditional likelihood function and dη/dθ is the Jacobian of the optimal
+# value of η with respect to the population parameters θ
+function marginal_nll_gradient!(G::AbstractVector,
+                                model::PuMaSModel,
+                                subject::Subject,
+                                param::NamedTuple,
+                                randeffs::NamedTuple,
+                                approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
+                                trf::TransformVariables.TransformNamedTuple
+                                )
+
+  vparam = TransformVariables.inverse(trf, param)
+
+  # Compute first order derivatives of the marginal likelihood function
+  # with finite differencing to save compute time
+  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _param -> marginal_nll(
+      model,
+      subject,
+      TransformVariables.transform(trf, _param),
+      randeffs,
+      approx
+    ),
+    vparam
+  )
+
+  ∂ℓ∂η = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _η -> marginal_nll(
+      model,
+      subject,
+      param,
+      (η=_η,),
+      approx
+    ),
+    randeffs.η
+  )
+
+  # Compute second order derivatives in high precision with ForwardDiff
+  ∂²ℓ∂η² = ForwardDiff.hessian(
+    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx),
+    randeffs.η
+  )
+
+  ∂²ℓ∂η∂θ = ForwardDiff.jacobian(
+    _θ -> ForwardDiff.gradient(
+      _η -> penalized_conditional_nll(model,
+                                      subject,
+                                      TransformVariables.transform(trf, _θ),
+                                      (η=_η,),
+                                      approx),
+      randeffs.η
+    ),
+    vparam
+  )
+
+  dηdθ = -∂²ℓ∂η² \ ∂²ℓ∂η∂θ
+
+  G .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
+
+  return G
+end
+
+# Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
+# but much simpler since the expansion point in η is fixed. Hence,
+# the gradient is simply the partial derivative in θ
+function marginal_nll_gradient!(G::AbstractVector,
+                                model::PuMaSModel,
+                                subject::Subject,
+                                param::NamedTuple,
+                                randeffs::NamedTuple,
+                                approx::Union{FO,FOI},
+                                trf::TransformVariables.TransformNamedTuple
+                                )
+
+  # Compute first order derivatives of the marginal likelihood function
+  # with finite differencing to save compute time
+  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+    _param -> marginal_nll(
+      model,
+      subject,
+      TransformVariables.transform(trf, _param),
+      randeffs,
+      approx
+    ),
+    TransformVariables.inverse(trf, param)
+  )
+
+  G .= ∂ℓ∂θ
+
+  return G
+end
 
 function FIM(dist::NamedTuple, ::FOCEI)
 
@@ -586,104 +684,6 @@ end
 marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.param, f.approx)
 marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.param, f.approx)
 
-# Compute the gradient of marginal_nll without solving inner optimization
-# problem. This functions follows the approach of Almquist et al. (2015) by
-# computing the gradient
-#
-# dL/dθ = ∂ℓ/∂θ + dη/dθ'*∂ℓ/∂η
-#
-# where L is the marginal likelihood of the subject, ℓ is the penalized
-# conditional likelihood function and dη/dθ is the Jacobian of the optimal
-# value of η with respect to the population parameters θ
-function marginal_nll_gradient!(G::AbstractVector,
-                                model::PuMaSModel,
-                                subject::Subject,
-                                param::NamedTuple,
-                                randeffs::NamedTuple,
-                                approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
-                                trf::TransformVariables.TransformNamedTuple
-                                )
-
-  vparam = TransformVariables.inverse(trf, param)
-
-  # Compute first order derivatives of the marginal likelihood function
-  # with finite differencing to save compute time
-  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
-    _param -> marginal_nll(
-      model,
-      subject,
-      TransformVariables.transform(trf, _param),
-      randeffs,
-      approx
-    ),
-    vparam
-  )
-
-  ∂ℓ∂η = Optim.DiffEqDiffTools.finite_difference_gradient(
-    _η -> marginal_nll(
-      model,
-      subject,
-      param,
-      (η=_η,),
-      approx
-    ),
-    randeffs.η
-  )
-
-  # Compute second order derivatives in high precision with ForwardDiff
-  ∂²ℓ∂η² = ForwardDiff.hessian(
-    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx),
-    randeffs.η
-  )
-
-  ∂²ℓ∂η∂θ = ForwardDiff.jacobian(
-    _θ -> ForwardDiff.gradient(
-      _η -> penalized_conditional_nll(model,
-                                      subject,
-                                      TransformVariables.transform(trf, _θ),
-                                      (η=_η,),
-                                      approx),
-      randeffs.η
-    ),
-    vparam
-  )
-
-  dηdθ = -∂²ℓ∂η² \ ∂²ℓ∂η∂θ
-
-  G .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
-
-  return G
-end
-
-# Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
-# but much simpler since the expansion point in η is fixed. Hence,
-# the gradient is simply the partial derivative in θ
-function marginal_nll_gradient!(G::AbstractVector,
-                                model::PuMaSModel,
-                                subject::Subject,
-                                param::NamedTuple,
-                                randeffs::NamedTuple,
-                                approx::Union{FO,FOI},
-                                trf::TransformVariables.TransformNamedTuple
-                                )
-
-  # Compute first order derivatives of the marginal likelihood function
-  # with finite differencing to save compute time
-  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
-    _param -> marginal_nll(
-      model,
-      subject,
-      TransformVariables.transform(trf, _param),
-      randeffs,
-      approx
-    ),
-    TransformVariables.inverse(trf, param)
-  )
-
-  G .= ∂ℓ∂θ
-
-  return G
-end
 
 """
     vcov(f::FittedPuMaSModel) -> Matrix
