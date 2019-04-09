@@ -22,23 +22,23 @@ end
 
 """
 
-  wresiduals(fpm::FittedPuMasModel)
+  residuals(fpm::FittedPuMasModel)
 Calculates a vector of weighted residual according to the approximation method used in
 the fitting procedure whose result is saved in `fpm`.
 """
-function wresiduals(fpm, approx=fpm.approx)
+function residuals(fpm, approx=fpm.approx)
   n_obs = length(fpm.data)
-  [wresiduals(approx, fpm, subject_index) for subject_index = 1:n_obs]
+  [residuals(approx, fpm, subject_index) for subject_index = 1:n_obs]
 end
 """
 
-iwresiduals(fpm::FittedPuMasModel)
+iresiduals(fpm::FittedPuMasModel)
 Calculates a vector of weighted residual according to the approximation method used in
 the fitting procedure whose result is saved in `fpm`.
 """
-function iwresiduals(fpm, approx=fpm.approx)
+function iresiduals(fpm, approx=fpm.approx)
   n_obs = length(fpm.data)
-  [iwresiduals(approx, fpm, subject_index) for subject_index = 1:n_obs]
+  [iresiduals(approx, fpm, subject_index) for subject_index = 1:n_obs]
 end
 
 """
@@ -58,7 +58,7 @@ function wres(m::PuMaSModel,
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv))
 end
-function wresiduals(approx::FO, fpm, subject_index)
+function residuals(approx::FO, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
@@ -83,7 +83,7 @@ function cwres(m::PuMaSModel,
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
-function wresiduals(approx::FOCE, fpm, subject_index)
+function residuals(approx::FOCE, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
@@ -107,7 +107,7 @@ function cwresi(m::PuMaSModel,
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
   return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
 end
-function wresiduals(approx::FOCEI, fpm, subject_index)
+function residuals(approx::FOCEI, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
@@ -219,7 +219,7 @@ function iwres(m::PuMaSModel,
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
-function iwresiduals(approx::FO, fpm, subject_index)
+function iresiduals(approx::FO, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
@@ -240,7 +240,7 @@ function icwres(m::PuMaSModel,
   nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist0.dv)
 end
-function iwresiduals(approx::FOCE, fpm, subject_index)
+function iresiduals(approx::FOCE, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
@@ -260,7 +260,7 @@ function icwresi(m::PuMaSModel,
   l, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
 end
-function iwresiduals(approx::FOCEI, fpm, subject_index)
+function iresiduals(approx::FOCEI, fpm, subject_index)
   model = fpm.model
   subject = fpm.data.subjects[subject_index]
   param = fpm.param
