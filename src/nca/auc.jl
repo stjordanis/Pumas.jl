@@ -163,7 +163,12 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
     # auc of the last interval
     if isfinite(hi)
       concend = interpextrapconc(nca, hi; method=method, kwargs...)
-      auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      if hi > _tlast # if we are extrapolating at the last point, let's use the logarithm trapezoid
+        λz = lambdaz(nca; recompute=false, kwargs...)
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      else
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      end
     end
   else
     idx1, idx2 = firstindex(time), lastindex(time)
@@ -275,8 +280,9 @@ aumclast(nca::NCASubject; kwargs...) = aumc(nca; auctype=:last, kwargs...)
 
 Alias for `auctau(subj; auctype=:last, interval=(zero(τ), τ))`.
 """
-function auctau(nca; kwargs...)
+function auctau(nca::NCASubject; kwargs...)
   τ = tau(nca; kwargs...)
+  ismissing(τ) && return missing
   return auc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
 end
 
@@ -285,8 +291,9 @@ end
 
 Alias for `aumctau(subj; auctype=:last, interval=(zero(τ), τ))`.
 """
-function aumctau(nca; kwargs...)
+function aumctau(nca::NCASubject; kwargs...)
   τ = tau(nca; kwargs...)
+  ismissing(τ) && return missing
   return aumc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
 end
 

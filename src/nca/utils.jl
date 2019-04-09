@@ -228,7 +228,9 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
-    abstime = nca.abstime[i]
+    idx1 = isempty(1:i-1) ? 1 : sum(j->length(nca.time[j]), 1:i-1)+1
+    idx2 = idx1+length(nca.time[i])-1
+    abstime = @view nca.abstime[idx1:idx2]
     maxidx = nca.maxidx[i]
     lastidx = nca.lastidx[i]
     dose = nca.dose[i]

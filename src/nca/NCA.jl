@@ -68,7 +68,7 @@ end
 # add `tau`
 # Multiple dosing handling
 for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
-          :cavg, :tau, :accumulationindex, :swing,
+          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
     obj = map(eachindex(nca.dose)) do i

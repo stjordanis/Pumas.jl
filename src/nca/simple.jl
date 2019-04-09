@@ -145,11 +145,15 @@ thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs
   clf(nca::NCASubject; kwargs...)
 
 Calculate total drug clearance divided by the bioavailability (F), which is just the
-inverse of the dose normalizedosed ``AUC_0^τ``.
+inverse of the dose normalizedosed ``AUC_0^∞`` or ``AUC_0^τ`` (steady-state).
 """
-function clf(nca::NCASubject; kwargs...)
+function clf(nca::NCASubject; ss=false, kwargs...)
   nca.dose === nothing && return missing
-  map(inv, normalizedose(auctau(nca; kwargs...), nca))
+  if ss
+    map(inv, normalizedose(auctau(nca; kwargs...), nca))
+  else
+    map(inv, normalizedose(auc(nca; kwargs...), nca))
+  end
 end
 
 """
@@ -169,11 +173,16 @@ end
 Calculate the volume of distribution during the terminal phase.
 ``V_z = 1/(AUC_0^τ⋅λz)`` for dose normalizedosed `AUC`.
 """
-function vz(nca::NCASubject; kwargs...)
+function vz(nca::NCASubject; ss=false, kwargs...)
   nca.dose === nothing && return missing
-  τauc = auctau(nca; kwargs...)
   λ = lambdaz(nca; recompute=false, kwargs...)
-  @. inv(normalizedose(τauc, nca.dose) * λ)
+  if ss
+    τauc = auctau(nca; kwargs...)
+    @. inv(normalizedose(τauc, nca.dose) * λ)
+  else
+    aucinf = normalizedose(auc(nca; kwargs...), nca)
+    @. inv(aucinf * λ)
+  end
 end
 
 """
@@ -182,7 +191,7 @@ end
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
-function bioav(nca::NCASubject; ithdose=missing, kwargs...)
+function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   ismissing(ithdose) && return missing
   multidose = nca.dose isa AbstractArray
   # if there is only a single dose
@@ -207,9 +216,9 @@ end
 
 Total drug clearance
 """
-function cl(nca::NCASubject; ithdose=missing, kwargs...)
+function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ss=false, ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   nca.dose === nothing && return missing
-  _clf = clf(nca; kwargs...)
+  _clf = clf(nca; ss=ss, kwargs...)
   dose = nca.dose
   if nca.dose isa NCADose # single dose
     isiv(dose.formulation) || return missing
@@ -241,7 +250,7 @@ The time prior to the first increase in concentration.
 function tlag(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
   isiv(nca.dose.formulation) && return missing
-  idx = min(1, findfirst(c->c > nca.llq, nca.conc)-1)
+  idx = max(1, findfirst(c->c > nca.llq, nca.conc)-1)
   return nca.time[idx]
 end
 
@@ -254,13 +263,25 @@ concentration.
 IV infusion:
   ``AUMC/AUC - TI/2`` where ``TI`` is the length of infusion.
 non-infusion:
-  ``AUMC/AUC``.
+  ``AUMC/AUC``
 """
-function mrt(nca::NCASubject; kwargs...)
+function mrt(nca::NCASubject; ss=false, kwargs...)
   dose = nca.dose
   dose === nothing && return missing
-  quotient = aumc(nca; kwargs...) / auc(nca; kwargs...)
-  return dose.formulation === IVInfusion ? quotient - dose.duration*1//2 : quotient
+  ti2 = dose.duration*1//2
+  if ss
+    τ = tau(nca; kwargs...)
+    aumcτ = aumctau(nca; kwargs...)
+    aucτ = aumctau(nca; kwargs...)
+    aumcinf = aumctau(nca; auctype=:inf, kwargs...)
+    quotient = (aumcτ + τ*(aucinf - aucτ)) / aucτ
+    dose.formulation === IVInfusion && (quotient -= ti2)
+    return quotient
+  else
+    quotient = aumc(nca; kwargs...) / auc(nca; kwargs...)
+    dose.formulation === IVInfusion && (quotient -= ti2)
+    return quotient
+  end
 end
 
 """
@@ -276,7 +297,7 @@ function mat(nca::NCASubject; kwargs...)
   multidose = nca.dose isa AbstractArray
   #multidose || error("Need more than one type of dose to calculate MAT")
   multidose || return missing
-  mrt_po = mrt_iv = zero(eltype(eltype(T)))
+  mrt_po = mrt_iv = zero(eltype(eltype(nca.time)))
   for idx in eachindex(nca.dose)
     subj = subject_at_ithdose(nca, idx)
     if isiv(subj.dose.formulation)
@@ -297,7 +318,7 @@ function tau(nca::NCASubject; kwargs...)
   has_ii(nca) && return nca.ii
   dose = nca.dose
   dose === nothing && return missing
-  dose isa NCADose && return tlast(nca; kwargs...)-dose.time
+  dose isa NCADose && return nca.abstime[nca.lastidx]-dose.time
   return dose[end].time-dose[end-1].time
 end
 
