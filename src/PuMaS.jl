@@ -22,7 +22,6 @@ include("models/derived_utils.jl")
 
 include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
-include("estimation/reporting.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 
@@ -45,6 +44,7 @@ export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
+export residuals, predict
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, ηshrinkage, ϵshrinkage
 export process_nmtran, example_nmtran_data
 export @model
