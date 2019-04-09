@@ -79,16 +79,31 @@ end
                              -1.12474E-02  2.25098E-04  1.04586E-02
                              -3.05266E-02  1.04586E-02  5.99850E-01],
                          σ_add = 2.66533E-01)
+
+   fo_stderr           = (θ₁ = 4.47E-01,
+                         θ₂ = 6.81E-03,
+                         θ₃ = 4.93E-03,
+                         θ₄ = 3.52E-01,
+                         Ω = [9.04E+00 1.92E-02 1.25E+00
+                              1.92E-02 7.86E-05 4.57E-03
+                              1.25E+00 4.57E-03 3.16E-01],
+                         σ_add = 5.81E-02)
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
   o = fit(theopmodel_fo, theopp, param, PuMaS.FO())
 
-  x_optim = o.param
+  o_estimates = o.param
+  o_stderror  = stderror(o)
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
-  @testset "test parameter $k" for k in keys(x_optim)
-    @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
   end
 end
 
@@ -159,16 +174,31 @@ end
                              -1.12474E-02  2.25098E-04  1.04586E-02
                              -3.05266E-02  1.04586E-02  5.99850E-01],
                          σ_add = 2.66533E-01)
-                         # Elapsed estimation time in seconds:     0.04
-                         # Elapsed covariance time in seconds:     0.02
+
+  fo_stderr           = (θ₁ = 4.47E-01,
+                         θ₂ = 6.81E-03,
+                         θ₃ = 4.93E-03,
+                         θ₄ = 3.52E-01,
+                         Ω = [9.04E+00 1.92E-02 1.25E+00
+                              1.92E-02 7.86E-05 4.57E-03
+                              1.25E+00 4.57E-03 3.16E-01],
+                         σ_add = 5.81E-02)
+                         # Elapsed estimation time in seconds:     0.45
+                         # Elapsed covariance time in seconds:     0.18
 
   o = fit(theopmodel_fo, theopp, param, PuMaS.FO())
 
-  x_optim = o.param
+  o_estimates = o.param
+  o_stderror  = stderror(o)
 
   @test_broken PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
-  @testset "test parameter $k" for k in keys(x_optim)
-    @test _extract(getfield(x_optim, k)) ≈ getfield(fo_estimated_params, k) rtol=1e-3
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
   end
 
   # Test that the types work on both stiff and non-stiff solver methods
@@ -231,18 +261,33 @@ end
     θ₃ = 3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.10668E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-  Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
-  σ_add = 5.14069E-01)
+    Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
+    σ_add = 5.14069E-01)
+
+  foce_stderr = (
+    θ₁ = 1.84E-01,
+    θ₂ = 5.43E-03,
+    θ₃ = 3.42E-03,
+    θ₄ = 9.56E-01,
+
+    Ω  = PDiagMat([1.61E+00, 7.70E-02]),
+    σ_add = 1.34E-01)
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
 
   o = fit(theopmodel_foce, theopp, param, PuMaS.FOCE())
 
-  x_optim = o.param
+  o_estimates = o.param
+  o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849118143030
-  @testset "test parameter $k" for k in keys(x_optim)
-    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849119366599
+
+  @testset "test estimate of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(foce_stderr, k))           rtol=1e-2
   end
 end
 
@@ -305,16 +350,31 @@ end
     σ_add = 2.09834E-01,
     σ_prop = 1.13479E-02
   )
+
+  focei_stderr = (
+    θ₁ = 2.11E-01,
+    θ₂ = 4.98E-03,
+    θ₃ = 3.53E-03,
+    θ₄ = 8.81E-01,
+
+    Ω = PDiagMat([1.35E+00, 8.06E-02]),
+    σ_add = 2.64E-01,
+    σ_prop = 1.35E-02)
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
   o = fit(theopmodel_focei, theopp, param, PuMaS.FOCEI())
 
-  x_optim = o.param
+  o_estimates = o.param
+  o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505381367598 rtol=1e-5
-  @testset "test parameter $k" for k in keys(x_optim)
-    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
+  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505379554628 rtol=1e-7
+  @testset "test estimate of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stderror of $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(focei_stderr, k))           rtol=1e-2
   end
 
   npde(   theopmodel_focei, theopp[1], param,
@@ -399,6 +459,7 @@ end
   x_optim = o.param
 
   @test PuMaS.marginal_nll_nonmem(o) ≈ 102.871158475488 rtol=1e-5
+
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
   end
@@ -482,6 +543,15 @@ end
     Ω = PDiagMat([1.596, 2.27638e-01]),
     σ_add = 5.14457E-01
   )
+
+  laplace_stderr = (
+    θ₁ = 1.87E-01,
+    θ₂ = 5.45E-03,
+    θ₃ = 3.42E-03,
+    θ₄ = 9.69E-01,
+
+    Ω = PDiagMat([1.60E+00, 7.76E-02]),
+    σ_add = 1.35E-01)
   # Elapsed estimation time in seconds:     0.23
   # Elapsed covariance time in seconds:     0.17
 
@@ -510,14 +580,19 @@ end
   @testset "Test optimization" begin
     o = fit(theopmodel_laplace, theopp, param, PuMaS.Laplace())
 
-    x_optim = o.param
+    o_estimates = o.param
+    o_stderror  = stderror(o)
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
-    @testset "test parameter $k" for k in keys(x_optim)
-      @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+
+    @testset "test estimate of $k" for k in keys(o_estimates)
+      @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+    end
+
+    @testset "test stderror of $k" for k in keys(o_estimates)
+      @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplace_stderr, k))           rtol=1e-2
     end
   end
-
 end
 
 @testset "run6.mod LaplaceI, diagonal omega and additive + proportional error" begin
@@ -580,17 +655,33 @@ end
     σ_add = 1.88050E-01,
     σ_prop = 1.25319E-02
   )
+
+  laplacei_stderr = (
+    θ₁ = 2.09E-01,
+    θ₂ = 4.48E-03,
+    θ₃ = 3.29E-03,
+    θ₄ = 9.05E-01,
+
+    Ω = PDiagMat([1.35E+00, 8.95E-02]),
+    σ_add = 3.01E-01,
+    σ_prop = 1.70E-02)
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
   @testset "Test optimization" begin
     o = fit(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI())
 
-    x_optim = o.param
+    o_estimates = o.param
+    o_stderror  = stderror(o)
 
     @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
-    @testset "test parameter $k" for k in keys(x_optim)
-      @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
+
+    @testset "test estimate of $k" for k in keys(o_estimates)
+      @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
+    end
+
+    @testset "test stderror of $k" for k in keys(o_estimates)
+      @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplacei_stderr, k))           rtol=4e-2
     end
   end
 end

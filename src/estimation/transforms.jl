@@ -103,6 +103,49 @@ function TransformVariables.inverse!(x::AbstractVector, t::PSDTransform, y::PDMa
 end
 TransformVariables.inverse!(x::AbstractVector, t::PSDTransform, y::Matrix) = TransformVariables.inverse!(x, t, PDMat(y))
 
+
+
+struct VechTransform <: TransformVariables.VectorTransform
+    n::Int
+end
+TransformVariables.dimension(t::VechTransform) = (t.n*(t.n+1))>>1
+
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::VechTransform,
+                                           x::TransformVariables.RealVector{T}) where T
+  n = t.n
+  ℓ = TransformVariables.logjac_zero(flag, T)
+  M = zeros(typeof(√one(T)), n, n)
+  index = TransformVariables.firstindex(x)
+  @inbounds for col in 1:n
+    for row in col:n
+      M[row, col] = x[index]
+      index += 1
+    end
+    if !(flag isa TransformVariables.NoLogJac)
+      error("not support")
+    end
+  end
+  PDMat(LinearAlgebra.copytri!(M, 'L')), ℓ
+end
+
+TransformVariables.inverse_eltype(::VechTransform, y::PDMat{T}) where T = T
+TransformVariables.inverse_eltype(::VechTransform, y::AbstractMatrix{T}) where T = T
+
+function TransformVariables.inverse!(x::AbstractVector, t::VechTransform, y::PDMat)
+  index = TransformVariables.firstindex(x)
+  M = y.mat
+  @inbounds for col in 1:t.n
+    for row in col:t.n
+      x[index] = M[row, col]
+      index += 1
+    end
+  end
+  return x
+end
+TransformVariables.inverse!(x::AbstractVector, t::VechTransform, y::Matrix) = TransformVariables.inverse!(x, t, PDMat(y))
+
+
+
 struct PDiagTransform  <: TransformVariables.VectorTransform
   n::Int
 end
@@ -139,6 +182,46 @@ function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PD
   end
   return x
 end
+
+
+
+struct DiagonalTransform  <: TransformVariables.VectorTransform
+  n::Int
+end
+
+TransformVariables.dimension(t::DiagonalTransform) = t.n
+
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::DiagonalTransform,
+                                           x::TransformVariables.RealVector{T}) where T
+    n = t.n
+    ℓ = TransformVariables.logjac_zero(flag, T)
+    d = zeros(typeof(√one(T)), n)
+    index = TransformVariables.firstindex(x)
+    @inbounds for col in 1:n
+        if flag isa TransformVariables.NoLogJac
+            d[col] = x[index]
+        else
+            error("not supported")
+        end
+        index += 1
+    end
+    PDiagMat(d), ℓ
+end
+
+TransformVariables.inverse_eltype(::PuMaS.DiagonalTransform, y::PDiagMat{T}) where T = T
+
+function TransformVariables.inverse!(x::AbstractVector, t::DiagonalTransform, y::PDiagMat)
+  index = TransformVariables.firstindex(x)
+  d = y.diag
+  # FIXME! Add @inbounds when we know it works
+  for col in 1:t.n
+    x[index] = d[col]
+    index += 1
+  end
+  return x
+end
+
+
 
 function Distributions.logpdf(d::InverseWishart, M::PDMat)
     p = dim(d)
@@ -179,3 +262,12 @@ totransform(d::MvNormal) = as(Array, length(d))
 totransform(c::Constrained) = totransform(c.domain)
 
 totransform(p::ParamSet) = as(map(totransform, p.params))
+
+# When computing the Hessian of the population parameters, we'd like to convert
+# fixeffs back and forth between a NamedTyple and a Vector in order to utilize
+# numerical or automatic differentiation of a all population parameters. For that
+# we need some convenience functions
+toidentitytransform(p::ParamSet) = as(map(toidentitytransform, p.params))
+toidentitytransform(::RealDomain) = as(Real,-∞,∞)
+toidentitytransform(d::PSDDomain) = VechTransform(size(d.init, 1))
+toidentitytransform(d::PDiagDomain) = DiagonalTransform(size(d.init, 1))

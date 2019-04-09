@@ -27,4 +27,5 @@ Tables 0.1.15
 LogDensityProblems
 DynamicHMC
 StructArrays
+StatsBase
 RecursiveArrayTools
