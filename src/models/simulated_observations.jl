@@ -14,7 +14,8 @@ end
 
 # DataFrame conversion
 function DataFrames.DataFrame(obs::SimulatedObservations;
-  include_events=true, include_covariates=true)
+  include_events=true, event_order_reverse=true,
+  include_covariates=true)
   nrows = length(obs.times)
   df = DataFrame(merge((time=obs.times,), deepcopy(obs.observed)))
   obs_columns = [keys(obs.observed)...]
@@ -48,7 +49,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
         end
       end
     end
-    sort!(df, (:time, :evid))
+    sort!(df, (:time, order(:evid, rev=event_order_reverse)))
   end
   if include_covariates
     covariates = obs.subject.covariates
@@ -93,10 +94,10 @@ end
 @inline function Base.setindex!(pop::SimulatedPopulation, x, I...)
   pop.sims[I...] = x
 end
-function DataFrames.DataFrame(pop::SimulatedPopulation)
+function DataFrames.DataFrame(pop::SimulatedPopulation; kwargs...)
   dfs = []
   for s in pop.sims
-    df = DataFrame(s)
+    df = DataFrame(s; kwargs...)
     id = [s.subject.id for i in 1:size(df, 1)]
     insertcols!(df, 1, id=id)
     push!(dfs, df)
