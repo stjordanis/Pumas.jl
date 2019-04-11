@@ -197,7 +197,7 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ith
   # if there is only a single dose
   multidose || return missing
   # if we only have IV or EV
-  length(unique(getfield.(nca.dose, :formulation))) == 1 && return missing
+  length(unique(getfield.(nca.dose, :formulation))) == 1 && return fill(missing, length(nca.dose))
   # initialize
   auc_0_inf_po = auc_0_inf_iv = zero(eltype(AUC))/oneunit(first(nca.dose).amt) # normalizedosed
   sol = zeros(typeof(ustrip(auc_0_inf_po)), axes(nca.dose))
