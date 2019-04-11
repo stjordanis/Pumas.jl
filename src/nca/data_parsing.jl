@@ -40,7 +40,7 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
 end
 
 function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
-                       amt=nothing, formulation=nothing, reference=nothing,# rate=nothing,
+                       amt=nothing, formulation=nothing, route=nothing,# rate=nothing,
                        duration=nothing, ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts, formulations
   try
@@ -55,9 +55,12 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
-  hasdose = amt !== nothing && formulation !== nothing && reference !== nothing
-  if warn && !hasdose
-    @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, reference=\"IV\"`, where `reference` is the IV administration, and anything that is not `reference` is EV administration."
+  hasdose = amt !== nothing && formulation !== nothing && route !== nothing
+  if warn
+    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`."
+    if hasdose && !( route isa NamedTuple && length(route) <= 2 && all(i -> i in (:ev, :iv), keys(route)) )
+      throw(ArgumentError("route must be in the form of `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`. Got $(repr(route))."))
+    end
   end
   sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
@@ -91,9 +94,24 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
           dose_time[n] = subjtime[i]
         end
       end
-      formulation = map(dose_idx) do i
-        f = formulations[i]
-        f == reference ? IVBolus : EV
+      formulation = let route = route
+        map(dose_idx) do i
+          f = formulations[i]
+          if length(route) == 1
+            rt′ = first(route)
+            rt = rt′ isa AbstractArray ? rt′ : (rt′,)
+            ky = first(keys(route))
+            ky === :iv ? (f in rt ? IVBolus : EV) : (f in rt ? EV : IVBolus)
+          else # length == 2
+            rtiv′ = route[:iv]
+            rtev′ = route[:ev]
+            rtiv = rtiv′ isa AbstractArray ? rtiv′ : (rtiv′,)
+            rtev = rtev′ isa AbstractArray ? rtev′ : (rtev′,)
+            f in rtiv && return IVBolus
+            f in rtev && return EV
+            throw(ArgumentError("$f is not specified to be either EV or IV. Please adjust the `route` argument."))
+          end
+        end
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, formulation)
