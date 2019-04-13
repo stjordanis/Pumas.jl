@@ -168,6 +168,7 @@ function pre_obj(preexpr, prevars, params, randoms, covariates)
   quote
     function (_param, _random, _subject)
       _covariates = _subject.covariates
+      $(esc(:t)) = _subject.time
       $(var_def(:_param, params))
       $(var_def(:_random, randoms))
       $(var_def(:_covariates, covariates))
