@@ -10,7 +10,7 @@ DataStructures
 MacroTools
 DelayDiffEq 5.2.0
 PDMats
-ModelingToolkit 0.1.0
+ModelingToolkit 0.1.0 0.2.0
 LabelledArrays 0.4
 DataFrames 0.17
 GLM
