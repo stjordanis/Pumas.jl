@@ -342,6 +342,7 @@ function marginal_nll(m::PuMaSModel,
 
   if isfinite(nl)
     # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
+    # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
     Ω = cov(m.random(param).params.η)
     FΩ = cholesky(Ω, check=false)
 
@@ -405,6 +406,7 @@ function marginal_nll(m::PuMaSModel,
   end
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
+  # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
   Ω = cov(m.random(param).params.η)
   FΩ = cholesky(Ω, check=false)
 
@@ -445,6 +447,7 @@ function marginal_nll(m::PuMaSModel,
   W, dldη = FIM(subject.observations, dist_d, FO())
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
+  # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
   Ω = cov(m.random(param).params.η)
   FΩ = cholesky(Ω, check=false)
 
@@ -463,6 +466,7 @@ function marginal_nll(m::PuMaSModel,
                       vrandeffs::AbstractVector,
                       approx::Laplace,
                       args...; kwargs...)
+    # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
   Ω = cov(m.random(param).params.η)
   nl = conditional_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
   W = ForwardDiff.hessian(s -> conditional_nll(m, subject, param, s, approx, args...; kwargs...), vrandeffs)
@@ -795,14 +799,7 @@ end
 marginal_nll(      f::FittedPuMaSModel) = marginal_nll(f.model, f.data, f.param, f.approx)
 StatsBase.deviance(f::FittedPuMaSModel) = deviance(    f.model, f.data, f.param, f.approx)
 
-
-"""
-    vcov(f::FittedPuMaSModel) -> Matrix
-
-Compute the covariance matrix of the population parameters
-"""
-function StatsBase.vcov(f::FittedPuMaSModel)
-
+function _observed_information(f::FittedPuMaSModel, ::Val{Score}) where Score
   # Transformation the NamedTuple of parameters to a Vector
   # without applying any bounds (identity transform)
   trf = toidentitytransform(f.model.param)
@@ -810,8 +807,12 @@ function StatsBase.vcov(f::FittedPuMaSModel)
 
   # Initialize arrays
   H = zeros(eltype(vparam), length(vparam), length(vparam))
-  S = copy(H)
-  g = similar(vparam, length(vparam))
+  if Score
+    S = copy(H)
+    g = similar(vparam, length(vparam))
+  else
+    S = g = nothing
+  end
 
   # Loop through subject and compute Hessian and score contributions
   for i in 1:length(f.data)
@@ -825,13 +826,79 @@ function StatsBase.vcov(f::FittedPuMaSModel)
       return nothing
     end
 
-    # Compute score contribution
-    vrandeffs = randeffs_estimate(f.model, subject, f. param, f.approx)
-    marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf)
+    if Score
+      # Compute score contribution
+      vrandeffs = randeffs_estimate(f.model, subject, f. param, f.approx)
+      marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf)
 
-    # Update outer product of scores
-    S .+= g .* g'
+      # Update outer product of scores
+      S .+= g .* g'
+    end
   end
+  return H, S
+end
+
+function _expected_information(m::PuMaSModel,
+                               subject::Subject,
+                               param::NamedTuple,
+                               randeffs::NamedTuple,
+                               ::FO,
+                               args...; kwargs...)
+
+  trf = toidentitytransform(m.param)
+  vparam = TransformVariables.inverse(trf, param)
+
+  # Costruct closure for calling conditional_nll_ext as a function
+  # of a random effects vector. This makes it possible for ForwardDiff's
+  # tagging system to work properly
+  __E_and_V = _param -> _E_and_V(m, subject, TransformVariables.transform(trf, _param), randeffs.η, FO(), args...; kwargs...)
+
+  # Construct vector of dual numbers for the population parameters to track the partial derivatives
+  cfg = ForwardDiff.JacobianConfig(__E_and_V, vparam)
+  ForwardDiff.seed!(cfg.duals, vparam, cfg.seeds)
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
+  E_d, V_d = __E_and_V(cfg.duals)
+
+  V⁻¹ = inv(cholesky(ForwardDiff.value.(V_d)))
+  dEdθ = hcat((collect(ForwardDiff.partials(E_k).values) for E_k in E_d)...)
+
+  m = size(dEdθ, 1)
+  n = size(dEdθ, 2)
+  dVpart = similar(dEdθ, m, m)
+  for l in 1:m
+    dVdθl = [ForwardDiff.partials(V_d[i,j]).values[l] for i in 1:n, j in 1:n]
+    for k in 1:m
+      dVdθk = [ForwardDiff.partials(V_d[i,j]).values[k] for i in 1:n, j in 1:n]
+      # dVpart[l,k] = tr(dVdθk * V⁻¹ * dVdθl * V⁻¹)/2
+      dVpart[l,k] = sum((V⁻¹ * dVdθk) .* (dVdθl * V⁻¹))/2
+    end
+  end
+
+  return dEdθ*V⁻¹*dEdθ' + dVpart
+end
+
+function StatsBase.informationmatrix(f::FittedPuMaSModel; expected::Bool=true)
+  data     = f.data
+  model    = f.model
+  param    = f.param
+  vrandeffs = f.vrandeffs
+  if expected
+    return sum(_expected_information(model, data[i], param, (η=vrandeffs[i],), f.approx) for i in 1:length(data))
+  else
+    return first(_observed_information(f, Val(false)))
+  end
+end
+
+"""
+    vcov(f::FittedPuMaSModel) -> Matrix
+
+Compute the covariance matrix of the population parameters
+"""
+function StatsBase.vcov(f::FittedPuMaSModel)
+
+  # Compute the observed information based on the Hessian (H) and the product of the outer scores (S)
+  H, S = _observed_information(f)
 
   # Use generialized eigenvalue decomposition to compute inv(H)*S*inv(H)
   F = eigen(Symmetric(H), Symmetric(S))
@@ -850,6 +917,42 @@ function StatsBase.stderror(f::FittedPuMaSModel)
   trf = toidentitytransform(f.model.param)
   ss = sqrt.(diag(vcov(f)))
   return TransformVariables.transform(trf, ss)
+end
+
+function _E_and_V(m::PuMaSModel,
+                  subject::Subject,
+                  param::NamedTuple,
+                  vrandeffs::AbstractVector,
+                  ::FO,
+                  args...; kwargs...)
+
+  y = subject.observations.dv
+  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
+  Ω = cov(m.random(param).params.η)
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
+  return mean.(dist.dv), V
+end
+
+function _E_and_V(m::PuMaSModel,
+                  subject::Subject,
+                  param::NamedTuple,
+                  vrandeffs::AbstractVector,
+                  ::FOCE,
+                  args...; kwargs...)
+
+  y = subject.observations.dv
+  nl0, dist0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),))
+  nl , dist  = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+
+  # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
+  Ω = cov(m.random(param).params.η)
+  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
+
+  return mean.(dist.dv) .- F*vrandeffs, V
+
 end
 
 # Some type piracy for the time being
