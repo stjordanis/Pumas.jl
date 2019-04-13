@@ -47,12 +47,12 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
   end
 
   @testset "Test logdensity" begin
-    vfixeffs = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes.param), PuMaS.init_fixeffs(theopmodel_bayes))
+    vparam = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes.param), PuMaS.init_param(theopmodel_bayes))
     ldp = PuMaS.BayesLogDensity(theopmodel_bayes, theopp)
-    vfixeffs_aug = [vfixeffs; zeros(length(theopp)*ldp.dim_rfx)]
-    v = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp, vfixeffs_aug)
+    vparam_aug = [vparam; zeros(length(theopp)*ldp.dim_rfx)]
+    v = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp, vparam_aug)
     @test v.value ≈ -612.6392449413322
-    vg = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp, vfixeffs_aug)
+    vg = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp, vparam_aug)
     @test vg.value ≈ v.value
     @test vg.gradient ≈ [8.023571333788356
                        878.2155638921361
@@ -150,12 +150,12 @@ end
   end
 
   @testset "Test logdensity" begin
-    vfixeffs2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_fixeffs(theopmodel_bayes2))
+    vparam2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_param(theopmodel_bayes2))
     ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp)
-    vfixeffs2_aug = [vfixeffs2; zeros(length(theopp)*ldp2.dim_rfx)]
-    v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vfixeffs2_aug)
+    vparam2_aug = [vparam2; zeros(length(theopp)*ldp2.dim_rfx)]
+    v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vparam2_aug)
     @test v2.value ≈ -612.6388140049277
-    vg2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp2, vfixeffs2_aug)
+    vg2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp2, vparam2_aug)
     @test vg2.value ≈ -612.6392219409469 # Notice! A bit different from v2.value
     @test vg2.gradient ≈ [8.023481062796282
                         878.2154140924582

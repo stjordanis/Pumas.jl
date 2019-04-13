@@ -3,10 +3,10 @@ module PuMaS
 using DiffEqBase, DiffEqMonteCarlo, Reexport,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings, RecipesBase, StructArrays
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames
+@reexport using Distributions, PDMats, DataFrames, StatsBase
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
@@ -40,11 +40,12 @@ include("simulate_methods/analytical.jl")
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
 
 export Subject, Population, DosageRegimen
-export PuMaSModel, init_fixeffs, init_randeffs, sample_randeffs
+export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
-export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, ηshrinkage, ϵshrinkage
+export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, 
+export AIC, BIC, ηshrinkage, ϵshrinkage
 export process_nmtran, example_nmtran_data
 export @model, @nca
 

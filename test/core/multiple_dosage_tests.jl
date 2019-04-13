@@ -45,21 +45,21 @@ m_analytic = @model begin
 end
 
 subject1 = data.subjects[1]
-fixeffs = ()
+param = ()
 randeffs = ()
 
-sol_diffeq   = solve(m_diffeq,subject1,fixeffs,randeffs)
-sol_analytic = solve(m_analytic,subject1,fixeffs,randeffs)
+sol_diffeq   = solve(m_diffeq,subject1,param,randeffs)
+sol_analytic = solve(m_analytic,subject1,param,randeffs)
 
 @test sol_diffeq(95.99) ≈ sol_analytic(95.99) rtol=1e-4
 @test sol_diffeq(217.0) ≈ sol_analytic(217.0) rtol=1e-3 # TODO: why is this so large?
 
 sim_diffeq = begin
     Random.seed!(1)
-    s = simobs(m_diffeq,subject1,fixeffs,randeffs)[:dv]
+    s = simobs(m_diffeq,subject1,param,randeffs)[:dv]
 end
 sim_analytic = begin
     Random.seed!(1)
-    s = simobs(m_analytic,subject1,fixeffs,randeffs)[:dv]
+    s = simobs(m_analytic,subject1,param,randeffs)[:dv]
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-3

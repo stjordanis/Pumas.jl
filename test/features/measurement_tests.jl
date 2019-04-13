@@ -42,27 +42,27 @@ subject = data.subjects[1]
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
-    fixeffs = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, fixeffs)
+    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    Random.seed!(0); randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
     θ_ms = θ0 .± [0.2, 0.0, 0.0, 0.0]
-    fixeffs_ms = (θ=θ_ms, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sol = solve(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
+    sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
     θ_plus = θ0 .+ [0.2, 0.0, 0.0, 0.0]
     θ_minus = θ0 .- [0.2, 0.0, 0.0, 0.0]
-    fixeffs_plus = (θ=θ_plus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    fixeffs_minus = (θ=θ_minus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sim = simobs(model, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_plus = simobs(model, subject, fixeffs_plus, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_minus = simobs(model, subject, fixeffs_minus, randeffs; abstol=1e-14, reltol=1e-14)
+    param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
+    param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
+    sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_plus = simobs(model, subject, param_plus, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_minus = simobs(model, subject, param_minus, randeffs; abstol=1e-14, reltol=1e-14)
     ## This is only a crude estimate
     err_manual = max(abs(sim[:cmax] - sim_plus[:cmax]), abs(sim[:cmax] - sim_minus[:cmax]))
 
-    sim_ms = simobs(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_ms = simobs(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     err = sim_ms[:cmax].err
     @test err ≈ err_manual atol=1e-2
 end
@@ -73,12 +73,12 @@ end
                 Ω = PSDDomain(2),
                 σ = RealDomain(lower=0.0, init=1.0)))
     rfx_f(p) = ParamSet((η=MvNormal(p.Ω),))
-    function col_f(fixeffs,randeffs,subject)
+    function col_f(param,randeffs,subject)
         cov = subject.covariates
-        (Ka = fixeffs.θ[1],
-        CL = fixeffs.θ[2] * ((cov.wt/70)^0.75) * (fixeffs.θ[4]^cov.sex) * exp(randeffs.η[1]),
-        V  = fixeffs.θ[3] * exp(randeffs.η[2]),
-        σ = fixeffs.σ)
+        (Ka = param.θ[1],
+        CL = param.θ[2] * ((cov.wt/70)^0.75) * (param.θ[4]^cov.sex) * exp(randeffs.η[1]),
+        V  = param.θ[3] * exp(randeffs.η[2]),
+        σ = param.σ)
     end
     init_f(col,t0) = @LArray [0.0, 0.0] (:Depot, :Central)
     function onecompartment_f(du,u,p,t)
@@ -98,27 +98,27 @@ end
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876]
-    fixeffs = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, fixeffs)
+    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    Random.seed!(0); randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
     θ_ms = θ0 .± [0.2, 0.0, 0.0, 0.0]
-    fixeffs_ms = (θ=θ_ms, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sol = solve(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
+    sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa LArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
     θ_plus = θ0 .+ [0.2, 0.0, 0.0, 0.0]
     θ_minus = θ0 .- [0.2, 0.0, 0.0, 0.0]
-    fixeffs_plus = (θ=θ_plus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    fixeffs_minus = (θ=θ_minus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sim = simobs(model, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_plus = simobs(model, subject, fixeffs_plus, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_minus = simobs(model, subject, fixeffs_minus, randeffs; abstol=1e-14, reltol=1e-14)
+    param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
+    param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
+    sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_plus = simobs(model, subject, param_plus, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_minus = simobs(model, subject, param_minus, randeffs; abstol=1e-14, reltol=1e-14)
     ## This is only a crude estimate
     err_manual = max(abs(sim[:cmax] - sim_plus[:cmax]), abs(sim[:cmax] - sim_minus[:cmax]))
 
-    sim_ms = simobs(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_ms = simobs(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     err = sim_ms[:cmax].err
     @test err ≈ err_manual atol=1e-2
 end
@@ -162,27 +162,27 @@ end
 
     # Initial data
     θ0 = [2.268, 74.17, 468.6, 0.5876, 0.412]
-    fixeffs = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, fixeffs)
+    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
+    Random.seed!(0); randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
     θ_ms = θ0 .± [0.0, 0.0, 0.0, 0.0, 0.02]
-    fixeffs_ms = (θ=θ_ms, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sol = solve(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
+    sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
     θ_plus = θ0 .+ [0.0, 0.0, 0.0, 0.0, 0.02]
     θ_minus = θ0 .- [0.0, 0.0, 0.0, 0.0, 0.02]
-    fixeffs_plus = (θ=θ_plus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    fixeffs_minus = (θ=θ_minus, Ω=fixeffs.Ω, σ=fixeffs.σ)
-    sim = simobs(model, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_plus = simobs(model, subject, fixeffs_plus, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_minus = simobs(model, subject, fixeffs_minus, randeffs; abstol=1e-14, reltol=1e-14)
+    param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
+    param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
+    sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_plus = simobs(model, subject, param_plus, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_minus = simobs(model, subject, param_minus, randeffs; abstol=1e-14, reltol=1e-14)
     ## This is only a crude estimate
     err_manual = max(abs(sim[:cmax] - sim_plus[:cmax]), abs(sim[:cmax] - sim_minus[:cmax]))
 
-    sim_ms = simobs(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_ms = simobs(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     err = sim_ms[:cmax].err
     @test err ≈ err_manual atol=1e-2
 end
@@ -209,27 +209,27 @@ end
 
     # Initial data
     θ0 = [1.5, 1.0, 30.0]
-    fixeffs = (θ = θ0,)
+    param = (θ = θ0,)
     randeffs = (η = [0.0,0.0],)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
     θ_ms = θ0 .± [0.2, 0.0, 0.0]
-    fixeffs_ms = (θ=θ_ms,)
-    sol = solve(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    param_ms = (θ=θ_ms,)
+    sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
     θ_plus = θ0 .+ [0.2, 0.0, 0.0]
     θ_minus = θ0 .- [0.2, 0.0, 0.0]
-    fixeffs_plus = (θ=θ_plus,)
-    fixeffs_minus = (θ=θ_minus,)
-    sim = simobs(model, subject, fixeffs, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_plus = simobs(model, subject, fixeffs_plus, randeffs; abstol=1e-14, reltol=1e-14)
-    sim_minus = simobs(model, subject, fixeffs_minus, randeffs; abstol=1e-14, reltol=1e-14)
+    param_plus = (θ=θ_plus,)
+    param_minus = (θ=θ_minus,)
+    sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_plus = simobs(model, subject, param_plus, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_minus = simobs(model, subject, param_minus, randeffs; abstol=1e-14, reltol=1e-14)
     ## This is only a crude estimate
     err_manual = max(abs(sim[:cmax] - sim_plus[:cmax]), abs(sim[:cmax] - sim_minus[:cmax]))
 
-    sim_ms = simobs(model, subject, fixeffs_ms, randeffs; abstol=1e-14, reltol=1e-14)
+    sim_ms = simobs(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     err = sim_ms[:cmax].err
     @test err ≈ err_manual rtol=5e-2
 end
