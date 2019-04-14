@@ -151,7 +151,8 @@ end
 
   @testset "Test logdensity" begin
     vparam2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_param(theopmodel_bayes2))
-    ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp)
+    ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp,
+                                 reltol = 1e-7, abstol = 1e-8)
     vparam2_aug = [vparam2; zeros(length(theopp)*ldp2.dim_rfx)]
     v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vparam2_aug)
     @test v2.value ≈ -612.6388140049277
@@ -181,7 +182,7 @@ end
   Random.seed!(1)
   try
     b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
-                nsamples = nsamples)
+                nsamples = nsamples, reltol = 1e-7, abstol = 1e-8)
 
     m = PuMaS.param_mean(b)
 
