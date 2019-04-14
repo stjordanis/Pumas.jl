@@ -190,6 +190,30 @@ function eiwres(m::PuMaSModel,subject::Subject, param::NamedTuple, nsim)
   sims_sum./nsim
 end
 
+function ipred(m::PuMaSModel, 
+                subject::Subject, 
+                param::NamedTuple,
+                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
+  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  return mean.(dist.dv)
+end
+
+function cipred(m::PuMaSModel,
+                subject::Subject,
+                param::NamedTuple,
+                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
+  nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
+  return mean.(dist.dv) 
+end
+
+function cipredi(m::PuMaSModel,
+                  subject::Subject,
+                  param::NamedTuple,
+                  vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCEI()))
+  nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
+  return mean.(dist.dv)
+end
+
 function ηshrinkage(m::PuMaSModel, data::Population, param::NamedTuple, approx)
   sd_randeffs = std([randeffs_estimate(m, subject, param, approx) for subject in data])
   Ω = Matrix(param.Ω)
