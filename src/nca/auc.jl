@@ -77,7 +77,7 @@ end
   return m === Linear ? linear(c1, c2, t1, t2) : log(c1, c2, t1, t2)
 end
 
-@inline function iscached(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, sym::Symbol) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function iscached(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, sym::Symbol) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   @inbounds begin
     # `points` is initialized to 0
     sym === :lambdaz && return !(nca.points[1] === 0)
@@ -92,7 +92,7 @@ function isaucinf(auctype, interval)
   interval === nothing ? auctype === :inf : !isfinite(interval[2])
 end
 
-function cacheauc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auclast, interval, method, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function cacheauc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, auclast, interval, method, isauc) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   if interval == nothing # only cache when interval is nothing
     if isauc
       AUC <: AbstractArray  ? nca.auc_last[1] = auclast  : nca.auc_last = auclast
@@ -104,8 +104,8 @@ function cacheauc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, aucla
   nothing
 end
 
-function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval, linear, log, inf, ret_typ;
-              auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, interval, linear, log, inf, ret_typ;
+              auctype, method=:linear, isauc, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   # fast return
   if interval === nothing && nca.method === method
     if auctype === :inf
@@ -163,7 +163,12 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, interval,
     # auc of the last interval
     if isfinite(hi)
       concend = interpextrapconc(nca, hi; method=method, kwargs...)
-      auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      if hi > _tlast # if we are extrapolating at the last point, let's use the logarithm trapezoid
+        λz = lambdaz(nca; recompute=false, kwargs...)
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      else
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+      end
     end
   else
     idx1, idx2 = firstindex(time), lastindex(time)
@@ -223,7 +228,7 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function auc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   sol = _auc(nca, interval, auclinear, auclog, extrapaucinf, eltype(AUC); auctype=auctype, isauc=true, kwargs...)
   return sol
 end
@@ -251,9 +256,45 @@ function aumc(nca; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function aumc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+@inline function aumc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   sol = _auc(nca, interval, aumclinear, aumclog, extrapaumcinf, eltype(AUMC); auctype=auctype, isauc=false, kwargs...)
   return sol
+end
+
+"""
+    auclast(nca::NCASubject; method::Symbol, interval=nothing, kwargs...)
+
+Alias for `auc(subj; auctype=:last)`.
+"""
+auclast(nca::NCASubject; kwargs...) = auc(nca; auctype=:last, kwargs...)
+
+"""
+    aumclast(nca::NCASubject; method::Symbol, interval=nothing, kwargs...)
+
+Alias for `aumc(subj; auctype=:last)`.
+"""
+aumclast(nca::NCASubject; kwargs...) = aumc(nca; auctype=:last, kwargs...)
+
+"""
+    auctau(subj::NCASubject; method::Symbol, kwargs...)
+
+Alias for `auctau(subj; auctype=:last, interval=(zero(τ), τ))`.
+"""
+function auctau(nca::NCASubject; kwargs...)
+  τ = tau(nca; kwargs...)
+  ismissing(τ) && return missing
+  return auc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
+end
+
+"""
+    aumctau(subj::NCASubject; method::Symbol, kwargs...)
+
+Alias for `aumctau(subj; auctype=:last, interval=(zero(τ), τ))`.
+"""
+function aumctau(nca::NCASubject; kwargs...)
+  τ = tau(nca; kwargs...)
+  ismissing(τ) && return missing
+  return aumc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
@@ -268,16 +309,16 @@ function aumc_extrap_percent(nca::NCASubject; kwargs...)
   @. (aumcinf-aumclast)/aumcinf * 100
 end
 
-fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(y[y.!=0]))
+fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(replace(x->iszero(x) ? eps() : x, y)))
 
 """
   lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> lambdaz
 
 Calculate terminal elimination rate constant ``λz``.
 """
-function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
+function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II};
                  threshold=10, idxs=nothing, slopetimes=nothing, recompute=true, kwargs...
-                )::eltype(Z) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID}
+                )::eltype(Z) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   if iscached(nca, :lambdaz) && !recompute
     return lambdaz=first(nca.lambdaz)
   end
@@ -285,8 +326,8 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID};
   _Z = eltype(Z)
   !(idxs === nothing) && !(slopetimes === nothing) && throw(ArgumentError("you must provide only one of idxs or slopetimes"))
   conc, time = nca.conc, nca.time
-  maxadjr2::_F = -oneunit(_F)*true
-  λ::_Z = oneunit(_Z)*false
+  maxadjr2::_F = -oneunit(_F)
+  λ::_Z = zero(_Z)
   time′ = reinterpret(typeof(one(eltype(time))), time)
   conc′ = reinterpret(typeof(one(eltype(conc))), conc)
   outlier = false

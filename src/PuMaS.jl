@@ -10,6 +10,8 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
+include("nca/NCA.jl")
+
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
 
@@ -33,8 +35,6 @@ include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
 
-include("nca/NCA.jl")
-
 @reexport using .NCA
 
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
@@ -44,8 +44,9 @@ export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
-export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, ηshrinkage, ϵshrinkage
-export process_nmtran, example_nmtran_data, AIC, BIC
-export @model
+export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
+export AIC, BIC, ηshrinkage, ϵshrinkage
+export process_nmtran, example_nmtran_data
+export @model, @nca
 
 end # module

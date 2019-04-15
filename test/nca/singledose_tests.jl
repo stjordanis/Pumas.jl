@@ -8,11 +8,11 @@ data = CSV.read(file)
 timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
-ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, iv="IV",
+ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, route=(iv="IV",),
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by\n    `amt=:AMT, formulation=:FORMULATION, iv=\"IV\"`") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
@@ -126,7 +126,7 @@ end
 fails = (6,)
 for i in 1:24
   idx = 16(i-1)+1:16*i
-  dose = NCADose(0.0timeu, doses[i], NCA.IV)
+  dose = NCADose(0.0timeu, doses[i], nothing, NCA.IVInfusion)
   nca = ncapop[i]
   aucs = NCA.auc(nca, method=:linear)
   @test aucs === NCA.auc(conc[idx], t[idx], dose=dose, method=:linear)
@@ -158,7 +158,9 @@ for i in 1:24
     @test data[:Vz_obs][i]*u"L" ≈ NCA.vz(nca) atol = 1e-6*u"L"
   end
   aucs = NCA.auc(nca, dose=dose, method=:linear, auctype=:last)
+  @test aucs == NCA.auclast(nca, dose=dose, method=:linear)
   aumcs = NCA.aumc(nca, dose=dose, method=:linear, auctype=:last)
+  @test aumcs == NCA.aumclast(nca, dose=dose, method=:linear)
   @test normalizedose(aucs, nca) == aucs/doses[i]
   @test data[:AUClast][i]*timeu*concu ≈ aucs atol = 1e-6*timeu*concu
   @test data[:AUMClast][i]*timeu^2*concu ≈ aumcs atol = 1e-6*timeu^2*concu
