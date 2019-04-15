@@ -168,6 +168,7 @@ function pre_obj(preexpr, prevars, params, randoms, covariates)
   quote
     function (_param, _random, _subject)
       _covariates = _subject.covariates
+      $(esc(:t)) = _subject.time
       $(var_def(:_param, params))
       $(var_def(:_random, randoms))
       $(var_def(:_covariates, covariates))
@@ -177,12 +178,19 @@ function pre_obj(preexpr, prevars, params, randoms, covariates)
   end
 end
 
+function extract_parameter_calls!(expr::Expr,prevars,callvars)
+  if expr.head == :call && expr.args[1] ∈ prevars
+    push!(callvars,expr.args[1])
+  end
+  extract_parameter_calls!.(expr.args,(prevars,),(callvars,))
+end
+extract_parameter_calls!(expr,prevars,callvars) = nothing
 
-function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
+function extract_dynamics!(vars, odevars, prevars, callvars, ode_init, expr::Expr, eqs)
   if expr.head == :block
     for ex in expr.args
       islinenum(ex) && continue
-      extract_dynamics!(vars, odevars, ode_init, ex, eqs)
+      extract_dynamics!(vars, odevars, prevars, callvars, ode_init, ex, eqs)
     end
   elseif expr.head == :(=) || expr.head == :(:=)
     dp = expr.args[1]
@@ -193,6 +201,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
     p = dp.args[1]
     lhs = :(___D($p))
     push!(eqs.args, :($lhs ~ $(expr.args[2])))
+    extract_parameter_calls!(expr.args[2],prevars,callvars)
     if p ∈ keys(ode_init)
       push!(odevars, p)
     elseif p ∉ vars
@@ -207,7 +216,7 @@ function extract_dynamics!(vars, odevars, ode_init, expr::Expr, eqs)
 end
 
 # used for pre-defined analytical systems
-function extract_dynamics!(vars, odevars, ode_init, sym::Symbol, eqs)
+function extract_dynamics!(vars, odevars, prevars, callvars, ode_init, sym::Symbol, eqs)
   obj = eval(sym)
   if obj isa Type && obj <: ExplicitModel # explict model
     for p in varnames(obj)
@@ -260,26 +269,30 @@ function init_obj(ode_init,odevars,prevars,isstatic)
   end
 end
 
-function dynamics_obj(odeexpr::Expr, pre, odevars, bvars, eqs, isstatic)
+function dynamics_obj(odeexpr::Expr, pre, odevars, callvars, bvars, eqs, isstatic)
   odeexpr == :() && return nothing
   dvars = :(begin end)
   params = :(begin end)
   version = isstatic ? ModelingToolkit.SArrayFunction : ModelingToolkit.ArrayFunction
-  diffeq = :(ODEProblem(ODEFunction(DiffEqSystem($eqs, t, [], Variable[]),version=$version),nothing,nothing,nothing))
+  diffeq = :(ODEProblem(ODEFunction(ODESystem($eqs),[], [],version=$version),nothing,nothing,nothing))
 
   # DVar
   for v in odevars
-    push!(dvars.args, :($v = Variable($(Meta.quot(v)), [t])))
-    push!(diffeq.args[2].args[2].args[4].args, v)
+    push!(dvars.args, :($v = Variable($(Meta.quot(v)))(t)))
+    push!(diffeq.args[2].args[3].args, v)
   end
   # Param
   for p in pre
-    push!(params.args, :($p = Variable($(Meta.quot(p)); known = true)))
-    push!(diffeq.args[2].args[2].args[5].args, p)
+    if p ∈ callvars
+      push!(params.args, :($p = Variable($(Meta.quot(p)); known = true)))
+    else
+      push!(params.args, :($p = Variable($(Meta.quot(p)); known = true)()))
+    end
+    push!(diffeq.args[2].args[4].args, p)
   end
   quote
     let
-      t = Variable(:t; known = true)
+      t = Variable(:t; known = true)()
       $dvars
       ___D = Differential(t)
       $params
@@ -288,7 +301,7 @@ function dynamics_obj(odeexpr::Expr, pre, odevars, bvars, eqs, isstatic)
     end
   end
 end
-function dynamics_obj(odename::Symbol, pre, odevars, bvars, eqs, isstatic)
+function dynamics_obj(odename::Symbol, pre, odevars, callvars, bvars, eqs, isstatic)
   quote
     ($odename isa Type && $odename <: ExplicitModel) ? $odename() : $odename
   end
@@ -435,9 +448,10 @@ macro model(expr)
   observedvars = OrderedSet{Symbol}()
   observedexpr = Expr(:block)
   bvars = :(begin end)
+  callvars  = OrderedSet{Symbol}()
   local vars, params, randoms, covariates, prevars, preexpr, odeexpr, odevars
   local ode_init, eqs, derivedexpr, derivedvars, observedvars, observedexpr
-  local isstatic, bvars
+  local isstatic, bvars, callvars
 
   isstatic = true
   odeexpr = :()
@@ -460,7 +474,7 @@ macro model(expr)
     elseif ex.args[1] == Symbol("@init")
       extract_defs!(vars,ode_init, add_vars(ex.args[3], bvars))
     elseif ex.args[1] == Symbol("@dynamics")
-      isstatic = extract_dynamics!(vars, odevars, ode_init, ex.args[3], eqs)
+      isstatic = extract_dynamics!(vars, odevars, prevars, callvars, ode_init, ex.args[3], eqs)
       odeexpr = ex.args[3]
     elseif ex.args[1] == Symbol("@derived")
       extract_randvars!(vars, derivedvars, derivedexpr, add_vars(ex.args[3], bvars))
@@ -481,7 +495,7 @@ macro model(expr)
     $(random_obj(randoms,params)),
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
     $(init_obj(ode_init,odevars,prevars,isstatic)),
-    $(dynamics_obj(odeexpr,prevars,odevars,bvars,eqs,isstatic)),
+    $(dynamics_obj(odeexpr,prevars,odevars,callvars,bvars,eqs,isstatic)),
     $(derived_obj(derivedexpr,derivedvars,prevars,odevars)),
     $(observed_obj(observedexpr,observedvars,prevars,odevars,derivedvars)))
     function Base.show(io::IO, ::typeof(x))
