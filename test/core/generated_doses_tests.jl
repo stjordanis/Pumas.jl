@@ -62,7 +62,7 @@ pop = Population([Subject(id = id,
             ii = 24, addl = 2, ss = 1:2, time = [0, 12],
             cmt = 2),cvs = cvs=(isPM="no", Wt=70)) for id in 1:10])
 pop_obs1 = simobs(m_diffeq, pop, param, randeffs)
-_data = DataFrame(pop_obs)
+_data = DataFrame(pop_obs1)
 
 #=
 plot(pop_obs)
