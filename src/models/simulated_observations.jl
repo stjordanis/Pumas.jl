@@ -11,8 +11,53 @@ end
 @inline function Base.setindex!(obs::SimulatedObservations, x, I...)
   obs.observed[I...] = x
 end
-function DataFrames.DataFrame(obs::SimulatedObservations)
-  DataFrame(merge((time=obs.times,),obs.observed))
+
+# DataFrame conversion
+function DataFrames.DataFrame(obs::SimulatedObservations;
+  include_events=true, event_order_reverse=true,
+  include_covariates=true)
+  nrows = length(obs.times)
+  df = DataFrame(merge((time=obs.times,), deepcopy(obs.observed)))
+  obs_columns = [keys(obs.observed)...]
+  if include_events
+    # Append event columns
+    ## For observations we have `evid=0` and `cmt=0`, the latter
+    ## subject to changes in the future
+    events = obs.subject.events
+    df[:amt]  = zeros(typeof(events[1].amt),  nrows)
+    df[:evid] = zeros(typeof(events[1].evid), nrows)
+    df[:cmt]  = zeros(typeof(events[1].cmt),  nrows)
+    df[:rate] = zeros(typeof(events[1].rate), nrows)
+    # Add rows corresponding to the events
+    ## For events that have a matching observation at the event
+    ## time, the values of the derived variables are copied.
+    ## Otherwise they are set to `missing`.
+    for ev in events
+      ind = searchsortedlast(obs.times, ev.time)
+      if obs.times[ind] == ev.time
+        ev_row = vcat(ev.time, df[ind, obs_columns]...,
+                      ev.amt, ev.evid, ev.cmt, ev.rate)
+        push!(df, ev_row)
+      else
+        ev_row = vcat(ev.time, missings(length(obs_columns)),
+                      ev.amt, ev.evid, ev.cmt, ev.rate)
+        try
+          push!(df, ev_row)
+        catch # exception if df doesn't allow missing values yet
+          allowmissing!(df, obs_columns)
+          push!(df, ev_row)
+        end
+      end
+    end
+    sort!(df, (:time, order(:evid, rev=event_order_reverse)))
+  end
+  if include_covariates
+    covariates = obs.subject.covariates
+    for (cov, value) in pairs(covariates)
+      df[cov] = value
+    end
+  end
+  df
 end
 
 @recipe function f(obs::SimulatedObservations)
@@ -49,10 +94,14 @@ end
 @inline function Base.setindex!(pop::SimulatedPopulation, x, I...)
   pop.sims[I...] = x
 end
-function DataFrames.DataFrame(pop::SimulatedPopulation)
-  dfs = [DataFrame(merge((id=[s.subject.id for i in 1:length(s.times)],
-                          time=s.times),
-                          s.observed)) for s in pop.sims]
+function DataFrames.DataFrame(pop::SimulatedPopulation; kwargs...)
+  dfs = []
+  for s in pop.sims
+    df = DataFrame(s; kwargs...)
+    id = [s.subject.id for i in 1:size(df, 1)]
+    insertcols!(df, 1, id=id)
+    push!(dfs, df)
+  end
   reduce(vcat,dfs)
 end
 

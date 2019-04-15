@@ -55,4 +55,4 @@ data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time =
 sol  = solve(model,data,param,randeffs,alg=MethodOfSteps(Tsit5()))
 
 # Regression test on interpolation issue
-@test all(sol(24:0.5:30)[2,:] .< 53)
+@test all(sol(24:0.5:30)[2,:] .< 55)
