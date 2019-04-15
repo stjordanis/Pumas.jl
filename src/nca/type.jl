@@ -78,6 +78,8 @@ function NCASubject(conc′, time′;
                     concu=true, timeu=true,
                     id=1, group=nothing, dose::T=nothing, llq=nothing, clean=true,
                     lambdaz=nothing, ii=nothing, kwargs...) where T
+  time′ isa AbstractRange && (time′ = collect(time′))
+  conc′ isa AbstractRange && (conc′ = collect(conc′))
   if concu !== true || timeu !== true
     conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
     time′ = map(x -> ismissing(x) ? x : x*timeu, time′)

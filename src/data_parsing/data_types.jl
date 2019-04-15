@@ -339,8 +339,9 @@ NCADose(dose::Event) = convert(NCADose, dose)
 
 function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
   dose = convert.(NCADose, subj.events)
-  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id = subj.id, dose=dose, clean=false)
-  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose)
+  ii = subj.events[end].ii
+  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id=subj.id, dose=nothing, clean=false, ii=ii)
+  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose, ii=ii)
 end
 NCASubject(subj::Subject; name=:dv) = convert(NCASubject, subj; name=name)
 

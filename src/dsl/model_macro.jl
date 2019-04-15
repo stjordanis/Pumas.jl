@@ -330,12 +330,16 @@ function extract_randvars!(vars, randvars, postexpr, expr)
       extract_randvars!(vars, randvars, postexpr, ex)
     end
   elseif ((iseq = expr.head == :(=)) || expr.head == :(:=)) && length(expr.args) == 2
-    p = expr.args[1]
-    if p ∉ vars && iseq
-      push!(vars,p)
-      push!(randvars,p)
+    ps = expr.args[1]
+    istuple = ps isa Expr && ps.head == :tuple
+    ps = istuple ? ps.args : [ps]
+    for (i,p) in enumerate(ps)
+      if p ∉ vars && iseq
+        push!(vars,p)
+        push!(randvars,p)
+      end
+      push!(postexpr.args, istuple ? :($p = $(expr.args[2])[$i]) : :($p = $(expr.args[2])))
     end
-    push!(postexpr.args, :($p = $(expr.args[2])))
   elseif expr isa Expr && expr.head == :call && expr.args[1] == :~ && length(expr.args) == 3
     p = expr.args[2]
     if p ∉ vars
@@ -419,8 +423,16 @@ function add_vars(ex::Expr, vars)
   return Expr(:block, [vars.args; args]...)
 end
 
+to_ncasubj(name, t, events) = NCASubject(name, t, dose=map(ev->convert(NCADose, ev), events), clean=false)
+
 macro nca(name)
-  esc(:(NCASubject($name, t, dose=map(ev->convert(NCADose, ev), events), clean=false)))
+  esc(:(PuMaS.to_ncasubj($name, t, events)))
+end
+
+macro nca(names...)
+  ex = Expr(:tuple)
+  ex.args = [:(PuMaS.to_ncasubj($name, t, events)) for name in names]
+  esc(ex)
 end
 
 macro model(expr)
