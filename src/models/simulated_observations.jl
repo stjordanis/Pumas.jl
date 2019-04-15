@@ -60,11 +60,14 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
   df
 end
 
-@recipe function f(obs::SimulatedObservations)
+@recipe function f(obs::SimulatedObservations; obsnames=nothing)
   t = obs.times
   names = Symbol[]
   plot_vars = []
   for (n,v) in pairs(obs.observed)
+    if obsnames !== nothing
+      !(n in obsnames) && continue
+    end
     push!(names,n)
     push!(plot_vars,v)
   end
