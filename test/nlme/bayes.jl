@@ -42,7 +42,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
       @dynamics OneCompartmentModel
 
       @derived begin
-          dv ~ @. Normal(conc,sqrt(σ))
+          dv ~ @. Normal(conc,sqrt(σ)+eps())
       end
   end
 
@@ -181,8 +181,9 @@ end
 
   Random.seed!(1)
   try
+
     b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
-                nsamples = nsamples, reltol = 1e-10, abstol = 1e-10)
+                nsamples = nsamples, reltol = 1e-6, abstol = 1e-6)
 
     m = PuMaS.param_mean(b)
 
