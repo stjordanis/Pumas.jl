@@ -57,7 +57,7 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
   end
   hasdose = amt !== nothing && formulation !== nothing && route !== nothing
   if warn
-    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`."
+    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`."
     if hasdose && !( route isa NamedTuple && length(route) <= 2 && all(i -> i in (:ev, :iv), keys(route)) )
       throw(ArgumentError("route must be in the form of `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`. Got $(repr(route))."))
     end

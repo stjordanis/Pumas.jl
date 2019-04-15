@@ -12,7 +12,7 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
