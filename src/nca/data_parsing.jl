@@ -113,7 +113,7 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
           end
         end
       end
-      duration′ = duration === nothing ? nothing : df[duration][dose_idx]
+      duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, formulation)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]
