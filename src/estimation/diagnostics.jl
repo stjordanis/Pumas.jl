@@ -221,3 +221,50 @@ function BIC(m::PuMaSModel, data::Population, param::NamedTuple, approx::Likelih
   numparam = TransformVariables.dimension(totransform(m.param))
   2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end
+
+### Predictions
+
+struct FittedPuMaSPrediction{T1, T2, T3, T4}
+  population::T1
+  individual::T2
+  subjects::T3
+  approx::T4
+end
+function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
+  if !useEBEs
+    error("Sampling from the omega distribution is not yet implemented.")
+  end
+  if !(newdata==false)
+    error("Using data different than that used to fit the model is not yet implemented.")
+  end
+  if !(time==false)
+    error("Using custom time grids is not yet implemented.")
+  end
+  
+  n_obs = length(fpm.data)
+  subjects = fpm.data.subject
+  vrandeffs = fpm.vrandeffs
+  time = [subject.time for subject in subjects]
+  if nsim == nothing
+    population  = [_predict(fpm, subjects[s_idx], vrandeffs[s_idx], approx) for s_idx = 1:n_obs]
+    individual = nothing
+  else
+    population = [_epredict(fpm, subjects[s_idx], (η=vrandeffs[s_idx],), nsim) for s_idx = 1:n_obs]
+    individual = nothing
+    approx = nothing
+  end
+  return FittedPuMaSPrediction(population, individual, subjects, approx)
+end
+
+function _predict(fpm, subject, vrandeffs, approx::FO)
+  pred(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _predict(fpm, subject, vrandeffs, approx::FOCE)
+  cpred(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _predict(fpm, subject, vrandeffs, approx::FOCEI)
+  cpredi(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _epredict(fpm, subject, vrandeffs, nsim::Integer)
+  epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
+end
