@@ -62,11 +62,10 @@ Extrapolate the first moment to the infinite.
 @enum AUCmethod Linear Log
 
 @inline function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
-  if method === :linear ||
-    (method === :linuplogdown && c2>=c1) && (method === :linlog && maxidx)
+  if method === :linear || (method === :linuplogdown && c2>=c1) || (method === :linlog && i < maxidx)
     return Linear
   else
-    c1 <= zero(c1) || c2 <= zero(c2) && return Linear
+    c1 <= zero(c1) || c2 <= zero(c2) || c1 == c2 && return Linear
     return Log
   end
 end
