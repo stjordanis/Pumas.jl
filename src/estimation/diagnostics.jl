@@ -3,7 +3,11 @@
 
 To calculate the Normalised Prediction Distribution Errors (NPDE).
 """
-function npde(m::PuMaSModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, nsim::Integer)
+function npde(m::PuMaSModel, 
+              subject::Subject, 
+              param::NamedTuple, 
+              randeffs::NamedTuple, 
+              nsim::Integer)
   y = subject.observations.dv
   sims = [simobs(m, subject, param, randeffs).observed.dv for i in 1:nsim]
   mean_y = mean(sims)
@@ -175,7 +179,10 @@ end
 
 To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 """
-function eiwres(m::PuMaSModel,subject::Subject, param::NamedTuple, nsim)
+function eiwres(m::PuMaSModel,
+                subject::Subject, 
+                param::NamedTuple, 
+                nsim::Integer)
   yi = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,param)
   mean_yi = (mean.(dist.dv))
@@ -214,7 +221,10 @@ function cipredi(m::PuMaSModel,
   return mean.(dist.dv)
 end
 
-function ηshrinkage(m::PuMaSModel, data::Population, param::NamedTuple, approx)
+function ηshrinkage(m::PuMaSModel, 
+                    data::Population, 
+                    param::NamedTuple, 
+                    approx::LikelihoodApproximation)
   sd_randeffs = std([randeffs_estimate(m, subject, param, approx) for subject in data])
   Ω = Matrix(param.Ω)
   return  1 .- sd_randeffs ./ sqrt.(diag(Ω))
@@ -229,19 +239,25 @@ function ϵshrinkage(m::PuMaSModel,
 end
 
 function ϵshrinkage(m::PuMaSModel,
-  data::Population,
-  param::NamedTuple,
-  approx::FOCE,
-  randeffs=[randeffs_estimate(m, subject, param, FOCE()) for subject in data])
+                    data::Population,
+                    param::NamedTuple,
+                    approx::FOCE,
+                    randeffs=[randeffs_estimate(m, subject, param, FOCE()) for subject in data])
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
-function AIC(m::PuMaSModel, data::Population, param::NamedTuple, approx::LikelihoodApproximation)
+function AIC(m::PuMaSModel, 
+              data::Population, 
+              param::NamedTuple, 
+              approx::LikelihoodApproximation)
   numparam = TransformVariables.dimension(totransform(m.param))
   2*(marginal_nll(m, data, param, approx) + numparam)
 end
 
-function BIC(m::PuMaSModel, data::Population, param::NamedTuple, approx::LikelihoodApproximation)
+function BIC(m::PuMaSModel, 
+              data::Population, 
+              param::NamedTuple, 
+              approx::LikelihoodApproximation)
   numparam = TransformVariables.dimension(totransform(m.param))
   2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end
