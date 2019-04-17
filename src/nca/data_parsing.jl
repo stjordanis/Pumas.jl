@@ -22,11 +22,14 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
     added_ii = true
     dfpops = map(dfs) do df
       if group isa AbstractArray && length(group) > 1
-        groupname = map(string, first(df[group]))
         grouplabel = map(string, group)
-        currentgroup = join(Base.Iterators.flatten(zip(grouplabel, groupname)), ' ')
+        groupnames = map(string, first(df[group]))
+        currentgroup = map(=>, grouplabel, groupnames)
       else
-        currentgroup = group isa Symbol ? first(df[group]) : first(df[group[1]])
+        group isa Symbol || ( group = first(group) )
+        grouplabel = string(group)
+        groupnames = first(df[group])
+        currentgroup = grouplabel => groupnames
       end
       pop, tmp = ___parse_ncadata(df; group=currentgroup, ii=ii, kwargs...)
       added_ii &= tmp
