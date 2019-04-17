@@ -57,7 +57,7 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
       ndose = ismulti ? length(firstsubj.dose) : 1
       id′ = map(subj->subj.id, pop)
       df.id = _repeat(id′, ndose)
-      ismulti && (df.occasion = eachindex(sol))
+      ismulti && (df.occasion = repeat(1:ndose, outer=length(pop)))
       if firstsubj.group !== nothing
         ngroup = firstsubj.group isa AbstractArray ? length(firstsubj.group) : 1
         if ngroup == 1
