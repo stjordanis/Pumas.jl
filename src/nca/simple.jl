@@ -85,7 +85,7 @@ end
 
 Calculate minimum observed concentration
 """
-function cmin(nca::NCASubject; kwargs...)
+function cmin(nca::NCASubject; kwargs...) # TODO: clowest C(tau)
   conc, time = nca.conc, nca.time
   val, _ = conc_maximum(conc, eachindex(conc), true)
   return val
@@ -314,7 +314,7 @@ end
 
 Dosing interval. For multiple dosing only.
 """
-function tau(nca::NCASubject; kwargs...)
+function tau(nca::NCASubject; kwargs...) # warn if not provided
   has_ii(nca) && return nca.ii
   dose = nca.dose
   dose === nothing && return missing
@@ -380,6 +380,7 @@ function c0(nca::NCASubject; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwarg
   c0method isa Symbol && (c0method = tuple(c0method))
   dosetime = nca.dose === nothing ? zero(eltype(nca.time)) : first(nca.dose).time
   nca = nca.dose isa AbstractArray ? subject_at_ithdose(nca, 1) : nca
+  #nca.dose !== nothing && nca.dose.formulation === EV && return missing
   while ismissing(ret) && !isempty(c0method)
     current_method = c0method[1]
     c0method = Base.tail(c0method)
