@@ -186,66 +186,68 @@ function penalized_conditional_nll!(diffres::DiffResult,
 end
 
 
-"""
-    randeffs_estimate(model, subject, param, approx, ...)
-
-The point-estimate the random effects (being the mode of the empirical Bayes estimate) of a
-particular subject at a particular parameter values. The result is returned as a vector
-(transformed into Cartesian space).
-"""
-function randeffs_estimate(m::PuMaSModel,
-                           subject::Subject,
-                           param::NamedTuple,
-                           approx::LikelihoodApproximation,
-                           args...; kwargs...)
+function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
   rfxset = m.random(param)
   p = TransformVariables.dimension(totransform(rfxset))
 
   # Temporary workaround for incorrect initialization of derivative storage in NLSolversBase
   # See https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/97
   T = promote_type(numtype(param), numtype(param))
-
-  return randeffs_estimate(m, subject, param, zeros(T, p), approx, args...; kwargs...)
+  zeros(T, p)
 end
 
+"""
+randeffs_estimate(model, subject, param, approx, ...)
+The point-estimate the random effects (being the mode of the empirical Bayes estimate) of a
+particular subject at a particular parameter values. The result is returned as a vector
+(transformed into Cartesian space).
+"""
 function randeffs_estimate(m::PuMaSModel,
-                           subject::Subject,
-                           param::NamedTuple,
-                           vrandeffs::AbstractVector,
-                           approx::Union{LaplaceI,FOCEI},
-                           args...; kwargs...)
-  Optim.minimizer(
-    Optim.optimize(
-      penalized_conditional_nll_fn(m, subject, param, args...; kwargs...),
-      vrandeffs,
-      BFGS(linesearch=Optim.LineSearches.BackTracking());
-      autodiff=:forward
-    )
-  )
+  subject::Subject,
+  param::NamedTuple,
+  approx::LikelihoodApproximation,
+  args...; kwargs...)
+  initial_randeff = _initial_randeffs(m, param)
+
+  return randeffs_estimate!(initial_randeff, m, subject, param, approx, args...; kwargs...)
 end
 
-function randeffs_estimate(m::PuMaSModel,
-                           subject::Subject,
-                           param::NamedTuple,
-                           vrandeffs::AbstractVector,
-                           approx::Union{Laplace,FOCE},
-                           args...; kwargs...)
-  Optim.minimizer(
-    Optim.optimize(
-      s -> penalized_conditional_nll(m, subject, param, (η=s,), approx, args...; kwargs...),
-      vrandeffs,
-      BFGS(linesearch=Optim.LineSearches.BackTracking());
-      autodiff=:forward
-    )
-  )
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
+                            param::NamedTuple,
+                            approx::Union{LaplaceI,FOCEI},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   penalized_conditional_nll_fn(m, subject, param, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
 end
 
-randeffs_estimate(m::PuMaSModel,
-                  subject::Subject,
-                  param::NamedTuple,
-                  vrandeffs::AbstractVector,
-                  ::Union{FO,FOI},
-                  args...; kwargs...) = zero(vrandeffs)
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
+                            fixeffs::NamedTuple,
+                            approx::Union{Laplace,FOCE},
+                            args...; kwargs...)
+  vrandeffs .= Optim.minimizer(
+                 Optim.optimize(
+                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
+                   vrandeffs,
+                   BFGS(linesearch=Optim.LineSearches.BackTracking());
+                   autodiff=:forward
+                 )
+               )
+end
+
+function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, param::NamedTuple, ::Union{FO,FOI}, args...; kwargs...)
+  vrandeffs.=zero(vrandeffs)
+  vrandeffs
+end
 
 """
     randeffs_estimate_dist(model, subject, param, approx, ...)
@@ -646,11 +648,12 @@ function FIM(obs::NamedTuple, dist::NamedTuple, ::FO)
 end
 
 # Fitting methods
-struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation} <: StatsBase.StatisticalModel
+struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
   model::T1
   data::T2
   optim::T3
   approx::T4
+  vrandeffs::T5
 end
 
 function Distributions.fit(m::PuMaSModel,
@@ -662,6 +665,8 @@ function Distributions.fit(m::PuMaSModel,
                            optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
                            optimautodiff=:finite,
                            optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
+                                                                     store_trace=true,
+                                                                     extended_trace=true,
                                                                      g_tol=1e-3),
                            kwargs...)
   trf = totransform(m.param)
@@ -669,7 +674,8 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...),
                vparam, optimmethod, optimoptions, autodiff=optimautodiff)
 
-  return FittedPuMaSModel(m, data, o, approx)
+  vrandeffs = [randeffs_estimate(m, subject, param, approx, args...) for subject in data.subjects]
+  return FittedPuMaSModel(m, data, o, approx, vrandeffs)
 end
 
 function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
