@@ -45,7 +45,7 @@ export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
-export AIC, BIC, ηshrinkage, ϵshrinkage
+export AIC, BIC, ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
 export @model, @nca
 
