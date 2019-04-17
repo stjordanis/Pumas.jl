@@ -237,12 +237,12 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
   if !(newdata==false)
     error("Using data different than that used to fit the model is not yet implemented.")
   end
-  if !(time==false)
+  if !(timegrid==false)
     error("Using custom time grids is not yet implemented.")
   end
-  
+
   n_obs = length(fpm.data)
-  subjects = fpm.data.subject
+  subjects = fpm.data.subjects
   vrandeffs = fpm.vrandeffs
   time = [subject.time for subject in subjects]
   if nsim == nothing
