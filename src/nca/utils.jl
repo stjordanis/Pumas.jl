@@ -1,10 +1,24 @@
 const Maybe{T} = Union{Missing, T}
 
 @noinline monotonerr(i) = throw(ArgumentError("Time must be monotonically increasing. Errored at index $i"))
-@inline function checkmonotonic(time, idxs)
+checkmonotonic(time, idxs) = checkmonotonic(nothing, time, idxs, nothing)
+@inline function checkmonotonic(conc, time, idxs, dose)
   length(idxs) < 2 && return
-  for i in idxs[1]:idxs[end-1]
-    time[i+1] > time[i] && continue
+  i = idxs[1]
+  hi = idxs[end]
+  while i < hi
+    time[i+1] > time[i] && ( i+= 1; continue )
+    if dose isa NCADose && conc !== nothing
+      dosecoincide = time[i+1] == time[i] && dose.time == time[i] && (iszero(conc[i]) || iszero(conc[i+1]))
+      if dosecoincide
+        deleteat!(time, i)
+        jj = iszero(conc[i]) ? i : i+1
+        deleteat!(conc, jj)
+        i += 1
+        hi -= 1
+        continue
+      end
+    end
     monotonerr(i)
   end
   return
@@ -25,7 +39,7 @@ Reasons for being invalid are:
 Some cases may generate warnings
   1.  A negative concentration is often but not always an error; it will generate a warning.
 """
-function checkconctime(conc, time=nothing; monotonictime=true, kwargs...)
+function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwargs...)
   # check conc
   conc == nothing && return
   E = eltype(conc)
@@ -50,7 +64,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, kwargs...)
   elseif !(T <: Maybe{Number} && time isa AbstractArray)
     throw(ArgumentError("Time data must be numeric and an array"))
   end
-  monotonictime && checkmonotonic(time, eachindex(time))
+  monotonictime && checkmonotonic(conc, time, eachindex(time), dose)
   # check both
   # TODO: https://github.com/UMCTM/PuMaS.jl/issues/153
   length(conc) != length(time) && throw(ArgumentError("Concentration and time must be the same length"))
