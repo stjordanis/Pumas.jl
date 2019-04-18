@@ -363,6 +363,29 @@ function swing(nca::NCASubject; kwargs...)
 end
 
 """
+    c0(nca::NCASubject; kwargs...)
+
+Estimate the concentration at dosing time for an IV bolus dose.
+"""
+function c0(subj::NCASubject; kwargs...)
+  (subj.dose === nothing || subj.dose.formulation !== IVBolus) && return missing
+  t1 = ustrip(subj.time[1])
+  iszero(t1) && return subj.conc[1]
+  t2 = ustrip(subj.time[2])
+  c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
+  iszero(c1) && return c1
+  if c2 < c1
+    dosetime = ustrip(subj.dose.time)
+    c0 = exp(log(c1) - (t1 - dosetime)*(log(c2)-log(c1))/(t2-t1))*oneunit(eltype(subj.conc))
+  else # FIXME: what do we do?
+    c0 = missing
+  end
+  return c0
+end
+
+#= issue #391
+# The function is originally translated from the R package PKNCA
+"""
   c0(nca::NCASubject; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...)
 
 Estimate the concentration at dosing time for an IV bolus dose. It takes the
@@ -431,6 +454,7 @@ function _c0_method_c1(nca::NCASubject, dosetime)
   end
   return idx isa Number ? nca.conc[idx] : missing
 end
+=#
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?
