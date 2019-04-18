@@ -15,6 +15,8 @@ _mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, f
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
                                      route=(iv="IV", ev="ORAL"), timeu=timeu, concu=concu, amtu=amtu)
 
+@test_throws ArgumentError NCA.interpextrapconc(mncapop[1], 22timeu, method=:linear)
+
 # test caching
 @test_nowarn NCA.auc(mncapop)
 @test NCA.auc(mncapop[1]; method=:linear) != NCA.auc(mncapop[1]; method=:linlog)
