@@ -125,6 +125,8 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
   method in (:linear, :linuplogdown, :linlog) || throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   _clast = clast(nca; kwargs...)
   _tlast = tlast(nca)
+  # type assert `auc`
+  auc::ret_typ = zero(ret_typ)
   if ismissing(_clast)
     if all(x->x<=nca.llq, conc)
       auc = zero(auc)
@@ -135,8 +137,6 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
     end
   end
 
-  # type assert `auc`
-  auc::ret_typ = zero(ret_typ)
   if interval !== nothing
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval

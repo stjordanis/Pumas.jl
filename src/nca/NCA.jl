@@ -35,7 +35,7 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
     if ismulti
       sol′ = map(enumerate(pop)) do (i, subj)
         try
-          if $f in (mat, c0)
+          if $f == mat
             _sol = $f(subj, args...; kwargs...)
             param  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `f` as long as the other ones
           else
@@ -90,7 +90,7 @@ end
 
 # add `tau`
 # Multiple dosing handling
-for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
+for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
           :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
