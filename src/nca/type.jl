@@ -86,10 +86,10 @@ function NCASubject(conc′, time′;
   end
   multidose = T <: AbstractArray && length(dose) > 1
   # we check monotonic later, because multidose could have TAD or TIME
-  conc, time = clean ? cleanblq(conc′, time′; llq=llq, monotonictime=!multidose, kwargs...) : (conc′, time′)
+  conc, time = clean ? cleanblq(conc′, time′; llq=llq, dose=dose, monotonictime=!multidose, kwargs...) : (conc′, time′)
   abstime = time # leave `abstime` untouched
-  unitconc = oneunit(eltype(conc))
-  unittime = oneunit(eltype(time))
+  unitconc = float(oneunit(eltype(conc)))
+  unittime = float(oneunit(eltype(time)))
   llq === nothing && (llq = zero(unitconc))
   auc_proto = -unitconc * unittime
   aumc_proto = auc_proto * unittime
@@ -102,8 +102,8 @@ function NCASubject(conc′, time′;
     ct = let time=time, dose=dose
       map(eachindex(dose)) do i
         idxs = ithdoseidxs(time, dose, i)
-        clean && checkmonotonic(time, idxs)
-        iszero(time[idxs[1]]) ? (conc[idxs], time[idxs]) : (conc[idxs], time[idxs].-time[idxs[1]])
+        clean && checkmonotonic(conc, time, idxs, dose)
+        iszero(time[idxs[1]]) ? (conc[idxs], time[idxs]) : (conc[idxs], time[idxs].-time[idxs[1]]) # convert to TAD
       end
     end
     conc = map(x->x[1], ct)

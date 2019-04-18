@@ -171,3 +171,12 @@ end
 @test_nowarn NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, nothing, NCA.IVBolus)))
 @test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, nothing, NCA.EV))) === missing
 @test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, 1, NCA.IVInfusion))) === missing
+
+df = DataFrame()
+df.time = [0:20...; 20; 21:25]
+df.conc = [0:20...; 0; 21:25]
+df.amt = zeros(Int, 27); df.amt[22] = 1
+df.formulation = "Oral"
+df.ID = 1
+@test_nowarn parse_ncadata(df, time=:time, conc=:conc, amt=:amt, formulation=:formulation, route=(ev="Oral",),
+                                    llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
