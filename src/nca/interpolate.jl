@@ -29,7 +29,7 @@ function interpolateconc(nca::NCASubject, timeout::Number; method, kwargs...)
     return conc[idx2]
   else
     if time[1] > zero(time[1]) && zero(timeout) <= timeout < time[1] # if we need to calculate `c0`
-      c0′ = c0(nca; c0method=(:logslope, :c1))
+      c0′ = c0(nca, true)
       timeout == zero(timeout) && return c0′
       idx1  = 1
       time1 = ustrip(zero(time[idx1])); time2 = ustrip(time[idx1])

@@ -164,6 +164,7 @@ Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 """
 function vss(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
+  nca.dose.formulation !== IVBolus && return missing
   normalizedose(aumc(nca; kwargs...), nca) ./ (normalizedose(auc(nca; kwargs...), nca)).^2
 end
 
@@ -367,10 +368,13 @@ end
 
 Estimate the concentration at dosing time for an IV bolus dose.
 """
-function c0(subj::NCASubject; kwargs...)
-  (subj.dose === nothing || subj.dose.formulation !== IVBolus) && return missing
+function c0(subj::NCASubject, returnev=false; kwargs...) # `returnev` is not intended to be used by users
+  subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
   iszero(t1) && return subj.conc[1]
+  if returnev && subj.dose.formulation !== IVBolus
+    return zero(subj.conc[1])
+  end
   t2 = ustrip(subj.time[2])
   c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
   iszero(c1) && return c1
