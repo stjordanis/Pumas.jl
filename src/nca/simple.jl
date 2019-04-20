@@ -368,7 +368,7 @@ end
 
 Estimate the concentration at dosing time for an IV bolus dose.
 """
-function c0(subj::NCASubject, returnev=false; kwargs...) # `returnev` is not intended to be used by users
+function c0(subj::NCASubject, returnev=false; warn=true, kwargs...) # `returnev` is not intended to be used by users
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
   iszero(t1) && return subj.conc[1]
@@ -378,10 +378,13 @@ function c0(subj::NCASubject, returnev=false; kwargs...) # `returnev` is not int
   t2 = ustrip(subj.time[2])
   c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
   iszero(c1) && return c1
-  if c2 < c1
+  if c2 >= c1 && warn
+    @warn "c0: This is an IV bolus dose, but the first two concentrations are not decreasing. If `conc[i]/conc[i+1] > 0.8` holds, the back extrapolation will be computed internally for AUC and AUMC, but will not be reported."
+  end
+  if c2 < c1 || (returnev && c1/c2 > 0.8)
     dosetime = ustrip(subj.dose.time)
     c0 = exp(log(c1) - (t1 - dosetime)*(log(c2)-log(c1))/(t2-t1))*oneunit(eltype(subj.conc))
-  else # FIXME: what do we do?
+  else
     c0 = missing
   end
   return c0
