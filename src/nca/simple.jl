@@ -372,8 +372,8 @@ function c0(subj::NCASubject, returnev=false; kwargs...) # `returnev` is not int
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
   iszero(t1) && return subj.conc[1]
-  if returnev && subj.dose.formulation !== IVBolus
-    return zero(subj.conc[1])
+  if subj.dose.formulation !== IVBolus
+    return returnev ? zero(subj.conc[1]) : missing
   end
   t2 = ustrip(subj.time[2])
   c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
