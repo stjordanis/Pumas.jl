@@ -73,6 +73,9 @@ t2 = ustrip(t[3])
 @test NCA.c0(NCASubject(conc[2:5], t[2:5], dose=NCADose(0, 0.1, 0, NCA.IVBolus))) === exp(log(c1) - t1*(log(c2)-log(c1))/(t2-t1))*concu
 @test NCA.c0(ncapop[1]) === ncapop[1].conc[1]
 @test NCA.c0(nca) === missing
+subj = NCASubject([10, 12.], [0.2, 0.9], dose=NCADose(0, 0.1, 0, NCA.IVBolus))
+@test_logs (:warn, "c0: This is an IV bolus dose, but the first two concentrations are not decreasing. If `conc[i]/conc[i+1] > 0.8` holds, the back extrapolation will be computed internally for AUC and AUMC, but will not be reported.") NCA.c0(subj)
+@test NCA.c0(subj, true, warn=false) < 10
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
