@@ -681,10 +681,12 @@ function Distributions.fit(m::PuMaSModel,
   return FittedPuMaSModel(m, data, o, approx, vrandeffs)
 end
 
+opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
+
 function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
   if s === :param
     trf = totransform(f.model.param)
-    TransformVariables.transform(trf, f.optim.minimizer)
+    TransformVariables.transform(trf, opt_minimizer(f.optim))
   else
     return getfield(f, s)
   end
