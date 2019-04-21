@@ -51,11 +51,46 @@ end
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, param, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 @test PuMaS.marginal_nll_nonmem(mdsl1, data, param, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:finite) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=BFGS(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
-@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(),
-    optimmethod=Newton(linesearch=Optim.LineSearches.BackTracking()), optimautodiff=:forward) isa PuMaS.FittedPuMaSModel
+ofn = function (cost,p)
+  Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
+                 Optim.Options(show_trace=verbose, # Print progress
+                               store_trace=true,
+                               extended_trace=true,
+                               g_tol=1e-3),
+                  autodiff=:finite)
+end
+
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimize_fn=ofn) isa PuMaS.FittedPuMaSModel
+
+ofn2 = function (cost,p)
+  Optim.optimize(cost,p,Newton(linesearch=Optim.LineSearches.BackTracking()),
+                 Optim.Options(show_trace=verbose, # Print progress
+                               store_trace=true,
+                               extended_trace=true,
+                               g_tol=1e-3),
+                  autodiff=:finite)
+end
+
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimize_fn=ofn2) isa PuMaS.FittedPuMaSModel
+
+ofn3 = function (cost,p)
+  Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
+                 Optim.Options(show_trace=verbose, # Print progress
+                               store_trace=true,
+                               extended_trace=true,
+                               g_tol=1e-3),
+                  autodiff=:forward)
+end
+
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimize_fn=ofn3) isa PuMaS.FittedPuMaSModel
+
+ofn4 = function (cost,p)
+  Optim.optimize(cost,p,Newton(linesearch=Optim.LineSearches.BackTracking()),
+                 Optim.Options(show_trace=verbose, # Print progress
+                               store_trace=true,
+                               extended_trace=true,
+                               g_tol=1e-3),
+                  autodiff=:forward)
+end
+
+@test fit(mdsl1, data, init_param(mdsl1), PuMaS.LaplaceI(), optimize_fn=ofn4) isa PuMaS.FittedPuMaSModel
