@@ -10,6 +10,7 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
+function opt_minimizer end
 include("nca/NCA.jl")
 
 include("data_parsing/data_types.jl")

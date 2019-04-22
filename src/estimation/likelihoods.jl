@@ -656,32 +656,37 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
   vrandeffs::T5
 end
 
+function DEFAULT_OPTIMIZE_FN(cost,p)
+  Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
+                 Optim.Options(show_trace=false, # Print progress
+                               store_trace=true,
+                               extended_trace=true,
+                               g_tol=1e-3),
+                  autodiff=:finite)
+end
+
 function Distributions.fit(m::PuMaSModel,
                            data::Population,
                            param::NamedTuple,
                            approx::LikelihoodApproximation,
                            args...;
-                           verbose=false,
-                           optimmethod::Optim.AbstractOptimizer=BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                           optimautodiff=:finite,
-                           optimoptions::Optim.Options=Optim.Options(show_trace=verbose, # Print progress
-                                                                     store_trace=true,
-                                                                     extended_trace=true,
-                                                                     g_tol=1e-3),
+                           optimize_fn = DEFAULT_OPTIMIZE_FN,
                            kwargs...)
   trf = totransform(m.param)
   vparam = TransformVariables.inverse(trf, param)
-  o = optimize(s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...),
-               vparam, optimmethod, optimoptions, autodiff=optimautodiff)
+  cost = s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...)
+  o = optimize_fn(cost,vparam)
 
   vrandeffs = [randeffs_estimate(m, subject, param, approx, args...) for subject in data.subjects]
   return FittedPuMaSModel(m, data, o, approx, vrandeffs)
 end
 
+opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
+
 function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
   if s === :param
     trf = totransform(f.model.param)
-    TransformVariables.transform(trf, f.optim.minimizer)
+    TransformVariables.transform(trf, opt_minimizer(f.optim))
   else
     return getfield(f, s)
   end
