@@ -658,7 +658,7 @@ end
 
 function DEFAULT_OPTIMIZE_FN(cost,p)
   Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
+                 Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),

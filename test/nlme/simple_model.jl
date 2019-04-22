@@ -53,7 +53,7 @@ end
 
 ofn = function (cost,p)
   Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
+                 Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),
@@ -64,7 +64,7 @@ end
 
 ofn2 = function (cost,p)
   Optim.optimize(cost,p,Newton(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
+                 Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),
@@ -75,7 +75,7 @@ end
 
 ofn3 = function (cost,p)
   Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
+                 Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),
@@ -86,7 +86,7 @@ end
 
 ofn4 = function (cost,p)
   Optim.optimize(cost,p,Newton(linesearch=Optim.LineSearches.BackTracking()),
-                 Optim.Options(show_trace=verbose, # Print progress
+                 Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),
