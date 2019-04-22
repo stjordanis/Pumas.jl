@@ -33,6 +33,31 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
+  smart_parse_name(colnames::AbstractVector{<:Symbol},
+                   value::Union{<:Nothing, <:Number, <:Symbol},
+                   default::AbstractString;
+                   as_string = string.(colnames))
+
+  Given a position (Number), it will use that variable name.
+  Given a Symbol, it will use that variable name.
+  Given nothing (Nothing), it will try to match the default name ignoring case.
+"""
+smart_parse_name(colnames::AbstractVector{<:Symbol},
+                 value::Number,
+                 default::AbstractString;
+                 as_string = string.(colnames)) = colnames[convert(Int, value)]
+smart_parse_name(colnames::AbstractVector{<:Symbol},
+                 value::Symbol,
+                 default::AbstractString;
+                 as_string = string.(colnames)) = value
+smart_parse_name(colnames::AbstractVector{<:Symbol},
+                 value::Nothing,
+                 default::AbstractString;
+                 as_string = string.(colnames)) =
+  findfirst(x -> occursin(Regex("^(?i)$default\$"), x), as_string) |>
+  (x -> isa(x, Integer) ? colnames[x] : Symbol(default))
+
+"""
     process_nmtran(filepath::String, args...; kwargs...)
     process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
                    id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
@@ -48,12 +73,25 @@ Import NMTRAN-formatted data.
 function process_nmtran(filepath::AbstractString, args...; kwargs...)
   process_nmtran(CSV.read(filepath, missingstrings="."), args...; kwargs...)
 end
-function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
-                        id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+function process_nmtran(data,cvs=Symbol[],dvs=[nothing];
+                        id=nothing, time=nothing, evid=nothing, amt=nothing, addl=nothing,
+                        ii=nothing, cmt=nothing, rate=nothing, ss=nothing,
                         event_data = true)
-  data = copy(data)
+
   colnames = names(data)
+  as_string = string.(colnames)
+  id = smart_parse_name(colnames, id, "id", as_string = as_string)
+  time = smart_parse_name(colnames, time, "time", as_string = as_string)
+  evid = smart_parse_name(colnames, evid, "evid", as_string = as_string)
+  amt = smart_parse_name(colnames, amt, "amt", as_string = as_string)
+  addl = smart_parse_name(colnames, addl, "addl", as_string = as_string)
+  ii = smart_parse_name(colnames, ii, "ii", as_string = as_string)
+  cmt = smart_parse_name(colnames, cmt, "cmt", as_string = as_string)
+  rate = smart_parse_name(colnames, rate, "rate", as_string = as_string)
+  ss = smart_parse_name(colnames, ss, "rate", as_string = as_string)
+  dvs = smart_parse_name.(Ref(colnames), dvs, "dvs", as_string = as_string)
+
+  data = copy(data)
 
   if id ∉ colnames
     data[id] = 1

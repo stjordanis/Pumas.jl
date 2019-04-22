@@ -87,3 +87,7 @@ end
   data = DataFrame(evs, true)
   @test size(data, 1) == 24
 end
+@testset "Naming conventions" begin
+  data = DataFrame(ID = 1, evID = 1, amt = 5, DvS = 0)
+  @test isa(process_nmtran(data)[1], Population)
+end
