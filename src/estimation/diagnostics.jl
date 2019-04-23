@@ -306,13 +306,13 @@ function _predict(fpm, subject, vrandeffs, approx::FOCE)
   cpred(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _ipredict(fpm, subject, vrandeffs, approx::FOCE)
-  icpred(fpm.model, subject, fpm.param, vrandeffs)
+  cipred(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _predict(fpm, subject, vrandeffs, approx::FOCEI)
   cpredi(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _ipredict(fpm, subject, vrandeffs, approx::FOCEI)
-  icpredi(fpm.model, subject, fpm.param, vrandeffs)
+  cipredi(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
