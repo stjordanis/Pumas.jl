@@ -89,7 +89,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=[nothing];
   cmt = smart_parse_name(colnames, cmt, "cmt", as_string = as_string)
   rate = smart_parse_name(colnames, rate, "rate", as_string = as_string)
   ss = smart_parse_name(colnames, ss, "rate", as_string = as_string)
-  dvs = smart_parse_name.(Ref(colnames), dvs, "dvs", as_string = as_string)
+  dvs = smart_parse_name.(Ref(colnames), dvs, "dv", as_string = as_string)
 
   data = copy(data)
 
