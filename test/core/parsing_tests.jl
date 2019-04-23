@@ -88,6 +88,6 @@ end
   @test size(data, 1) == 24
 end
 @testset "Naming conventions" begin
-  data = DataFrame(ID = 1, evID = 1, amt = 5, DvS = 0)
-  @test isa(process_nmtran(data), Population)
+  data = DataFrame(ID = 1, evID = 1, amt = 5, DV = 0)
+  @test isa(read_pumas(data), Population)
 end
