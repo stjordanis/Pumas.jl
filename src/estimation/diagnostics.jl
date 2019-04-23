@@ -318,8 +318,9 @@ function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
 
+
 function DataFrame(pred::FittedPuMaSPrediction)
-  nobs = length(pred.subjects)
+  # TODO add covariates
   ids = [pred.subjects[1].id for i in pred.subjects[1].time]
   times = [pred.subjects[1].time...]
   for subject = pred.subjects[2:end]
