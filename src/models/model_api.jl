@@ -32,6 +32,26 @@ Generate a random set of random effects for model `m`, using parameters `param`.
 """
 sample_randeffs(m::PuMaSModel, param) = rand(m.random(param))
 
+# How long to solve
+function timespan(sub::Subject,tspan,saveat)
+  if isempty(sub.events) && isempty(saveat) && isempty(sub.time) && tspan == (nothing,nothing)
+    error("No timespan is given. This means no events, observations, or user chosen time span exist for the subject. Please check whether the data was input correctly.")
+  end
+  e_lo, e_hi = !isempty(sub.events) ? extrema(evt.time for evt in sub.events) : (-Inf,Inf)
+  s_lo, s_hi = !isempty(saveat) ? extrema(saveat) : (Inf,-Inf)
+  obs_lo, obs_hi = !isempty(sub.time) ? extrema(sub.time) : (Inf,-Inf)
+  lo, hi = extrema(e_lo, e_hi, s_lo, s_hi, obs_lo, obs_hi)
+  tspan[1] !== nothing && (lo = tspan[1]) # User override
+  tspan[2] !== nothing && (hi = tspan[2]) # User override
+  lo == -Inf && error("No")
+  lo, hi
+end
+
+# Where to save
+observationtimes(sub::Subject) = isnothing(sub.observations) ?
+                                 (0.0:1.0:(sub.events[end].time+24.0)) :
+                                 sub.time
+
 
 """
     sol = pkpd_solve(m::PuMaSModel, subject::Subject, param,
@@ -80,16 +100,10 @@ This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
 """
 function _solve(m::PuMaSModel, subject, col, args...;
-                tspan=nothing, kwargs...)
+                tspan=nothing, saveat=nothing, kwargs...)
   m.prob === nothing && return nothing
   if tspan === nothing
-    _tspan = timespan(subject)
-    if m.prob isa DiffEqBase.DEProblem && !(m.prob.tspan === (nothing, nothing))
-      _tspan = (min(_tspan[1], m.prob.tspan[1]),
-                max(_tspan[2], m.prob.tspan[2]))
-    end
-    tspan_tmp = :saveat in keys(kwargs) ? (min(_tspan[1], first(kwargs[:saveat])), max(_tspan[2], last(kwargs[:saveat]))) : _tspan
-    tspan = float.(tspan_tmp)
+    tspan = float.(timespan(subject,tspan,saveat))
   end
   u0  = m.init(col, tspan[1])
   if m.prob isa ExplicitModel

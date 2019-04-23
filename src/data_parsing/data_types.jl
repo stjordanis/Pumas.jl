@@ -284,23 +284,8 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
   show(io, mime, Text(summary(subject)))
 end
 
-function timespan(subject::Subject)
-  if isempty(subject.events)
-    throw(ArgumentError("Subject must have at least a single event"))
-  end
-  lo, hi = extrema(event.time for event in subject.events)
-  if !isnothing(subject.observations)
-    obs_lo, obs_hi = extrema(subject.time)
-    lo = min(lo, obs_lo)
-    hi = max(hi, obs_hi)
-  end
-  lo, hi
-end
-
-observationtimes(sub::Subject) = isnothing(sub.observations) ?
-                                 (0.0:1.0:(sub.events[end].time+24.0)) :
-                                 sub.time
-
+"""
+    Population(::AbstractVector{<:Subject})
 
 # Define Population as an alias
 """
