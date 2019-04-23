@@ -85,7 +85,7 @@ end
 
 Calculate minimum observed concentration
 """
-function cmin(nca::NCASubject; kwargs...)
+function cmin(nca::NCASubject; kwargs...) # TODO: clowest C(tau)
   conc, time = nca.conc, nca.time
   val, _ = conc_maximum(conc, eachindex(conc), true)
   return val
@@ -164,6 +164,7 @@ Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 """
 function vss(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
+  nca.dose.formulation !== IVBolus && return missing
   normalizedose(aumc(nca; kwargs...), nca) ./ (normalizedose(auc(nca; kwargs...), nca)).^2
 end
 
@@ -314,7 +315,7 @@ end
 
 Dosing interval. For multiple dosing only.
 """
-function tau(nca::NCASubject; kwargs...)
+function tau(nca::NCASubject; kwargs...) # warn if not provided
   has_ii(nca) && return nca.ii
   dose = nca.dose
   dose === nothing && return missing
@@ -363,6 +364,35 @@ function swing(nca::NCASubject; kwargs...)
 end
 
 """
+    c0(nca::NCASubject; kwargs...)
+
+Estimate the concentration at dosing time for an IV bolus dose.
+"""
+function c0(subj::NCASubject, returnev=false; warn=true, kwargs...) # `returnev` is not intended to be used by users
+  subj.dose === nothing && return missing
+  t1 = ustrip(subj.time[1])
+  iszero(t1) && return subj.conc[1]
+  if subj.dose.formulation !== IVBolus
+    return returnev ? zero(subj.conc[1]) : missing
+  end
+  t2 = ustrip(subj.time[2])
+  c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
+  iszero(c1) && return c1
+  if c2 >= c1 && warn
+    @warn "c0: This is an IV bolus dose, but the first two concentrations are not decreasing. If `conc[i]/conc[i+1] > 0.8` holds, the back extrapolation will be computed internally for AUC and AUMC, but will not be reported."
+  end
+  if c2 < c1 || (returnev && c1/c2 > 0.8)
+    dosetime = ustrip(subj.dose.time)
+    c0 = exp(log(c1) - (t1 - dosetime)*(log(c2)-log(c1))/(t2-t1))*oneunit(eltype(subj.conc))
+  else
+    c0 = missing
+  end
+  return c0
+end
+
+#= issue #391
+# The function is originally translated from the R package PKNCA
+"""
   c0(nca::NCASubject; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwargs...)
 
 Estimate the concentration at dosing time for an IV bolus dose. It takes the
@@ -380,6 +410,7 @@ function c0(nca::NCASubject; c0method=(:c0, :logslope, :c1, :cmin, :set0), kwarg
   c0method isa Symbol && (c0method = tuple(c0method))
   dosetime = nca.dose === nothing ? zero(eltype(nca.time)) : first(nca.dose).time
   nca = nca.dose isa AbstractArray ? subject_at_ithdose(nca, 1) : nca
+  #nca.dose !== nothing && nca.dose.formulation === EV && return missing
   while ismissing(ret) && !isempty(c0method)
     current_method = c0method[1]
     c0method = Base.tail(c0method)
@@ -430,6 +461,7 @@ function _c0_method_c1(nca::NCASubject, dosetime)
   end
   return idx isa Number ? nca.conc[idx] : missing
 end
+=#
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?

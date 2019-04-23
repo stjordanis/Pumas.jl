@@ -12,7 +12,7 @@ ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, f
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
@@ -66,17 +66,16 @@ ylg = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linuplogdown)
 yli = NCA.interpextrapconc(conc[idx], t[idx], x; method=:linear)
 @test NCA.lambdaz(yli, collect(x), slopetimes=(10:20) .* timeu) ≈ NCA.lambdaz(ylg, collect(x), slopetimes=(10:20) .* timeu) atol=1e-2/timeu
 @test NCA.auc(nca, interval=(t[end],Inf*timeu)) ≈ NCA.auc(nca) - NCA.auc(nca, auctype=:last) atol=1e-12*(concu*timeu)
-for n in (ncapop[1], nca) # with dose info and without dose info
-  @test NCA.c0(n) === ncapop[1].conc[1]
-  @test NCA.c0(n, c0method=:set0) === zero(nca.conc[1])
-  @test NCA.c0(n, c0method=:c0) === ncapop[1].conc[1]
-  @test NCA.c0(n, c0method=:c1) === ncapop[1].conc[2]
-  c1 = ustrip(conc[2])
-  c2 = ustrip(conc[3])
-  t1 = ustrip(t[2])
-  t2 = ustrip(t[3])
-  @test NCA.c0(n, c0method=:logslope) == exp(log(c1) - t1*(log(c2)-log(c1))/(t2-t1))*concu
-end
+c1 = ustrip(conc[2])
+c2 = ustrip(conc[3])
+t1 = ustrip(t[2])
+t2 = ustrip(t[3])
+@test NCA.c0(NCASubject(conc[2:5], t[2:5], dose=NCADose(0, 0.1, 0, NCA.IVBolus))) === exp(log(c1) - t1*(log(c2)-log(c1))/(t2-t1))*concu
+@test NCA.c0(ncapop[1]) === ncapop[1].conc[1]
+@test NCA.c0(nca) === missing
+subj = NCASubject([10, 12.], [0.2, 0.9], dose=NCADose(0, 0.1, 0, NCA.IVBolus))
+@test_logs (:warn, "c0: This is an IV bolus dose, but the first two concentrations are not decreasing. If `conc[i]/conc[i+1] > 0.8` holds, the back extrapolation will be computed internally for AUC and AUMC, but will not be reported.") NCA.c0(subj)
+@test NCA.c0(subj, true, warn=false) < 10
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
@@ -171,3 +170,16 @@ for i in 1:24
   i == 1 && @test_nowarn display(NCA.to_markdown(ncareport))
   i == 1 && @test_nowarn NCA.to_dataframe(ncareport)
 end
+
+@test_nowarn NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, nothing, NCA.IVBolus)))
+@test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, nothing, NCA.EV))) === missing
+@test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, 1, NCA.IVInfusion))) === missing
+
+df = DataFrame()
+df.time = [0:20...; 20; 21:25]
+df.conc = [0:20...; 0; 21:25]
+df.amt = zeros(Int, 27); df.amt[22] = 1
+df.formulation = "Oral"
+df.ID = 1
+@test_nowarn parse_ncadata(df, time=:time, conc=:conc, amt=:amt, formulation=:formulation, route=(ev="Oral",),
+                                    llq=0concu, timeu=timeu, concu=concu, amtu=amtu)

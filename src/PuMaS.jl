@@ -10,6 +10,7 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
+function opt_minimizer end
 include("nca/NCA.jl")
 
 include("data_parsing/data_types.jl")
@@ -46,7 +47,7 @@ export tad, eventnum
 export conditional_nll, FIM
 export predict
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
-export AIC, BIC, ηshrinkage, ϵshrinkage
+export AIC, BIC, ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
 export @model, @nca
 

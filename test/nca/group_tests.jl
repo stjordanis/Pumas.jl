@@ -10,18 +10,19 @@ for data in [data1, data2]
   io = IOBuffer()
   show(io, "text/plain", data)
   @test occursin("5 subjects", String(take!(io)))
-  @test map(s->s.group, data) == repeat(["Metabolite $i" for i in 1:4], inner=5)
+  @test map(s->s.group, data) == repeat(["METABOLITE" => "Metabolite $i" for i in 1:4], inner=5)
   @test_nowarn display(data)
   @test_nowarn display(data[1])
   aucs = @test_nowarn NCA.auc(data)
-  @test names(aucs) == [:id, :occasion, :group, :auc]
-  @test aucs[:group] == repeat(["Metabolite $i" for i in 1:4], inner=5*3)
+  @test names(aucs) == [:id, :occasion, :METABOLITE, :auc]
+  @test aucs[:METABOLITE] == repeat(["Metabolite $i" for i in 1:4], inner=5*3)
   @test_nowarn NCA.mrt(data)
   @test_nowarn NCA.tmin(data)
 end
 data3 = @test_nowarn parse_ncadata(df, id=:ID, time=:TIME, conc=:TCONC, group=[:PERIOD, :METABOLITE], warn=false) # multi-group
 aucs = @test_nowarn NCA.auc(data3)
-@test aucs[:group][1] == "PERIOD 1 METABOLITE Metabolite 1"
+@test aucs[:METABOLITE][1] == "Metabolite 1"
+@test aucs[:PERIOD] == repeat(["$i" for i in 1:3], inner=20)
 
 # test ii
 ii1 = [0.1 * i for i in eachindex(data1)]

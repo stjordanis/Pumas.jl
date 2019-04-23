@@ -31,27 +31,50 @@ for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoint
           :swing)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
-    if ismultidose(pop)
-      sol = map(enumerate(pop)) do (i, subj)
+    ismulti = ismultidose(pop)
+    if ismulti
+      sol′ = map(enumerate(pop)) do (i, subj)
         try
-          if $f in (mat, c0)
+          if $f == mat
             _sol = $f(subj, args...; kwargs...)
-            sol  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `f` as long as the other ones
+            param  = vcat(_sol, fill(missing, length(subj.dose)-1)) # make `f` as long as the other ones
           else
-            sol = $f(subj, args...; kwargs...)
+            param = $f(subj, args...; kwargs...)
           end
         catch
           @info "ID $(subj.id) errored"
           rethrow()
         end
-        label ? subj.group === nothing ? DataFrame(id=subj.id, occasion=eachindex(sol), $f=sol) : DataFrame(id=subj.id, occasion=eachindex(sol), group=subj.group, $f=sol) : DataFrame($f=sol)
       end
+      sol = collect(Base.Iterators.flatten(sol′))
     else
-      sol = map(pop) do subj
-        label ? subj.group === nothing ? DataFrame(id=subj.id, $f=$f(subj, args...; kwargs...)) : DataFrame(id=subj.id, group=subj.group, $f=$f(subj, args...; kwargs...)) : DataFrame($f=$f(subj, args...; kwargs...))
+      sol = map(subj -> $f(subj, args...; kwargs...), pop)
+    end
+    df = DataFrame()
+    if label
+      _repeat(x, n) = n == 1 ? x : repeat(x, inner=n)
+      firstsubj = first(pop)
+      ndose = ismulti ? length(firstsubj.dose) : 1
+      id′ = map(subj->subj.id, pop)
+      df.id = _repeat(id′, ndose)
+      ismulti && (df.occasion = repeat(1:ndose, outer=length(pop)))
+      if firstsubj.group !== nothing
+        ngroup = firstsubj.group isa AbstractArray ? length(firstsubj.group) : 1
+        if ngroup == 1
+          grouplabel = Symbol(firstsubj.group.first)
+          groupnames = map(subj->subj.group.second, pop)
+          setproperty!(df, grouplabel, _repeat(groupnames, ndose))
+        else # multi-group
+          for i in 1:ngroup
+            grouplabel = Symbol(firstsubj.group[i].first)
+            groupnames = map(subj->subj.group[i].second, pop)
+            setproperty!(df, grouplabel, _repeat(groupnames, ndose))
+          end
+        end
       end
     end
-    return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
+    df.$f = sol
+    return df
   end
 end
 
@@ -67,8 +90,8 @@ end
 
 # add `tau`
 # Multiple dosing handling
-for f in (:clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
-          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing,
+for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :_auc, :tlag, :mrt, :fluctation,
+          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
     obj = map(eachindex(nca.dose)) do i

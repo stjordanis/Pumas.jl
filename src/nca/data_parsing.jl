@@ -22,11 +22,14 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
     added_ii = true
     dfpops = map(dfs) do df
       if group isa AbstractArray && length(group) > 1
-        groupname = map(string, first(df[group]))
         grouplabel = map(string, group)
-        currentgroup = join(Base.Iterators.flatten(zip(grouplabel, groupname)), ' ')
+        groupnames = map(string, first(df[group]))
+        currentgroup = map(=>, grouplabel, groupnames)
       else
-        currentgroup = group isa Symbol ? first(df[group]) : first(df[group[1]])
+        group isa Symbol || ( group = first(group) )
+        grouplabel = string(group)
+        groupnames = first(df[group])
+        currentgroup = grouplabel => groupnames
       end
       pop, tmp = ___parse_ncadata(df; group=currentgroup, ii=ii, kwargs...)
       added_ii &= tmp
@@ -57,7 +60,7 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
   end
   hasdose = amt !== nothing && formulation !== nothing && route !== nothing
   if warn
-    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\")`, where `route` can either be `(iv = \"Intravenous\")` or `(ev = \"Oral\")`."
+    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`."
     if hasdose && !( route isa NamedTuple && length(route) <= 2 && all(i -> i in (:ev, :iv), keys(route)) )
       throw(ArgumentError("route must be in the form of `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`. Got $(repr(route))."))
     end
@@ -113,7 +116,7 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
           end
         end
       end
-      duration′ = duration === nothing ? nothing : df[duration][dose_idx]
+      duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, formulation)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]

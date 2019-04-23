@@ -62,11 +62,10 @@ Extrapolate the first moment to the infinite.
 @enum AUCmethod Linear Log
 
 @inline function choosescheme(c1, c2, t1, t2, i::Int, maxidx::Int, method::Symbol)
-  if method === :linear ||
-    (method === :linuplogdown && c2>=c1) && (method === :linlog && maxidx)
+  if method === :linear || (method === :linuplogdown && c2>=c1) || (method === :linlog && i < maxidx)
     return Linear
   else
-    c1 <= zero(c1) || c2 <= zero(c2) && return Linear
+    c1 <= zero(c1) || c2 <= zero(c2) || c1 == c2 && return Linear
     return Log
   end
 end
@@ -126,6 +125,8 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
   method in (:linear, :linuplogdown, :linlog) || throw(ArgumentError("method must be :linear, :linuplogdown or :linlog"))
   _clast = clast(nca; kwargs...)
   _tlast = tlast(nca)
+  # type assert `auc`
+  auc::ret_typ = zero(ret_typ)
   if ismissing(_clast)
     if all(x->x<=nca.llq, conc)
       auc = zero(auc)
@@ -136,8 +137,6 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
     end
   end
 
-  # type assert `auc`
-  auc::ret_typ = zero(ret_typ)
   if interval !== nothing
     interval[1] >= interval[2] && throw(ArgumentError("The AUC interval must be increasing, got interval=$interval"))
     lo, hi = interval
@@ -175,8 +174,8 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
     auc = zero(auc)
     # handle C0
     time0 = zero(time[idx1])
-    c0′   = c0(nca; c0method=(:logslope, :c1))
     if time[idx1] > time0
+      c0′ = c0(nca, true)
       auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
     end
   end
