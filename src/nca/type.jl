@@ -183,8 +183,21 @@ function Base.show(io::IO, n::NCASubject)
   has_ii(n) && print(  io, "\n$(" "^pad)ii:            $(n.ii)")
 end
 
+@noinline dosenumerror() = throw(AssertionError("All subjects in a population must have the same number of doses. Please consider padding your data if you are sure that there are no errors in it."))
 struct NCAPopulation{T<:NCASubject} <: AbstractVector{T}
   subjects::Vector{T}
+  function NCAPopulation(_pop::Vector{<:NCASubject})
+    E = eltype(_pop)
+    isconcretetype(E) || dosenumerror()
+    if ismultidose(E)
+      ndose = length(_pop[1].dose)
+      for subj in _pop
+        length(subj.dose) == ndose && continue
+        dosenumerror()
+      end
+    end
+    return new{E}(_pop)
+  end
 end
 
 Base.size(n::NCAPopulation) = size(n.subjects)
