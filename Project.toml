@@ -40,13 +40,17 @@ TreeViews = "a2a6695c-b41b-5b7d-aed9-dbfdeacea5d7"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
+TransformVariables = "0.3"
 julia = "1.1"
 
 [extras]
+DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
+DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
 Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Measurements", "SafeTestsets", "StatsFuns"]
+test = ["Test", "Measurements", "SafeTestsets", "StatsFuns", "DataInterpolations", "DiffEqDiffTools", "StochasticDiffEq"]
