@@ -263,13 +263,19 @@ function BIC(m::PuMaSModel,
 end
 
 ### Predictions
-
-struct FittedPuMaSPrediction{T1, T2, T3, T4}
-  population::T1
-  individual::T2
-  subjects::T3
+struct SubjectPrediction{T1, T2, T3, T4}
+  pred::T1
+  ipred::T2
+  subject::T3
   approx::T4
 end
+
+function StatsBase.predict(fpm::FittedPuMaSModel, subject::Subject, vrandeffs, approx)
+  pred = _predict(fpm, subject, vrandeffs, approx)
+  ipred = _ipredict(fpm, subject, vrandeffs, approx)
+  SubjectPrediction(pred, ipred, subject, approx)
+end
+
 function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
   if !useEBEs
     error("Sampling from the omega distribution is not yet implemented.")
@@ -281,19 +287,8 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
     error("Using custom time grids is not yet implemented.")
   end
 
-  n_obs = length(fpm.data)
   subjects = fpm.data.subjects
-  vrandeffs = fpm.vrandeffs
-  time = [subject.time for subject in subjects]
-  if nsim == nothing
-    population  = [_predict(fpm, subjects[s_idx], vrandeffs[s_idx], approx) for s_idx = 1:n_obs]
-    individual = [_ipredict(fpm, subjects[s_idx], vrandeffs[s_idx], approx) for s_idx = 1:n_obs]
-  else
-    population = [_epredict(fpm, subjects[s_idx], (η=vrandeffs[s_idx],), nsim) for s_idx = 1:n_obs]
-    individual = nothing
-    approx = nothing
-  end
-  return FittedPuMaSPrediction(population, individual, subjects, approx)
+  [predict(fpm, subjects[i], fpm.vrandeffs[i], approx) for i = 1:length(subjects)]
 end
 
 function _predict(fpm, subject, vrandeffs, approx::FO)
@@ -319,17 +314,11 @@ function _epredict(fpm, subject, vrandeffs, nsim::Integer)
 end
 
 
-function DataFrame(pred::FittedPuMaSPrediction)
+function DataFrame(vpred::Vector{<:SubjectPrediction})
   # TODO add covariates
-  ids = [pred.subjects[1].id for i in pred.subjects[1].time]
-  times = [pred.subjects[1].time...]
-  for subject = pred.subjects[2:end]
-    id = subject.id
-    for t = subject.time
-      push!(ids, id)
-      push!(times, t)
-    end
-  end
-
-  DataFrame(id=ids, time=times, population=vcat(pred.population...), individual=vcat(pred.individual...))
+  ids = [fill(p.subject.id, length(p.subject.time)) for p in vpred]
+  times = [p.subject.time for p in vpred]
+  pred = [p.pred for p in vpred]
+  ipred = [p.ipred for p in vpred]
+  DataFrame(id=vcat(ids...), time=vcat(times...), pred=vcat(pred...), ipred=vcat(ipred...))
 end
