@@ -1,4 +1,3 @@
-import StatsBase: predict, residuals
 """
   npde(model, subject, param, randeffs, simulations_count)
 
