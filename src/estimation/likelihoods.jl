@@ -497,7 +497,7 @@ function marginal_nll_gradient!(G::AbstractVector,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
                                 approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
-                                trf::TransformVariables.TransformNamedTuple
+                                trf::TransformVariables.TransformTuple
                                 )
 
   vparam = TransformVariables.inverse(trf, param)
@@ -560,7 +560,7 @@ function marginal_nll_gradient!(G::AbstractVector,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
                                 approx::Union{FO,FOI},
-                                trf::TransformVariables.TransformNamedTuple
+                                trf::TransformVariables.TransformTuple
                                 )
 
   # Compute first order derivatives of the marginal likelihood function
