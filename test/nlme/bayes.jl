@@ -42,7 +42,7 @@ theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
       @dynamics OneCompartmentModel
 
       @derived begin
-          dv ~ @. Normal(conc,sqrt(σ))
+          dv ~ @. Normal(conc,sqrt(σ)+eps())
       end
   end
 
@@ -151,37 +151,39 @@ end
 
   @testset "Test logdensity" begin
     vparam2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_param(theopmodel_bayes2))
-    ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp)
+    ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp,
+                                 reltol = 1e-12, abstol = 1e-12)
     vparam2_aug = [vparam2; zeros(length(theopp)*ldp2.dim_rfx)]
     v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vparam2_aug)
-    @test v2.value ≈ -612.6388140049277
+    @test v2.value ≈ -612.6392449413325 rtol=1e-6
     vg2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp2, vparam2_aug)
-    @test vg2.value ≈ -612.6392219409469 # Notice! A bit different from v2.value
-    @test vg2.gradient ≈ [8.023481062796282
-                        878.2154140924582
-                       -763.913092901649
-                        114.2398405933243
-                          9.920239421122826
-                        -10.4
-                        449.2675284855538
-                         29.396909427909424
-                         28.0811321136497
-                         28.92811092207858
-                          7.428820256710568
-                         25.018391006936486
-                         -5.042094562531876
-                        -21.001603515287993
-                         -2.437741825025353
-                         30.403298724118162
-                        -13.08641977322586
-                         20.644319257482632
-                         -7.709118601448359]
+    @test vg2.value ≈ v2.value
+    @test vg2.gradient ≈ [8.023571333787114,
+                          878.2155638921338,
+                          -763.9131862639034,
+                          114.23979126237346,
+                          9.920242099411354,
+                          -10.4,
+                          449.2675514859412,
+                          29.396902398356797,
+                          28.081124185351225,
+                          28.92808070749575,
+                          7.428841866508794,
+                          25.01834986862622,
+                          -5.042079192536745,
+                          -21.00156126810926,
+                          -2.4377197610988577,
+                          30.403288395311726,
+                          -13.086403802077223,
+                          20.644305593350268,
+                          -7.709095620538378] rtol=1e-6
   end
 
   Random.seed!(1)
   try
+
     b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
-                nsamples = nsamples)
+                nsamples = nsamples, reltol = 1e-6, abstol = 1e-6)
 
     m = PuMaS.param_mean(b)
 

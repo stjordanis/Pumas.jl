@@ -6,9 +6,12 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, StatsBase
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames
+@reexport using Distributions, PDMats, DataFrames, StatsBase
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
+
+function opt_minimizer end
+include("nca/NCA.jl")
 
 include("data_parsing/data_types.jl")
 include("data_parsing/data_read.jl")
@@ -33,8 +36,6 @@ include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
 
-include("nca/NCA.jl")
-
 @reexport using .NCA
 
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
@@ -45,8 +46,9 @@ export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
 export wresiduals
-export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres, ηshrinkage, ϵshrinkage
+export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
+export AIC, BIC, ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
-export @model
+export @model, @nca
 
 end # module

@@ -1,4 +1,5 @@
 function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, method=nothing, kwargs...)
+  nca.dose isa Union{NCADose, Nothing} || throw(ArgumentError("interpextrapconc doesn't support multidose data"))
   conc, time = nca.conc, nca.time
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
@@ -28,7 +29,7 @@ function interpolateconc(nca::NCASubject, timeout::Number; method, kwargs...)
     return conc[idx2]
   else
     if time[1] > zero(time[1]) && zero(timeout) <= timeout < time[1] # if we need to calculate `c0`
-      c0′ = c0(nca; c0method=(:logslope, :c1))
+      c0′ = c0(nca, true)
       timeout == zero(timeout) && return c0′
       idx1  = 1
       time1 = ustrip(zero(time[idx1])); time2 = ustrip(time[idx1])

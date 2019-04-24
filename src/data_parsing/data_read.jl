@@ -53,24 +53,24 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
                         event_data = true)
   data = copy(data)
-  Names = names(data)
+  colnames = names(data)
 
-  if id ∉ Names
+  if id ∉ colnames
     data[id] = 1
   end
-  if time ∉ Names
+  if time ∉ colnames
     data[time] = 0.0
   end
-  if evid ∉ Names
+  if evid ∉ colnames
     data[evid] = Int8(0)
   end
   if cvs isa AbstractVector{<:Integer}
-    cvs = Names[cvs]
+    cvs = colnames[cvs]
   end
   if dvs isa AbstractVector{<:Integer}
-    dvs = Names[dvs]
+    dvs = colnames[dvs]
   end
-  Population(Subject.(groupby(data, :id), Ref(Names),
+  Population(Subject.(groupby(data, id), Ref(colnames),
                       id, time, evid, amt, addl, ii, cmt, rate, ss,
                       Ref(cvs), Ref(dvs), event_data))
 end

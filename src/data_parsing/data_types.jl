@@ -1,16 +1,6 @@
 ## Types
 
 """
-    Formulation
-
-Type of formulations. There are IV (intravenous) and EV (extravascular).
-"""
-@enum Formulation IV EV
-
-# Formulation behaves like scalar
-Broadcast.broadcastable(x::Formulation) = Ref(x)
-
-"""
     Event
 
 A single event
@@ -334,3 +324,28 @@ TreeViews.hastreeview(::Population) = true
 function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
   show(io, mime, Text(summary(data)))
 end
+
+# Convert to NCA types
+import .NCA: NCAPopulation, NCASubject, NCADose
+using .NCA: Formulation, IVBolus, IVInfusion, EV, DosingUnknown
+function Base.convert(::Type{NCADose}, ev::Event)
+  ev.evid === Int8(1) || return nothing
+  time = ev.time
+  amt = ev.amt
+  duration = isinf(ev.duration) ? zero(ev.duration) : ev.duration
+  NCADose(time, amt, duration, IVBolus) # FIXME: when is an event extravascular?
+end
+NCADose(dose::Event) = convert(NCADose, dose)
+
+function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
+  dose = convert.(NCADose, subj.events)
+  ii = subj.events[end].ii
+  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id=subj.id, dose=nothing, clean=false, ii=ii)
+  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose, ii=ii)
+end
+NCASubject(subj::Subject; name=:dv) = convert(NCASubject, subj; name=name)
+
+Base.convert(::Type{NCAPopulation}, pop::Population; name=:dv) = NCAPopulation(map(subj->let name = name
+                                                                                     convert(NCASubject, subj; name=name)
+                                                                                    end, pop))
+NCAPopulation(pop::Population; name=:dv) = convert(NCAPopulation, pop; name=name)

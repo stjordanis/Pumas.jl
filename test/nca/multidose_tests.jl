@@ -8,8 +8,14 @@ msol = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
 timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
+_mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
+                                     route=(ev=["ORAL", "OR"],), timeu=timeu, concu=concu, amtu=amtu)
+_mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
+                                     route=(iv="IV", ev=["ORAL", "OR"]), timeu=timeu, concu=concu, amtu=amtu)
 mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC,
-                                     iv="IV", timeu=timeu, concu=concu, amtu=amtu)
+                                     route=(iv="IV", ev="ORAL"), timeu=timeu, concu=concu, amtu=amtu)
+
+@test_throws ArgumentError NCA.interpextrapconc(mncapop[1], 22timeu, method=:linear)
 
 # test caching
 @test_nowarn NCA.auc(mncapop)
@@ -38,8 +44,7 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.fluctation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
 @test NCA.accumulationindex(mncapop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
 @test NCA.swing(mncapop[1]) == (NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1])
-@test NCA.c0(mncapop[1]) == mncapop[1].conc[1][1]
-@test NCA.c0(mncapop[1], c0method=:set0) == zero(NCA.cmin(mncapop[1])[1])
+@test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
 
 ncareport1 = NCAReport(mncapop[1], ithdose=1)
 @test_nowarn ncareport1
@@ -50,3 +55,21 @@ popncareport = NCAReport(mncapop, ithdose=1)
 @test_nowarn popncareport
 @test_broken display(NCA.to_markdown(popncareport))
 @test_nowarn NCA.to_dataframe(popncareport)
+
+# test ii
+# scalar
+ii1 = 0.1timeu
+pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, route=(iv="IV",), timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
+@test all(subj -> subj.ii == ii1, pop)
+@test NCA.tau(pop[1]) == [ii1 for i in 1:4]
+@test NCA.accumulationindex(pop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*ii1))
+# vector
+ii2 = [i*timeu for i in eachindex(pop)]
+pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, route=(iv="IV",), timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
+@test all(i -> pop[i].ii == ii2[i], eachindex(pop))
+# length error
+ii3 = [i*timeu for i in 1:100]
+@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, route=(iv="IV",), timeu=timeu, concu=concu, amtu=amtu, ii=ii3)
+# type error
+@test_throws Unitful.DimensionError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, route=(iv="IV",), timeu=timeu, concu=concu, amtu=amtu, ii=2)
+@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, formulation=:FORMULATION, occasion=:OCC, route=(iv="IV",), timeu=timeu, concu=concu, amtu=amtu, ii=:ID)
