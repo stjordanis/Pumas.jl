@@ -9,10 +9,10 @@ theopp_nlme = process_nmtran(example_nmtran_data("THEOPP"))
 mdsl2 = @model begin
     @param begin
         θ ∈ VectorDomain(3,init=[3.24467E+01, 8.72879E-02, 1.49072E+00])
-        Ω ∈ PSDDomain(Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
-                                        1.20854E-02  2.02375E-02 -6.47803E-03
-                                        5.69131E-02 -6.47803E-03  4.34671E-01]))
-        Σ ∈ PDiagDomain(PDiagMat([1.70385E-02, 8.28498E-02]))
+        Ω ∈ PSDDomain(init=Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
+                                             1.20854E-02  2.02375E-02 -6.47803E-03
+                                             5.69131E-02 -6.47803E-03  4.34671E-01]))
+        Σ ∈ PDiagDomain(init=[1.70385E-02, 8.28498E-02])
     end
 
     @random begin

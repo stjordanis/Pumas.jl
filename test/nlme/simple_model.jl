@@ -7,8 +7,8 @@ data = process_nmtran(example_nmtran_data("sim_data_model1"))
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PDiagDomain(PDiagMat(fill(0.04, 1)))
+        θ ∈ VectorDomain(1, init=[0.5])
+        Ω ∈ PDiagDomain(init=[0.04])
         Σ ∈ ConstDomain(0.1)
     end
 
