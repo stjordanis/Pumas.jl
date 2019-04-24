@@ -50,9 +50,9 @@ end
 mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 param = (θ = [2.268,74.17,468.6,0.5876],
-      Ω = PDMat([0.05 0.0;
-                 0.0 0.2]),
-      σ = 0.1)
+         Ω = [0.05 0.0;
+              0.0  0.2],
+         σ = 0.1)
 subject1 = data.subjects[1]
 randeffs = init_randeffs(mobj, param)
 

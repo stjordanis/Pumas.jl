@@ -41,19 +41,23 @@ subject = data.subjects[1]
     end
 
     # Initial data
-    θ0 = [2.268, 74.17, 468.6, 0.5876]
-    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, param)
+    θ₀ = [2.268, 74.17, 468.6, 0.5876]
+    param = (θ = θ₀,
+             Ω = [0.05 0.0;
+                  0.0  0.2],
+             σ = 0.1)
+    Random.seed!(0)
+    randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
-    θ_ms = θ0 .± [0.2, 0.0, 0.0, 0.0]
+    θ_ms = θ₀ .± [0.2, 0.0, 0.0, 0.0]
     param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
     sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
-    θ_plus = θ0 .+ [0.2, 0.0, 0.0, 0.0]
-    θ_minus = θ0 .- [0.2, 0.0, 0.0, 0.0]
+    θ_plus = θ₀ .+ [0.2, 0.0, 0.0, 0.0]
+    θ_minus = θ₀ .- [0.2, 0.0, 0.0, 0.0]
     param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
     param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
     sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
@@ -97,19 +101,23 @@ end
     model = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
     # Initial data
-    θ0 = [2.268, 74.17, 468.6, 0.5876]
-    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, param)
+    θ₀ = [2.268, 74.17, 468.6, 0.5876]
+    param = (θ = θ₀,
+             Ω = [0.05 0.0;
+                  0.0  0.2],
+             σ = 0.1)
+    Random.seed!(0)
+    randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
-    θ_ms = θ0 .± [0.2, 0.0, 0.0, 0.0]
+    θ_ms = θ₀ .± [0.2, 0.0, 0.0, 0.0]
     param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
     sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa LArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
-    θ_plus = θ0 .+ [0.2, 0.0, 0.0, 0.0]
-    θ_minus = θ0 .- [0.2, 0.0, 0.0, 0.0]
+    θ_plus = θ₀ .+ [0.2, 0.0, 0.0, 0.0]
+    θ_minus = θ₀ .- [0.2, 0.0, 0.0, 0.0]
     param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
     param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
     sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
@@ -161,19 +169,23 @@ end
     end
 
     # Initial data
-    θ0 = [2.268, 74.17, 468.6, 0.5876, 0.412]
-    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, param)
+    θ₀ = [2.268, 74.17, 468.6, 0.5876, 0.412]
+    param = (θ = θ₀,
+             Ω = [0.05 0.0;
+                  0.0  0.2],
+             σ = 0.1)
+    Random.seed!(0)
+    randeffs = init_randeffs(model, param)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
-    θ_ms = θ0 .± [0.0, 0.0, 0.0, 0.0, 0.02]
+    θ_ms = θ₀ .± [0.0, 0.0, 0.0, 0.0, 0.02]
     param_ms = (θ=θ_ms, Ω=param.Ω, σ=param.σ)
     sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
-    θ_plus = θ0 .+ [0.0, 0.0, 0.0, 0.0, 0.02]
-    θ_minus = θ0 .- [0.0, 0.0, 0.0, 0.0, 0.02]
+    θ_plus = θ₀ .+ [0.0, 0.0, 0.0, 0.0, 0.02]
+    θ_minus = θ₀ .- [0.0, 0.0, 0.0, 0.0, 0.02]
     param_plus = (θ=θ_plus, Ω=param.Ω, σ=param.σ)
     param_minus = (θ=θ_minus, Ω=param.Ω, σ=param.σ)
     sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
@@ -208,19 +220,19 @@ end
     end
 
     # Initial data
-    θ0 = [1.5, 1.0, 30.0]
-    param = (θ = θ0,)
+    θ₀ = [1.5, 1.0, 30.0]
+    param = (θ = θ₀,)
     randeffs = (η = [0.0,0.0],)
 
     # Introduce measurement uncertainty to θ[1] (Ka)
-    θ_ms = θ0 .± [0.2, 0.0, 0.0]
+    θ_ms = θ₀ .± [0.2, 0.0, 0.0]
     param_ms = (θ=θ_ms,)
     sol = solve(model, subject, param_ms, randeffs; abstol=1e-14, reltol=1e-14)
     @test sol.u[1] isa SLArray && eltype(sol.u[1]) == Measurement{Float64} # test type stability
 
     # Compare with manual tracking of uncertainties
-    θ_plus = θ0 .+ [0.2, 0.0, 0.0]
-    θ_minus = θ0 .- [0.2, 0.0, 0.0]
+    θ_plus = θ₀ .+ [0.2, 0.0, 0.0]
+    θ_minus = θ₀ .- [0.2, 0.0, 0.0]
     param_plus = (θ=θ_plus,)
     param_minus = (θ=θ_minus,)
     sim = simobs(model, subject, param, randeffs; abstol=1e-14, reltol=1e-14)

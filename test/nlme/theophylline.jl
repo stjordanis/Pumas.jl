@@ -3,7 +3,7 @@ using PuMaS, LinearAlgebra, Optim
 
 # FIXME! Find a nicer way to handle this
 _extract(A::PDMat) = A.mat
-_extract(A::PDiagMat) = A.diag
+_extract(A::PDiagMat) = Diagonal(A.diag)
 _extract(A) = A
 
 @testset "Theophylline model" begin
@@ -63,7 +63,7 @@ end
     θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
     θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-    Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
+    Ω  = diagm(0 => [5.55, 0.0024, 0.515]), # update to block diagonal
     σ_add = 0.388
     # σ_prop = 0.3
        )
@@ -158,7 +158,7 @@ end
     θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
     θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
-    Ω = PDMat(diagm(0 => [5.55, 0.0024, 0.515])), # update to block diagonal
+    Ω  = diagm(0 => [5.55, 0.0024, 0.515]), # update to block diagonal
     σ_add = 0.388
     # σ_prop = 0.3
        )
@@ -248,7 +248,7 @@ end
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-        Ω = PDiagMat([5.55, 0.515]),
+        Ω = Diagonal([5.55, 0.515]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
@@ -261,7 +261,7 @@ end
     θ₃ = 3.93898E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.10668E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω  = PDiagMat([1.62087E+00, 2.26449E-01]),
+    Ω  = Diagonal([1.62087E+00, 2.26449E-01]),
     σ_add = 5.14069E-01)
 
   foce_stderr = (
@@ -270,7 +270,7 @@ end
     θ₃ = 3.42E-03,
     θ₄ = 9.56E-01,
 
-    Ω  = PDiagMat([1.61E+00, 7.70E-02]),
+    Ω  = Diagonal([1.61E+00, 7.70E-02]),
     σ_add = 1.34E-01)
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
@@ -333,7 +333,7 @@ end
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-        Ω = PDiagMat([5.55, 0.515]),
+        Ω = Diagonal([5.55, 0.515]),
         σ_add = 0.388,
         σ_prop = 0.3
        )
@@ -346,7 +346,7 @@ end
     θ₃ = 3.97132E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.03889E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω = PDiagMat([1.49637E+00, 2.62862E-01]),
+    Ω = Diagonal([1.49637E+00, 2.62862E-01]),
     σ_add = 2.09834E-01,
     σ_prop = 1.13479E-02
   )
@@ -357,7 +357,7 @@ end
     θ₃ = 3.53E-03,
     θ₄ = 8.81E-01,
 
-    Ω = PDiagMat([1.35E+00, 8.06E-02]),
+    Ω = Diagonal([1.35E+00, 8.06E-02]),
     σ_add = 2.64E-01,
     σ_prop = 1.35E-02)
   # Elapsed estimation time in seconds:     0.30
@@ -436,7 +436,7 @@ end
              θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
              θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-             Ω = PDiagMat([5.55, 0.515]),
+             Ω = Diagonal([5.55, 0.515]),
              σ_add = 0.388,
              σ_prop = 0.3
             )
@@ -447,7 +447,7 @@ end
     θ₃ = 3.9067E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 3.2303E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω = PDiagMat([6.1240E+00, 2.5828E-01]),
+    Ω = Diagonal([6.1240E+00, 2.5828E-01]),
     σ_add = 1.1300E-01,
     σ_prop = 9.9131E-03
   )
@@ -508,7 +508,7 @@ end
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-        Ω = PDiagMat([5.55, 0.515 ]),
+        Ω = Diagonal([5.55, 0.515 ]),
         σ_add = 0.388
         #σ_prop = 0.3
        )
@@ -540,7 +540,7 @@ end
     θ₃ = 3.95757E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.11952E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω = PDiagMat([1.596, 2.27638e-01]),
+    Ω = Diagonal([1.596, 2.27638e-01]),
     σ_add = 5.14457E-01
   )
 
@@ -550,7 +550,7 @@ end
     θ₃ = 3.42E-03,
     θ₄ = 9.69E-01,
 
-    Ω = PDiagMat([1.60E+00, 7.76E-02]),
+    Ω = Diagonal([1.60E+00, 7.76E-02]),
     σ_add = 1.35E-01)
   # Elapsed estimation time in seconds:     0.23
   # Elapsed covariance time in seconds:     0.17
@@ -638,7 +638,7 @@ end
         θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
         θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-        Ω = PDiagMat([5.55,0.515]),
+        Ω = Diagonal([5.55,0.515]),
         σ_add = 0.388,
         σ_prop = 0.3
        )
@@ -651,7 +651,7 @@ end
     θ₃ = 3.97472E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
     θ₄ = 2.05830E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω = PDiagMat([1.48117E+00, 2.67215E-01]),
+    Ω = Diagonal([1.48117E+00, 2.67215E-01]),
     σ_add = 1.88050E-01,
     σ_prop = 1.25319E-02
   )
@@ -662,7 +662,7 @@ end
     θ₃ = 3.29E-03,
     θ₄ = 9.05E-01,
 
-    Ω = PDiagMat([1.35E+00, 8.95E-02]),
+    Ω = Diagonal([1.35E+00, 8.95E-02]),
     σ_add = 3.01E-01,
     σ_prop = 1.70E-02)
   # Elapsed estimation time in seconds:     0.30

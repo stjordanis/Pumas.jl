@@ -769,3 +769,6 @@ function StatsBase.stderror(f::FittedPuMaSModel)
   ss = sqrt.(diag(vcov(f)))
   return TransformVariables.transform(trf, ss)
 end
+
+# Some type piracy for the time being
+Distributions.MvNormal(D::Diagonal) = MvNormal(PDiagMat(D.diag))

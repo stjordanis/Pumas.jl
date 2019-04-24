@@ -171,6 +171,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
 end
 
 TransformVariables.inverse_eltype(::PuMaS.PDiagTransform, y::PDiagMat{T}) where T = T
+TransformVariables.inverse_eltype(::PuMaS.PDiagTransform, y::Diagonal{T}) where T = T
 
 function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PDiagMat)
   index = TransformVariables.firstindex(x)
@@ -182,7 +183,8 @@ function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PD
   end
   return x
 end
-
+TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::Diagonal) =
+  TransformVariables.inverse!(x, t, PDiagMat(y.diag))
 
 
 struct DiagonalTransform  <: TransformVariables.VectorTransform
