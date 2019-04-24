@@ -25,12 +25,6 @@ struct ResidualSubject{T1, T2, T3, T4}
   subject::T3
   approx::T4
 end
-"""
-
-  residuals(fpm::FittedPuMaSModel)
-Calculates a vector of weighted residual according to the approximation method used in
-the fitting procedure whose result is saved in `fpm`.
-"""
 function wresiduals(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing)
   subjects = fpm.data.subjects
   [wresiduals(fpm, subjects[i], fpm.vrandeffs[i], approx; nsim=nsim) for i = 1:length(subjects)]
