@@ -20,7 +20,7 @@ CSV
 ForwardDiff 0.10.3
 DiffResults
 Optim
-TransformVariables
+TransformVariables 0.3
 RecipesBase
 Missings
 Tables 0.1.15
