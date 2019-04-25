@@ -14,8 +14,7 @@ build:
                 versioninfo()'
     - julia --project -e 'using Pkg;
                           Pkg.update();
-                          Pkg.clone(pwd(), "PuMaS");
-                          Pkg.build("PuMaS");
+                          Pkg.instantiate();
                           using PuMaS;'
   only:
   - master
