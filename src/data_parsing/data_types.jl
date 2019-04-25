@@ -160,7 +160,7 @@ mutable struct DosageRegimen
 end
 """
   DataFrame(evs::DosageRegimen, expand::Bool = false)
-  
+
   Create a DataFrame with the information in the dosage regimen.
   If expand, creates a DataFrame with the information in the event list (expanded form).
 """
@@ -248,8 +248,9 @@ struct Subject{T1,T2,T3,T4}
                    obs = nothing,
                    cvs = nothing,
                    evs = Event[],
-                   time = obs isa AbstractDataFrame ? obs.time : nothing,
+                   time = :time,
                    event_data = true,)
+    time = obs[time]
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
     _time = isnothing(time) ? nothing : Missings.disallowmissing(time)

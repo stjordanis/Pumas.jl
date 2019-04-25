@@ -90,4 +90,9 @@ end
 @testset "Naming conventions" begin
   data = DataFrame(ID = 1, evID = 1, amt = 5, DV = 0)
   @test isa(process_nmtran(data), Population)
+  data = DataFrame(ID = 1, Id = 2, id = 3, evID = 1, amt = 5, DV = 0)
+  @test process_nmtran(data)[1].id == 3
+  @test isa(process_nmtran(example_nmtran_data("event_data/data2"),
+                           [], [:cp])[1], Subject)
+  # Events 7
 end

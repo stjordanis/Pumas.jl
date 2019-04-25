@@ -50,13 +50,20 @@ smart_parse_name(colnames::AbstractVector{<:Symbol},
                  value::Symbol,
                  default::AbstractString;
                  as_string = string.(colnames)) = value
-smart_parse_name(colnames::AbstractVector{<:Symbol},
-                 value::Nothing,
-                 default::AbstractString;
-                 as_string = string.(colnames)) =
-  findfirst(x -> occursin(Regex("^(?i)$default\$"), x), as_string) |>
-  (x -> isa(x, Integer) ? colnames[x] : Symbol(default))
-
+function smart_parse_name(colnames::AbstractVector{<:Symbol},
+                          value::Nothing,
+                          default::AbstractString;
+                          as_string = string.(colnames))
+  candidates = findall(x -> occursin(Regex("^(?i)$default\$"), x), as_string)
+  if isempty(candidates)
+    Symbol(default)
+  elseif length(candidates) == 1
+    colnames[candidates[1]]
+  else
+    valid = findfirst(x -> occursin(Regex("^$default\$"), x), as_string)
+    isa(valid, Integer) ? colnames[valid] : Symbol(default)
+  end
+end
 """
     process_nmtran(filepath::String, args...; kwargs...)
     process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
