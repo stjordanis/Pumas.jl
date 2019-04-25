@@ -20,10 +20,11 @@ The log pdf: this differs from `Distributions.logdpf` definintion in a couple of
 """
 _lpdf(d::Number, x::Number) = d == x ? 0.0 : -Inf
 _lpdf(d::ConstDomain, x) = _lpdf(d.val, x)
-_lpdf(d::Distributions.Sampleable,x::Missing) = zval(d)
-_lpdf(d::Distributions.MultivariateDistribution,x::AbstractArray) = logpdf(d,x)
-_lpdf(d::Distributions.Sampleable,x::PDMat) = logpdf(d,x)
-_lpdf(d::Distributions.Sampleable,x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
+_lpdf(d::Distributions.Sampleable, x::Missing) = zval(d)
+_lpdf(d::Distributions.UnivariateDistribution, x::AbstractVector) = sum(t -> _lpdf(d, t), x)
+_lpdf(d::Distributions.MultivariateDistribution, x::AbstractVector) = logpdf(d,x)
+_lpdf(d::Distributions.Sampleable, x::PDMat) = logpdf(d,x)
+_lpdf(d::Distributions.Sampleable, x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
   sum(propertynames(xs)) do k
@@ -73,7 +74,7 @@ function conditional_nll_ext(m::PuMaSModel,
   solution = _solve(m, subject, collated, args...; saveat=obstimes, kwargs...)
 
   if solution === nothing
-     derived_dist = m.derived(collated, solution, obstimes, subject)
+    derived_dist = m.derived(collated, solution, obstimes, subject)
   else
     # if solution contains NaN return Inf
     if (solution.retcode != :Success && solution.retcode != :Terminated) ||
@@ -244,7 +245,12 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
                )
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector, m::PuMaSModel, subject::Subject, param::NamedTuple, ::Union{FO,FOI}, args...; kwargs...)
+function randeffs_estimate!(vrandeffs::AbstractVector,
+                            m::PuMaSModel,
+                            subject::Subject,
+                            param::NamedTuple,
+                            ::Union{FO,FOI},
+                            args...; kwargs...)
   vrandeffs.=zero(vrandeffs)
   vrandeffs
 end
@@ -256,7 +262,11 @@ Estimate the distribution of random effects (typically a Normal approximation of
 empirical Bayes posterior) of a particular subject at a particular parameter values. The
 result is returned as a vector (transformed into Cartesian space).
 """
-function randeffs_estimate_dist(m::PuMaSModel, subject::Subject, param::NamedTuple, approx::LaplaceI, args...; kwargs...)
+function randeffs_estimate_dist(m::PuMaSModel,
+                                subject::Subject,
+                                param::NamedTuple,
+                                approx::LaplaceI,
+                                args...; kwargs...)
   vrandeffs = randeffs_estimate(m, subject, param, approx, args...; kwargs...)
   diffres = DiffResults.HessianResult(vrandeffs)
   penalized_conditional_nll!(diffres, m, subject, param, vrandeffs, args...; hessian=true, kwargs...)
@@ -284,11 +294,15 @@ function marginal_nll(m::PuMaSModel,
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
-function marginal_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, approx::LaplaceI, args...;
-                      kwargs...)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      approx::LaplaceI,
+                      args...; kwargs...)
   diffres = DiffResults.HessianResult(vrandeffs)
   penalized_conditional_nll!(diffres, m, subject, param, vrandeffs, args...; hessian=true, kwargs...)
-  g, m, W = DiffResults.value(diffres),DiffResults.gradient(diffres),DiffResults.hessian(diffres)
+  g, m, W = DiffResults.value(diffres), DiffResults.gradient(diffres), DiffResults.hessian(diffres)
   CW = cholesky!(Symmetric(W), check=false) # W is positive-definite, only compute Cholesky once.
   if issuccess(CW)
     p = length(vrandeffs)
@@ -656,13 +670,17 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
   vrandeffs::T5
 end
 
-function DEFAULT_OPTIMIZE_FN(cost,p)
-  Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
+function DEFAULT_OPTIMIZE_FN(cost, p)
+  Optim.optimize(cost,
+                 p,
+                 BFGS(linesearch=Optim.LineSearches.BackTracking(),
+                      initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, p)), length(p), length(p))
+                 ),
                  Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
                                extended_trace=true,
                                g_tol=1e-3),
-                  autodiff=:finite)
+                 autodiff=:finite)
 end
 
 function Distributions.fit(m::PuMaSModel,
