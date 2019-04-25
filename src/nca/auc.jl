@@ -333,7 +333,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II};
   _, cmaxidx = conc_maximum(conc, eachindex(conc))
   n = length(time)
   if slopetimes === nothing && idxs === nothing
-    m = min(n-1, threshold, n-cmaxidx-1)
+    m = min(n-1, threshold-1, n-cmaxidx-1)
     m < 2 && throw(ArgumentError("ID $(nca.id) errored: lambdaz must be calculated from at least three data points after Cmax"))
     idx2 = length(time′)
     for i in 2:m
