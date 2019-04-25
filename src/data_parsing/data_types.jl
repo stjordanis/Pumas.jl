@@ -183,18 +183,18 @@ end
 The data corresponding to a single subject:
 
 Fields:
-- `id::Int`: numerical identifier
+- `id`: identifier
 - `observations`: a NamedTuple of the dependent variables
 - `covariates`: a named tuple containing the covariates, or `nothing`.
 - `events`: a vector of `Event`s.
 - `time`: a vector of time stamps for the observations
 """
-struct Subject{T1,T2,T3,T4}
-  id::Int
-  observations::T1
-  covariates::T2
-  events::T3
-  time::T4
+struct Subject{T1,T2,T3,T4,T5}
+  id::T1
+  observations::T2
+  covariates::T3
+  events::T4
+  time::T5
 
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
@@ -242,7 +242,12 @@ struct Subject{T1,T2,T3,T4}
       build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
     end
     sort!(events)
-    new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
+    new{typeof(first(data[id])),
+        typeof(observations),
+        typeof(covariates),
+        typeof(events),
+        typeof(_obs_times)}(
+        first(data[id]), observations, covariates, events, _obs_times)
   end
 
   function Subject(;id = 1,
@@ -255,7 +260,7 @@ struct Subject{T1,T2,T3,T4}
     evs = build_event_list(evs, event_data)
     _time = isnothing(time) ? nothing : Missings.disallowmissing(time)
     @assert isnothing(time) || issorted(_time) "Time is not monotonically increasing within subject"
-    new{typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(id, obs, cvs, evs, _time)
+    new{typeof(id),typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(id, obs, cvs, evs, _time)
   end
 end
 
