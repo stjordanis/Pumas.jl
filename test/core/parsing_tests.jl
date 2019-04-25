@@ -89,5 +89,5 @@ end
 end
 @testset "Naming conventions" begin
   data = DataFrame(ID = 1, evID = 1, amt = 5, DV = 0)
-  @test isa(read_pumas(data), Population)
+  @test isa(process_nmtran(data), Population)
 end
