@@ -281,7 +281,7 @@ Compute the marginal negative loglikelihood of a subject or dataset, using the i
 approximation `approx`. If no random effect (`param`) is provided, then this is estimated
 from the data.
 
-See also [`marginal_nll_nonmem`](@ref).
+See also [`deviance`](@ref).
 """
 function marginal_nll(m::PuMaSModel,
                       subject::Subject,
@@ -478,21 +478,22 @@ function marginal_nll(m::PuMaSModel,
 end
 
 
+# deviance is NONMEM-equivalent marginal negative loglikelihood
 """
-    marginal_nll_nonmem(model, subject, param[, param], approx, ...)
-    marginal_nll_nonmem(model, data, param, approx, ...)
+    deviance(model, subject, param[, param], approx, ...)
+    deviance(model, data, param, approx, ...)
 
-Compute the NONMEM-equivalent marginal negative loglikelihood of a subject or dataset:
+Compute the deviance of a subject or dataset:
 this is scaled and shifted slightly from [`marginal_nll`](@ref).
 """
-marginal_nll_nonmem(m::PuMaSModel,
-                    subject::Subject,
-                    args...; kwargs...) =
+StatsBase.deviance(m::PuMaSModel,
+                   subject::Subject,
+                   args...; kwargs...) =
     2marginal_nll(m, subject, args...; kwargs...) - length(first(subject.observations))*log(2π)
 
-marginal_nll_nonmem(m::PuMaSModel,
-                    data::Population,
-                    args...; kwargs...) =
+StatsBase.deviance(m::PuMaSModel,
+                   data::Population,
+                   args...; kwargs...) =
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data.subjects)*log(2π)
 # NONMEM doesn't allow ragged, so this suffices for testing
 
@@ -710,8 +711,8 @@ function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOp
   end
 end
 
-marginal_nll(       f::FittedPuMaSModel) = marginal_nll(       f.model, f.data, f.param, f.approx)
-marginal_nll_nonmem(f::FittedPuMaSModel) = marginal_nll_nonmem(f.model, f.data, f.param, f.approx)
+marginal_nll(      f::FittedPuMaSModel) = marginal_nll(f.model, f.data, f.param, f.approx)
+StatsBase.deviance(f::FittedPuMaSModel) = deviance(    f.model, f.data, f.param, f.approx)
 
 
 """

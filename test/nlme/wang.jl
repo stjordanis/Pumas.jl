@@ -45,8 +45,8 @@ using PuMaS, LinearAlgebra, Optim
 
     param = init_param(wang_additive)
 
-    @test PuMaS.marginal_nll_nonmem(wang_additive, data, param, PuMaS.FO())   ≈  0.026 atol = 1e-3
-    @test PuMaS.marginal_nll_nonmem(wang_additive, data, param, PuMaS.FOCE()) ≈ -2.059 atol = 1e-3
+    @test deviance(wang_additive, data, param, PuMaS.FO())   ≈  0.026 atol = 1e-3
+    @test deviance(wang_additive, data, param, PuMaS.FOCE()) ≈ -2.059 atol = 1e-3
   end
 
   @testset "Proportional error model" begin
@@ -80,9 +80,9 @@ using PuMaS, LinearAlgebra, Optim
 
     param = init_param(wang_proportional)
 
-    @test PuMaS.marginal_nll_nonmem(wang_proportional, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
-    @test PuMaS.marginal_nll_nonmem(wang_proportional, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
-    @test PuMaS.marginal_nll_nonmem(wang_proportional, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
+    @test deviance(wang_proportional, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
+    @test deviance(wang_proportional, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
+    @test deviance(wang_proportional, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
   end
 
   @testset "Exponential error model" begin
@@ -115,8 +115,8 @@ using PuMaS, LinearAlgebra, Optim
 
     param = init_param(wang_exponential)
 
-    @test_broken PuMaS.marginal_nll_nonmem(wang_exponential, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
-    @test_broken PuMaS.marginal_nll_nonmem(wang_exponential, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
-    @test_broken PuMaS.marginal_nll_nonmem(wang_exponential, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
   end
 end
