@@ -160,7 +160,7 @@ mutable struct DosageRegimen
 end
 """
   DataFrame(evs::DosageRegimen, expand::Bool = false)
-  
+
   Create a DataFrame with the information in the dosage regimen.
   If expand, creates a DataFrame with the information in the event list (expanded form).
 """
@@ -262,18 +262,17 @@ end
 Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
   println(io, summary(subject))
-  println(io, "  ID: ", subject.id)
+  println(io, string("  ID: $(subject.id)"))
   evs = subject.events
-  evs !== nothing && println(io, "  Events: ", length(subject.events))
+  isnothing(evs) || println(io, "  Events: ", length(subject.events))
   obs = subject.observations
-  obs !== nothing && println(io, "  Observations: ",  length(obs))
-  subject.covariates !== nothing &&
-  println(io, "  Covariates: ",
-          join(fieldnames(typeof(subject.covariates)),", "))
-  obs !== nothing &&
-  println(io, "  Observables: ",
-          join(propertynames(obs),", "))
-  return nothing
+  observables = propertynames(obs)
+  if !isempty(observables)
+    vals = mapreduce(pn -> string(pn, ": (n=$(length(getproperty(obs, pn))))"),
+                     (x, y) -> "$x, $y",
+                     observables)
+    println(io, "  Observables: $vals")
+  end
 end
 TreeViews.hastreeview(::Subject) = true
 function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
