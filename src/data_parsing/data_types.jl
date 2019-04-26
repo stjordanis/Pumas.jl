@@ -45,8 +45,9 @@ struct Event{T1,T2,T3,T4,T5,T6}
   rate_dir::Int8
 end
 
-Event(amt, time, evid, cmt) = Event(amt, time, evid, cmt, zero(amt), zero(amt),
-                                    Int8(0), zero(time), time, Int8(1))
+Event(amt, time, evid::Integer, cmt::Integer) =
+  Event(amt, time, Int8(evid), Int(cmt), zero(amt), zero(amt),
+        Int8(0), zero(time), time, Int8(1))
 
 Base.isless(a::Event,b::Event) = isless(a.time,b.time)
 Base.isless(a::Event,b::Number) = isless(a.time,b)
@@ -160,7 +161,7 @@ mutable struct DosageRegimen
 end
 """
   DataFrame(evs::DosageRegimen, expand::Bool = false)
-  
+
   Create a DataFrame with the information in the dosage regimen.
   If expand, creates a DataFrame with the information in the event list (expanded form).
 """
@@ -280,10 +281,13 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
   show(io, mime, Text(summary(subject)))
 end
 
-function timespan(sub::Subject)
-  lo, hi = extrema(evt.time for evt in sub.events)
-  if !isnothing(sub.observations)
-    obs_lo, obs_hi = extrema(sub.time)
+function timespan(subject::Subject)
+  if isempty(subject.events)
+    throw(ArgumentError("Subject must have at least a single event"))
+  end
+  lo, hi = extrema(event.time for event in subject.events)
+  if !isnothing(subject.observations)
+    obs_lo, obs_hi = extrema(subject.time)
     lo = min(lo, obs_lo)
     hi = max(hi, obs_hi)
   end
