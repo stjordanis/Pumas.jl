@@ -30,7 +30,7 @@ using PuMaS, Test, StatsFuns
 
     end
 
-    param = (θ₁=0.01, θ₂=0.001, Ω=PuMaS.PDMat(fill(1.0, 1, 1)))
+    param = (θ₁=0.01, θ₂=0.001, Ω=fill(1.0, 1, 1))
 
     @testset "testing with $approx approximation" for
         approx in (PuMaS.FO(), PuMaS.FOCE(), PuMaS.FOCEI(), PuMaS.Laplace(), PuMaS.LaplaceI())

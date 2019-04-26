@@ -57,7 +57,8 @@ Specifies a parameter as a symmetric `n`-by-`n` positive semidefinite matrix.
 struct PSDDomain{T} <: Domain
   init::T
 end
-PSDDomain(n::Int; init=Matrix{Float64}(I, n, n)) = PSDDomain(init)
+PSDDomain(; init=nothing) = PSDDomain(init)
+PSDDomain(n::Int)         = PSDDomain(init=Matrix{Float64}(I, n, n))
 
 init(d::PSDDomain) = d.init
 
@@ -71,7 +72,8 @@ specified by `init`.
 struct PDiagDomain{T} <: Domain
   init::T
 end
-PDiagDomain(n::Int; init=ones(n)) = PDiagDomain(PDMats.PDiagMat(init))
+PDiagDomain(; init=missing) = PDiagDomain(PDMats.PDiagMat(init))
+PDiagDomain(n::Int)         = PDiagDomain(init=ones(n))
 
 init(d::PDiagDomain) = d.init
 

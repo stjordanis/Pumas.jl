@@ -86,9 +86,13 @@ end
     model_ip = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
     # Initial data
-    θ0 = [2.268,74.17,468.6,0.5876]
-    param = (θ = θ0, Ω = PDMat([0.05 0.0; 0.0 0.2]), σ = 0.1)
-    Random.seed!(0); randeffs = init_randeffs(model, param)
+    θ₀ = [2.268,74.17,468.6,0.5876]
+    param = (θ = θ₀,
+             Ω = [0.05 0.0;
+                  0.0  0.2],
+             σ = 0.1)
+    Random.seed!(0)
+    randeffs = init_randeffs(model, param)
 
     # Test gradient and hessian of an observable w.r.t. θ
     function test_obs(model)
@@ -100,12 +104,12 @@ end
     end
 
     fun = test_obs(model)
-    @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
-    @test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
+    @test FD_gradient(fun, θ₀) ≈ AD_gradient(fun, θ₀) atol=1e-8
+    @test FD_hessian(fun, θ₀) ≈ AD_hessian(fun, θ₀) atol=1e-3
 
     fun = test_obs(model_ip)
-    @test FD_gradient(fun, θ0) ≈ AD_gradient(fun, θ0) atol=1e-8
-    @test FD_hessian(fun, θ0) ≈ AD_hessian(fun, θ0) atol=1e-3
+    @test FD_gradient(fun, θ₀) ≈ AD_gradient(fun, θ₀) atol=1e-8
+    @test FD_hessian(fun, θ₀) ≈ AD_hessian(fun, θ₀) atol=1e-3
 
     # Test gradient and hessian of the total conditional_nll w.r.t. θ
     function test_conditional_nll(model)
@@ -116,14 +120,14 @@ end
     end
 
     fun = test_conditional_nll(model)
-    grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ0), ForwardDiff.hessian(fun, θ0)
+    grad_FD, hes_FD = FD_gradient(fun, θ₀), FD_hessian(fun, θ₀)
+    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ₀), ForwardDiff.hessian(fun, θ₀)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD  ≈ hes_AD  atol=5e-3
 
     fun = test_conditional_nll(model_ip)
-    grad_FD, hes_FD = FD_gradient(fun, θ0), FD_hessian(fun, θ0)
-    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ0), ForwardDiff.hessian(fun, θ0)
+    grad_FD, hes_FD = FD_gradient(fun, θ₀), FD_hessian(fun, θ₀)
+    grad_AD, hes_AD = ForwardDiff.gradient(fun, θ₀), ForwardDiff.hessian(fun, θ₀)
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD  ≈ hes_AD  atol=5e-3
 
@@ -157,8 +161,8 @@ end
     subject = process_nmtran(example_nmtran_data("event_data/data2"),
                          [], [:cp])[1]
 
-    θ0 = [1.5, 1.0, 30.0, 5.0]
-    param = (θ = θ0,)
+    θ₀ = [1.5, 1.0, 30.0, 5.0]
+    param = (θ = θ₀,)
     randeffs = (η = [0.0,0.0],)
 
     test_fun = function(θ)
@@ -167,8 +171,8 @@ end
         sim[:cmax]
     end
 
-    grad_FD = FD_gradient(test_fun, θ0)
-    grad_AD = AD_gradient(test_fun, θ0)
+    grad_FD = FD_gradient(test_fun, θ₀)
+    grad_AD = AD_gradient(test_fun, θ₀)
     @test_broken grad_FD[4] ≈ grad_AD[4] # is NaN
 end
 
@@ -199,8 +203,8 @@ end
     subject = process_nmtran(example_nmtran_data("event_data/data5"),
                          [], [:cp])[1]
 
-    θ0 = [1.5, 1.0, 30.0, 0.412]
-    param = (θ = θ0,)
+    θ₀ = [1.5, 1.0, 30.0, 0.412]
+    param = (θ = θ₀,)
     randeffs = (η = [0.0,0.0],)
 
     test_fun = function(θ)
@@ -209,7 +213,7 @@ end
         sim[:cmax]
     end
 
-    grad_FD = FD_gradient(test_fun, θ0)
-    grad_AD = AD_gradient(test_fun, θ0)
+    grad_FD = FD_gradient(test_fun, θ₀)
+    grad_AD = AD_gradient(test_fun, θ₀)
     @test_broken grad_FD[4] ≈ grad_AD[4] # is NaN
 end
