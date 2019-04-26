@@ -241,6 +241,7 @@ struct Subject{T1,T2,T3,T4}
       build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
     end
     sort!(events)
+    println("Ran A")
     new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
   end
 
@@ -248,9 +249,8 @@ struct Subject{T1,T2,T3,T4}
                    obs = nothing,
                    cvs = nothing,
                    evs = Event[],
-                   time = :time,
+                   time = nothing,
                    event_data = true,)
-    time = obs[time]
     obs = build_observation_list(obs)
     evs = build_event_list(evs, event_data)
     _time = isnothing(time) ? nothing : Missings.disallowmissing(time)
