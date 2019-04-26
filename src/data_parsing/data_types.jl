@@ -241,7 +241,6 @@ struct Subject{T1,T2,T3,T4}
       build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
     end
     sort!(events)
-    println("Ran A")
     new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(first(data[id]), observations, covariates, events, _obs_times)
   end
 
