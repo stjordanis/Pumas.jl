@@ -266,9 +266,9 @@ function Base.show(io::IO, subject::Subject)
   evs = subject.events
   isnothing(evs) || println(io, "  Events: ", length(subject.events))
   obs = subject.observations
-  observables = propertynames(obs)
+  observables = keys(obs)
   if !isempty(observables)
-    vals = mapreduce(pn -> string(pn, ": (n=$(length(getproperty(obs, pn))))"),
+    vals = mapreduce(pn -> string(pn, ": (n=$(length(getindex(obs, pn))))"),
                      (x, y) -> "$x, $y",
                      observables)
     println(io, "  Observables: $vals")
