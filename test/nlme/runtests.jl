@@ -1,5 +1,5 @@
 using Test, SafeTestsets
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra, Optim, StatsBase
 
 if group == "All" || group == "NLME_NOBAYES"
   @time @safetestset "Non-Bayesian models" begin

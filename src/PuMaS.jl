@@ -1,12 +1,12 @@
 module PuMaS
 
-using DiffEqBase, DiffEqMonteCarlo, Reexport,
+using DiffEqBase, DiffEqMonteCarlo, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames, StatsBase
+@reexport using Distributions, PDMats, DataFrames
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
@@ -46,8 +46,10 @@ export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
-export AIC, BIC, ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
+export ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
 export @model, @nca
+# From StatsBase
+export fit, stderror, vcov, aic, bic, deviance
 
 end # module

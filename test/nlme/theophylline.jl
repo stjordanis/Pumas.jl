@@ -68,7 +68,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, param, PuMaS.FO()) ≈ 137.16573310096661
+  @test deviance(theopmodel_fo, theopp, param, PuMaS.FO()) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -96,7 +96,7 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
+  @test deviance(o) ≈ 71.979975297638589
 
   @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
@@ -163,7 +163,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_fo, theopp, param, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
+  @test deviance(theopmodel_fo, theopp, param, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -191,7 +191,7 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test_broken PuMaS.marginal_nll_nonmem(o) ≈ 71.979975297638589
+  @test_broken deviance(o) ≈ 71.979975297638589
 
   @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
@@ -253,7 +253,7 @@ end
         #σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699
+  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699
 
   foce_estimated_params = (
     θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -280,7 +280,7 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 121.89849119366599
+  @test deviance(o) ≈ 121.89849119366599
 
   @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
@@ -338,7 +338,7 @@ end
         σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419
+  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419
 
   focei_estimated_params = (
     θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -368,7 +368,7 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 115.40505379554628 rtol=1e-7
+  @test deviance(o) ≈ 115.40505379554628 rtol=1e-7
   @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(focei_estimated_params, k)) rtol=1e-3
   end
@@ -458,7 +458,7 @@ end
 
   x_optim = o.param
 
-  @test PuMaS.marginal_nll_nonmem(o) ≈ 102.871158475488 rtol=1e-5
+  @test deviance(o) ≈ 102.871158475488 rtol=1e-5
 
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
@@ -531,7 +531,7 @@ end
       @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
-    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, param, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
+    @test deviance(theopmodel_laplace, theopp, param, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
   end
 
   laplace_estimated_params = (
@@ -574,7 +574,7 @@ end
       @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
     end
 
-    @test PuMaS.marginal_nll_nonmem(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
+    @test deviance(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
   end
 
   @testset "Test optimization" begin
@@ -583,7 +583,7 @@ end
     o_estimates = o.param
     o_stderror  = stderror(o)
 
-    @test PuMaS.marginal_nll_nonmem(o) ≈ 123.76439574418291 rtol=1e-5
+    @test deviance(o) ≈ 123.76439574418291 rtol=1e-5
 
     @testset "test estimate of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
@@ -643,7 +643,7 @@ end
         σ_prop = 0.3
        )
 
-  @test PuMaS.marginal_nll_nonmem(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990
+  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990
 
   laplacei_estimated_params = (
     θ₁ = 1.60941E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -674,7 +674,7 @@ end
     o_estimates = o.param
     o_stderror  = stderror(o)
 
-    @test PuMaS.marginal_nll_nonmem(o) ≈ 116.97275684239327 rtol=1e-5
+    @test deviance(o) ≈ 116.97275684239327 rtol=1e-5
 
     @testset "test estimate of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplacei_estimated_params, k)) rtol=1e-3
