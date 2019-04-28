@@ -44,13 +44,13 @@ export Subject, Population, DosageRegimen
 export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
-export conditional_nll, FIM
+export conditional_nll
 export predict, wresiduals
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
 export ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
 export @model, @nca
 # From StatsBase
-export fit, stderror, vcov, aic, bic, deviance
+export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 
 end # module

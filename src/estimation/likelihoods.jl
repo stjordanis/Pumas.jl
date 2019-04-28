@@ -348,7 +348,7 @@ function marginal_nll(m::PuMaSModel,
 
     # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
     if issuccess(FΩ)
-      w = FIM(dist_d, FOCEI())
+      w = ∂²l∂η²(dist_d, FOCEI())
       nl += (logdet(Ω) + vrandeffs'*(FΩ\vrandeffs) + logdet(inv(FΩ) + w))/2
     else # Ω is numerically singular
       nl = typeof(nl)(Inf)
@@ -393,7 +393,7 @@ function marginal_nll(m::PuMaSModel,
     # FIXME! Don't hardcode for dv
     d_d = first(dist_d.dv)
     d_0 = Normal(ForwardDiff.value(mean(d_d)), ForwardDiff.value(std(d_d)))
-    W = FIM(dist_d.dv, d_0, FOCE())
+    W = ∂²l∂η²(dist_d.dv, d_0, FOCE())
   else # in the Heteroscedastic case, compute the variances at η=0
     nl_0, dist_0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),), args...; kwargs...)
 
@@ -402,7 +402,7 @@ function marginal_nll(m::PuMaSModel,
 
     # Compute the Hessian approxmation in the random effect vector η
     # FIXME! Don't hardcode for dv
-    W = FIM(dist_d.dv, dist_0.dv, FOCE())
+    W = ∂²l∂η²(dist_d.dv, dist_0.dv, FOCE())
   end
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
@@ -444,7 +444,7 @@ function marginal_nll(m::PuMaSModel,
   nl = ForwardDiff.value(nl_d)
 
   # Compute the gradient of the likelihood and Hessian approxmation in the random effect vector η
-  W, dldη = FIM(subject.observations, dist_d, FO())
+  W, dldη = ∂²l∂η²(subject.observations, dist_d, FO())
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
@@ -607,7 +607,7 @@ function marginal_nll_gradient!(G::AbstractVector,
   return G
 end
 
-function FIM(dist::NamedTuple, ::FOCEI)
+function ∂²l∂η²(dist::NamedTuple, ::FOCEI)
 
   # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
   dv  = dist.dv
@@ -625,7 +625,7 @@ function FIM(dist::NamedTuple, ::FOCEI)
 end
 
 # Homoscedastic case
-function FIM(dv::AbstractVector, dv0::Distribution, ::FOCE)
+function ∂²l∂η²(dv::AbstractVector, dv0::Distribution, ::FOCE)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0))
@@ -637,7 +637,7 @@ function FIM(dv::AbstractVector, dv0::Distribution, ::FOCE)
 end
 
 # Heteroscedastic case
-function FIM(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
+function ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0[j]))
@@ -648,7 +648,7 @@ function FIM(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
   return H
 end
 
-function FIM(obs::NamedTuple, dist::NamedTuple, ::FO)
+function ∂²l∂η²(obs::NamedTuple, dist::NamedTuple, ::FO)
   # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
   dv = dist.dv
 
@@ -879,9 +879,9 @@ function _expected_information(m::PuMaSModel,
 end
 
 function StatsBase.informationmatrix(f::FittedPuMaSModel; expected::Bool=true)
-  data     = f.data
-  model    = f.model
-  param    = f.param
+  data      = f.data
+  model     = f.model
+  param     = f.param
   vrandeffs = f.vrandeffs
   if expected
     return sum(_expected_information(model, data[i], param, (η=vrandeffs[i],), f.approx) for i in 1:length(data))
