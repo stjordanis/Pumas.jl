@@ -80,7 +80,7 @@ end
                              -3.05266E-02  1.04586E-02  5.99850E-01],
                          σ_add = 2.66533E-01)
 
-   fo_stderr           = (θ₁ = 4.47E-01,
+  fo_stderr           = (θ₁ = 4.47E-01,
                          θ₂ = 6.81E-03,
                          θ₃ = 4.93E-03,
                          θ₄ = 3.52E-01,
@@ -104,6 +104,10 @@ end
 
   @testset "test stderror of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
+  end
+
+  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    @test o.vvrandeffs[i] == zeros(3)
   end
 end
 
@@ -201,6 +205,10 @@ end
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(fo_stderr, k))           rtol=2e-2
   end
 
+  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    @test o.vvrandeffs[i] == zeros(3)
+  end
+
   # Test that the types work on both stiff and non-stiff solver methods
   o = fit(theopmodel_fo, theopp, param, PuMaS.FO(), alg=Tsit5())
   o = fit(theopmodel_fo, theopp, param, PuMaS.FO(), alg=Rosenbrock23())
@@ -272,6 +280,20 @@ end
 
     Ω  = Diagonal([1.61E+00, 7.70E-02]),
     σ_add = 1.34E-01)
+
+  foce_ebes = [-2.66223E-01 -9.45749E-01
+                4.53194E-01  3.03170E-02
+                6.31423E-01  7.48592E-02
+               -4.72536E-01 -1.80373E-01
+               -1.75904E-01  1.64858E-01
+               -4.31006E-01  4.74851E-01
+               -1.33960E+00  4.29688E-01
+               -6.61193E-01  3.15429E-01
+                2.83927E+00 -6.59448E-01
+               -1.46862E+00 -2.44162E-01
+                1.47205E+00  6.97115E-01
+               -1.12971E+00 -1.24210E-01]
+
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
 
@@ -288,6 +310,10 @@ end
 
   @testset "test stderror of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(foce_stderr, k))           rtol=1e-2
+  end
+
+  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
   end
 end
 
@@ -360,6 +386,20 @@ end
     Ω = Diagonal([1.35E+00, 8.06E-02]),
     σ_add = 2.64E-01,
     σ_prop = 1.35E-02)
+
+  focei_ebes = [-3.85812E-01 -1.06806E+00
+                 5.27060E-01  5.92269E-02
+                 6.72391E-01  6.98525E-02
+                -4.69064E-01 -1.90285E-01
+                -2.15212E-01  1.46830E-01
+                -4.06899E-01  5.11601E-01
+                -1.30578E+00  4.62948E-01
+                -5.67728E-01  3.40907E-01
+                 2.62534E+00 -6.75318E-01
+                -1.39161E+00 -2.55351E-01
+                 1.46302E+00  7.37263E-01
+                -1.12603E+00 -8.76924E-02]
+
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
@@ -375,6 +415,10 @@ end
 
   @testset "test stderror of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(focei_stderr, k))           rtol=1e-2
+  end
+
+  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    @test o.vvrandeffs[i] ≈ focei_ebes[i,:] rtol=1e-3
   end
 
   npde(   theopmodel_focei, theopp[1], param,
@@ -451,8 +495,22 @@ end
     σ_add = 1.1300E-01,
     σ_prop = 9.9131E-03
   )
- # Elapsed estimation time in seconds:     0.34
- # Elapsed covariance time in seconds:     0.31
+
+  foce_ebes = [-2.69137E+00 -1.04910E+00
+               -1.88515E+00  7.40755E-02
+               -1.49661E+00  5.53721E-02
+               -2.76850E+00 -1.92248E-01
+               -2.51714E+00  1.60970E-01
+               -2.68118E+00  5.20821E-01
+               -2.44728E+00  4.57302E-01
+               -1.72057E+00  3.20183E-01
+                3.67973E+00 -6.68444E-01
+               -2.59685E+00 -2.81286E-01
+                8.06659E-01  7.37918E-01
+               -2.25546E+00 -8.58804E-02]
+
+  # Elapsed estimation time in seconds:     0.34
+  # Elapsed covariance time in seconds:     0.31
 
   o = fit(theopmodel_foce, theopp, param, PuMaS.FOCE())
 
@@ -462,6 +520,10 @@ end
 
   @testset "test parameter $k" for k in keys(x_optim)
     @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  end
+
+  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
   end
 end
 
@@ -552,30 +614,24 @@ end
 
     Ω = Diagonal([1.60E+00, 7.76E-02]),
     σ_add = 1.35E-01)
+
+  laplace_ebes =[-2.81817E-01 -9.51075E-01
+                  4.36123E-01  2.95020E-02
+                  6.11776E-01  7.42657E-02
+                 -4.86815E-01 -1.82637E-01
+                 -1.91050E-01  1.64544E-01
+                 -4.45223E-01  4.75049E-01
+                 -1.35543E+00  4.29076E-01
+                 -6.79064E-01  3.15307E-01
+                  2.80934E+00 -6.62060E-01
+                 -1.48446E+00 -2.47635E-01
+                  1.44666E+00  6.99712E-01
+                 -1.14629E+00 -1.26537E-01]
+
   # Elapsed estimation time in seconds:     0.23
   # Elapsed covariance time in seconds:     0.17
 
-  # from run5.phi
-  nonmem_ebes_estimated = [[-2.81817E-01, -9.51075E-01],
-                           [ 4.36123E-01,  2.95020E-02],
-                           [ 6.11776E-01,  7.42657E-02],
-                           [-4.86815E-01, -1.82637E-01],
-                           [-1.91050E-01,  1.64544E-01],
-                           [-4.45223E-01,  4.75049E-01],
-                           [-1.35543E+00,  4.29076E-01],
-                           [-6.79064E-01,  3.15307E-01],
-                           [ 2.80934E+00, -6.62060E-01],
-                           [-1.48446E+00, -2.47635E-01],
-                           [ 1.44666E+00,  6.99712E-01],
-                           [-1.14629E+00, -1.26537E-01]]
-
-  @testset "Laplace fitted" begin
-    for (i,η) in enumerate(nonmem_ebes_estimated)
-      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], laplace_estimated_params, Laplace()) ≈ η rtol=1e-4
-    end
-
-    @test deviance(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
-  end
+  @test deviance(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
 
   @testset "Test optimization" begin
     o = fit(theopmodel_laplace, theopp, param, PuMaS.Laplace())
@@ -591,6 +647,10 @@ end
 
     @testset "test stderror of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplace_stderr, k))           rtol=1e-2
+    end
+
+    @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+      @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=2e-3
     end
   end
 end
@@ -665,6 +725,20 @@ end
     Ω = Diagonal([1.35E+00, 8.95E-02]),
     σ_add = 3.01E-01,
     σ_prop = 1.70E-02)
+
+  laplacei_ebes = [-4.28671E-01 -1.07834E+00
+                    5.07444E-01  6.93096E-02
+                    6.43525E-01  7.59602E-02
+                   -4.98953E-01 -1.84868E-01
+                   -2.46292E-01  1.51559E-01
+                   -4.38459E-01  5.21590E-01
+                   -1.33160E+00  4.71199E-01
+                   -5.83976E-01  3.49324E-01
+                    2.57215E+00 -6.69523E-01
+                   -1.41344E+00 -2.53978E-01
+                    1.43116E+00  7.48520E-01
+                   -1.15300E+00 -7.93525E-02]
+
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
@@ -682,6 +756,10 @@ end
 
     @testset "test stderror of $k" for k in keys(o_estimates)
       @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplacei_stderr, k))           rtol=4e-2
+    end
+
+    @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+      @test o.vvrandeffs[i] ≈ laplacei_ebes[i,:] rtol=1e-3
     end
   end
 end
