@@ -668,7 +668,7 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
   data::T2
   optim::T3
   approx::T4
-  vrandeffs::T5
+  vvrandeffs::T5
 end
 
 function DEFAULT_OPTIMIZE_FN(cost, p)
@@ -696,8 +696,9 @@ function Distributions.fit(m::PuMaSModel,
   cost = s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...)
   o = optimize_fn(cost,vparam)
 
-  vrandeffs = [randeffs_estimate(m, subject, param, approx, args...) for subject in data.subjects]
-  return FittedPuMaSModel(m, data, o, approx, vrandeffs)
+  # FIXME! The random effects are computed during the optimization so we should just store while optimizing instead of recomputing afterwards.
+  vvrandeffs = [randeffs_estimate(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data.subjects]
+  return FittedPuMaSModel(m, data, o, approx, vvrandeffs)
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
