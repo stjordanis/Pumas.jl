@@ -26,7 +26,8 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     events = obs.subject.events
     df[:amt]  = zeros(typeof(events[1].amt),  nrows)
     df[:evid] = zeros(typeof(events[1].evid), nrows)
-    df[:cmt]  = zeros(typeof(events[1].cmt),  nrows)
+    _cmts = Vector{Union{Int,Symbol}}(undef, nrows); fill!(_cmts, 0)
+    df[:cmt] = _cmts
     df[:rate] = zeros(typeof(events[1].rate), nrows)
     # Add rows corresponding to the events
     ## For events that have a matching observation at the event
@@ -53,8 +54,10 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
   end
   if include_covariates
     covariates = obs.subject.covariates
-    for (cov, value) in pairs(covariates)
-      df[cov] = value
+    if covariates != nothing
+      for (cov, value) in pairs(covariates)
+        df[cov] = value
+      end
     end
   end
   df

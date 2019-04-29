@@ -15,7 +15,7 @@ Fields:
    - `2`: other type event
    - `3`: reset event (the amounts in each compartment are reset to zero, the on/off status of each compartment is reset to its initial status)
    - `4`: reset and dose event
- * `cmt`: Compartment
+ * `cmt`: Compartment (an Int or Symbol)
  * `rate`: The dosing rate:
    - `0`: instantaneous bolus dose
    - `>0`: infusion dose (mass/time units, e.g. mg/hr)
@@ -32,11 +32,11 @@ Fields:
    - `-1` for end-of-infusion
    - `+1` for any other doses
 """
-struct Event{T1,T2,T3,T4,T5,T6}
+struct Event{T1,T2,T3,T4,T5,T6,C}
   amt::T1
   time::T2
   evid::Int8
-  cmt::Int
+  cmt::C
   rate::T3
   duration::T4
   ss::Int8
@@ -45,8 +45,8 @@ struct Event{T1,T2,T3,T4,T5,T6}
   rate_dir::Int8
 end
 
-Event(amt, time, evid::Integer, cmt::Integer) =
-  Event(amt, time, Int8(evid), Int(cmt), zero(amt), zero(amt),
+Event(amt, time, evid::Integer, cmt::Union{Int,Symbol}) =
+  Event(amt, time, Int8(evid), cmt, zero(amt), zero(amt),
         Int8(0), zero(time), time, Int8(1))
 
 Base.isless(a::Event,b::Event) = isless(a.time,b.time)
@@ -97,7 +97,7 @@ mutable struct DosageRegimen
   data::DataFrame
   function DosageRegimen(amt::Number,
                          time::Number,
-                         cmt::Number,
+                         cmt::Union{Number,Symbol},
                          evid::Number,
                          ii::Number,
                          addl::Number,
@@ -106,7 +106,7 @@ mutable struct DosageRegimen
     # amt = evid ∈ [0, 3] ? float(zero(amt)) : float(amt)
     amt = float(amt)
     time = float(time)
-    cmt = convert(Int, cmt)
+    cmt = cmt isa Symbol ? cmt : convert(Int, cmt)
     evid = convert(Int8, evid)
     ii = float(ii)
     addl = convert(Int, addl)
@@ -131,7 +131,7 @@ mutable struct DosageRegimen
   end
   DosageRegimen(amt::Numeric;
                 time::Numeric = 0,
-                cmt::Numeric  = 1,
+                cmt::Union{Numeric,Symbol}  = 1,
                 evid::Numeric = 1,
                 ii::Numeric   = zero.(time),
                 addl::Numeric = 0,

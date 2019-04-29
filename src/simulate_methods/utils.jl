@@ -62,13 +62,24 @@ function sorted_approx_unique(events)
   out
 end
 
+# Ad-hoc fix for creating SLVectors from existing ones that differ
+# only in one element, indexed by a Symbol
+function Base.setindex(x::LabelledArrays.SLArray{S,T,N,L,Syms}, val::T,
+  ind::Symbol) where {S,T,N,L,Syms}
+  ind = findfirst(isequal(ind), Syms)
+  Base.setindex(x, val, ind)
+end
+
 function set_value(A :: StaticVector{L,T}, x,k) where {T,L}
   typeof(A)(ntuple(i->ifelse(i == k, x, A[i]), Val(L)))
 end
+set_value(A::LabelledArrays.SLArray, x, k) = Base.setindex(A, x, k)
 
 function increment_value(A :: StaticVector{L,T}, x,k) where {T,L}
   typeof(A)(ntuple(i->ifelse(i == k, A[i]+x, A[i]), Val(L)))
 end
+increment_value(A::LabelledArrays.SLArray, x, k) = Base.setindex(A,
+  A[k] + x, k)
 
 function increment_value(A::Number,x,k)
   A+x
