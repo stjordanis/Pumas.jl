@@ -7,8 +7,8 @@ data = process_nmtran(example_nmtran_data("sim_data_model1"))
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PDiagDomain(PDiagMat(fill(0.04, 1)))
+        θ ∈ VectorDomain(1, init=[0.5])
+        Ω ∈ PDiagDomain(init=[0.04])
         Σ ∈ ConstDomain(0.1)
     end
 
@@ -43,13 +43,13 @@ for (ηstar, dt) in zip([-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.05
     @test PuMaS.randeffs_estimate(mdsl1, dt, param, PuMaS.LaplaceI())[1] ≈ ηstar rtol=1e-3
 end
 
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, PuMaS.FOCE())     ≈ 56.476216665029462 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
-@test PuMaS.marginal_nll_nonmem(mdsl1, data, param, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.FOCE())     ≈ 56.476216665029462 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
+@test deviance(mdsl1, data, param, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
+@test deviance(mdsl1, data, param, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
 ofn = function (cost,p)
   Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),

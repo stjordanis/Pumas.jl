@@ -7,8 +7,8 @@ data = process_nmtran(example_nmtran_data("sim_data_model1"))
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PDiagDomain(PDiagMat(fill(0.04, 1)))
+        θ ∈ VectorDomain(1, init=[0.5])
+        Ω ∈ PDiagDomain(init=[0.04])
         Σ ∈ ConstDomain(0.1)
     end
 
@@ -146,8 +146,8 @@ end
 
 [eiwres(mdsl1, data[i], param, 10000) for i in 1:10]
 
-param = (θ = [0.340689], Ω = PDiagMat(fill(0.000004, 1)), Σ = 0.0752507)
+param = (θ = [0.340689], Ω = Diagonal([0.000004]), Σ = 0.0752507)
 @test ηshrinkage(mdsl1, data, param, PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
 ϵshrinkage(mdsl1, data, param, PuMaS.FOCEI())
-@test AIC(mdsl1, data, param, PuMaS.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
-@test BIC(mdsl1, data, param, PuMaS.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test
+@test aic(mdsl1, data, param, PuMaS.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
+@test bic(mdsl1, data, param, PuMaS.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test

@@ -246,18 +246,32 @@ function ϵshrinkage(m::PuMaSModel,
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
+<<<<<<< HEAD
 function AIC(m::PuMaSModel,
               data::Population,
               param::NamedTuple,
               approx::LikelihoodApproximation)
+=======
+function StatsBase.aic(m::PuMaSModel,
+                       data::Population,
+                       param::NamedTuple,
+                       approx::LikelihoodApproximation)
+>>>>>>> originssh/master
   numparam = TransformVariables.dimension(totransform(m.param))
   2*(marginal_nll(m, data, param, approx) + numparam)
 end
 
+<<<<<<< HEAD
 function BIC(m::PuMaSModel,
               data::Population,
               param::NamedTuple,
               approx::LikelihoodApproximation)
+=======
+function StatsBase.bic(m::PuMaSModel,
+                       data::Population,
+                       param::NamedTuple,
+                       approx::LikelihoodApproximation)
+>>>>>>> originssh/master
   numparam = TransformVariables.dimension(totransform(m.param))
   2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end

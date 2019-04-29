@@ -1,120 +1,122 @@
 using Test
 using PuMaS, LinearAlgebra, Optim
 
-@test_broken begin
-data = process_nmtran(example_nmtran_data("sim_data_model1_wang"))
+@testset "Models from the Wang paper" begin
 
-wang_additive = @model begin
-    @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ ConstDomain(0.1)
-    end
+  data = process_nmtran(example_nmtran_data("wang"))
 
-    @random begin
+  @testset "Check that PuMaS throws when there are no events" begin
+    @test_throws ArgumentError PuMaS.timespan(data[1])
+  end
+
+  # Add initial events following Wang's model
+  for i in eachindex(data)
+    push!(data[i].events, PuMaS.Event(10.0, 0.0, 1, 1))
+  end
+
+  @testset "Additive error model" begin
+
+    wang_additive = @model begin
+      @param begin
+        θ  ∈ RealDomain(init=0.5)
+        Ω  ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        σ² ∈ RealDomain(init=0.1)
+      end
+
+      @random begin
         η ~ MvNormal(Ω)
+      end
+
+      @pre begin
+        CL = θ * exp(η[1])
+        V  = 1.0
+      end
+
+      @vars begin
+        conc = Central / V
+      end
+
+      @dynamics ImmediateAbsorptionModel
+
+      @derived begin
+        dv ~ @. Normal(conc, sqrt(σ²))
+      end
     end
 
-    @pre begin
+    param = init_param(wang_additive)
+
+    @test deviance(wang_additive, data, param, PuMaS.FO())   ≈  0.026 atol = 1e-3
+    @test deviance(wang_additive, data, param, PuMaS.FOCE()) ≈ -2.059 atol = 1e-3
+  end
+
+  @testset "Proportional error model" begin
+
+    wang_proportional = @model begin
+      @param begin
+        θ  ∈ RealDomain(init=0.5)
+        Ω  ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        σ² ∈ ConstDomain(0.1)
+      end
+
+      @random begin
+        η ~ MvNormal(Ω)
+      end
+
+      @pre begin
+        CL = θ * exp(η[1])
+        V  = 1.0
+      end
+
+      @vars begin
+        conc = Central / V
+      end
+
+      @dynamics ImmediateAbsorptionModel
+
+      @derived begin
+        dv ~ @. Normal(conc, conc*sqrt(σ²))
+      end
+    end
+
+    param = init_param(wang_proportional)
+
+    @test deviance(wang_proportional, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
+    @test deviance(wang_proportional, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
+    @test deviance(wang_proportional, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
+  end
+
+  @testset "Exponential error model" begin
+    wang_exponential = @model begin
+      @param begin
+        θ  ∈ RealDomain(init=0.5)
+        Ω  ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        σ² ∈ ConstDomain(0.1)
+      end
+
+      @random begin
+        η ~ MvNormal(Ω)
+      end
+
+      @pre begin
         CL = θ[1] * exp(η[1])
         V  = 1.0
-    end
+      end
 
-    @vars begin
+      @vars begin
         conc = Central / V
+      end
+
+      @dynamics ImmediateAbsorptionModel
+
+      @derived begin
+        dv ~ @. LogNormal(log(conc), sqrt(σ²))
+      end
     end
 
-    @dynamics ImmediateAbsorptionModel
+    param = init_param(wang_exponential)
 
-    @derived begin
-        dv ~ @. Normal(conc,sqrt(Σ)+eps())
-    end
-end
-
-param = init_param(wang_additive)
-
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_additive,subject, param, (η=η,))
-ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,param,(η=[0.0],),FO()), data.subjects)
-@test η0_mll ≈ 0.026 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_additive,subject,param,(η=[0.0],),FOCE()), data.subjects)
-@test η0_mll ≈ -2.059 atol = 1e-3
-
-
-wang_prop = @model begin
-    @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ ConstDomain(0.1)
-    end
-
-    @random begin
-        η ~ MvNormal(Ω)
-    end
-
-    @pre begin
-        CL = θ[1] * exp(η[1])
-        V  = 1.0
-    end
-
-    @vars begin
-        conc = Central / V
-    end
-
-    @dynamics ImmediateAbsorptionModel
-
-    @derived begin
-        dv ~ @. Normal(conc,conc*sqrt(Σ)+eps())
-    end
-end
-
-param = init_param(wang_prop)
-
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_prop,subject, param, (η=η,))
-ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,param,(η=[0.0],),FO()), data.subjects)
-@test η0_mll ≈ 39.213 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,param,(η=[0.0],),FOCE()), data.subjects)
-@test η0_mll ≈ 39.207 atol = 1e-3
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_prop,subject,param,(η=[0.0],),FOCEI()), data.subjects)
-@test η0_mll ≈ 39.458 atol = 1e-3
-
-wang_exp = @model begin
-    @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ ConstDomain(0.1)
-    end
-
-    @random begin
-        η ~ MvNormal(Ω)
-    end
-
-    @pre begin
-        CL = θ[1] * exp(η[1])
-        V  = 1.0
-    end
-
-    @vars begin
-        conc = Central / V
-    end
-
-    @dynamics ImmediateAbsorptionModel
-
-    @derived begin
-        dv ~ @. Normal(conc,conc*sqrt(Σ)+eps())
-    end
-end
-
-param = init_param(wang_exp)
-
-mdsl_f(η,subject) = PuMaS.penalized_conditional_nll(wang_exp,subject, param, (η=η,))
-ηstar = [Optim.optimize(η -> wang_f(η,data[i]),zeros(1),BFGS()).minimizer[1] for i in 1:10]
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,param,(η=[0.0],),FO()), data.subjects)
-#@test η0_mll ≈ 
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,param,(η=[0.0],),FOCE()), data.subjects)
-#@test η0_mll ≈ 
-η0_mll = sum(subject -> PuMaS.marginal_nll_nonmem(wang_exp,subject,param,(η=[0.0],),FOCEI()), data.subjects)
-#@test η0_mll ≈ 
-
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FO())    ≈ 39.213 atol = 1e-3
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FOCE())  ≈ 39.207 atol = 1e-3
+    @test_broken deviance(wang_exponential, data, param, PuMaS.FOCEI()) ≈ 39.458 atol = 1e-3
+  end
 end

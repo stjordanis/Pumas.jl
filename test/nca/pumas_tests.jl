@@ -53,7 +53,7 @@ p = (  θ = [1.5,  #Ka
             0, # lags2
             1 #Bioav
            ],
-     Ω = PDMat(diagm(0 => [0.04,0.04])),
+     Ω = diagm(0 => [0.04,0.04]),
      σ_prop = 0.00
     )
 
@@ -116,7 +116,7 @@ p = (  θ = [11.5,  #CL
            8, #VM
            0.7
            ],
-      Ω = PDMat(diagm(0 => [0.04,0.04,0.04,0.04]))
+      Ω = diagm(0 => [0.04,0.04,0.04,0.04])
       )
 sim = @test_nowarn simobs(parmet, ev1, p)
 dose = NCADose.(sim[1].subject.events)

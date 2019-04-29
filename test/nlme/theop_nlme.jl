@@ -9,10 +9,10 @@ theopp_nlme = process_nmtran(example_nmtran_data("THEOPP"))
 mdsl2 = @model begin
     @param begin
         θ ∈ VectorDomain(3,init=[3.24467E+01, 8.72879E-02, 1.49072E+00])
-        Ω ∈ PSDDomain(Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
-                                        1.20854E-02  2.02375E-02 -6.47803E-03
-                                        5.69131E-02 -6.47803E-03  4.34671E-01]))
-        Σ ∈ PDiagDomain(PDiagMat([1.70385E-02, 8.28498E-02]))
+        Ω ∈ PSDDomain(init=Matrix{Float64}([ 1.93973E-02  1.20854E-02  5.69131E-02
+                                             1.20854E-02  2.02375E-02 -6.47803E-03
+                                             5.69131E-02 -6.47803E-03  4.34671E-01]))
+        Σ ∈ PDiagDomain(init=[1.70385E-02, 8.28498E-02])
     end
 
     @random begin
@@ -38,7 +38,7 @@ mdsl2 = @model begin
 end
 
 param = init_param(mdsl2)
-@test @inferred(PuMaS.marginal_nll_nonmem(mdsl2, theopp_nlme, param, PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test @inferred(deviance(mdsl2, theopp_nlme, param, PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
 @test fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()) isa PuMaS.FittedPuMaSModel
 @test ηshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
 @test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 0.09091845 rtol = 1e-6
@@ -46,8 +46,8 @@ param = init_param(mdsl2)
 param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
 @test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
 @test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
-@test AIC(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 477.5715543243326 rtol = 1e-3 #regression test
-@test BIC(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
+@test aic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 477.5715543243326 rtol = 1e-3 #regression test
+@test bic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
 param = init_param(mdsl2)
 randeffs = [PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
 [ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
