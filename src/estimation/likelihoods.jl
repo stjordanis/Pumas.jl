@@ -348,7 +348,8 @@ function marginal_nll(m::PuMaSModel,
 
     # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
     if issuccess(FΩ)
-      w = ∂²l∂η²(dist_d, FOCEI())
+      # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
+      w = ∂²l∂η²(dist_d.dv, FOCEI())
       nl += (logdet(Ω) + vrandeffs'*(FΩ\vrandeffs) + logdet(inv(FΩ) + w))/2
     else # Ω is numerically singular
       nl = typeof(nl)(Inf)
@@ -444,7 +445,8 @@ function marginal_nll(m::PuMaSModel,
   nl = ForwardDiff.value(nl_d)
 
   # Compute the gradient of the likelihood and Hessian approxmation in the random effect vector η
-  W, dldη = ∂²l∂η²(subject.observations, dist_d, FO())
+  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
+  W, dldη = ∂²l∂η²(subject.observations.dv, dist_d.dv, FO())
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
@@ -607,11 +609,8 @@ function marginal_nll_gradient!(G::AbstractVector,
   return G
 end
 
-function ∂²l∂η²(dist::NamedTuple, ::FOCEI)
 
-  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-  dv  = dist.dv
-
+function ∂²l∂η²(dv::AbstractVector{<:Normal}, ::FOCEI)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     dvj   = dv[j]
@@ -625,7 +624,7 @@ function ∂²l∂η²(dist::NamedTuple, ::FOCEI)
 end
 
 # Homoscedastic case
-function ∂²l∂η²(dv::AbstractVector, dv0::Distribution, ::FOCE)
+function ∂²l∂η²(dv::AbstractVector{<:Normal}, dv0::Normal, ::FOCE)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0))
@@ -637,7 +636,7 @@ function ∂²l∂η²(dv::AbstractVector, dv0::Distribution, ::FOCE)
 end
 
 # Heteroscedastic case
-function ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
+function ∂²l∂η²(dv::AbstractVector{<:Normal}, dv0::AbstractVector{<:Normal}, ::FOCE)
   # Loop through the distribution vector and extract derivative information
   H = sum(1:length(dv)) do j
     r_inv = inv(var(dv0[j]))
@@ -648,10 +647,7 @@ function ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
   return H
 end
 
-function ∂²l∂η²(obs::NamedTuple, dist::NamedTuple, ::FO)
-  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-  dv = dist.dv
-
+function ∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::FO)
   # The dimension of the random effect vector
   nrfx = length(ForwardDiff.partials(mean(dv[1])))
 
@@ -667,11 +663,17 @@ function ∂²l∂η²(obs::NamedTuple, dist::NamedTuple, ::FO)
     f = SVector(ForwardDiff.partials(mean(dvj)).values)
     fdr = f/r
     H += fdr*f'
-    dldη += fdr*(obs.dv[j] - ForwardDiff.value(mean(dvj)))
+    dldη += fdr*(obsdv[j] - ForwardDiff.value(mean(dvj)))
   end
 
   return H, dldη
 end
+
+# Fallbacks for a usful error message when distribution isn't supported
+∂²l∂η²(dv::AbstractVector, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 
 # Fitting methods
 struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}

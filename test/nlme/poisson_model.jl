@@ -1,4 +1,4 @@
-using PuMaS, CSV,Test
+using PuMaS, Test
 
 # avoid rand issue for now
 using StatsFuns, ForwardDiff
@@ -75,4 +75,9 @@ StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisra
   @test p.θ₁       ≈ 1.0293E+00 rtol=1e-3
   @test p.θ₂       ≈ 4.5185E-01 rtol=1e-3
   @test p.Ω.mat[1] ≈ 1.2201E-01 rtol=1e-3
+
+  # FO/FOCE(I) not supported for
+  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FO())
+  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FOCE())
+  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FOCEI())
 end

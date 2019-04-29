@@ -7,9 +7,9 @@ data = process_nmtran(example_nmtran_data("sim_data_model1"))
 #-----------------------------------------------------------------------# Test 1
 tdist = @model begin
     @param begin
-        θ ∈ VectorDomain(1,init=[0.5])
-        Ω ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
-        Σ ∈ ConstDomain(0.1)
+        θ  ∈ RealDomain(init=0.5)
+        Ω  ∈ PSDDomain(Matrix{Float64}(fill(0.04, 1, 1)))
+        σ² ∈ ConstDomain(0.1)
     end
 
     @random begin
@@ -17,7 +17,7 @@ tdist = @model begin
     end
 
     @pre begin
-        CL = θ[1] * exp(η[1])
+        CL = θ * exp(η[1])
         V  = 1.0
     end
 
@@ -28,7 +28,7 @@ tdist = @model begin
     @dynamics ImmediateAbsorptionModel
 
     @derived begin
-        dv ~ @. LocationScale(conc, conc*sqrt(Σ)+eps(), TDist(30))
+        dv ~ @. LocationScale(conc, conc*sqrt(σ²), TDist(30))
     end
 end
 
@@ -42,13 +42,8 @@ for (d, v) in zip(data, [-0.110095703125000, 0.035454025268555, -0.0249826049804
   @test PuMaS.randeffs_estimate(tdist, d, param, PuMaS.LaplaceI())[1] ≈ v rtol=1e-6
 end
 
-@test_broken deviance(tdist, data, param, PuMaS.FOCEI()) ≈ -10000 rtol = 1e-6 # Need to get the right value of the mll
-@test_broken deviance(tdist, data, param, PuMaS.FOCE())
+# Not yet supported
+@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FO())
+@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FOCE())
+@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FOCEI())
 @test deviance(tdist, data, param, PuMaS.LaplaceI()) ≈ 57.112537604068990 rtol=1e-6
-
-function full_ll(θ)
-  _param = (θ=θ, Ω=fill(0.04, 1, 1), Σ=0.1)
-  deviance(tdist, data,_param, PuMaS.LaplaceI())
-end
-
-Optim.optimize(full_ll, [0.5], BFGS())
