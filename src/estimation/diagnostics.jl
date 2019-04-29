@@ -246,32 +246,18 @@ function ϵshrinkage(m::PuMaSModel,
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
-<<<<<<< HEAD
-function AIC(m::PuMaSModel,
-              data::Population,
-              param::NamedTuple,
-              approx::LikelihoodApproximation)
-=======
 function StatsBase.aic(m::PuMaSModel,
                        data::Population,
                        param::NamedTuple,
                        approx::LikelihoodApproximation)
->>>>>>> originssh/master
   numparam = TransformVariables.dimension(totransform(m.param))
   2*(marginal_nll(m, data, param, approx) + numparam)
 end
 
-<<<<<<< HEAD
-function BIC(m::PuMaSModel,
-              data::Population,
-              param::NamedTuple,
-              approx::LikelihoodApproximation)
-=======
 function StatsBase.bic(m::PuMaSModel,
                        data::Population,
                        param::NamedTuple,
                        approx::LikelihoodApproximation)
->>>>>>> originssh/master
   numparam = TransformVariables.dimension(totransform(m.param))
   2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end
@@ -302,7 +288,14 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
   end
 
   subjects = fpm.data.subjects
-  [predict(fpm, subjects[i], fpm.vrandeffs[i], approx) for i = 1:length(subjects)]
+
+  if approx == fpm.approx
+    vvrandeffs = fpm.vvrandeffs
+  else
+    # re-estimate under approx
+    vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
+  end
+  [predict(fpm, subjects[i], vvrandeffs[i], approx) for i = 1:length(subjects)]
 end
 
 function _predict(fpm, subject, vrandeffs, approx::FO)
@@ -311,22 +304,29 @@ end
 function _ipredict(fpm, subject, vrandeffs, approx::FO)
   ipred(fpm.model, subject, fpm.param, vrandeffs)
 end
+_predsymbol(::FO) = :PRED
+_ipredsymbol(::FO) = :IPRED
+
 function _predict(fpm, subject, vrandeffs, approx::FOCE)
   cpred(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _ipredict(fpm, subject, vrandeffs, approx::FOCE)
   cipred(fpm.model, subject, fpm.param, vrandeffs)
 end
+_predsymbol(::FOCE) = :CPRED
+_ipredsymbol(::FOCE) = :CIPRED
+
 function _predict(fpm, subject, vrandeffs, approx::FOCEI)
   cpredi(fpm.model, subject, fpm.param, vrandeffs)
 end
 function _ipredict(fpm, subject, vrandeffs, approx::FOCEI)
   cipredi(fpm.model, subject, fpm.param, vrandeffs)
 end
+_predsymbol(::FOCEI) = :CPREDI
+_ipredsymbol(::FOCEI) = :CIPREDI
 function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
-
 
 function DataFrame(vpred::Vector{<:SubjectPrediction})
   # TODO add covariates
@@ -334,5 +334,14 @@ function DataFrame(vpred::Vector{<:SubjectPrediction})
   times = [p.subject.time for p in vpred]
   pred = [p.pred for p in vpred]
   ipred = [p.ipred for p in vpred]
-  DataFrame(id=vcat(ids...), time=vcat(times...), pred=vcat(pred...), ipred=vcat(ipred...))
+  df = DataFrame(id=vcat(ids...), time=vcat(times...), pred=vcat(pred...), ipred=vcat(ipred...))
+  dfnames = names(df)
+
+  # we assume that all approximations are the same
+  predsymbol = _predsymbol(vpred[1].approx)
+  ipredsymbol = _ipredsymbol(vpred[1].approx)
+
+  newdfnames = [:id, :time, predsymbol, ipredsymbol]
+  names!(df, newdfnames)
+  df
 end
