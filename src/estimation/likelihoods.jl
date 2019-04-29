@@ -898,7 +898,7 @@ Compute the covariance matrix of the population parameters
 function StatsBase.vcov(f::FittedPuMaSModel)
 
   # Compute the observed information based on the Hessian (H) and the product of the outer scores (S)
-  H, S = _observed_information(f)
+  H, S = _observed_information(f, Val(true))
 
   # Use generialized eigenvalue decomposition to compute inv(H)*S*inv(H)
   F = eigen(Symmetric(H), Symmetric(S))
