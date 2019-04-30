@@ -8,8 +8,6 @@ using DiffEqBase, DiffEqMonteCarlo, Reexport, StatsBase,
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
 
-import DataFrames: DataFrame # for constructors for predict and residual dfs
-
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
 function opt_minimizer end

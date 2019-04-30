@@ -328,7 +328,7 @@ function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
 
-function DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
+function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
   # TODO add covariates
   pred = vpred[1]
   df = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
