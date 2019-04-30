@@ -340,3 +340,93 @@ function StatsBase.bic(m::PuMaSModel,
   numparam = TransformVariables.dimension(totransform(m.param))
   2*marginal_nll(m, data, param, approx) + numparam*log(sum(t -> length(t.time), data))
 end
+
+### Predictions
+struct SubjectPrediction{T1, T2, T3, T4}
+  pred::T1
+  ipred::T2
+  subject::T3
+  approx::T4
+end
+
+function StatsBase.predict(fpm::FittedPuMaSModel, subject::Subject, vrandeffs, approx)
+  pred = _predict(fpm, subject, vrandeffs, approx)
+  ipred = _ipredict(fpm, subject, vrandeffs, approx)
+  SubjectPrediction(pred, ipred, subject, approx)
+end
+
+function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
+  if !useEBEs
+    error("Sampling from the omega distribution is not yet implemented.")
+  end
+  if !(newdata==false)
+    error("Using data different than that used to fit the model is not yet implemented.")
+  end
+  if !(timegrid==false)
+    error("Using custom time grids is not yet implemented.")
+  end
+
+  subjects = fpm.data.subjects
+
+  if approx == fpm.approx
+    vvrandeffs = fpm.vvrandeffs
+  else
+    # re-estimate under approx
+    vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
+  end
+  [predict(fpm, subjects[i], vvrandeffs[i], approx) for i = 1:length(subjects)]
+end
+
+function _predict(fpm, subject, vrandeffs, approx::FO)
+  pred(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _ipredict(fpm, subject, vrandeffs, approx::FO)
+  ipred(fpm.model, subject, fpm.param, vrandeffs)
+end
+
+function _predict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
+  cpred(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
+  cipred(fpm.model, subject, fpm.param, vrandeffs)
+end
+
+function _predict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
+  cpredi(fpm.model, subject, fpm.param, vrandeffs)
+end
+function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
+  cipredi(fpm.model, subject, fpm.param, vrandeffs)
+end
+
+function _epredict(fpm, subject, vrandeffs, nsim::Integer)
+  epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
+end
+
+function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
+  # TODO add covariates
+  pred = vpred[1]
+  df = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
+  df[:approx] = pred.approx
+  if include_covariates
+     covariates = pred.subject.covariates
+     for (cov, value) in pairs(covariates)
+       df[cov] = value
+     end
+  end
+  if length(vpred)>1
+    for i = 2:length(vpred)
+      pred = vpred[i]
+      df_i = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
+      df[:approx] = pred.approx
+
+      if include_covariates
+         covariates = pred.subject.covariates
+         for (cov, value) in pairs(covariates)
+           df_i[cov] = value
+         end
+      end
+      df = vcat(df, df_i)
+    end
+  end
+  df
+end
