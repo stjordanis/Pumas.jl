@@ -219,14 +219,18 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
                             param::NamedTuple,
                             approx::Union{LaplaceI,FOCEI},
                             args...; kwargs...)
-  vrandeffs .= Optim.minimizer(
-                 Optim.optimize(
-                   penalized_conditional_nll_fn(m, subject, param, args...; kwargs...),
-                   vrandeffs,
-                   BFGS(linesearch=Optim.LineSearches.BackTracking());
-                   autodiff=:forward
-                 )
-               )
+
+  cost = _η -> penalized_conditional_nll(m, subject, param, (η=_η,), args...; kwargs...)
+
+  vrandeffs .= Optim.minimizer(Optim.optimize(
+                               cost,
+                               vrandeffs,
+                               BFGS(linesearch=Optim.LineSearches.BackTracking(),
+                                    # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
+                                    initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, vrandeffs)), length(vrandeffs), length(vrandeffs)));
+                               autodiff=:forward))
+
+  return vrandeffs
 end
 
 function randeffs_estimate!(vrandeffs::AbstractVector,
@@ -235,14 +239,17 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
                             fixeffs::NamedTuple,
                             approx::Union{Laplace,FOCE},
                             args...; kwargs...)
-  vrandeffs .= Optim.minimizer(
-                 Optim.optimize(
-                   s -> penalized_conditional_nll(m, subject, fixeffs, (η=s,), approx, args...; kwargs...),
-                   vrandeffs,
-                   BFGS(linesearch=Optim.LineSearches.BackTracking());
-                   autodiff=:forward
-                 )
-               )
+
+  cost = _η -> penalized_conditional_nll(m, subject, fixeffs, (η=_η,), approx, args...; kwargs...)
+
+  vrandeffs .= Optim.minimizer(Optim.optimize(
+                               cost,
+                               vrandeffs,
+                               BFGS(linesearch=Optim.LineSearches.BackTracking(),
+                                    # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
+                                    initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, vrandeffs)), length(vrandeffs), length(vrandeffs)));
+                                    autodiff=:forward))
+  return vrandeffs
 end
 
 function randeffs_estimate!(vrandeffs::AbstractVector,
@@ -675,6 +682,7 @@ function DEFAULT_OPTIMIZE_FN(cost, p)
   Optim.optimize(cost,
                  p,
                  BFGS(linesearch=Optim.LineSearches.BackTracking(),
+                      # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
                       initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, p)), length(p), length(p))
                  ),
                  Optim.Options(show_trace=false, # Print progress
