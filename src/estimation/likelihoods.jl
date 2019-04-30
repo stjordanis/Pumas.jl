@@ -186,6 +186,7 @@ function penalized_conditional_nll!(diffres::DiffResult,
   end
 end
 
+
 function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
   rfxset = m.random(param)
   p = TransformVariables.dimension(totransform(rfxset))
