@@ -31,9 +31,15 @@ struct SubjectResidual{T1, T2, T3, T4}
 end
 function wresiduals(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing)
   subjects = fpm.data.subjects
-  [wresiduals(fpm, subjects[i], fpm.vrandeffs[i], approx; nsim=nsim) for i = 1:length(subjects)]
+  if approx == fpm.approx
+    vvrandeffs = fpm.vvrandeffs
+  else
+    # re-estimate under approx
+    vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
+  end
+  [wresiduals(fpm, subjects[i], vvrandeffs[i], approx; nsim=nsim) for i = 1:length(subjects)]
 end
-function wresiduals(fpm, subject::Subject, randeffs, approx=fpm.approx; nsim=nothing)
+function wresiduals(fpm, subject::Subject, randeffs, approx; nsim=nothing)
   is_sim = nsim == nothing
   if nsim == nothing
     approx = approx
@@ -47,15 +53,31 @@ function wresiduals(fpm, subject::Subject, randeffs, approx=fpm.approx; nsim=not
 
   SubjectResidual(wres, iwres, subject, approx)
 end
-function DataFrame(vresid::Vector{<:SubjectResidual})
-  # TODO add covariates
-  ids = [fill(r.subject.id, length(r.subject.time)) for r in vresid]
-  times = [r.subject.time for r in vresid]
-  wres = [r.wres for r in vresid]
-  iwres = [r.iwres for r in vresid]
-  DataFrame(id=vcat(ids...), time=vcat(times...), wres=vcat(wres...), iwres=vcat(iwres...))
-end
 
+function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
+  resid = vresid[1]
+  df = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
+  if include_covariates
+     covariates = resid.subject.covariates
+     for (cov, value) in pairs(covariates)
+       df[cov] = value
+     end
+  end
+  if length(vresid)>1
+    for i = 2:length(vresid)
+      resid = vresid[i]
+      df_i = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
+      if include_covariates
+         covariates = resid.subject.covariates
+         for (cov, value) in pairs(covariates)
+           df_i[cov] = value
+         end
+      end
+      df = vcat(df, df_i)
+    end
+  end
+  df
+end
 
 function wresiduals(model, subject, param, randeffs, approx::FO)
   wres(model, subject, param, randeffs)
