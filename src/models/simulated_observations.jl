@@ -26,8 +26,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     events = obs.subject.events
     df[:amt]  = zeros(typeof(events[1].amt),  nrows)
     df[:evid] = zeros(typeof(events[1].evid), nrows)
-    _cmts = Vector{Union{Int,Symbol}}(undef, nrows); fill!(_cmts, 0)
-    df[:cmt] = _cmts
+    df[:cmt]  = missings(typeof(events[1].cmt), nrows)
     df[:rate] = zeros(typeof(events[1].rate), nrows)
     # Add rows corresponding to the events
     ## For events that have a matching observation at the event
