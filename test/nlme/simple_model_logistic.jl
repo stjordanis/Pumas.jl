@@ -43,8 +43,7 @@ using PuMaS, Test, StatsFuns
             @test param.θ₂                ≈  1.7389379466901713 rtol=1e-3
             @test param.Ω.chol.factors[1] ≈  1.5376005165566606 rtol=1e-3
         else
-            # Eventually these should throw informative errors where we refer to LaplaceI
-            @test_broken PuMaS.marginal_nll(mdsl, data, param, approx) isa Number
+            @test_throws ArgumentError PuMaS.marginal_nll(mdsl, data, param, approx)
         end
     end
 

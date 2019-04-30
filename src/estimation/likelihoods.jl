@@ -325,13 +325,11 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
-function marginal_nll(m::PuMaSModel,
-                      subject::Subject,
-                      param::NamedTuple,
-                      vrandeffs::AbstractVector,
-                      approx::Union{FOCE,FOCEI},
-                      args...; kwargs...)
-
+function _conditional_nll_ext_η_gradient(m::PuMaSModel,
+                                         subject::Subject,
+                                         param::NamedTuple,
+                                         vrandeffs::AbstractVector,
+                                         args...; kwargs...)
   # Costruct closure for calling conditional_nll_ext as a function
   # of a random effects vector. This makes it possible for ForwardDiff's
   # tagging system to work properly
@@ -341,8 +339,20 @@ function marginal_nll(m::PuMaSModel,
   cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
   ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
+  return _conditional_nll_ext(cfg.duals)
+end
+
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      approx::Union{FOCE,FOCEI},
+                      args...; kwargs...)
+
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable
+  # per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
   nl, W = ∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, approx, args...; kwargs...)
 
@@ -369,17 +379,9 @@ function marginal_nll(m::PuMaSModel,
   # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vrandeffs)
 
-  # Costruct closure for calling conditional_nll_ext as a function
-  # of a random effects vector. This makes it possible for ForwardDiff's
-  # tagging system to work properly
-  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
-
-  # Construct vector of dual numbers for the random effects to track the partial derivatives
-  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
-  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
-
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable
+  # per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
   # Extract the value of the conditional likelihood
   nl = ForwardDiff.value(nl_d)
@@ -581,7 +583,7 @@ function _is_homoscedastic(dv::AbstractVector{<:Union{Normal,LogNormal}})
   v1 = ForwardDiff.value(first(dv).σ)
   return all(t -> ForwardDiff.value(t.σ) == v1, dv)
 end
-_is_homoscedastic(dv::AbstractVector) = throw(ArgumentError("Distribution not supported"))
+_is_homoscedastic(::Any) = throw(ArgumentError("Distribution not supported"))
 
 # FIXME! Don't hardcode for dv
 function ∂²l∂η²(nl_d::ForwardDiff.Dual,
@@ -688,7 +690,7 @@ end
 ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, approx::LikelihoodApproximation) =
   throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 FIM(nl_d::ForwardDiff.Dual,
-    dv_d::AbstractVector,
+    dv_d::Any,
     m::PuMaSModel,
     subject::Subject,
     param::NamedTuple,
