@@ -671,6 +671,56 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
   vvrandeffs::T5
 end
 
+function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
+  println(io, "FittedPuMaSModel")
+  println(io)
+  println(io, "Successful minimization: $(Optim.converged(fpm.optim))")
+  println(io)
+  println(io, "Objective function value: $(Optim.minimum(fpm.optim))")
+  println(io, "Number of observation records: $(sum([length(sub.time) for sub in fpm.data.subjects]))")
+  println(io, "Number of subjects: $(length(fpm.data.subjects))")
+  println(io)
+  # Get all names
+  paramnames = []
+  paramvals = []
+  for (paramname, paramval) in pairs(fpm.param)
+    if typeof(paramval) <: PDMat
+      mat = paramval.mat
+      for j = 1:size(mat, 2)
+         for i = j:size(mat, 1)
+            push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))")
+            push!(paramvals, string(round(mat[i,j]; sigdigits=5)))
+         end
+      end
+   elseif typeof(paramval) <: PDiagMat
+      mat = paramval.diag
+       for i = 1:length(mat)
+          push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(i))")
+          push!(paramvals, string(round(mat[i]; sigdigits=5)))
+       end
+    else
+      push!(paramnames, string(paramname))
+      push!(paramvals, string(round(paramval; sigdigits=5)))
+    end
+  end
+
+  maxname = maximum(length.(paramnames))+1
+  maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
+  labels = " "^(maxname+1)*rpad("Estimate ", maxval)
+  stringrows = []
+  for (name, val) in zip(paramnames, paramvals)
+    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval)))
+  end
+  println(io, labels)
+  for stringrow in stringrows
+    println(io, stringrow)
+  end
+end
+
+const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"]
+_to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
+
+
 function DEFAULT_OPTIMIZE_FN(cost, p)
   Optim.optimize(cost,
                  p,
