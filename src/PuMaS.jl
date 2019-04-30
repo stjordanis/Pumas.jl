@@ -45,7 +45,7 @@ export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll, FIM
-export predict
+export predict, wresiduals
 export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
 export ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
 export process_nmtran, example_nmtran_data
