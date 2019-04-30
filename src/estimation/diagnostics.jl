@@ -304,8 +304,6 @@ end
 function _ipredict(fpm, subject, vrandeffs, approx::FO)
   ipred(fpm.model, subject, fpm.param, vrandeffs)
 end
-_predsymbol(::FO) = :PRED
-_ipredsymbol(::FO) = :IPRED
 
 function _predict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
   cpred(fpm.model, subject, fpm.param, vrandeffs)
@@ -313,8 +311,6 @@ end
 function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
   cipred(fpm.model, subject, fpm.param, vrandeffs)
 end
-_predsymbol(::Union{FOCE, Laplace}) = :CPRED
-_ipredsymbol(::Union{FOCE, Laplace}) = :CIPRED
 
 function _predict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
   cpredi(fpm.model, subject, fpm.param, vrandeffs)
@@ -322,8 +318,7 @@ end
 function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
   cipredi(fpm.model, subject, fpm.param, vrandeffs)
 end
-_predsymbol(::Union{FOCEI, LaplaceI}) = :CPREDI
-_ipredsymbol(::Union{FOCEI, LaplaceI}) = :CIPREDI
+
 function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
