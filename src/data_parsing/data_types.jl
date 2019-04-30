@@ -189,12 +189,12 @@ Fields:
 - `events`: a vector of `Event`s.
 - `time`: a vector of time stamps for the observations
 """
-struct Subject{T1,T2,T3,T4,T5}
-  id::T1
-  observations::T2
-  covariates::T3
-  events::T4
-  time::T5
+struct Subject{T1,T2,T3,T4}
+  id::String
+  observations::T1
+  covariates::T2
+  events::T3
+  time::T4
 
   function Subject(data, Names,
                    id, time, evid, amt, addl, ii, cmt, rate, ss,
@@ -250,7 +250,7 @@ struct Subject{T1,T2,T3,T4,T5}
         first(data[id]), observations, covariates, events, _obs_times)
   end
 
-  function Subject(;id = 1,
+  function Subject(;id = "1",
                    obs = nothing,
                    cvs = nothing,
                    evs = Event[],

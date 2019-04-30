@@ -56,7 +56,7 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   colnames = names(data)
 
   if id ∉ colnames
-    data[id] = 1
+    data[id] = "1"
   end
   if time ∉ colnames
     data[time] = 0.0
