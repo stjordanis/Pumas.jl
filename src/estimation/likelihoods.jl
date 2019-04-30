@@ -329,55 +329,7 @@ function marginal_nll(m::PuMaSModel,
                       subject::Subject,
                       param::NamedTuple,
                       vrandeffs::AbstractVector,
-                      ::FOCEI,
-                      args...; kwargs...)
-
-  # Costruct closure for calling conditional_nll_ext as a function
-  # of a random effects vector. This makes it possible for ForwardDiff's
-  # tagging system to work properly
-  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
-
-  # Construct vector of dual numbers for the random effects to track the partial derivatives
-  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
-  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
-
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
-
-  nl = ForwardDiff.value(nl_d)
-
-  if isfinite(nl)
-    # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
-    # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
-    Ω = cov(m.random(param).params.η)
-    FΩ = cholesky(Ω, check=false)
-
-    # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-    if issuccess(FΩ)
-      # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-      w = ∂²l∂η²(dist_d.dv, FOCEI())
-      nl += (logdet(Ω) + vrandeffs'*(FΩ\vrandeffs) + logdet(inv(FΩ) + w))/2
-    else # Ω is numerically singular
-      nl = typeof(nl)(Inf)
-    end
-  end
-  return nl
-end
-
-# Helper function to detect homoscedasticity. For now, it is assumed the input dv vecotr containing
-# a vector of distributions with ForwardDiff element types.
-function _is_homoscedastic(dv::AbstractVector{<:Union{Normal,LogNormal}})
-  # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
-  v1 = ForwardDiff.value(first(dv).σ)
-  return all(t -> ForwardDiff.value(t.σ) == v1, dv)
-end
-_is_homoscedastic(dv::AbstractVector) = throw(ArgumentError("Distribution not supported"))
-
-function marginal_nll(m::PuMaSModel,
-                      subject::Subject,
-                      param::NamedTuple,
-                      vrandeffs::AbstractVector,
-                      ::FOCE,
+                      approx::Union{FOCE,FOCEI},
                       args...; kwargs...)
 
   # Costruct closure for calling conditional_nll_ext as a function
@@ -392,7 +344,7 @@ function marginal_nll(m::PuMaSModel,
   # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
   nl_d, dist_d = _conditional_nll_ext(cfg.duals)
 
-  nl, W = ∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, FOCE(), args...; kwargs...)
+  nl, W = ∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, approx, args...; kwargs...)
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
@@ -610,6 +562,27 @@ function ∂²l∂η²(dv::AbstractVector{<:Union{Normal,LogNormal}}, ::FOCEI)
   return H
 end
 
+# For FOCE we need all the arguments in case we need to recompute the model at η=0 (heteroscedastic case)
+# but for FOCE we just pass dv_d on to the actual computational kernel.
+∂²l∂η²(nl_d::ForwardDiff.Dual,
+       dv_d::AbstractVector{<:Union{Normal,LogNormal}},
+       m::PuMaSModel,
+       subject::Subject,
+       param::NamedTuple,
+       vrandeffs::AbstractVector,
+       ::FOCEI,
+       args...; kwargs...) = ForwardDiff.value(nl_d), ∂²l∂η²(dv_d, FOCEI())
+
+
+# Helper function to detect homoscedasticity. For now, it is assumed the input dv vecotr containing
+# a vector of distributions with ForwardDiff element types.
+function _is_homoscedastic(dv::AbstractVector{<:Union{Normal,LogNormal}})
+  # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
+  v1 = ForwardDiff.value(first(dv).σ)
+  return all(t -> ForwardDiff.value(t.σ) == v1, dv)
+end
+_is_homoscedastic(dv::AbstractVector) = throw(ArgumentError("Distribution not supported"))
+
 # FIXME! Don't hardcode for dv
 function ∂²l∂η²(nl_d::ForwardDiff.Dual,
                 dv_d::AbstractVector{<:Union{Normal,LogNormal}},
@@ -709,6 +682,8 @@ end
 
 # Fallbacks for a usful error message when distribution isn't supported
 ∂²l∂η²(dv::AbstractVector, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(dv::AbstractVector, d::Distribution, approx::LikelihoodApproximation) =
   throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, approx::LikelihoodApproximation) =
   throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
