@@ -294,7 +294,7 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
-  @test_broken deviance(o) ≈ 71.979975297638589
+  @test deviance(o) ≈ 71.979975297638589 rtol=1e-6
 
   @testset "test estimate of $k" for k in keys(o_estimates)
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(fo_estimated_params, k)) rtol=1e-3
