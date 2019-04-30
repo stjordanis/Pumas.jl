@@ -882,7 +882,7 @@ function StatsBase.informationmatrix(f::FittedPuMaSModel; expected::Bool=true)
   data      = f.data
   model     = f.model
   param     = f.param
-  vrandeffs = f.vrandeffs
+  vrandeffs = f.vvrandeffs
   if expected
     return sum(_expected_information(model, data[i], param, (η=vrandeffs[i],), f.approx) for i in 1:length(data))
   else
