@@ -672,6 +672,8 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
+  level = 0.95
+  quant = quantile(Normal(), level + (1.0 - level)/2)
   println(io, "FittedPuMaSModel")
   println(io)
   println(io, "Successful minimization: $(Optim.converged(fpm.optim))")
@@ -698,7 +700,7 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
             push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))")
             push!(paramvals, string(round(mat[i,j]; sigdigits=5)))
             push!(paramrse, string(round(mat[i,j]/std[i,j]; sigdigits=5)))
-            push!(paramconfint, string("[", round(mat[i,j]-std[i,j]*1.96; sigdigits=5),";", round(mat[i,j]+std[i,j]*1.96; sigdigits=5), "]"))
+            push!(paramconfint, string("[", round(mat[i,j]-std[i,j]*quant; sigdigits=5),";", round(mat[i,j]+std[i,j]*quant; sigdigits=5), "]"))
          end
       end
    elseif typeof(paramval) <: PDiagMat
@@ -708,21 +710,21 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
           push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(i))")
           push!(paramvals, string(round(mat[i]; sigdigits=5)))
           push!(paramrse, string(round(mat[i]/std[i]; sigdigits=5)))
-          push!(paramconfint, string("[", round(mat[i]-std[i]*1.96; sigdigits=5),";", round(mat[i]+std[i]*1.96; sigdigits=5), "]"))
+          push!(paramconfint, string("[", round(mat[i]-std[i]*quant; sigdigits=5),";", round(mat[i]+std[i]*quant; sigdigits=5), "]"))
        end
     else
       push!(paramnames, string(paramname))
       push!(paramvals, string(round(paramval; sigdigits=5)))
       push!(paramrse, string(round(paramval/std; sigdigits=5)))
-      push!(paramconfint, string("[", round(paramval-std*1.96; sigdigits=5),";", round(paramval+std*1.96; sigdigits=5), "]"))
+      push!(paramconfint, string("[", round(paramval-std*quant; sigdigits=5),";", round(paramval+std*quant; sigdigits=5), "]"))
     end
   end
 
   maxname = maximum(length.(paramnames))+1
   maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
   maxrs = max(maximum(length.(paramrse))+1, length("RSE "))
-  maxconfint = max(maximum(length.(paramconfint))+1, length("5%-conf. int. "))
-  labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad("5%-conf. int.", maxconfint)
+  maxconfint = max(maximum(length.(paramconfint))+1, length("95%-conf. int. "))
+  labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad("95%-conf. int.", maxconfint)
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     push!(stringrows, string(rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
