@@ -307,41 +307,49 @@ end
 _predsymbol(::FO) = :PRED
 _ipredsymbol(::FO) = :IPRED
 
-function _predict(fpm, subject, vrandeffs, approx::FOCE)
+function _predict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
   cpred(fpm.model, subject, fpm.param, vrandeffs)
 end
-function _ipredict(fpm, subject, vrandeffs, approx::FOCE)
+function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
   cipred(fpm.model, subject, fpm.param, vrandeffs)
 end
-_predsymbol(::FOCE) = :CPRED
-_ipredsymbol(::FOCE) = :CIPRED
+_predsymbol(::Union{FOCE, Laplace}) = :CPRED
+_ipredsymbol(::Union{FOCE, Laplace}) = :CIPRED
 
-function _predict(fpm, subject, vrandeffs, approx::FOCEI)
+function _predict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
   cpredi(fpm.model, subject, fpm.param, vrandeffs)
 end
-function _ipredict(fpm, subject, vrandeffs, approx::FOCEI)
+function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
   cipredi(fpm.model, subject, fpm.param, vrandeffs)
 end
-_predsymbol(::FOCEI) = :CPREDI
-_ipredsymbol(::FOCEI) = :CIPREDI
+_predsymbol(::Union{FOCEI, LaplaceI}) = :CPREDI
+_ipredsymbol(::Union{FOCEI, LaplaceI}) = :CIPREDI
 function _epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
 
-function DataFrame(vpred::Vector{<:SubjectPrediction})
+function DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
   # TODO add covariates
-  ids = [fill(p.subject.id, length(p.subject.time)) for p in vpred]
-  times = [p.subject.time for p in vpred]
-  pred = [p.pred for p in vpred]
-  ipred = [p.ipred for p in vpred]
-  df = DataFrame(id=vcat(ids...), time=vcat(times...), pred=vcat(pred...), ipred=vcat(ipred...))
-  dfnames = names(df)
-
-  # we assume that all approximations are the same
-  predsymbol = _predsymbol(vpred[1].approx)
-  ipredsymbol = _ipredsymbol(vpred[1].approx)
-
-  newdfnames = [:id, :time, predsymbol, ipredsymbol]
-  names!(df, newdfnames)
+  pred = vpred[1]
+  df = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
+  if include_covariates
+     covariates = pred.subject.covariates
+     for (cov, value) in pairs(covariates)
+       df[cov] = value
+     end
+  end
+  if length(vpred)>1
+    for i = 2:length(vpred)
+      pred = vpred[i]
+      df_i = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
+      if include_covariates
+         covariates = pred.subject.covariates
+         for (cov, value) in pairs(covariates)
+           df_i[cov] = value
+         end
+      end
+      df = vcat(df, df_i)
+    end
+  end
   df
 end
