@@ -23,7 +23,7 @@ function npde(m::PuMaSModel,
   return quantile.(Normal(), φ)
 end
 
-struct ResidualSubject{T1, T2, T3, T4}
+struct SubjectResidual{T1, T2, T3, T4}
   wres::T1
   iwres::T2
   subject::T3
@@ -45,9 +45,9 @@ function wresiduals(fpm, subject::Subject, randeffs, approx=fpm.approx; nsim=not
     iwres = eiwres(fpm.model, subject, fpm.param, nsim)
   end
 
-  ResidualSubject(wres, iwres, subject, approx)
+  SubjectResidual(wres, iwres, subject, approx)
 end
-function DataFrame(vresid::Vector{<:ResidualSubject})
+function DataFrame(vresid::Vector{<:SubjectResidual})
   # TODO add covariates
   ids = [fill(r.subject.id, length(r.subject.time)) for r in vresid]
   times = [r.subject.time for r in vresid]
