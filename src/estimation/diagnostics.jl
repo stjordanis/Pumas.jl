@@ -57,6 +57,7 @@ end
 function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
   resid = vresid[1]
   df = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
+  df[:approx] = resid.approx
   if include_covariates
      covariates = resid.subject.covariates
      for (cov, value) in pairs(covariates)
@@ -67,6 +68,7 @@ function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covaria
     for i = 2:length(vresid)
       resid = vresid[i]
       df_i = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
+      df_i[:approx] = resid.approx
       if include_covariates
          covariates = resid.subject.covariates
          for (cov, value) in pairs(covariates)
