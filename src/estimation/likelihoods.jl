@@ -670,6 +670,8 @@ struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproxima
   approx::T4
   vvrandeffs::T5
 end
+const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"]
+_to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
 
 function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   level = 0.95
@@ -734,9 +736,11 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
     println(io, stringrow)
   end
 end
-
-const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"]
-_to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
+TreeViews.hastreeview(x::FittedPuMaSModel) = true
+function TreeViews.treelabel(io::IO,x::FittedPuMaSModel,
+                             mime::MIME"text/plain" = MIME"text/plain"())
+  show(io,mime,Base.Text(Base.summary(x)))
+end
 
 
 function DEFAULT_OPTIMIZE_FN(cost, p)
