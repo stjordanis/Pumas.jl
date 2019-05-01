@@ -6,7 +6,7 @@ data = process_nmtran(example_nmtran_data("data1"),
 
 # Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations
 # off the scale (variance of the simulated distribution is too small).
-for subject in data.subjects
+for subject in data
     if subject.time[1] == 0
         popfirst!(subject.time)
         popfirst!(subject.observations.dv)
@@ -82,7 +82,7 @@ param = (θ = [2.268,74.17,468.6,0.5876],
               0.0  0.2],
          σ = 0.1)
 
-subject1 = data.subjects[1]
+subject1 = data[1]
 
 randeffs = init_randeffs(m_diffeq, param)
 

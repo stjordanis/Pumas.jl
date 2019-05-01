@@ -30,7 +30,7 @@ struct SubjectResidual{T1, T2, T3, T4}
   approx::T4
 end
 function wresiduals(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing)
-  subjects = fpm.data.subjects
+  subjects = fpm.data
   if approx == fpm.approx
     vvrandeffs = fpm.vvrandeffs
   else
@@ -366,7 +366,7 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
     error("Using custom time grids is not yet implemented.")
   end
 
-  subjects = fpm.data.subjects
+  subjects = fpm.data
 
   if approx == fpm.approx
     vvrandeffs = fpm.vvrandeffs

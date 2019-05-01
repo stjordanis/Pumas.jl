@@ -485,7 +485,7 @@ end
 function marginal_nll(m::PuMaSModel,
                       data::Population,
                       args...; kwargs...)
-  sum(subject -> marginal_nll(m, subject, args...; kwargs...), data.subjects)
+  sum(subject -> marginal_nll(m, subject, args...; kwargs...), data)
 end
 
 
@@ -505,7 +505,7 @@ StatsBase.deviance(m::PuMaSModel,
 StatsBase.deviance(m::PuMaSModel,
                    data::Population,
                    args...; kwargs...) =
-    2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data.subjects)*log(2π)
+    2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data)*log(2π)
 # NONMEM doesn't allow ragged, so this suffices for testing
 
 # Compute the gradient of marginal_nll without solving inner optimization
@@ -693,8 +693,8 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   println(io)
   println(io, "Objective function value: $(Optim.minimum(fpm.optim))")
   println(io)
-  println(io, "Number of observation records: $(sum([length(sub.time) for sub in fpm.data.subjects]))")
-  println(io, "Number of subjects: $(length(fpm.data.subjects))")
+  println(io, "Number of observation records: $(sum([length(sub.time) for sub in fpm.data]))")
+  println(io, "Number of subjects: $(length(fpm.data))")
   println(io)
   # Get all names
   standard_errors = stderror(fpm)
@@ -781,7 +781,7 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize_fn(cost,vparam)
 
   # FIXME! The random effects are computed during the optimization so we should just store while optimizing instead of recomputing afterwards.
-  vvrandeffs = [randeffs_estimate(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data.subjects]
+  vvrandeffs = [randeffs_estimate(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data]
   return FittedPuMaSModel(m, data, o, approx, vvrandeffs)
 end
 
