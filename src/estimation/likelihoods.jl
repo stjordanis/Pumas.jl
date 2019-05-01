@@ -689,14 +689,14 @@ end
   throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, approx::LikelihoodApproximation) =
   throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
-FIM(nl_d::ForwardDiff.Dual,
-    dv_d::Any,
-    m::PuMaSModel,
-    subject::Subject,
-    param::NamedTuple,
-    vrandeffs::AbstractVector,
-    approx::LikelihoodApproximation,
-    args...; kwargs...) = throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(nl_d::ForwardDiff.Dual,
+       dv_d::Any,
+       m::PuMaSModel,
+       subject::Subject,
+       param::NamedTuple,
+       vrandeffs::AbstractVector,
+       approx::LikelihoodApproximation,
+       args...; kwargs...) = throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 
 # Fitting methods
 struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
