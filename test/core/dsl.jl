@@ -6,7 +6,7 @@ data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 # Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations
 # off the scale (variance of the simulated distribution is too small).
-for subject in data.subjects
+for subject in data
     if subject.time[1] == 0
         popfirst!(subject.time)
         popfirst!(subject.observations.dv)
@@ -106,7 +106,7 @@ mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 param = init_param(mdsl)
 randeffs = init_randeffs(mdsl, param)
 
-subject = data.subjects[1]
+subject = data[1]
 
 sol1 = solve(mdsl,subject,param,randeffs)
 sol2 = solve(mobj,subject,param,randeffs)

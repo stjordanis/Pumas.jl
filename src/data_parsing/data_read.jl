@@ -1,22 +1,3 @@
-Base.iterate(A::Population)    = iterate(A.subjects)
-Base.iterate(A::Population, i) = iterate(A.subjects, i)
-
-# size
-Base.length(A::Population) = length(A.subjects)
-Base.size(A::Population) = size(A.subjects)
-
-# indexing
-@inline function Base.getindex(A::Population, I...)
-  @boundscheck checkbounds(A.subjects, I...)
-  @inbounds return A.subjects[I...]
-end
-@inline function Base.setindex!(A::Population, x, I...)
-  @boundscheck checkbounds(A.subjects, I...)
-  @inbounds A.subjects[I...] = x
-end
-Base.axes(A::Population) = axes(A.subjects)
-Base.IndexStyle(::Type{<:Population}) = Base.IndexLinear()
-
 """
   to_nt(obj)::NamedTuple{PN,VT}
 
@@ -70,9 +51,8 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   if dvs isa AbstractVector{<:Integer}
     dvs = colnames[dvs]
   end
-  Population(Subject.(groupby(data, id), Ref(colnames),
-                      id, time, evid, amt, addl, ii, cmt, rate, ss,
-                      Ref(cvs), Ref(dvs), event_data))
+  Subject.(groupby(data, id), Ref(colnames), id, time, evid, amt, addl, ii, cmt,
+           rate, ss, Ref(cvs), Ref(dvs), event_data)
 end
 
 function build_observation_list(obs::AbstractDataFrame)

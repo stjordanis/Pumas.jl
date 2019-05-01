@@ -44,7 +44,7 @@ m_analytic = @model begin
     end
 end
 
-subject1 = data.subjects[1]
+subject1 = data[1]
 param = ()
 randeffs = ()
 
