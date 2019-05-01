@@ -242,12 +242,8 @@ struct Subject{T1,T2,T3,T4}
       build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
     end
     sort!(events)
-    new{typeof(first(data[id])),
-        typeof(observations),
-        typeof(covariates),
-        typeof(events),
-        typeof(_obs_times)}(
-        first(data[id]), observations, covariates, events, _obs_times)
+    new{typeof(observations),typeof(covariates),typeof(events),typeof(_obs_times)}(
+      string(first(data[id])), observations, covariates, events, _obs_times)
   end
 
   function Subject(;id = "1",
@@ -260,7 +256,7 @@ struct Subject{T1,T2,T3,T4}
     evs = build_event_list(evs, event_data)
     _time = isnothing(time) ? nothing : Missings.disallowmissing(time)
     @assert isnothing(time) || issorted(_time) "Time is not monotonically increasing within subject"
-    new{typeof(id),typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(id, obs, cvs, evs, _time)
+    new{typeof(obs),typeof(cvs),typeof(evs),typeof(_time)}(string(id), obs, cvs, evs, _time)
   end
 end
 
@@ -272,7 +268,7 @@ function Base.show(io::IO, subject::Subject)
   evs = subject.events
   isnothing(evs) || println(io, "  Events: ", length(subject.events))
   obs = subject.observations
-  observables = keys(obs)
+  observables = propertynames(obs)
   if !isempty(observables)
     vals = mapreduce(pn -> string(pn, ": (n=$(length(getindex(obs, pn))))"),
                      (x, y) -> "$x, $y",
