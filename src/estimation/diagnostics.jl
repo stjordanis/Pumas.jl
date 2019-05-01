@@ -417,7 +417,7 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
     for i = 2:length(vpred)
       pred = vpred[i]
       df_i = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
-      df[:approx] = pred.approx
+      df_i[:approx] = pred.approx
 
       if include_covariates
          covariates = pred.subject.covariates
