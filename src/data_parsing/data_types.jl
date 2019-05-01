@@ -298,36 +298,34 @@ observationtimes(sub::Subject) = isnothing(sub.observations) ?
                                  (0.0:1.0:(sub.events[end].time+24.0)) :
                                  sub.time
 
-"""
-    Population(::AbstractVector{<:Subject})
 
-A `Population` is a set of `Subject`s. It can be instanced passing a collection or `Subject`.
+# Define Population as an alias
 """
-struct Population{T} <: AbstractVector{T}
-  subjects::Vector{T}
-  Population(obj::AbstractVector{T}) where {T<:Subject} = new{T}(obj)
-  Population(obj::AbstractVector{<:Subject}...) =
-    reduce(vcat, obj) |> (obj -> Population(obj))
-  Population(obj::Population...) = Population(mapreduce(x -> x.subjects, vcat, obj))
-end
+A `Population` is an `AbstractVector` of `Subject`s.
+"""
+Population{T} = AbstractVector{T} where T<:Subject
+Population(obj::Population...) = reduce(vcat, obj)::Population
 
 ### Display
 Base.summary(::Population) = "Population"
-function Base.show(io::IO, data::Population)
-  println(io, summary(data))
-  println(io, "  Subjects: ", length(data.subjects))
-  if isassigned(data.subjects, 1)
-    co = data.subjects[1].covariates
+function Base.show(io::IO, ::MIME"text/plain", population::Population)
+  println(io, summary(population))
+  println(io, "  Subjects: ", length(population))
+  if isassigned(population, 1)
+    co = population[1].covariates
     !isnothing(co) && println(io, "  Covariates: ", join(fieldnames(typeof(co)),", "))
-    obs = data.subjects[1].observations
-    !isnothing(obs) && println(io, "  Observables: ", join(propertynames(obs),", "))
+    obs = population[1].observations
+    !isnothing(obs) && println(io, "  Observables: ", join(keys(obs),", "))
   end
   return nothing
 end
 TreeViews.hastreeview(::Population) = true
-function TreeViews.treelabel(io::IO, data::Population, mime::MIME"text/plain")
-  show(io, mime, Text(summary(data)))
+TreeViews.numberofnodes(population::Population) = length(population)
+TreeViews.treenode(population::Population, i::Integer) = getindex(population, i)
+function TreeViews.treelabel(io::IO, population::Population, mime::MIME"text/plain")
+  show(io, mime, Text(summary(population)))
 end
+TreeViews.nodelabel(io::IO, population::Population, i::Integer, mime::MIME"text/plain") = show(io, mime, Text(population[i].id))
 
 # Convert to NCA types
 import .NCA: NCAPopulation, NCASubject, NCADose
@@ -349,7 +347,6 @@ function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
 end
 NCASubject(subj::Subject; name=:dv) = convert(NCASubject, subj; name=name)
 
-Base.convert(::Type{NCAPopulation}, pop::Population; name=:dv) = NCAPopulation(map(subj->let name = name
-                                                                                     convert(NCASubject, subj; name=name)
-                                                                                    end, pop))
-NCAPopulation(pop::Population; name=:dv) = convert(NCAPopulation, pop; name=name)
+Base.convert(::Type{NCAPopulation}, population::Population; name=:dv) =
+  NCAPopulation(map(subject -> convert(NCASubject, subject; name=name), population))
+NCAPopulation(population::Population; name=:dv) = convert(NCAPopulation, population; name=name)

@@ -3,7 +3,7 @@ using PuMaS, StaticArrays, DataInterpolations
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 
-for subject in data.subjects
+for subject in data
     if subject.time[1] == 0
         subject.time[1] = sqrt(eps())
     end
@@ -53,7 +53,7 @@ param = (θ = [2.268,74.17,468.6,0.5876],
          Ω = [0.05 0.0;
               0.0  0.2],
          σ = 0.1)
-subject1 = data.subjects[1]
+subject1 = data[1]
 randeffs = init_randeffs(mobj, param)
 
 sol_mobj = solve(mobj,subject1,param,randeffs)

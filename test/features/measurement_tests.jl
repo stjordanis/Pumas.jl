@@ -2,7 +2,7 @@ using PuMaS, Measurements, LabelledArrays
 using Random, LinearAlgebra, Test
 
 data = process_nmtran(example_nmtran_data("data1"), [:sex,:wt,:etn])
-subject = data.subjects[1]
+subject = data[1]
 
 @testset "Static Vector" begin
     # Simple one-compartment model (uses static vector)

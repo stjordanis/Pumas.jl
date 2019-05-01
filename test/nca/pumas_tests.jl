@@ -68,7 +68,7 @@ end
 pop = Population(map(i->sim.sims[i].subject, eachindex(sim.sims)))
 @test_nowarn NCAPopulation(pop, name=:cp)
 @test_nowarn NCASubject(pop[1], name=:cp)
-@test NCADose(ev2.subjects[1].events[1]) === NCADose(0.0, 100.0, 0.0, NCA.IVBolus)
+@test NCADose(ev2[1].events[1]) === NCADose(0.0, 100.0, 0.0, NCA.IVBolus)
 
 ev = DosageRegimen(2000, ii=24, addl=3)
 ev1 = generate_population(ev)
@@ -134,4 +134,4 @@ end
 pop = Population(map(i->sim.sims[i].subject, eachindex(sim.sims)))
 @test_nowarn NCAPopulation(pop, name=:cp)
 @test_nowarn NCASubject(pop[1], name=:cp)
-@test NCADose(ev1.subjects[1].events[1]) === NCADose(0.0, 2000.0, 0.0, NCA.IVBolus)
+@test NCADose(ev1[1].events[1]) === NCADose(0.0, 2000.0, 0.0, NCA.IVBolus)

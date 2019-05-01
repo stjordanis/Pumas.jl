@@ -37,7 +37,7 @@ function BayesLogDensity(model, data, args...;kwargs...)
 end
 
 function LogDensityProblems.dimension(b::BayesLogDensity)
-  b.dim_param + b.dim_rfx * length(b.data.subjects)
+  b.dim_param + b.dim_rfx * length(b.data)
 end
 
 function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::BayesLogDensity, v::AbstractVector)
@@ -52,7 +52,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     n = b.dim_rfx
     rfx = b.model.random(x)
     t_rfx = totransform(rfx)
-    ℓ_rfx = sum(enumerate(b.data.subjects)) do (i,subject)
+    ℓ_rfx = sum(enumerate(b.data)) do (i,subject)
       # compute the random effect density, likelihood and log-Jacobian
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[(m+(i-1)*n) .+ (1:n)])
       j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
@@ -88,7 +88,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
     ℓ = DiffResults.value(b.res)
     ∇ℓ[1:m] .= @view DiffResults.gradient(b.res)[1:m]
 
-    for (i, subject) in enumerate(b.data.subjects)
+    for (i, subject) in enumerate(b.data)
       # to avoid dimensionality problems with ForwardDiff.jl, we split the computation to
       # compute the gradient for each subject individually, then accumulate this to the
       # gradient vector.
