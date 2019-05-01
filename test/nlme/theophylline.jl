@@ -109,6 +109,35 @@ end
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test o.vvrandeffs[i] == zeros(3)
   end
+
+  pred = predict(o)
+  pred_foce = predict(o, PuMaS.FOCE())
+  dfpred = DataFrame(pred)
+  dfpred_no_covar = DataFrame(pred; include_covariates=false)
+  dfpred_foce = DataFrame(pred_foce)
+  dfpred_foce_no_covar = DataFrame(pred_foce; include_covariates=false)
+  @testset "test predict" begin
+    @test pred[1].approx == PuMaS.FO()
+    @test pred_no_covar[1].approx == PuMaS.FO()
+    @test pred_foce[1].approx == PuMaS.FOCE()
+    @test pred_foce_no_covar[1].approx == PuMaS.FOCE()
+
+    @test all(dfpred[:approx].== Ref(PuMaS.FO()))
+    @test all(dfpred_no_covar[:approx].== Ref(PuMaS.FO()))
+    @test all(dfpred_foce[:approx].== Ref(PuMaS.FOCE()))
+    @test all(dfpred_foce_no_covar[:approx].== Ref(PuMaS.FOCE()))
+
+    @test haskey(dfpred, :SEX)
+    @test haskey(dfpred, :WT)
+    @test !(haskey(dfpred_no_covar, :SEX))
+    @test !(haskey(dfpred_no_covar, :WT))
+
+    @test haskey(dfpred_foce, :SEX)
+    @test haskey(dfpred_foce, :WT)
+    @test !(haskey(dfpred_foce_no_covar, :SEX))
+    @test !(haskey(dfpred_foce_no_covar, :WT))
+  end
+
 end
 
 @testset "run2.mod FO without interaction, ODE solver, diagonal omega and additive error" begin
