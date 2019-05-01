@@ -11,6 +11,7 @@ if group == "All" || group == "NLME_NOBAYES"
     @time @safetestset "Theophylline"                                begin include("theophylline.jl")              end
     @time @safetestset "Wang"                                        begin include("wang.jl")                      end
     @time @safetestset "Poisson"                                     begin include("poisson_model.jl")             end
+    @time @safetestset "Information matrix"                          begin include("information.jl")               end
   end
 end
 

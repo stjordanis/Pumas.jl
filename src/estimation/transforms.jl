@@ -210,7 +210,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
     PDiagMat(d), ℓ
 end
 
-TransformVariables.inverse_eltype(::PuMaS.DiagonalTransform, y::PDiagMat{T}) where T = T
+TransformVariables.inverse_eltype(::PuMaS.DiagonalTransform, y::Union{Diagonal{T},PDiagMat{T}}) where T = T
 
 function TransformVariables.inverse!(x::AbstractVector, t::DiagonalTransform, y::PDiagMat)
   index = TransformVariables.firstindex(x)
@@ -222,7 +222,7 @@ function TransformVariables.inverse!(x::AbstractVector, t::DiagonalTransform, y:
   end
   return x
 end
-
+TransformVariables.inverse!(x::AbstractVector, t::DiagonalTransform, y::Diagonal) = TransformVariables.inverse!(x, t, PDiagMat(y.diag))
 
 
 function Distributions.logpdf(d::InverseWishart, M::PDMat)
