@@ -311,10 +311,10 @@ end
 
 Dosing interval. For multiple dosing only.
 """
-function tau(nca::NCASubject; kwargs...) # warn if not provided
+function tau(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   has_ii(nca) && return nca.ii
   dose = nca.dose
-  dose === nothing && return missing
+  (dose === nothing || AUC isa Number) && return missing
   dose isa NCADose && return nca.abstime[nca.lastidx]-dose.time
   return dose[end].time-dose[end-1].time
 end
