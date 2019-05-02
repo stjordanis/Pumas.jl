@@ -50,6 +50,6 @@ param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
 @test bic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
 param = init_param(mdsl2)
 randeffs = [empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
-[ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+[PuMaS.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+[PuMaS.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+[PuMaS.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
