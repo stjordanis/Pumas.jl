@@ -8,11 +8,12 @@ data = CSV.read(file)
 timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
-ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, formulation=:Formulation, route=(iv="IV",),
+data.route = "iv"
+ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
@@ -179,7 +180,7 @@ df = DataFrame()
 df.time = [0:20...; 20; 21:25]
 df.conc = [0:20...; 0; 21:25]
 df.amt = zeros(Int, 27); df.amt[22] = 1
-df.formulation = "Oral"
+df.route = "ev"
 df.ID = 1
-@test_nowarn parse_ncadata(df, time=:time, conc=:conc, amt=:amt, formulation=:formulation, route=(ev="Oral",),
+@test_nowarn parse_ncadata(df, time=:time, conc=:conc, amt=:amt, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)

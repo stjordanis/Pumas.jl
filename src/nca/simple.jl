@@ -160,13 +160,9 @@ end
   vss(nca::NCASubject; kwargs...)
 
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
-``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalizedosed `AUMC` and `AUC`.
+``V_{ss} = MRT * CL``.
 """
-function vss(nca::NCASubject; kwargs...)
-  nca.dose === nothing && return missing
-  nca.dose.formulation !== IVBolus && return missing
-  normalizedose(aumc(nca; kwargs...), nca) ./ (normalizedose(auc(nca; kwargs...), nca)).^2
-end
+vss(nca::NCASubject; kwargs...) = mrt(nca; kwargs...)*cl(nca; kwargs...)
 
 """
   vz(nca::NCASubject; kwargs...)
@@ -211,7 +207,6 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ith
   return sol
 end
 
-#TODO: check the units
 """
   cl(nca::NCASubject; ithdose::Integer, kwargs...)
 
@@ -223,7 +218,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ss=fal
   dose = nca.dose
   if nca.dose isa NCADose # single dose
     isiv(dose.formulation) || return missing
-    _bioav = one(AUC)
+    _bioav = one(eltype(AUC))
     return _bioav*_clf
   else # multiple doses
     # TODO: check back on logic for this ithdose for CL, not sure about the user specification
@@ -315,10 +310,10 @@ end
 
 Dosing interval. For multiple dosing only.
 """
-function tau(nca::NCASubject; kwargs...) # warn if not provided
+function tau(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   has_ii(nca) && return nca.ii
   dose = nca.dose
-  dose === nothing && return missing
+  (dose === nothing || AUC isa Number) && return missing
   dose isa NCADose && return nca.abstime[nca.lastidx]-dose.time
   return dose[end].time-dose[end-1].time
 end

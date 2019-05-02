@@ -1,9 +1,9 @@
 using CSV, DataFrames
 
 """
-  parse_ncadata(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
-    conc=:conc, occasion=nothing, amt=nothing, formulation=nothing, reference=nothing,
-    kwargs...) -> NCAPopulation
+    parse_ncadata(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
+      conc=:conc, occasion=nothing, amt=nothing, route=nothing, duration=nothing,
+      ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...) -> NCAPopulation
 
 Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
 holds an array of `NCASubject`s which can cache certain results to achieve
@@ -43,27 +43,24 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
 end
 
 function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
-                       amt=nothing, formulation=nothing, route=nothing,# rate=nothing,
+                       amt=nothing, route=nothing,# rate=nothing,
                        duration=nothing, ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
-  local ids, times, concs, amts, formulations
+  local ids, times, concs, amts
   try
     df[id]
     df[time]
     df[conc]
     amt === nothing ? nothing : df[amt]
-    formulation === nothing ? nothing : df[formulation]
+    route === nothing ? nothing : df[route]
     #rate === nothing ? nothing : df[rate]
     duration === nothing ? nothing : df[duration]
   catch x
     @info "The CSV file has keys: $(names(df))"
     throw(x)
   end
-  hasdose = amt !== nothing && formulation !== nothing && route !== nothing
+  hasdose = amt !== nothing && route !== nothing
   if warn
-    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, formulation=:FORMULATION, route=(iv = \"IV\",)`, where `route` can either be `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`."
-    if hasdose && !( route isa NamedTuple && length(route) <= 2 && all(i -> i in (:ev, :iv), keys(route)) )
-      throw(ArgumentError("route must be in the form of `(iv = \"Intravenous\",)`, `(ev = \"Oral\",)` or `(ev = [\"tablet\", \"capsule\"], iv = \"Intra\")`. Got $(repr(route))."))
-    end
+    hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`."
   end
   sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
@@ -73,7 +70,6 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
   times = df[time]
   concs = df[conc]
   amts  = amt === nothing ? nothing : df[amt]
-  formulations = formulation === nothing ? nothing : df[formulation]
   occasions = occasion === nothing ? nothing : df[occasion]
   uids = unique(ids)
   idx  = -1
@@ -97,27 +93,15 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
           dose_time[n] = subjtime[i]
         end
       end
-      formulation = let route = route
-        map(dose_idx) do i
-          f = formulations[i]
-          if length(route) == 1
-            rt′ = first(route)
-            rt = rt′ isa AbstractArray ? rt′ : (rt′,)
-            ky = first(keys(route))
-            ky === :iv ? (f in rt ? IVBolus : EV) : (f in rt ? EV : IVBolus)
-          else # length == 2
-            rtiv′ = route[:iv]
-            rtev′ = route[:ev]
-            rtiv = rtiv′ isa AbstractArray ? rtiv′ : (rtiv′,)
-            rtev = rtev′ isa AbstractArray ? rtev′ : (rtev′,)
-            f in rtiv && return IVBolus
-            f in rtev && return EV
-            throw(ArgumentError("$f is not specified to be either EV or IV. Please adjust the `route` argument."))
-          end
-        end
+      route′ = map(dose_idx) do i
+        routei = df[route][i]
+        routei == "iv" ? IVBolus :
+          routei == "inf" ? IVInfusion :
+          routei == "ev" ? EV :
+          throw(ArgumentError("route can only be `iv`, `ev`, or `inf`"))
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, formulation)
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]
       occs = unique(subjoccasion)
