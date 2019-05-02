@@ -160,13 +160,9 @@ end
   vss(nca::NCASubject; kwargs...)
 
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
-``V_{ss} = AUMC / {AUC_0^\\inf}^2`` for dose normalizedosed `AUMC` and `AUC`.
+``V_{ss} = MRT * CL``.
 """
-function vss(nca::NCASubject; kwargs...)
-  nca.dose === nothing && return missing
-  nca.dose.formulation !== IVBolus && return missing
-  normalizedose(aumc(nca; kwargs...), nca) ./ (normalizedose(auc(nca; kwargs...), nca)).^2
-end
+vss(nca::NCASubject; kwargs...) = mrt(nca; kwargs...)*cl(nca; kwargs...)
 
 """
   vz(nca::NCASubject; kwargs...)
@@ -223,7 +219,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ss=fal
   dose = nca.dose
   if nca.dose isa NCADose # single dose
     isiv(dose.formulation) || return missing
-    _bioav = one(AUC)
+    _bioav = one(eltype(AUC))
     return _bioav*_clf
   else # multiple doses
     # TODO: check back on logic for this ithdose for CL, not sure about the user specification
