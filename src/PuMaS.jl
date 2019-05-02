@@ -45,9 +45,8 @@ export PuMaSModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll
-export predict, wresiduals
-export npde, wres, cwres, cwresi, pred, cpred, cpredi, epred, iwres, icwres, icwresi, eiwres
-export ηshrinkage, ϵshrinkage, ipred, cipred, cipredi
+export predict, wresiduals, empirical_bayes
+export ηshrinkage, ϵshrinkage
 export process_nmtran, example_nmtran_data
 export @model, @nca
 # From StatsBase

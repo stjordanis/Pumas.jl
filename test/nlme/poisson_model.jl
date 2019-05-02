@@ -64,7 +64,7 @@ StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisra
 
 
   for (i,est) in enumerate(initial_estimates)
-    @test PuMaS.randeffs_estimate(poisson_model, df[i], param, PuMaS.LaplaceI())[1] ≈ est rtol=1e-5
+    @test empirical_bayes(poisson_model, df[i], param, PuMaS.LaplaceI())[1] ≈ est rtol=1e-5
   end
   @test 2*PuMaS.marginal_nll(poisson_model, df, param, PuMaS.LaplaceI()) ≈ 4015.70427796336 rtol=1e-3
 

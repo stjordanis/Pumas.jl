@@ -204,27 +204,27 @@ function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
 end
 
 """
-randeffs_estimate(model, subject, param, approx, ...)
+empirical_bayes(model, subject, param, approx, ...)
 The point-estimate the random effects (being the mode of the empirical Bayes estimate) of a
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
-function randeffs_estimate(m::PuMaSModel,
+function empirical_bayes(m::PuMaSModel,
   subject::Subject,
   param::NamedTuple,
   approx::LikelihoodApproximation,
   args...; kwargs...)
   initial_randeff = _initial_randeffs(m, param)
 
-  return randeffs_estimate!(initial_randeff, m, subject, param, approx, args...; kwargs...)
+  return empirical_bayes!(initial_randeff, m, subject, param, approx, args...; kwargs...)
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector,
-                            m::PuMaSModel,
-                            subject::Subject,
-                            param::NamedTuple,
-                            approx::Union{LaplaceI,FOCEI},
-                            args...; kwargs...)
+function empirical_bayes!(vrandeffs::AbstractVector,
+                          m::PuMaSModel,
+                          subject::Subject,
+                          param::NamedTuple,
+                          approx::Union{LaplaceI,FOCEI},
+                          args...; kwargs...)
 
   cost = _η -> penalized_conditional_nll(m, subject, param, (η=_η,), args...; kwargs...)
 
@@ -239,12 +239,12 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
   return vrandeffs
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector,
-                            m::PuMaSModel,
-                            subject::Subject,
-                            fixeffs::NamedTuple,
-                            approx::Union{Laplace,FOCE},
-                            args...; kwargs...)
+function empirical_bayes!(vrandeffs::AbstractVector,
+                          m::PuMaSModel,
+                          subject::Subject,
+                          fixeffs::NamedTuple,
+                          approx::Union{Laplace,FOCE},
+                          args...; kwargs...)
 
   cost = _η -> penalized_conditional_nll(m, subject, fixeffs, (η=_η,), approx, args...; kwargs...)
 
@@ -258,29 +258,29 @@ function randeffs_estimate!(vrandeffs::AbstractVector,
   return vrandeffs
 end
 
-function randeffs_estimate!(vrandeffs::AbstractVector,
-                            m::PuMaSModel,
-                            subject::Subject,
-                            param::NamedTuple,
-                            ::Union{FO,FOI},
-                            args...; kwargs...)
+function empirical_bayes!(vrandeffs::AbstractVector,
+                          m::PuMaSModel,
+                          subject::Subject,
+                          param::NamedTuple,
+                          ::Union{FO,FOI},
+                          args...; kwargs...)
   vrandeffs.=zero(vrandeffs)
   vrandeffs
 end
 
 """
-    randeffs_estimate_dist(model, subject, param, approx, ...)
+    empirical_bayes_dist(model, subject, param, approx, ...)
 
 Estimate the distribution of random effects (typically a Normal approximation of the
 empirical Bayes posterior) of a particular subject at a particular parameter values. The
 result is returned as a vector (transformed into Cartesian space).
 """
-function randeffs_estimate_dist(m::PuMaSModel,
-                                subject::Subject,
-                                param::NamedTuple,
-                                approx::LaplaceI,
-                                args...; kwargs...)
-  vrandeffs = randeffs_estimate(m, subject, param, approx, args...; kwargs...)
+function empirical_bayes_dist(m::PuMaSModel,
+                              subject::Subject,
+                              param::NamedTuple,
+                              approx::LaplaceI,
+                              args...; kwargs...)
+  vrandeffs = empirical_bayes(m, subject, param, approx, args...; kwargs...)
   diffres = DiffResults.HessianResult(vrandeffs)
   penalized_conditional_nll!(diffres, m, subject, param, vrandeffs, args...; hessian=true, kwargs...)
   MvNormal(vrandeffs, Symmetric(inv(DiffResults.hessian(diffres))))
@@ -423,7 +423,7 @@ function marginal_nll(m::PuMaSModel,
                       approx::LikelihoodApproximation,
                       args...;
                       kwargs...)
-  vrandeffs = randeffs_estimate(m, subject, param, approx, args...; kwargs...)
+  vrandeffs = empirical_bayes(m, subject, param, approx, args...; kwargs...)
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 function marginal_nll(m::PuMaSModel,
@@ -806,7 +806,7 @@ function Distributions.fit(m::PuMaSModel,
   o = optimize_fn(cost,vparam)
 
   # FIXME! The random effects are computed during the optimization so we should just store while optimizing instead of recomputing afterwards.
-  vvrandeffs = [randeffs_estimate(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data]
+  vvrandeffs = [empirical_bayes(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data]
   return FittedPuMaSModel(m, data, o, approx, vvrandeffs)
 end
 
@@ -846,14 +846,14 @@ function _observed_information(f::FittedPuMaSModel, ::Val{Score}) where Score
     # Compute Hessian contribution and update Hessian
     H .+= Optim.DiffEqDiffTools.finite_difference_jacobian(vparam) do _j, _param
       param = TransformVariables.transform(trf, _param)
-      vrandeffs = randeffs_estimate(f.model, subject, param, f.approx)
+      vrandeffs = empirical_bayes(f.model, subject, param, f.approx)
       marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf)
       return nothing
     end
 
     if Score
       # Compute score contribution
-      vrandeffs = randeffs_estimate(f.model, subject, f. param, f.approx)
+      vrandeffs = empirical_bayes(f.model, subject, f. param, f.approx)
       marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf)
 
       # Update outer product of scores

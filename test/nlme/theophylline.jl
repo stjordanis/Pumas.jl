@@ -520,21 +520,21 @@ end
     @test o.vvrandeffs[i] ≈ focei_ebes[i,:] rtol=1e-3
   end
 
-  npde(   theopmodel_focei, theopp[1], param,
-      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
-  epred(  theopmodel_focei, theopp[1], param,
-      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
-  cpred(  theopmodel_focei, theopp[1], param)
-  cpredi( theopmodel_focei, theopp[1], param)
-  pred(   theopmodel_focei, theopp[1], param)
-  wres(   theopmodel_focei, theopp[1], param)
-  cwres(  theopmodel_focei, theopp[1], param)
-  cwresi( theopmodel_focei, theopp[1], param)
-  iwres(  theopmodel_focei, theopp[1], param)
-  icwres( theopmodel_focei, theopp[1], param)
-  icwresi(theopmodel_focei, theopp[1], param)
-  eiwres( theopmodel_focei, theopp[1], param, 1000)
-  cwres(  theopmodel_focei, theopp[1], param)
+  PuMaS.npde(   theopmodel_focei, theopp[1], param,
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
+  PuMaS.epred(  theopmodel_focei, theopp[1], param,
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
+  PuMaS.cpred(  theopmodel_focei, theopp[1], param)
+  PuMaS.cpredi( theopmodel_focei, theopp[1], param)
+  PuMaS.pred(   theopmodel_focei, theopp[1], param)
+  PuMaS.wres(   theopmodel_focei, theopp[1], param)
+  PuMaS.cwres(  theopmodel_focei, theopp[1], param)
+  PuMaS.cwresi( theopmodel_focei, theopp[1], param)
+  PuMaS.iwres(  theopmodel_focei, theopp[1], param)
+  PuMaS.icwres( theopmodel_focei, theopp[1], param)
+  PuMaS.icwresi(theopmodel_focei, theopp[1], param)
+  PuMaS.eiwres( theopmodel_focei, theopp[1], param, 1000)
+  PuMaS.cwres(  theopmodel_focei, theopp[1], param)
 end
 
 @testset "run4_foce.mod FOCE, diagonal omega and additive + proportional error" begin
@@ -689,7 +689,7 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
+      @test empirical_bayes(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
     @test deviance(theopmodel_laplace, theopp, param, PuMaS.Laplace()) ≈ 141.296 atol=1e-3

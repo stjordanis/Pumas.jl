@@ -47,7 +47,7 @@ using PuMaS, LinearAlgebra
   @test logdet(sum(PuMaS._expected_information(model,
                                                d,
                                                param,
-                                               (η=PuMaS.randeffs_estimate(model, d, param, PuMaS.FO()),),
+                                               (η=empirical_bayes(model, d, param, PuMaS.FO()),),
                                                PuMaS.FO()
                                                ) for d in data)) ≈ 53.8955 rtol=1e-6
 

@@ -42,14 +42,14 @@ param = init_param(mdsl2)
 @test fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()) isa PuMaS.FittedPuMaSModel
 @test ηshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
 @test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 0.09091845 rtol = 1e-6
-ϵshrinkage(mdsl2,theopp_nlme, param, PuMaS.FOCE(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme])
+ϵshrinkage(mdsl2,theopp_nlme, param, PuMaS.FOCE(),[empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme])
 param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
-@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI(),[PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
+@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI(),[empirical_bayes(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
 @test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
 @test aic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 477.5715543243326 rtol = 1e-3 #regression test
 @test bic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
 param = init_param(mdsl2)
-randeffs = [PuMaS.randeffs_estimate(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
-[ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+randeffs = [empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
+[PuMaS.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+[PuMaS.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+[PuMaS.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]

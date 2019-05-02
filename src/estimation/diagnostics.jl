@@ -35,7 +35,7 @@ function wresiduals(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing)
     vvrandeffs = fpm.vvrandeffs
   else
     # re-estimate under approx
-    vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
+    vvrandeffs = [empirical_bayes(fpm.model, subject, fpm.param, approx) for subject in subjects]
   end
   [wresiduals(fpm, subjects[i], vvrandeffs[i], approx; nsim=nsim) for i = 1:length(subjects)]
 end
@@ -109,7 +109,7 @@ To calculate the Weighted Residuals (WRES).
 function wres(m::PuMaSModel,
               subject::Subject,
               param::NamedTuple,
-              vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
+              vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
   y = subject.observations.dv
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   Ω = Matrix(param.Ω)
@@ -126,7 +126,7 @@ To calculate the Conditional Weighted Residuals (CWRES).
 function cwres(m::PuMaSModel,
                subject::Subject,
                param::NamedTuple,
-               vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
+               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
   y = subject.observations.dv
   nl0, dist0 = conditional_nll_ext(m,subject,param, (η=zero(vrandeffs),))
   nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
@@ -145,7 +145,7 @@ To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
 function cwresi(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
-                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCEI()))
+                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
   y = subject.observations.dv
   nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
   Ω = Matrix(param.Ω)
@@ -162,7 +162,7 @@ To calculate the Population Predictions (PRED).
 function pred(m::PuMaSModel,
               subject::Subject,
               param::NamedTuple,
-              vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
+              vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
   nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
@@ -176,7 +176,7 @@ To calculate the Conditional Population Predictions (CPRED).
 function cpred(m::PuMaSModel,
                subject::Subject,
                param::NamedTuple,
-               vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
+               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
   nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
@@ -190,7 +190,7 @@ To calculate the Conditional Population Predictions with Interaction (CPREDI).
 function cpredi(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
-                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCEI()))
+                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
@@ -218,7 +218,7 @@ To calculate the Individual Weighted Residuals (IWRES).
 function iwres(m::PuMaSModel,
                subject::Subject,
                param::NamedTuple,
-               vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
+               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
   y = subject.observations.dv
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
@@ -232,7 +232,7 @@ To calculate the Individual Conditional Weighted Residuals (ICWRES).
 function icwres(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
-                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
+                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
   y = subject.observations.dv
   nl0, dist0 = conditional_nll_ext(m,subject,param, (η=zero(vrandeffs),))
   nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
@@ -247,7 +247,7 @@ To calculate the Individual Conditional Weighted Residuals with Interaction (ICW
 function icwresi(m::PuMaSModel,
                  subject::Subject,
                  param::NamedTuple,
-                 vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCEI()))
+                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
   y = subject.observations.dv
   l, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return (y .- mean.(dist.dv)) ./ std.(dist.dv)
@@ -279,7 +279,7 @@ end
 function ipred(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
-                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FO()))
+                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
   nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
@@ -287,7 +287,7 @@ end
 function cipred(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
-                vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCE()))
+                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
   nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
@@ -295,7 +295,7 @@ end
 function cipredi(m::PuMaSModel,
                   subject::Subject,
                   param::NamedTuple,
-                  vrandeffs::AbstractVector=randeffs_estimate(m, subject, param, FOCEI()))
+                  vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
   nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
@@ -304,7 +304,7 @@ function ηshrinkage(m::PuMaSModel,
                     data::Population,
                     param::NamedTuple,
                     approx::LikelihoodApproximation)
-  sd_randeffs = std([randeffs_estimate(m, subject, param, approx) for subject in data])
+  sd_randeffs = std([empirical_bayes(m, subject, param, approx) for subject in data])
   Ω = Matrix(param.Ω)
   return  1 .- sd_randeffs ./ sqrt.(diag(Ω))
 end
@@ -313,7 +313,7 @@ function ϵshrinkage(m::PuMaSModel,
                     data::Population,
                     param::NamedTuple,
                     approx::FOCEI,
-                    randeffs=[randeffs_estimate(m, subject, param, FOCEI()) for subject in data])
+                    randeffs=[empirical_bayes(m, subject, param, FOCEI()) for subject in data])
   1 - std(vec(VectorOfArray([icwresi(m, subject, param, vrandeffs) for (subject, vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
@@ -321,7 +321,7 @@ function ϵshrinkage(m::PuMaSModel,
                     data::Population,
                     param::NamedTuple,
                     approx::FOCE,
-                    randeffs=[randeffs_estimate(m, subject, param, FOCE()) for subject in data])
+                    randeffs=[empirical_bayes(m, subject, param, FOCE()) for subject in data])
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
@@ -349,7 +349,7 @@ struct SubjectPrediction{T1, T2, T3, T4}
   approx::T4
 end
 
-function StatsBase.predict(model::PuMaSModel, subject::Subject, param, approx, vrandeffs=randeffs_estimate(model, subject, param, approx))
+function StatsBase.predict(model::PuMaSModel, subject::Subject, param, approx, vrandeffs=empirical_bayes(model, subject, param, approx))
   pred = _predict(model, subject, param, approx, vrandeffs)
   ipred = _ipredict(model, subject, param, approx, vrandeffs)
   SubjectPrediction(pred, ipred, subject, approx)
@@ -372,7 +372,7 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
     vvrandeffs = fpm.vvrandeffs
   else
     # re-estimate under approx
-    vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
+    vvrandeffs = [empirical_bayes(fpm.model, subject, fpm.param, approx) for subject in subjects]
   end
   [predict(fpm.model, subjects[i], fpm.param, approx, vvrandeffs[i]) for i = 1:length(subjects)]
 end
