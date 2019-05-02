@@ -34,8 +34,8 @@ end
 
 param = init_param(mdsl1)
 
-[npde( mdsl1, data[i], param, (η=PuMaS.randeffs_estimate(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
-[epred(mdsl1, data[i], param, (η=PuMaS.randeffs_estimate(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
+[npde( mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
+[epred(mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
 [cpred(mdsl1, data[i], param) for i in 1:10]
 [cpredi(mdsl1, data[i], param) for i in 1:10]
 

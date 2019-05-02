@@ -34,13 +34,13 @@ end
 
 param = init_param(mdsl1)
 
-PuMaS.randeffs_estimate(mdsl1, data[1], param, PuMaS.Laplace())
+empirical_bayes(mdsl1, data[1], param, PuMaS.Laplace())
 
 for (ηstar, dt) in zip([-0.1007, 0.0167, -0.0363, -0.0820, 0.1061, 0.0473, -0.1007, -0.0361, -0.0578, -0.0181], data)
-    @test PuMaS.randeffs_estimate(mdsl1, dt, param, PuMaS.Laplace())[1] ≈ ηstar rtol=1e-2
+    @test empirical_bayes(mdsl1, dt, param, PuMaS.Laplace())[1] ≈ ηstar rtol=1e-2
 end
 for (ηstar, dt) in zip([-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.059033,-0.114679,-0.023992,-0.0528146,-0.00185361], data)
-    @test PuMaS.randeffs_estimate(mdsl1, dt, param, PuMaS.LaplaceI())[1] ≈ ηstar rtol=1e-3
+    @test empirical_bayes(mdsl1, dt, param, PuMaS.LaplaceI())[1] ≈ ηstar rtol=1e-3
 end
 
 @test deviance(mdsl1, data, param, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6

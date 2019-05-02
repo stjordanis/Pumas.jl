@@ -521,9 +521,9 @@ end
   end
 
   npde(   theopmodel_focei, theopp[1], param,
-      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
   epred(  theopmodel_focei, theopp[1], param,
-      (η=PuMaS.randeffs_estimate(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
   cpred(  theopmodel_focei, theopp[1], param)
   cpredi( theopmodel_focei, theopp[1], param)
   pred(   theopmodel_focei, theopp[1], param)
@@ -689,7 +689,7 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test PuMaS.randeffs_estimate(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
+      @test empirical_bayes(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
     end
 
     @test deviance(theopmodel_laplace, theopp, param, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
