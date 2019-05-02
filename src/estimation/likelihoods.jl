@@ -101,25 +101,31 @@ function conditional_nll(m::PuMaSModel,
   l, dist    = conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...)
 
   # If (negative) likehood is infinity or the model is Homoscedastic, we just return l
-  if isinf(l) || _is_homoscedastic(dist)
+  if isinf(l) || _is_homoscedastic(dist.dv)
     return l
   else # compute the adjusted (negative) likelihood where the variance is evaluated at η=0
     l0, dist0 = conditional_nll_ext(m, subject, param, map(zero, randeffs), args...; kwargs...)
-    return _conditional_nll(dist, dist0, subject)
+    return _conditional_nll(dist.dv, dist0.dv, subject)
   end
 end
 
 # FIXME! Having both a method for randeffs::NamedTuple and vrandeffs::AbstractVector shouldn't really be necessary. Clean it up!
-function conditional_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractVector, approx::Union{Laplace,FOCE}, args...; kwargs...)
+function conditional_nll(m::PuMaSModel,
+                         subject::Subject,
+                         param::NamedTuple,
+                         vrandeffs::AbstractVector,
+                         approx::Union{Laplace,FOCE},
+                         args...; kwargs...)
   rfxset = m.random(param)
   randeffs = TransformVariables.transform(totransform(rfxset), vrandeffs)
   conditional_nll(m, subject, param, randeffs, approx, args...; kwargs...)
 end
 
-function _conditional_nll(derived_dist::NamedTuple, derived_dist0::NamedTuple, subject::Subject)
+function _conditional_nll(dv::AbstractVector{<:Normal}, dv0::AbstractVector{<:Normal}, subject::Subject)
   x = sum(propertynames(subject.observations)) do k
-    sum(zip(getproperty(derived_dist,k),getproperty(derived_dist0,k),getproperty(subject.observations,k))) do (d,d0,obs)
-      _lpdf(Normal(mean(d),sqrt(var(d0))), obs)
+    # FIXME! Don't hardcode for dv
+    sum(zip(dv, dv0, subject.observations.dv)) do (d, d0, obs)
+      _lpdf(Normal(d.μ, d0.σ), obs)
     end
   end
   return -x
@@ -319,60 +325,11 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
-function marginal_nll(m::PuMaSModel,
-                      subject::Subject,
-                      param::NamedTuple,
-                      vrandeffs::AbstractVector,
-                      ::FOCEI,
-                      args...; kwargs...)
-
-  # Costruct closure for calling conditional_nll_ext as a function
-  # of a random effects vector. This makes it possible for ForwardDiff's
-  # tagging system to work properly
-  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
-
-  # Construct vector of dual numbers for the random effects to track the partial derivatives
-  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
-  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
-
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
-
-  nl = ForwardDiff.value(nl_d)
-
-  if isfinite(nl)
-    # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
-    # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
-    Ω = cov(m.random(param).params.η)
-    FΩ = cholesky(Ω, check=false)
-
-    # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-    if issuccess(FΩ)
-      w = ∂²l∂η²(dist_d, FOCEI())
-      nl += (logdet(Ω) + vrandeffs'*(FΩ\vrandeffs) + logdet(inv(FΩ) + w))/2
-    else # Ω is numerically singular
-      nl = typeof(nl)(Inf)
-    end
-  end
-  return nl
-end
-
-# Helper function to detect homoscedasticity. For now, it is assumed the input is a NamedTuple
-# with a dv field containing a vector of distributions with ForwardDiff element types.
-function _is_homoscedastic(dist::NamedTuple)
-  # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
-  dv = dist.dv
-  v1 = ForwardDiff.value(var(first(dv)))
-  return all(t -> ForwardDiff.value(var(t)) == v1, dv)
-end
-
-function marginal_nll(m::PuMaSModel,
-                      subject::Subject,
-                      param::NamedTuple,
-                      vrandeffs::AbstractVector,
-                      ::FOCE,
-                      args...; kwargs...)
-
+function _conditional_nll_ext_η_gradient(m::PuMaSModel,
+                                         subject::Subject,
+                                         param::NamedTuple,
+                                         vrandeffs::AbstractVector,
+                                         args...; kwargs...)
   # Costruct closure for calling conditional_nll_ext as a function
   # of a random effects vector. This makes it possible for ForwardDiff's
   # tagging system to work properly
@@ -382,28 +339,22 @@ function marginal_nll(m::PuMaSModel,
   cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
   ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
+  return _conditional_nll_ext(cfg.duals)
+end
 
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
-  # If the model is homoscedastic, it is not necessary to recompute the variances at η=0
-  if _is_homoscedastic(dist_d)
-    nl = ForwardDiff.value(nl_d)
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      approx::Union{FOCE,FOCEI},
+                      args...; kwargs...)
 
-    # FIXME! Don't hardcode for dv
-    d_d = first(dist_d.dv)
-    d_0 = Normal(ForwardDiff.value(mean(d_d)), ForwardDiff.value(std(d_d)))
-    W = ∂²l∂η²(dist_d.dv, d_0, FOCE())
-  else # in the Heteroscedastic case, compute the variances at η=0
-    nl_0, dist_0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),), args...; kwargs...)
 
-    # Extract the value of the conditional likelihood
-    nl = ForwardDiff.value(_conditional_nll(dist_d, dist_0, subject))
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable
+  # per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
-    # Compute the Hessian approxmation in the random effect vector η
-    # FIXME! Don't hardcode for dv
-    W = ∂²l∂η²(dist_d.dv, dist_0.dv, FOCE())
-  end
+  nl, W = ∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, approx, args...; kwargs...)
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
@@ -428,23 +379,16 @@ function marginal_nll(m::PuMaSModel,
   # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vrandeffs)
 
-  # Costruct closure for calling conditional_nll_ext as a function
-  # of a random effects vector. This makes it possible for ForwardDiff's
-  # tagging system to work properly
-  _conditional_nll_ext = _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
-
-  # Construct vector of dual numbers for the random effects to track the partial derivatives
-  cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
-  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
-
-  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation while tracking partial derivatives of the random effects
-  nl_d, dist_d = _conditional_nll_ext(cfg.duals)
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable
+  # per observation while tracking partial derivatives of the random effects
+  nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
   # Extract the value of the conditional likelihood
   nl = ForwardDiff.value(nl_d)
 
   # Compute the gradient of the likelihood and Hessian approxmation in the random effect vector η
-  W, dldη = ∂²l∂η²(subject.observations, dist_d, FO())
+  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
+  W, dldη = ∂²l∂η²(subject.observations.dv, dist_d.dv, FO())
 
   # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
@@ -607,53 +551,96 @@ function marginal_nll_gradient!(G::AbstractVector,
   return G
 end
 
-function ∂²l∂η²(dist::NamedTuple, ::FOCEI)
-
-  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-  dv  = dist.dv
-
+function ∂²l∂η²(dv::AbstractVector{<:Union{Normal,LogNormal}}, ::FOCEI)
   # Loop through the distribution vector and extract derivative information
-  H = sum(1:length(dv)) do j
+  H = sum(eachindex(dv)) do j
     dvj   = dv[j]
-    r_inv = inv(ForwardDiff.value(var(dvj)))
-    f     = SVector(ForwardDiff.partials(mean(dvj)).values)
-    del_r = SVector(ForwardDiff.partials(var(dvj)).values)
+    r_inv = inv(ForwardDiff.value(dvj.σ^2))
+    f     = SVector(ForwardDiff.partials(dvj.μ).values)
+    del_r = SVector(ForwardDiff.partials(dvj.σ.^2).values)
     f*r_inv*f' + (r_inv*del_r*r_inv*del_r')/2
   end
 
   return H
 end
 
+# For FOCE we need all the arguments in case we need to recompute the model at η=0 (heteroscedastic case)
+# but for FOCE we just pass dv_d on to the actual computational kernel.
+∂²l∂η²(nl_d::ForwardDiff.Dual,
+       dv_d::AbstractVector{<:Union{Normal,LogNormal}},
+       m::PuMaSModel,
+       subject::Subject,
+       param::NamedTuple,
+       vrandeffs::AbstractVector,
+       ::FOCEI,
+       args...; kwargs...) = ForwardDiff.value(nl_d), ∂²l∂η²(dv_d, FOCEI())
+
+
+# Helper function to detect homoscedasticity. For now, it is assumed the input dv vecotr containing
+# a vector of distributions with ForwardDiff element types.
+function _is_homoscedastic(dv::AbstractVector{<:Union{Normal,LogNormal}})
+  # FIXME! Eventually we should support more dependent variables instead of hard coding for dv
+  v1 = ForwardDiff.value(first(dv).σ)
+  return all(t -> ForwardDiff.value(t.σ) == v1, dv)
+end
+_is_homoscedastic(::Any) = throw(ArgumentError("Distribution not supported"))
+
+# FIXME! Don't hardcode for dv
+function ∂²l∂η²(nl_d::ForwardDiff.Dual,
+                dv_d::AbstractVector{<:Union{Normal,LogNormal}},
+                m::PuMaSModel,
+                subject::Subject,
+                param::NamedTuple,
+                vrandeffs::AbstractVector,
+                ::FOCE,
+                args...; kwargs...)
+
+  # Compute the conditional likelihood and the conditional distributions of the dependent variable per observation for η=0
+  # If the model is homoscedastic, it is not necessary to recompute the variances at η=0
+  if _is_homoscedastic(dv_d)
+    nl = ForwardDiff.value(nl_d)
+
+    W = ∂²l∂η²(dv_d, first(dv_d), FOCE())
+  else # in the Heteroscedastic case, compute the variances at η=0
+    nl_0, dist_0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),), args...; kwargs...)
+
+    # Extract the value of the conditional likelihood
+    nl = ForwardDiff.value(_conditional_nll(dv_d, dist_0.dv, subject))
+
+    # Compute the Hessian approxmation in the random effect vector η
+    # FIXME! Don't hardcode for dv
+    W = ∂²l∂η²(dv_d, dist_0.dv, FOCE())
+  end
+  return nl, W
+end
+
 # Homoscedastic case
-function ∂²l∂η²(dv::AbstractVector, dv0::Distribution, ::FOCE)
+function ∂²l∂η²(dv_d::AbstractVector{<:Union{Normal,LogNormal}}, dv0_d::Union{Normal,LogNormal}, ::FOCE)
   # Loop through the distribution vector and extract derivative information
-  H = sum(1:length(dv)) do j
-    r_inv = inv(var(dv0))
-    f = SVector(ForwardDiff.partials(mean(dv[j])).values)
-    f*r_inv*f'
+  σ = ForwardDiff.value(dv0_d.σ)
+  H = sum(eachindex(dv_d)) do j
+    f = SVector(ForwardDiff.partials(dv_d[j].μ).values)/σ
+    return f*f'
   end
 
   return H
 end
 
 # Heteroscedastic case
-function ∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, ::FOCE)
+function ∂²l∂η²(dv_d::AbstractVector{<:Normal}, dv0::AbstractVector{<:Normal}, ::FOCE)
   # Loop through the distribution vector and extract derivative information
-  H = sum(1:length(dv)) do j
-    r_inv = inv(var(dv0[j]))
-    f = SVector(ForwardDiff.partials(mean(dv[j])).values)
-    f*r_inv*f'
+  H = sum(eachindex(dv_d)) do j
+    σ = dv0[j].σ
+    f = SVector(ForwardDiff.partials(dv_d[j].μ).values)/σ
+    return f*f'
   end
 
   return H
 end
 
-function ∂²l∂η²(obs::NamedTuple, dist::NamedTuple, ::FO)
-  # FIXME! Currently we hardcode for dv. Eventually, this should allow for arbitrary dependent variables
-  dv = dist.dv
-
+function ∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::FO)
   # The dimension of the random effect vector
-  nrfx = length(ForwardDiff.partials(mean(dv[1])))
+  nrfx = length(ForwardDiff.partials(dv[1].μ))
 
   # Initialize Hessian matrix and gradient vector
   ## FIXME! Careful about hardcoding for Float64 here
@@ -661,17 +648,55 @@ function ∂²l∂η²(obs::NamedTuple, dist::NamedTuple, ::FO)
   dldη = @SVector zeros(nrfx)
 
   # Loop through the distribution vector and extract derivative information
-  for j in 1:length(dv)
+  for j in eachindex(dv)
     dvj = dv[j]
-    r = ForwardDiff.value(var(dvj))
-    f = SVector(ForwardDiff.partials(mean(dvj)).values)
+    r = ForwardDiff.value(dvj.σ)^2
+    f = SVector(ForwardDiff.partials(dvj.μ).values)
     fdr = f/r
     H += fdr*f'
-    dldη += fdr*(obs.dv[j] - ForwardDiff.value(mean(dvj)))
+    dldη += fdr*(obsdv[j] - ForwardDiff.value(dvj.μ))
   end
 
   return H, dldη
 end
+
+function ∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:LogNormal}, ::FO)
+  # The dimension of the random effect vector
+  nrfx = length(ForwardDiff.partials(dv[1].μ))
+
+  # Initialize Hessian matrix and gradient vector
+  ## FIXME! Careful about hardcoding for Float64 here
+  H    = @SMatrix zeros(nrfx, nrfx)
+  dldη = @SVector zeros(nrfx)
+
+  # Loop through the distribution vector and extract derivative information
+  for j in eachindex(dv)
+    dvj = dv[j]
+    r = ForwardDiff.value(dvj.σ)^2
+    f = SVector(ForwardDiff.partials(dvj.μ).values)
+    fdr = f/r
+    H += fdr*f'
+    dldη += fdr*(log(obsdv[j]) - ForwardDiff.value(dvj.μ))
+  end
+
+  return H, dldη
+end
+
+# Fallbacks for a usful error message when distribution isn't supported
+∂²l∂η²(dv::AbstractVector, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(dv::AbstractVector, d::Distribution, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(dv::AbstractVector, dv0::AbstractVector, approx::LikelihoodApproximation) =
+  throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
+∂²l∂η²(nl_d::ForwardDiff.Dual,
+       dv_d::Any,
+       m::PuMaSModel,
+       subject::Subject,
+       param::NamedTuple,
+       vrandeffs::AbstractVector,
+       approx::LikelihoodApproximation,
+       args...; kwargs...) = throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 
 # Fitting methods
 struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
@@ -815,7 +840,7 @@ function _observed_information(f::FittedPuMaSModel, ::Val{Score}) where Score
   end
 
   # Loop through subject and compute Hessian and score contributions
-  for i in 1:length(f.data)
+  for i in eachindex(f.data)
     subject = f.data[i]
 
     # Compute Hessian contribution and update Hessian
