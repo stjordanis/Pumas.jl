@@ -349,9 +349,9 @@ struct SubjectPrediction{T1, T2, T3, T4}
   approx::T4
 end
 
-function StatsBase.predict(fpm::FittedPuMaSModel, subject::Subject, vrandeffs, approx)
-  pred = _predict(fpm, subject, vrandeffs, approx)
-  ipred = _ipredict(fpm, subject, vrandeffs, approx)
+function StatsBase.predict(model::PuMaSModel, subject::Subject, param, approx, vrandeffs=randeffs_estimate(model, subject, param, approx))
+  pred = _predict(model, subject, param, approx, vrandeffs)
+  ipred = _ipredict(model, subject, param, approx, vrandeffs)
   SubjectPrediction(pred, ipred, subject, approx)
 end
 
@@ -374,31 +374,31 @@ function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothin
     # re-estimate under approx
     vvrandeffs = [randeffs_estimate(fpm.model, subject, fpm.param, approx) for subject in subjects]
   end
-  [predict(fpm, subjects[i], vvrandeffs[i], approx) for i = 1:length(subjects)]
+  [predict(fpm.model, subjects[i], fpm.param, approx, vvrandeffs[i]) for i = 1:length(subjects)]
 end
 
-function _predict(fpm, subject, vrandeffs, approx::FO)
-  pred(fpm.model, subject, fpm.param, vrandeffs)
+function _predict(model, subject, param, approx::FO, vrandeffs)
+  pred(model, subject, param, vrandeffs)
 end
-function _ipredict(fpm, subject, vrandeffs, approx::FO)
-  ipred(fpm.model, subject, fpm.param, vrandeffs)
-end
-
-function _predict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
-  cpred(fpm.model, subject, fpm.param, vrandeffs)
-end
-function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCE, Laplace})
-  cipred(fpm.model, subject, fpm.param, vrandeffs)
+function _ipredict(model, subject, param, approx::FO, vrandeffs)
+  ipred(model, subject, param, vrandeffs)
 end
 
-function _predict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
-  cpredi(fpm.model, subject, fpm.param, vrandeffs)
+function _predict(model, subject, param, approx::Union{FOCE, Laplace}, vrandeffs)
+  cpred(model, subject, param, vrandeffs)
 end
-function _ipredict(fpm, subject, vrandeffs, approx::Union{FOCEI, LaplaceI})
-  cipredi(fpm.model, subject, fpm.param, vrandeffs)
+function _ipredict(model, subject, param, approx::Union{FOCE, Laplace}, vrandeffs)
+  cipred(model, subject, param, vrandeffs)
 end
 
-function _epredict(fpm, subject, vrandeffs, nsim::Integer)
+function _predict(model, subject, param, approx::Union{FOCEI, LaplaceI}, vrandeffs)
+  cpredi(model, subject, param, vrandeffs)
+end
+function _ipredict(model, subject, param, approx::Union{FOCEI, LaplaceI}, vrandeffs)
+  cipredi(model, subject, param, vrandeffs)
+end
+
+function epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
 
