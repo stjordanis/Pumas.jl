@@ -207,7 +207,6 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ith
   return sol
 end
 
-#TODO: check the units
 """
   cl(nca::NCASubject; ithdose::Integer, kwargs...)
 
