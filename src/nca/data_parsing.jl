@@ -1,7 +1,7 @@
 using CSV, DataFrames
 
 """
-    parse_ncadata(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
+    read_nca(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
       conc=:conc, occasion=nothing, amt=nothing, route=nothing, duration=nothing,
       ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...) -> NCAPopulation
 
@@ -9,13 +9,13 @@ Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
 holds an array of `NCASubject`s which can cache certain results to achieve
 efficient NCA calculation.
 """
-parse_ncadata(file::AbstractString; kwargs...) = parse_ncadata(CSV.read(file); kwargs...)
+read_nca(file::AbstractString; kwargs...) = read_nca(CSV.read(file); kwargs...)
 # TODO: add ploting time
 # TODO: infusion
 # TODO: plot time
-function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
+function read_nca(df; group=nothing, ii=nothing, kwargs...)
   pop, added_ii = if group === nothing
-    ___parse_ncadata(df; ii=ii, kwargs...)
+    ___read_nca(df; ii=ii, kwargs...)
   else
     dfs = groupby(df, group)
     groupnum = length(dfs)
@@ -31,7 +31,7 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
         groupnames = first(df[group])
         currentgroup = grouplabel => groupnames
       end
-      pop, tmp = ___parse_ncadata(df; group=currentgroup, ii=ii, kwargs...)
+      pop, tmp = ___read_nca(df; group=currentgroup, ii=ii, kwargs...)
       added_ii &= tmp
       return pop
     end
@@ -42,7 +42,7 @@ function parse_ncadata(df; group=nothing, ii=nothing, kwargs...)
   return pop
 end
 
-function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
+function ___read_nca(df; id=:ID, group=nothing, time=:time, conc=:conc, occasion=nothing,
                        amt=nothing, route=nothing,# rate=nothing,
                        duration=nothing, ii=nothing, concu=true, timeu=true, amtu=true, warn=true, kwargs...)
   local ids, times, concs, amts

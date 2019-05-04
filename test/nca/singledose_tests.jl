@@ -9,11 +9,11 @@ timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
 data.route = "iv"
-ncapop = @test_nowarn parse_ncadata(data, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
+ncapop = @test_nowarn read_nca(data, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(parse_ncadata(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(read_nca(data, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
@@ -182,5 +182,5 @@ df.conc = [0:20...; 0; 21:25]
 df.amt = zeros(Int, 27); df.amt[22] = 1
 df.route = "ev"
 df.ID = 1
-@test_nowarn parse_ncadata(df, time=:time, conc=:conc, amt=:amt, route=:route,
+@test_nowarn read_nca(df, time=:time, conc=:conc, amt=:amt, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
