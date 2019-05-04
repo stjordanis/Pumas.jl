@@ -41,10 +41,10 @@ conc, t = NCA.cleanblq(ones(6), 1:6, concblq=:drop)
 conc, t = NCA.cleanblq([0,1,1,3,0], 1:5, concblq=Dict(:first=>:drop, :middle=>:keep, :last=>:drop))
 @test conc == [1,1,3]
 @test t == 2:4
-df = DataFrame(ID=1, conc=[0,1,1,3,0], time=1:5)
-subj = read_nca(df, time=:time, conc=:conc, warn=false, concblq=:drop)[1]
+df = DataFrame(id=1, conc=[0,1,1,3,0], time=1:5)
+subj = read_nca(df, time=:time, conc=:conc, verbose=false, concblq=:drop)[1]
 @test subj.conc == [1,1,3]
-subj = read_nca(df, time=:time, conc=:conc, warn=false, concblq=Dict(:first=>:drop, :middle=>:keep, :last=>:keep))[1]
+subj = read_nca(df, time=:time, conc=:conc, verbose=false, concblq=Dict(:first=>:drop, :middle=>:keep, :last=>:keep))[1]
 @test subj.conc == [1,1,3,0]
 
 @test_nowarn show(NCASubject([1,2,3.]*u"mg/L", (1:3)*u"hr"))

@@ -9,11 +9,11 @@ timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
 data.route = "iv"
-ncapop = @test_nowarn read_nca(data, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
+ncapop = @test_nowarn read_nca(data, id=:ID, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
 @test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
-@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(read_nca(data, time=:TIME, conc=:CObs));
+@test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(read_nca(data, id=:ID, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
 
@@ -76,7 +76,7 @@ t2 = ustrip(t[3])
 @test NCA.c0(nca) === missing
 subj = NCASubject([10, 12.], [0.2, 0.9], dose=NCADose(0, 0.1, 0, NCA.IVBolus))
 @test_logs (:warn, "c0: This is an IV bolus dose, but the first two concentrations are not decreasing. If `conc[i]/conc[i+1] > 0.8` holds, the back extrapolation will be computed internally for AUC and AUMC, but will not be reported.") NCA.c0(subj)
-@test NCA.c0(subj, true, warn=false) < 10
+@test NCA.c0(subj, true, verbose=false) < 10
 
 for m in (:linear, :linuplogdown, :linlog)
   @test_broken @inferred NCA.auc(conc[idx], t[idx], method=m)
@@ -181,6 +181,5 @@ df.time = [0:20...; 20; 21:25]
 df.conc = [0:20...; 0; 21:25]
 df.amt = zeros(Int, 27); df.amt[22] = 1
 df.route = "ev"
-df.ID = 1
-@test_nowarn read_nca(df, time=:time, conc=:conc, amt=:amt, route=:route,
-                                    llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
+df.id = 1
+@test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
