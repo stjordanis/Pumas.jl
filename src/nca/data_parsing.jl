@@ -97,7 +97,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
         end
       end
       route′ = map(dose_idx) do i
-        routei = df[route][i]
+        routei = lowercase(df[route][i])
         routei == "iv" ? IVBolus :
           routei == "inf" ? IVInfusion :
           routei == "ev" ? EV :
