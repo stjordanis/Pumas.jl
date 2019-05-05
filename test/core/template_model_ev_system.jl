@@ -1,4 +1,4 @@
-using PuMaS, Test
+using PuMaS, Test, LabelledArrays
 
 ###############################
 # Test 2
@@ -1098,9 +1098,9 @@ mbl2_diffeq = @model begin
         Ka = θ[1]
         CL = θ[2]*exp(η[1])
         V  = θ[3]*exp(η[2])
-        bioav = (θ[5],1 - θ[5])
+        bioav = (Depot = θ[5], Central = 1 - θ[5])
         duration = (0.0,4.0)
-        lags = (0.0,θ[4])
+        lags = (Central = θ[4],)
     end
 
     @dynamics begin
@@ -1121,7 +1121,7 @@ mbl2_analytic = @model begin
         V  = θ[3]*exp(η[2])
         bioav = (θ[5],1 - θ[5])
         duration = (0.0,4.0)
-        lags = (0.0,θ[4])
+        lags = SLVector(Central=θ[4])
     end
 
     @dynamics OneCompartmentModel
