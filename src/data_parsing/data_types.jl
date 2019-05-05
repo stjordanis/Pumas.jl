@@ -223,20 +223,23 @@ struct Subject{T1,T2,T3,T4}
 
     ## Events
     idx_evt = setdiff(1:size(data, 1), idx_obs)
-    events = Event{Float64,Float64,Float64,Float64,Float64,Float64}[]
+
     n_amt = amt ∈ Names
     n_addl = addl ∈ Names
     n_ii = ii ∈ Names
     n_cmt = cmt ∈ Names
     n_rate = rate ∈ Names
     n_ss = ss ∈ Names
+    cmtType = n_cmt ? (eltype(data[cmt]) <: String ? Symbol : Int) : Int
+    events = Event{Float64,Float64,Float64,Float64,Float64,Float64,cmtType}[]
     for i in idx_evt
       t     = float(data[time][i])
       _evid = Int8(data[evid][i])
       _amt  = n_amt ? float(data[amt][i])   : 0. # can be missing if evid=2
       _addl = n_addl ? Int(data[addl][i])   : 0
       _ii   = n_ii ? float(data[ii][i])     : zero(t)
-      _cmt  = n_cmt ? Int(data[cmt][i])     : 1
+      __cmt  = n_cmt ? data[cmt][i] : 1
+      _cmt = __cmt isa String ? Symbol(__cmt) : Int(__cmt)
       _rate = n_rate ? float(data[rate][i]) : _amt === nothing ? 0.0 : zero(_amt)/oneunit(t)
       ss′   = n_ss ? Int8(data[ss][i])      : Int8(0)
       build_event_list!(events, event_data, t, _evid, _amt, _addl, _ii, _cmt, _rate, ss′)
