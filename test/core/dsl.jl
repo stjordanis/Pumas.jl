@@ -157,7 +157,11 @@ mdsl = @model begin
         η ~ MvNormal(Ω)
     end
 
-    @covariates sex wt etn
+    @covariates begin
+        sex
+        wt
+        etn
+    end
 
     @pre begin
         θ1 := θ[1]

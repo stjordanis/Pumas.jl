@@ -124,7 +124,14 @@ function random_obj(randoms, params)
 end
 
 function extract_syms!(vars, subvars, syms)
-  for p in syms
+
+  if length(syms) == 1 && first(syms) isa Expr && first(syms).head == :block
+    _syms = first(syms).args
+  else
+    _syms = syms
+  end
+
+  for p in _syms
     islinenum(p) && continue
     p in vars && error("Variable $p already defined")
     push!(subvars, p)
