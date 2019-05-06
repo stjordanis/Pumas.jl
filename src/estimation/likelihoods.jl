@@ -750,6 +750,13 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
           push!(paramrse, string(round(mat[i]/std[i]; sigdigits=5)))
           push!(paramconfint, string("[", round(mat[i]-std[i]*quant; sigdigits=5),";", round(mat[i]+std[i]*quant; sigdigits=5), "]"))
        end
+    elseif typeof(paramval) <: AbstractVector
+      for i in 1:length(paramval)
+        push!(paramnames, string(paramname, _to_subscript(i)))
+        push!(paramvals, string(round(paramval[i]; sigdigits=5)))
+        push!(paramrse, string(round(paramval[i]/std[i]; sigdigits=5)))
+        push!(paramconfint, string("[", round(paramval[i]-std[i]*quant; sigdigits=5),";", round(paramval[i]+std[i]*quant; sigdigits=5), "]"))
+      end
     else
       push!(paramnames, string(paramname))
       push!(paramvals, string(round(paramval; sigdigits=5)))

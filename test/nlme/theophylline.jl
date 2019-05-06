@@ -758,10 +758,14 @@ end
 
   theopmodel_laplacei = @model begin
     @param begin
-      θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
-      θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
-      θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
-      θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      # θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
+      # θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
+      # θ₃ ∈ RealDomain(lower=0.004,  upper=0.9, init=0.0363)
+      # θ₄ ∈ RealDomain(lower=0.1,    upper=5.0, init=1.5)
+      # Use VectorDomain although RealDomain is preferred to make sure that VectorDomain is tested
+      θ ∈ VectorDomain(4, lower=[0.1 , 0.0008, 0.004 , 0.1],
+                          init =[2.77, 0.0781, 0.0363, 1.5],
+                          upper=[5.0 , 0.5   , 0.9   , 5.0])
       Ω ∈ PDiagDomain(2)
       σ_add ∈ RealDomain(lower=0.0001, init=0.388)
       σ_prop ∈ RealDomain(lower=0.0001, init=0.3)
@@ -772,9 +776,9 @@ end
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ₁ + η[1] : θ₄ + η[1]
-      K  = θ₂
-      CL = θ₃*WT + η[2]
+      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
+      K  = θ[2]
+      CL = θ[3]*WT + η[2]
       V  = CL/K
       SC = CL/K/WT
     end
@@ -792,10 +796,10 @@ end
     end
   end
 
-  param = (θ₁ = 2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-        θ₂ = 0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-        θ₃ = 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-        θ₄ = 1.5,    #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+  param = (θ = [2.77,   #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+                0.0781, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+                0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+                1.5],   #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
         Ω = Diagonal([5.55,0.515]),
         σ_add = 0.388,
@@ -805,10 +809,10 @@ end
   @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990
 
   laplacei_estimated_params = (
-    θ₁ = 1.60941E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
-    θ₂ = 8.55663E-02, #K MEAN ELIMINATION RATE CONSTANT (1/HR)
-    θ₃ = 3.97472E-02, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
-    θ₄ = 2.05830E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
+    θ = [1.60941E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
+         8.55663E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
+         3.97472E-02,  #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
+         2.05830E+00], #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
     Ω = Diagonal([1.48117E+00, 2.67215E-01]),
     σ_add = 1.88050E-01,
@@ -816,10 +820,10 @@ end
   )
 
   laplacei_stderr = (
-    θ₁ = 2.09E-01,
-    θ₂ = 4.48E-03,
-    θ₃ = 3.29E-03,
-    θ₄ = 9.05E-01,
+    θ = [2.09E-01,
+         4.48E-03,
+         3.29E-03,
+         9.05E-01],
 
     Ω = Diagonal([1.35E+00, 8.95E-02]),
     σ_add = 3.01E-01,

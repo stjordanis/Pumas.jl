@@ -271,5 +271,6 @@ totransform(p::ParamSet) = as(map(totransform, p.params))
 # we need some convenience functions
 toidentitytransform(p::ParamSet) = as(map(toidentitytransform, p.params))
 toidentitytransform(::RealDomain) = as(Real,-∞,∞)
+toidentitytransform(d::VectorDomain) = as(Vector, length(d.lower))
 toidentitytransform(d::PSDDomain) = VechTransform(size(d.init, 1))
 toidentitytransform(d::PDiagDomain) = DiagonalTransform(size(d.init, 1))
