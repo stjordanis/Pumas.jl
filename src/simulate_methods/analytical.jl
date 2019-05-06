@@ -16,7 +16,7 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, u0, tspan, col,
   ss = prob.ss
 
   lags,bioav,time_adjust_rate,duration = get_magic_args(col,Tu0,Ttspan[1])
-  events = adjust_event(subject.events,lags,bioav,time_adjust_rate,duration)
+  events = adjust_event(subject.events,u0,lags,bioav,time_adjust_rate,duration)
   times = sorted_approx_unique(events)
   u = Vector{typeof(Tu0)}(undef, length(times))
   doses = Vector{typeof(Tu0)}(undef, length(times))
