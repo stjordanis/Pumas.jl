@@ -40,7 +40,7 @@ function interpolateconc(nca::NCASubject, timeout::Number; method, kwargs...)
       conc1 = ustrip(conc[idx1]); conc2 = ustrip(conc[idx2])
     end
     timeout = ustrip(timeout)
-    m = choosescheme(conc1, conc2, time1, time2, idx1, nca.maxidx, method)
+    m = choosescheme(conc1, conc2, time1, time2, idx1, maxidx(nca), method)
     if m === Linear
       return (conc1+abs(timeout-time1)/(time2-time1)*(conc2-conc1))*oneunit(eltype(conc))
     else

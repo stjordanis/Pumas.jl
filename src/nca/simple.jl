@@ -47,12 +47,12 @@ function ctfirst_idx(conc, time; llq=nothing, check=true)
 end
 
 """
-  tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+  tmax(nca::NCASubject; interval=nothing, kwargs...)
 
 Calculate ``T_{max}_{t_1}^{t_2}``
 """
-function tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
-  if interval isa Tuple
+function tmax(nca::NCASubject; interval=nothing, kwargs...)
+  if interval isa Union{Tuple, Nothing}
     return ctmax(nca; interval=interval, kwargs...)[2]
   else
     f = let nca=nca, kwargs=kwargs
@@ -63,13 +63,13 @@ function tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
 end
 
 """
-  cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+  cmax(nca::NCASubject; interval=nothing, kwargs...)
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+function cmax(nca::NCASubject; interval=nothing, kwargs...)
   dose = nca.dose
-  if interval isa Tuple
+  if interval isa Union{Tuple, Nothing}
     sol = ctmax(nca; interval=interval, kwargs...)[1]
   else
     f = let nca=nca, kwargs=kwargs
@@ -87,7 +87,7 @@ Calculate minimum observed concentration
 """
 function cmin(nca::NCASubject; kwargs...) # TODO: clowest C(tau)
   conc, time = nca.conc, nca.time
-  val, _ = conc_maximum(conc, eachindex(conc), true)
+  val, _ = conc_extreme(conc, eachindex(conc), >)
   return val
 end
 
@@ -98,37 +98,45 @@ Calculate time of minimum observed concentration
 """
 function tmin(nca::NCASubject; kwargs...)
   conc, time = nca.conc, nca.time
-  _, idx = conc_maximum(conc, eachindex(conc), true)
+  _, idx = conc_extreme(conc, eachindex(conc), >)
   return time[idx]
 end
 
-@inline function ctmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+function ctmax(nca::NCASubject; interval=nothing, kwargs...)
   conc, time = nca.conc, nca.time
-  if interval === (0., Inf)
-    val, idx = conc_maximum(conc, eachindex(conc))
-    return (cmax=val, tmax=time[idx])
+  c0′ = (interval === nothing || iszero(interval[1])) ? c0(nca, true) : missing
+  if interval === nothing
+    val, idx = conc_extreme(conc, eachindex(conc), <)
+    t = time[idx]
+    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+    return (val, t, idx)
+  elseif interval isa Tuple
+    @assert interval[1] < interval[2] "t0 must be less than t1"
+    interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
+    idx1, idx2 = let (lo, hi)=interval
+      findfirst(t->t>=lo, time),
+      findlast( t->t<=hi, time)
+    end
+    val, idx = conc_extreme(conc, idx1:idx2, <)
+    t = time[idx]
+    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+  else
+    throw(ArgumentError("interval must be nothing or a tuple."))
   end
-  @assert interval[1] < interval[2] "t0 must be less than t1"
-  interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
-  idx1, idx2 = let (lo, hi)=interval
-    findfirst(t->t>=lo, time),
-    findlast( t->t<=hi, time)
-  end
-  val, idx = conc_maximum(conc, idx1:idx2)
-  return (cmax=val, tmax=time[idx])
+  return (val, t, idx)
 end
 
-@inline function conc_maximum(conc, idxs, min::Bool=false)
-  idx = 1
-  val = -oneunit(Base.nonmissingtype(eltype(conc)))
-  min && (val *= -Inf)
+maxidx(subj::NCASubject) = subj.maxidx == -2 ? (subj.maxidx = ctmax(subj)[3]) : subj.maxidx
+
+function conc_extreme(conc, idxs, lt)
+  local val, idx
+  for i in idxs
+    conci = conc[i]
+    !ismissing(conci) && (val = conci; idx=i; break) # find a sensible initialization
+  end
   for i in idxs
     if !ismissing(conc[i])
-      if min
-        val > conc[i] && (val = conc[i]; idx=i)
-      else
-        val < conc[i] && (val = conc[i]; idx=i)
-      end
+      lt(val, conc[i]) && (val = conc[i]; idx=i)
     end
   end
   return val, idx

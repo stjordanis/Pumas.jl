@@ -1,6 +1,5 @@
 using PuMaS.NCA, Test, CSV
 using PuMaS
-using Random
 
 file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
 data = CSV.read(file)

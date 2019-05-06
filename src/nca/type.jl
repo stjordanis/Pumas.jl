@@ -108,7 +108,7 @@ function NCASubject(conc′, time′;
     end
     conc = map(x->x[1], ct)
     time = map(x->x[2], ct)
-    maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
+    maxidx  = fill(-2, n)
     lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
@@ -121,7 +121,7 @@ function NCASubject(conc′, time′;
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   dose !== nothing && (dose = first(dose))
-  _, maxidx = conc_maximum(conc, eachindex(conc))
+  maxidx = -2
   lastidx = ctlast_idx(conc, time; llq=llq, check=false)
   NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
           typeof(auc_proto), typeof(aumc_proto),
