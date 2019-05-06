@@ -73,7 +73,9 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
   occasions = occasion === nothing ? nothing : df[occasion]
   uids = unique(ids)
   idx  = -1
-  ncas = map(uids) do id
+  # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
+  ncas = Vector{Any}(undef, length(uids))
+  for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
     # the time array for the i-th subject
@@ -114,13 +116,14 @@ function ___parse_ncadata(df; id=:ID, group=nothing, time=:time, conc=:conc, occ
       doses = nothing
     end
     try
-      NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, kwargs...)
+      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, kwargs...)
     catch
       @info "ID $id errored"
       rethrow()
     end
   end
-  pop = NCAPopulation(ncas)
+  # Use broadcast to tighten ncas element type
+  pop = NCAPopulation(identity.(ncas))
   added_ii = ii !== nothing && (ii isa Number || (ii isa Array && length(pop) == length(ii)))
   added_ii && add_ii!(pop, ii) # fast path
   return pop, added_ii

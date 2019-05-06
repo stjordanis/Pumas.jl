@@ -27,7 +27,7 @@ Import NMTRAN-formatted data.
 - `event_data` toggles assertions applicable to event data
 """
 function process_nmtran(filepath::AbstractString, args...; kwargs...)
-  process_nmtran(CSV.read(filepath, missingstrings="."), args...; kwargs...)
+  process_nmtran(CSV.read(filepath, missingstrings=["."]), args...; kwargs...)
 end
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
