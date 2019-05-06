@@ -9,7 +9,7 @@ timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
 mdata.route = map(f -> f=="ORAL" ? "ev" : "iv", mdata.FORMULATION)
-mncapop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, route=:route, occasion=:OCC,
+mncapop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, route=:route, occasion=:OCC,
                                      timeu=timeu, concu=concu, amtu=amtu)
 
 @test_throws ArgumentError NCA.interpextrapconc(mncapop[1], 22timeu, method=:linear)
@@ -56,20 +56,20 @@ popncareport = NCAReport(mncapop, ithdose=1)
 # test ii
 # scalar
 ii1 = 0.1timeu
-pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
+pop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
 @test all(subj -> subj.ii == ii1, pop)
 @test NCA.tau(pop[1]) == [ii1 for i in 1:4]
 @test NCA.accumulationindex(pop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*ii1))
 # vector
 ii2 = [i*timeu for i in eachindex(pop)]
-pop = @test_nowarn parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
+pop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
 @test all(i -> pop[i].ii == ii2[i], eachindex(pop))
 # length error
 ii3 = [i*timeu for i in 1:100]
-@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii3)
+@test_throws ArgumentError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii3)
 # type error
-@test_throws Unitful.DimensionError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=2)
-@test_throws ArgumentError parse_ncadata(mdata, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=:ID)
+@test_throws Unitful.DimensionError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=2)
+@test_throws ArgumentError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=:ID)
 
 data1 = CSV.read(IOBuffer("""
 id,time,tad,conc,amt,occasion,formulation
@@ -111,9 +111,5 @@ id,time,tad,conc,amt,occasion,formulation
 """))
 for df in (data1, data2)
   df.route = "ev"
-  @test_throws AssertionError parse_ncadata(df, id=:id,
-                      route=:route,
-                      occasion=:occasion,
-                      amt=:amt,
-                      timeu=timeu, concu=concu, amtu=amtu);
+  @test_throws AssertionError read_nca(df, timeu=timeu, concu=concu, amtu=amtu);
 end
