@@ -284,8 +284,6 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
   show(io, mime, Text(summary(subject)))
 end
 
-"""
-    Population(::AbstractVector{<:Subject})
 
 # Define Population as an alias
 """
