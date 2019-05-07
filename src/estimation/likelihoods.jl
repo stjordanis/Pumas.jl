@@ -710,8 +710,6 @@ const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈"
 _to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
 
 function _print_fit_header(io, fpm)
-  println(io, "PuMaSModelInference")
-  println(io)
   println(io, "Successful minimization: $(Optim.converged(fpm.optim))")
   println(io)
   println(io, "Objective function value: $(Optim.minimum(fpm.optim))")
@@ -722,6 +720,7 @@ function _print_fit_header(io, fpm)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
+  println(io, "FittedPuMaSModel\n")
   _print_fit_header(io, fpm)
   # Get all names
   standard_errors = stderror(fpm)
@@ -955,24 +954,23 @@ end
 # Some type piracy for the time being
 Distributions.MvNormal(D::Diagonal) = MvNormal(PDiagMat(D.diag))
 
-struct PuMaSModelInference{T1, T2, T3}
+struct FittedPuMaSModelInference{T1, T2, T3}
   fpm::T1
   vcov::T2
   level::T3
 end
 
-
 """
-    inference(fpm::FittedPuMaSModel) -> PuMaSModelInference
+    inference(fpm::FittedPuMaSModel) -> FittedPuMaSModelInference
 
 Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
 function inference(fpm::FittedPuMaSModel; level = 0.95)
   _vcov = vcov(fpm)
-  PuMaSModelInference(fpm, _vcov, level)
+  FittedPuMaSModelInference(fpm, _vcov, level)
 end
-function StatsBase.stderror(pmi::PuMaSModelInference)
+function StatsBase.stderror(pmi::FittedPuMaSModelInference)
   trf = toidentitytransform(pmi.fpm.model.param)
   ss = sqrt.(diag(pmi.vcov))
   return TransformVariables.transform(trf, ss)
@@ -1009,8 +1007,10 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Numb
 end
 
 
-function Base.show(io::IO, mime::MIME"text/plain", pmi::PuMaSModelInference)
+function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInference)
   fpm = pmi.fpm
+
+  println(io, "FittedPuMaSModelInference\n")
   _print_fit_header(io, pmi.fpm)
 
 
@@ -1042,8 +1042,8 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::PuMaSModelInference)
     println(io, stringrow)
   end
 end
-TreeViews.hastreeview(x::PuMaSModelInference) = true
-function TreeViews.treelabel(io::IO,x::PuMaSModelInference,
+TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
+function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io,mime,Base.Text(Base.summary(x)))
 end
