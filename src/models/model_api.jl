@@ -41,7 +41,7 @@ function timespan(sub::Subject,tspan,saveat)
   s_lo, s_hi = !isnothing(saveat) && !isempty(saveat) ? extrema(saveat) : (Inf,-Inf)
   obs_lo, obs_hi = !isnothing(sub.time) && !isempty(sub.time) ? extrema(sub.time) : (Inf,-Inf)
   lo = minimum((e_lo,s_lo,obs_lo))
-  hi = maximum((e_hi,e_hi,obs_hi))
+  hi = maximum((e_hi,s_hi,obs_hi))
   tspan !== nothing && tspan[1] !== nothing && (lo = tspan[1]) # User override
   tspan !== nothing && tspan[2] !== nothing && (hi = tspan[2]) # User override
   lo == Inf && error("No starting time identified. Please supply events or obstimes")
