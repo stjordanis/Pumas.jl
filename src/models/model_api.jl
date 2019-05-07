@@ -37,18 +37,19 @@ function timespan(sub::Subject,tspan,saveat)
   if isempty(sub.events) && isempty(saveat) && isempty(sub.time) && tspan == (nothing,nothing)
     error("No timespan is given. This means no events, observations, or user chosen time span exist for the subject. Please check whether the data was input correctly.")
   end
-  e_lo, e_hi = !isempty(sub.events) ? extrema(evt.time for evt in sub.events) : (-Inf,Inf)
-  s_lo, s_hi = !isempty(saveat) ? extrema(saveat) : (Inf,-Inf)
-  obs_lo, obs_hi = !isempty(sub.time) ? extrema(sub.time) : (Inf,-Inf)
-  lo, hi = extrema(e_lo, e_hi, s_lo, s_hi, obs_lo, obs_hi)
-  tspan[1] !== nothing && (lo = tspan[1]) # User override
-  tspan[2] !== nothing && (hi = tspan[2]) # User override
-  lo == -Inf && error("No")
+  e_lo, e_hi = !isnothing(sub.events) && !isempty(sub.events) ? extrema(evt.time for evt in sub.events) : (Inf,-Inf)
+  s_lo, s_hi = !isnothing(saveat) && !isempty(saveat) ? extrema(saveat) : (Inf,-Inf)
+  obs_lo, obs_hi = !isnothing(sub.time) && !isempty(sub.time) ? extrema(sub.time) : (Inf,-Inf)
+  lo, hi = extrema((e_lo, e_hi, s_lo, s_hi, obs_lo, obs_hi))
+  tspan !== nothing && tspan[1] !== nothing && (lo = tspan[1]) # User override
+  tspan !== nothing && tspan[2] !== nothing && (hi = tspan[2]) # User override
+  lo == -Inf && error("No lower bound to time identified. Please supply events, obstimes")
   lo, hi
 end
 
 # Where to save
-observationtimes(sub::Subject) = isnothing(sub.observations) ?
+observationtimes(sub::Subject) = isnothing(sub.observations) &&
+                                 !isempty(sub.events) && !isnothing(sub.events) ?
                                  (0.0:1.0:(sub.events[end].time+24.0)) :
                                  sub.time
 
@@ -68,10 +69,11 @@ Returns a tuple containing the ODE solution `sol` and collation `col`.
 function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
                           param = init_param(m),
                           randeffs = sample_randeffs(m, param),
+                          saveat = observationtimes(subject),
                           args...; kwargs...)
   m.prob === nothing && return nothing
   col = m.pre(param, randeffs, subject)
-  _solve(m,subject,col,args...;kwargs...)
+  _solve(m,subject,col,args...;saveat=saveat,kwargs...)
 end
 
 @enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
@@ -151,7 +153,7 @@ function simobs(m::PuMaSModel, subject::Subject,
                 saveat=obstimes,kwargs...)
   col = m.pre(param, randeffs, subject)
   isempty(obstimes) && throw(ArgumentError("obstimes is empty."))
-  sol = _solve(m, subject, col, args...; saveat=obstimes, kwargs...)
+  sol = _solve(m, subject, col, args...; saveat=saveat, kwargs...)
   derived = m.derived(col,sol,obstimes,subject)
   obs = m.observed(col,sol,obstimes,map(_rand,derived),subject)
   SimulatedObservations(subject,obstimes,obs)
