@@ -709,10 +709,8 @@ end
 const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"]
 _to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
 
-function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
-  level = 0.95
-  quant = quantile(Normal(), level + (1.0 - level)/2)
-  println(io, "FittedPuMaSModel")
+function _print_fit_header(io, fpm)
+  println(io, "PuMaSModelInference")
   println(io)
   println(io, "Successful minimization: $(Optim.converged(fpm.optim))")
   println(io)
@@ -721,58 +719,25 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   println(io, "Number of observation records: $(sum([length(sub.time) for sub in fpm.data]))")
   println(io, "Number of subjects: $(length(fpm.data))")
   println(io)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
+  _print_fit_header(io, fpm)
   # Get all names
   standard_errors = stderror(fpm)
   paramnames = []
   paramvals = []
-  paramrse = []
-  paramconfint = []
-  parmastd = []
   for (paramname, paramval) in pairs(fpm.param)
     std = standard_errors[paramname]
-    if typeof(paramval) <: PDMat
-      std = std.mat
-      mat = paramval.mat
-      for j = 1:size(mat, 2)
-         for i = j:size(mat, 1)
-            push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))")
-            push!(paramvals, string(round(mat[i,j]; sigdigits=5)))
-            push!(paramrse, string(round(mat[i,j]/std[i,j]; sigdigits=5)))
-            push!(paramconfint, string("[", round(mat[i,j]-std[i,j]*quant; sigdigits=5),";", round(mat[i,j]+std[i,j]*quant; sigdigits=5), "]"))
-         end
-      end
-   elseif typeof(paramval) <: PDiagMat
-      mat = paramval.diag
-      std = std.diag
-       for i = 1:length(mat)
-          push!(paramnames, string(paramname)*"$(_to_subscript(i)),$(_to_subscript(i))")
-          push!(paramvals, string(round(mat[i]; sigdigits=5)))
-          push!(paramrse, string(round(mat[i]/std[i]; sigdigits=5)))
-          push!(paramconfint, string("[", round(mat[i]-std[i]*quant; sigdigits=5),";", round(mat[i]+std[i]*quant; sigdigits=5), "]"))
-       end
-    elseif typeof(paramval) <: AbstractVector
-      for i in 1:length(paramval)
-        push!(paramnames, string(paramname, _to_subscript(i)))
-        push!(paramvals, string(round(paramval[i]; sigdigits=5)))
-        push!(paramrse, string(round(paramval[i]/std[i]; sigdigits=5)))
-        push!(paramconfint, string("[", round(paramval[i]-std[i]*quant; sigdigits=5),";", round(paramval[i]+std[i]*quant; sigdigits=5), "]"))
-      end
-    else
-      push!(paramnames, string(paramname))
-      push!(paramvals, string(round(paramval; sigdigits=5)))
-      push!(paramrse, string(round(paramval/std; sigdigits=5)))
-      push!(paramconfint, string("[", round(paramval-std*quant; sigdigits=5),";", round(paramval+std*quant; sigdigits=5), "]"))
-    end
+    _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, std, nothing)
   end
 
   maxname = maximum(length.(paramnames))+1
   maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
-  maxrs = max(maximum(length.(paramrse))+1, length("RSE "))
-  maxconfint = max(maximum(length.(paramconfint))+1, length("95%-conf. int. "))
-  labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad("95%-conf. int.", maxconfint)
+  labels = " "^(maxname+1)*rpad("Estimate ", maxval)
   stringrows = []
-  for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
-    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
+  for (name, val) in zip(paramnames, paramvals)
+    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval)))
   end
   println(io, labels)
   for stringrow in stringrows
@@ -989,3 +954,96 @@ end
 
 # Some type piracy for the time being
 Distributions.MvNormal(D::Diagonal) = MvNormal(PDiagMat(D.diag))
+
+struct PuMaSModelInference{T1, T2, T3}
+  fpm::T1
+  vcov::T2
+  level::T3
+end
+
+
+"""
+    inference(fpm::FittedPuMaSModel) -> PuMaSModelInference
+
+Compute the `vcov` matrix and return a struct used for inference
+based on the fitted model `fpm`.
+"""
+function inference(fpm::FittedPuMaSModel; level = 0.95)
+  _vcov = vcov(fpm)
+  PuMaSModelInference(fpm, _vcov, level)
+end
+function StatsBase.stderror(pmi::PuMaSModelInference)
+  trf = toidentitytransform(pmi.fpm.model.param)
+  ss = sqrt.(diag(pmi.vcov))
+  return TransformVariables.transform(trf, ss)
+end
+
+function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDMat, std, quant)
+  matstd = std.mat
+  mat = paramval.mat
+  for j = 1:size(mat, 2)
+     for i = j:size(mat, 1)
+        _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))"
+        _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i, j], matstd[i, j], quant)
+     end
+  end
+end
+function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDiagMat, std, quant)
+  matstd = std.diag
+  mat = paramval.diag
+    for i = 1:length(mat)
+      _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(i))"
+      _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i], matstd[i], quant)
+    end
+end
+function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::AbstractVector, std, quant)
+  for i in 1:length(paramval)
+    _push_varinfo!(_names, _vals, _rse, _confint, string(paramname, _to_subscript(i)), paramval[i], std[i], quant)
+  end
+end
+function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Number, std, quant)
+  push!(_names, string(paramname))
+  push!(_vals, string(round(paramval; sigdigits=5)))
+  !(_rse == nothing) && push!(_rse, string(round(paramval/std; sigdigits=5)))
+  !(_confint == nothing) && push!(_confint, string("[", round(paramval-std*quant; sigdigits=5),";", round(paramval+std*quant; sigdigits=5), "]"))
+end
+
+
+function Base.show(io::IO, mime::MIME"text/plain", pmi::PuMaSModelInference)
+  fpm = pmi.fpm
+  _print_fit_header(io, pmi.fpm)
+
+
+  # Get all names
+  standard_errors = stderror(pmi)
+  paramnames = []
+  paramvals = []
+  paramrse = []
+  paramconfint = []
+
+  quant = quantile(Normal(), pmi.level + (1.0 - pmi.level)/2)
+
+  for (paramname, paramval) in pairs(fpm.param)
+    std = standard_errors[paramname]
+      _push_varinfo!(paramnames, paramvals, paramrse, paramconfint, paramname, paramval, std, quant)
+  end
+
+  maxname = maximum(length.(paramnames))+1
+  maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
+  maxrs = max(maximum(length.(paramrse))+1, length("RSE "))
+  maxconfint = max(maximum(length.(paramconfint))+1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
+  labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad(string(round(pmi.level*100, sigdigits=6))*"%-conf. int.", maxconfint)
+  stringrows = []
+  for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
+    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
+  end
+  println(io, labels)
+  for stringrow in stringrows
+    println(io, stringrow)
+  end
+end
+TreeViews.hastreeview(x::PuMaSModelInference) = true
+function TreeViews.treelabel(io::IO,x::PuMaSModelInference,
+                             mime::MIME"text/plain" = MIME"text/plain"())
+  show(io,mime,Base.Text(Base.summary(x)))
+end
