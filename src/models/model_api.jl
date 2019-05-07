@@ -51,7 +51,7 @@ end
 
 # Where to save
 observationtimes(sub::Subject) = isnothing(sub.observations) &&
-                                 !isempty(sub.events) && !isnothing(sub.events) ?
+                                 !isnothing(sub.events) && !isempty(sub.events) ?
                                  (0.0:1.0:(sub.events[end].time+24.0)) :
                                  sub.time
 
@@ -154,7 +154,8 @@ function simobs(m::PuMaSModel, subject::Subject,
                 obstimes=observationtimes(subject),
                 saveat=obstimes,kwargs...)
   col = m.pre(param, randeffs, subject)
-  isempty(obstimes) && throw(ArgumentError("obstimes is empty."))
+  m.prob !== nothing && (isnothing(obstimes) || isempty(obstimes)) &&
+                          throw(ArgumentError("obstimes is empty."))
   sol = _solve(m, subject, col, args...; saveat=saveat, kwargs...)
   derived = m.derived(col,sol,obstimes,subject)
   obs = m.observed(col,sol,obstimes,map(_rand,derived),subject)
