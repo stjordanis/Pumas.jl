@@ -961,12 +961,12 @@ struct FittedPuMaSModelInference{T1, T2, T3}
 end
 
 """
-    inference(fpm::FittedPuMaSModel) -> FittedPuMaSModelInference
+    infer(fpm::FittedPuMaSModel) -> FittedPuMaSModelInference
 
 Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
-function inference(fpm::FittedPuMaSModel; level = 0.95)
+function infer(fpm::FittedPuMaSModel; level = 0.95)
   _vcov = vcov(fpm)
   FittedPuMaSModelInference(fpm, _vcov, level)
 end
