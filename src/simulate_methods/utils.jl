@@ -21,7 +21,7 @@ const DEFAULT_BIOAV = 1
 const DEFAULT_LAGS = 0
 
 function _adjust_event(ev::Event,u0,lags,bioav,rate,duration)
-  if ev.rate == 2 && rate != DEFAULT_RATE
+  if ev.rate == -2 && rate != DEFAULT_RATE
     _rate = rate
     _duration = ev.amt
     _duration /= _cmt_value(ev, u0, rate, DEFAULT_RATE)
