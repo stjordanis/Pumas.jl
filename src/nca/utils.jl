@@ -25,7 +25,8 @@ checkmonotonic(time, idxs) = checkmonotonic(nothing, time, idxs, nothing)
 end
 
 """
-  checkconctime(conc, time=nothing; monotonictime=true)
+    checkconctime(conc, time=nothing; monotonictime=true)
+
 Verify that the concentration and time are valid
 
 If the concentrations or times are invalid, will provide an error.
@@ -72,7 +73,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwa
 end
 
 """
-  cleanmissingconc(conc, time; missingconc=nothing, check=true)
+    cleanmissingconc(conc, time; missingconc=nothing, check=true)
 
 Handle `missing` values in the concentration measurements as requested by the user.
 
@@ -117,7 +118,7 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true, kwargs...
 end
 
 """
-  cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+    cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
 
 Handle BLQ values in the concentration measurements as requested by the user.
 
