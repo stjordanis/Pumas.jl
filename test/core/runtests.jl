@@ -18,6 +18,8 @@
     include("template_model_ev_system.jl") end
 @time @safetestset "Multiple Response Tests" begin
     include("multiresponses.jl") end
+@time @safetestset "DCP Rate Handling Tests" begin
+    include("dcp_rate.jl") end
 @time @safetestset "Type-Stability Tests" begin
     include("stability_tests.jl") end
 @time @safetestset "StaticArray Tests" begin
