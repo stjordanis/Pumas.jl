@@ -40,10 +40,12 @@ function timespan(sub::Subject,tspan,saveat)
   e_lo, e_hi = !isnothing(sub.events) && !isempty(sub.events) ? extrema(evt.time for evt in sub.events) : (Inf,-Inf)
   s_lo, s_hi = !isnothing(saveat) && !isempty(saveat) ? extrema(saveat) : (Inf,-Inf)
   obs_lo, obs_hi = !isnothing(sub.time) && !isempty(sub.time) ? extrema(sub.time) : (Inf,-Inf)
-  lo, hi = extrema((e_lo, e_hi, s_lo, s_hi, obs_lo, obs_hi))
+  lo = minimum((e_lo,s_lo,obs_lo))
+  hi = maximum((e_hi,e_hi,obs_hi))
   tspan !== nothing && tspan[1] !== nothing && (lo = tspan[1]) # User override
   tspan !== nothing && tspan[2] !== nothing && (hi = tspan[2]) # User override
-  lo == -Inf && error("No lower bound to time identified. Please supply events, obstimes")
+  lo == Inf && error("No starting time identified. Please supply events or obstimes")
+  hi == -Inf && error("No ending time identified. Please supply events, obstimes")
   lo, hi
 end
 
@@ -118,7 +120,7 @@ function _solve(m::PuMaSModel, subject, col, args...;
                      remake(m.prob; p=col, u0=u0, tspan=tspan),
                      m.derived,
                      m.observed)
-    return _solve_diffeq(mtmp, subject, args...;kwargs...)
+    return _solve_diffeq(mtmp, subject, args...;saveat=saveat, kwargs...)
   end
 end
 

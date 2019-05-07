@@ -112,10 +112,9 @@ sol1 = solve(mdsl,subject,param,randeffs)
 sol2 = solve(mobj,subject,param,randeffs)
 
 @test sol1[10].Central ≈ sol2[10].Central
+@test sol1[2,:] ≈ sol2[2,:]
 
 @test conditional_nll(mdsl,subject,param,randeffs) ≈ conditional_nll(mobj,subject,param,randeffs) rtol=5e-3
-
-sol1(0.0:0.01:1.0)[2,:]
 
 Random.seed!(1); obs_dsl = simobs(mdsl,subject,param,randeffs)
 Random.seed!(1); obs_obj = simobs(mobj,subject,param,randeffs)
