@@ -27,8 +27,8 @@ _lpdf(d::Distributions.Sampleable, x::PDMat) = logpdf(d,x)
 _lpdf(d::Distributions.Sampleable, x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
 function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-  sum(propertynames(xs)) do k
-    haskey(ds, k) ? _lpdf(getproperty(ds, k), getproperty(xs, k)) : zero(getproperty(xs, k))
+  sum(keys(xs)) do k
+    haskey(ds, k) ? _lpdf(getindex(ds, k), getindex(xs, k)) : zero(getindex(xs, k))
   end
 end
 _lpdf(d::Domain, x) = 0.0
@@ -122,7 +122,7 @@ function conditional_nll(m::PuMaSModel,
 end
 
 function _conditional_nll(dv::AbstractVector{<:Normal}, dv0::AbstractVector{<:Normal}, subject::Subject)
-  x = sum(propertynames(subject.observations)) do k
+  x = sum(keys(subject.observations)) do k
     # FIXME! Don't hardcode for dv
     sum(zip(dv, dv0, subject.observations.dv)) do (d, d0, obs)
       _lpdf(Normal(d.μ, d0.σ), obs)
