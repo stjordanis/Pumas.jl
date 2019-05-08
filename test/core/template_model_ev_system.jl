@@ -229,6 +229,9 @@ param = (θ = [1.5,  #Ka
 sol = solve(mlagbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
 
+sol = solve(mlagbioav_diffeq, subject, param, randeffs; saveat=Float64[], abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:right)./30 ≈ subject.observations.cp
+
 sol = solve(mlagbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
 @test sol.t == subject.time
 
@@ -326,14 +329,19 @@ let
 end
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
-@test sol[2][2] ≈ u0
+@test sol[1][2] ≈ u0
 
 sol = solve(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
-@test 1000sol[2,1]/30 ≈ subject.observations.cp[1] rtol=1e-5
+@test 1000sol[1,1]/30 ≈ subject.observations.cp[1] rtol=1e-5
+@test sol.t == subject.time
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[], abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+@test 1000sol[1,1]/30 ≈ subject.observations.cp[1] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
 @test sol.t == subject.time
@@ -401,12 +409,16 @@ let
 end
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
-@test sol[2][2] ≈ u0
+@test sol[1][2] ≈ u0
 
 sol = solve(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test sol[3][2] ≈ u0
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+@test sol.t == subject.time
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[] , abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
@@ -457,6 +469,10 @@ param = (θ = [ 1.5,  #Ka
             ],)
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+@test sol.t == subject.time
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[], abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
@@ -511,7 +527,13 @@ param = (θ = [ 1.5,  #Ka
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[], abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
+@test sol.t == subject.time
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
 @test sol.t == subject.time
 
 sim = simobs(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, continuity=:left)
@@ -563,6 +585,9 @@ param = (θ = [ 1.5,  #Ka
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat=Float64[], abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
 @test sol.t == subject.time
 
@@ -609,6 +634,9 @@ param = (θ = [ 1.5,  #Ka
             ],)
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat=Float64[], abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
@@ -658,6 +686,9 @@ param = (θ = [ 1.5,  #Ka
             ],)
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
+@test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
+
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat=Float64[], abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
@@ -916,7 +947,7 @@ param = (θ = [
               30.0 #V
               ],)
 
-sol = solve(m_diffeq, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
+sol = solve(m_diffeq, subject, param, randeffs; abstol=1e-12, reltol=1e-12, saveat = Float64[])
 @test 1000sol(subject.time; idxs=2, continuity = :left)[2:end]/30 ≈ subject.observations.cp[2:end] rtol=1e-6
 
 sol = solve(m_diffeq, subject, param, randeffs; abstol=1e-12, reltol=1e-12, saveat = subject.time)

@@ -1,4 +1,4 @@
-using PuMaS, StaticArrays, DataInterpolations
+using PuMaS, StaticArrays, DataInterpolations, Test
 
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
@@ -110,7 +110,7 @@ tv_subject = process_nmtran(example_nmtran_data("time_varying_covariates"),
 =#
 
 tv_subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12], cmt = 2),
-                  cvs = (wt=[70,75,80,85,90,92,70],),
+                  cvs = (wt=[70,75,80,85,90,92,70,80],),
                   time = 0:15:(15*7))
 
 m_tv = @model begin

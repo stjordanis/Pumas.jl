@@ -14,6 +14,8 @@
     include("generated_doses_tests.jl") end
 @time @safetestset "SS=2 and Overlap Tests" begin
     include("ss2_overlap_tests.jl") end
+@time @safetestset "Eventless Tests" begin
+    include("eventless.jl") end
 @time @safetestset "Template Model EV System" begin
     include("template_model_ev_system.jl") end
 @time @safetestset "Multiple Response Tests" begin
