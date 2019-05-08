@@ -5,10 +5,6 @@ using PuMaS, LinearAlgebra, Optim, CSV
 
   data = process_nmtran(example_nmtran_data("wang"))
 
-  @testset "Check that PuMaS throws when there are no events" begin
-    @test_throws ArgumentError PuMaS.timespan(data[1])
-  end
-
   # Add initial events following Wang's model
   for i in eachindex(data)
     push!(data[i].events, PuMaS.Event(10.0, 0.0, 1, 1))
