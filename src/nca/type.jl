@@ -251,7 +251,7 @@ function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
   funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
    cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
    auc, auclast, auctau, aumc, aumclast, aumctau, auc_extrap_percent, aumc_extrap_percent,
-   cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
+   cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
   values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))

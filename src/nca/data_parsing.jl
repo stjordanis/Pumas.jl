@@ -2,8 +2,8 @@ using CSV, DataFrames
 
 """
     read_nca(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
-      conc=:conc, occasion=nothing, amt=nothing, route=nothing, duration=nothing,
-      ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...) -> NCAPopulation
+             amt=:amt, route=:route, duration=:duration, blq=:blq,
+             group=nothing, ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
 
 Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
 holds an array of `NCASubject`s which can cache certain results to achieve
