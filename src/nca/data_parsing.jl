@@ -128,7 +128,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
       doses = nothing
     end
     try
-      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, concblq=blq===nothing ? :keep : nothing, kwargs...)
+      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
       @info "ID $id errored"
       rethrow()

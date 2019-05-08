@@ -187,3 +187,6 @@ df = DataFrame()
 df.id=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
 subj = read_nca(df, verbose=false)[1]
 @test subj.time == findall(iszero, df.blq)
+rename!(df, :blq => :_blq)
+subj = read_nca(df, verbose=false)[1]
+@test subj.time == [1; 2;findall(!iszero, df.conc);7]
