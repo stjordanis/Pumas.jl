@@ -184,4 +184,6 @@ df.id = 1
 @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 
 df = DataFrame()
-df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 1, 0, 0, 1, 0, 1]
+df.id=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
+subj = read_nca(df, verbose=false)[1]
+@test subj.time == findall(iszero, df.blq)

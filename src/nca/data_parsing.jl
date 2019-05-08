@@ -55,6 +55,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     throw(x)
   end
   dfnames = names(df)
+  blq = (blq in dfnames) ? blq : nothing
   amt = (amt in dfnames) ? amt : nothing
   route = (route in dfnames) ? route : nothing
   occasion = (occasion in dfnames) ? occasion : nothing
@@ -63,6 +64,16 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   if verbose
     hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`."
   end
+
+  # BLQ
+  @noinline blqerr() = throw(ArgumentError("blq has to be a vector of 0s and 1s."))
+  if blq !== nothing
+    blqs = df[blq]
+    eltype(blqs) <: Union{Int, Bool} || blqerr()
+    extrema(blqs) == (0, 1) || blqerr()
+    df = deleterows!(deepcopy(df), findall(isequal(1), blqs))
+  end
+
   sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
@@ -117,7 +128,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
       doses = nothing
     end
     try
-      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, kwargs...)
+      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, concblq=blq===nothing ? :keep : nothing, kwargs...)
     catch
       @info "ID $id errored"
       rethrow()
