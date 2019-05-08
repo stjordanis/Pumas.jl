@@ -443,7 +443,7 @@ function add_vars(ex::Expr, vars)
   return Expr(:block, [vars.args; args]...)
 end
 
-to_ncasubj(name, t, events) = NCASubject(name, t, dose=map(ev->convert(NCADose, ev), events), clean=false)
+to_ncasubj(name, t, events) = NCASubject(name, t, dose=map(ev->convert(NCADose, ev), events), clean=false, check=false)
 
 macro nca(name)
   esc(:(PuMaS.to_ncasubj($name, t, events)))

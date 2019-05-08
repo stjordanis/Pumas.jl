@@ -9,6 +9,7 @@ timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
 mdata.route = map(f -> f=="ORAL" ? "ev" : "iv", mdata.FORMULATION)
+mdata.ii = 24
 mncapop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, route=:route, occasion=:OCC,
                                      timeu=timeu, concu=concu, amtu=amtu)
 
@@ -37,10 +38,10 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test_nowarn NCA.mat(mncapop)
 @test_nowarn NCA.cl(mncapop, ithdose=1)
 @test NCA.tmin(mncapop[1])[1] == 20timeu
-@test NCA.cmin(mncapop[1])[end] == mncapop[1].conc[end][end]
+@test NCA.cmin(mncapop[1])[1] == mncapop[1].conc[1][end-1]
 @test NCA.fluctation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
-@test NCA.accumulationindex(mncapop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
-@test NCA.swing(mncapop[1]) == (NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1])
+@test NCA.accumulationindex(mncapop[1]) == 1 ./(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
+@test NCA.swing(mncapop[1])[1] == ((NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1]))[1]
 @test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
 
 ncareport1 = NCAReport(mncapop[1], ithdose=1)
@@ -52,24 +53,6 @@ popncareport = NCAReport(mncapop, ithdose=1)
 @test_nowarn popncareport
 @test_broken display(NCA.to_markdown(popncareport))
 @test_nowarn NCA.to_dataframe(popncareport)
-
-# test ii
-# scalar
-ii1 = 0.1timeu
-pop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii1)
-@test all(subj -> subj.ii == ii1, pop)
-@test NCA.tau(pop[1]) == [ii1 for i in 1:4]
-@test NCA.accumulationindex(pop[1]) == inv.(1 .-exp.(-NCA.lambdaz(mncapop[1]).*ii1))
-# vector
-ii2 = [i*timeu for i in eachindex(pop)]
-pop = @test_nowarn read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii2)
-@test all(i -> pop[i].ii == ii2[i], eachindex(pop))
-# length error
-ii3 = [i*timeu for i in 1:100]
-@test_throws ArgumentError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=ii3)
-# type error
-@test_throws Unitful.DimensionError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=2)
-@test_throws ArgumentError read_nca(mdata, id=:ID, time=:TIME, conc=:COBS, amt=:AMT, occasion=:OCC, route=:route, timeu=timeu, concu=concu, amtu=amtu, ii=:ID)
 
 data1 = CSV.read(IOBuffer("""
 id,time,tad,conc,amt,occasion,formulation

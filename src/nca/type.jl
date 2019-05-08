@@ -12,7 +12,7 @@ Broadcast.broadcastable(x::Formulation) = Ref(x)
 isiv(x) = x === IVBolus || x === IVInfusion
 
 """
-  NCADose
+    NCADose
 
 `NCADose` takes the following arguments
 - `time`: time of the dose
@@ -72,44 +72,51 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
 end
 
 """
-To be completed
+    NCASubject(conc, time; concu=true, timeu=true, id=1, group=nothing, dose::T=nothing, llq=nothing, lambdaz=nothing, ii=nothing, clean=true, check=true, kwargs...)
+
+Constructs a NCASubject
 """
-function NCASubject(conc′, time′;
+function NCASubject(conc, time;
                     concu=true, timeu=true,
-                    id=1, group=nothing, dose::T=nothing, llq=nothing, clean=true,
-                    lambdaz=nothing, ii=nothing, kwargs...) where T
-  time′ isa AbstractRange && (time′ = collect(time′))
-  conc′ isa AbstractRange && (conc′ = collect(conc′))
+                    id=1, group=nothing, dose::T=nothing, llq=nothing,
+                    lambdaz=nothing, ii=nothing, clean=true, check=true, kwargs...) where T
+  time isa AbstractRange && (time = collect(time))
+  conc isa AbstractRange && (conc = collect(conc))
+  if clean
+    conc, time = cleanmissingconc(conc, time; kwargs...)
+  end
   if concu !== true || timeu !== true
-    conc′ = map(x -> ismissing(x) ? x : x*concu, conc′)
-    time′ = map(x -> ismissing(x) ? x : x*timeu, time′)
+    conc = map(x -> ismissing(x) ? x : x*concu, conc)
+    time = map(x -> ismissing(x) ? x : x*timeu, time)
   end
   multidose = T <: AbstractArray && length(dose) > 1
-  # we check monotonic later, because multidose could have TAD or TIME
-  conc, time = clean ? cleanblq(conc′, time′; llq=llq, dose=dose, monotonictime=!multidose, kwargs...) : (conc′, time′)
-  abstime = time # leave `abstime` untouched
-  unitconc = float(oneunit(eltype(conc)))
-  unittime = float(oneunit(eltype(time)))
+  nonmissingeltype(x) = Base.nonmissingtype(eltype(x))
+  unitconc = float(oneunit(nonmissingeltype(conc)))
+  unittime = float(oneunit(nonmissingeltype(time)))
   llq === nothing && (llq = zero(unitconc))
   auc_proto = -unitconc * unittime
   aumc_proto = auc_proto * unittime
   intercept = r2_proto = ustrip(unittime/unitconc)
   _lambdaz = inv(unittime)
   lambdaz_proto = lambdaz === nothing ? _lambdaz : lambdaz
-  ii = ii === nothing ? zero(float(eltype(eltype(time)))) : ii # `time` is a vector of vectors
+  ii = ii === nothing ? zero(float(eltype(nonmissingeltype(time)))) : ii # `time` is a vector of vectors
   if multidose
     n = length(dose)
+    abstime = clean ? typeof(unittime)[] : time
     ct = let time=time, dose=dose
       map(eachindex(dose)) do i
         idxs = ithdoseidxs(time, dose, i)
-        clean && checkmonotonic(conc, time, idxs, dose)
-        iszero(time[idxs[1]]) ? (conc[idxs], time[idxs]) : (conc[idxs], time[idxs].-time[idxs[1]]) # convert to TAD
+        conci, timei = @view(conc[idxs]), @view(time[idxs])
+        check && checkconctime(conci, timei; dose=dose, kwargs...)
+        conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
+        clean && append!(abstime, time′)
+        iszero(time[idxs[1]]) ? (conc′, time′) : (conc′, time′.-time[idxs[1]]) # convert to TAD
       end
     end
     conc = map(x->x[1], ct)
     time = map(x->x[2], ct)
-    maxidx  = map(c->conc_maximum(c, eachindex(c))[2], conc)
-    lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
+    maxidx  = fill(-2, n)
+    lastidx = @. ctlast_idx(conc, time; llq=llq)
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
@@ -120,9 +127,12 @@ function NCASubject(conc′, time′;
                         fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
+  check && checkconctime(conc, time; dose=dose, kwargs...)
+  conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
+  abstime = time
   dose !== nothing && (dose = first(dose))
-  _, maxidx = conc_maximum(conc, eachindex(conc))
-  lastidx = ctlast_idx(conc, time; llq=llq, check=false)
+  maxidx = -2
+  lastidx = ctlast_idx(conc, time; llq=llq)
   NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),
@@ -236,12 +246,14 @@ end
 function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
+  aucinf = auc
+  aumcinf = aumc
 
   # Calculate summary values
-  funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
-   cmax, tmax, cmin, tmin, c0, clast, tlast, thalf,
-   auc, auclast, auctau, aumc, aumclast, aumctau, auc_extrap_percent, aumc_extrap_percent,
-   cl, clf, vss, vz, tlag, mrt, fluctation, accumulationindex,
+  funcs = (lambdazr2, lambdazadjr2, lambdaznpoints, lambdaz, lambdazintercept, lambdaztimefirst,
+   cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
+   auclast, auctau, aucinf, auc_extrap_percent, aumclast, aumctau, aumcinf, aumc_extrap_percent,
+   cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
   values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))

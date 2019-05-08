@@ -1,9 +1,9 @@
 using CSV, DataFrames
 
 """
-    read_nca(df::Union{DataFrame,AbstractString}; id=:ID, time=:time,
-      conc=:conc, occasion=nothing, amt=nothing, route=nothing, duration=nothing,
-      ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...) -> NCAPopulation
+    read_nca(df::Union{DataFrame,AbstractString}; id=:id, time=:time,
+             amt=:amt, route=:route, duration=:duration, blq=:blq,
+             group=nothing, ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
 
 Parse a `DataFrame` object or a CSV file to `NCAPopulation`. `NCAPopulation`
 holds an array of `NCASubject`s which can cache certain results to achieve
@@ -13,13 +13,12 @@ read_nca(file::AbstractString; kwargs...) = read_nca(CSV.read(file); kwargs...)
 # TODO: add ploting time
 # TODO: infusion
 # TODO: plot time
-function read_nca(df; group=nothing, ii=nothing, kwargs...)
-  pop, added_ii = if group === nothing
-    ___read_nca(df; ii=ii, kwargs...)
+function read_nca(df; group=nothing, kwargs...)
+  pop = if group === nothing
+    ___read_nca(df; kwargs...)
   else
     dfs = groupby(df, group)
     groupnum = length(dfs)
-    added_ii = true
     dfpops = map(dfs) do df
       if group isa AbstractArray && length(group) > 1
         grouplabel = map(string, group)
@@ -31,20 +30,18 @@ function read_nca(df; group=nothing, ii=nothing, kwargs...)
         groupnames = first(df[group])
         currentgroup = grouplabel => groupnames
       end
-      pop, tmp = ___read_nca(df; group=currentgroup, ii=ii, kwargs...)
-      added_ii &= tmp
+      pop = ___read_nca(df; group=currentgroup, kwargs...)
       return pop
     end
     pops = map(i->dfpops[i][end], 1:groupnum)
-    NCAPopulation(vcat(pops...)), added_ii
+    NCAPopulation(vcat(pops...))
   end
-  ii !== nothing && (added_ii || add_ii!(pop, ii)) # avoiding recomputing the fast path
   return pop
 end
 
 function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
-                       amt=:amt, route=:route,#= rate=nothing,=# duration=:duration,
-                       group=nothing, ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
+                       amt=:amt, route=:route,#= rate=nothing,=# duration=:duration, blq=:blq,
+                       ii=:ii, group=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
   local ids, times, concs, amts
   try
     df[id]
@@ -55,7 +52,9 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     throw(x)
   end
   dfnames = names(df)
+  blq = (blq in dfnames) ? blq : nothing
   amt = (amt in dfnames) ? amt : nothing
+  ii  = (ii in dfnames) ? ii : nothing
   route = (route in dfnames) ? route : nothing
   occasion = (occasion in dfnames) ? occasion : nothing
   duration = (duration in dfnames) ? duration : nothing
@@ -63,6 +62,16 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   if verbose
     hasdose || @warn "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`."
   end
+
+  # BLQ
+  @noinline blqerr() = throw(ArgumentError("blq has to be a vector of 0s and 1s."))
+  if blq !== nothing
+    blqs = df[blq]
+    eltype(blqs) <: Union{Int, Bool} || blqerr()
+    extrema(blqs) == (0, 1) || blqerr()
+    df = deleterows!(deepcopy(df), findall(isequal(1), blqs))
+  end
+
   sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
@@ -71,6 +80,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   times = df[time]
   concs = df[conc]
   amts  = amt === nothing ? nothing : df[amt]
+  iis  = ii === nothing ? nothing : df[ii]
   occasions = occasion === nothing ? nothing : df[occasion]
   uids = unique(ids)
   idx  = -1
@@ -117,7 +127,9 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
       doses = nothing
     end
     try
-      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, kwargs...)
+      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu,
+                           ii=iis === nothing ? nothing : iis[i]*timeu,
+                           concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
       @info "ID $id errored"
       rethrow()
@@ -125,7 +137,5 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   end
   # Use broadcast to tighten ncas element type
   pop = NCAPopulation(identity.(ncas))
-  added_ii = ii !== nothing && (ii isa Number || (ii isa Array && length(pop) == length(ii)))
-  added_ii && add_ii!(pop, ii) # fast path
-  return pop, added_ii
+  return pop
 end
