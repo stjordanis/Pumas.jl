@@ -1,6 +1,5 @@
 using PuMaS.NCA, Test, CSV
 using PuMaS
-using Random
 
 file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
 data = CSV.read(file)
@@ -183,3 +182,11 @@ df.amt = zeros(Int, 27); df.amt[22] = 1
 df.route = "ev"
 df.id = 1
 @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
+
+df = DataFrame()
+df.id=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
+subj = read_nca(df, verbose=false)[1]
+@test subj.time == findall(iszero, df.blq)
+rename!(df, :blq => :_blq)
+subj = read_nca(df, verbose=false)[1]
+@test subj.time == [1; 2;findall(!iszero, df.conc);7]

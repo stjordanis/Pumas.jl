@@ -157,16 +157,16 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
       findlast( x->x<=hi, time)
     end
     # auc of the first interval
-    auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
+    auc = intervalauc(concstart, conc[idx1], lo, time[idx1], idx1-1, maxidx(nca), method, linear, log, ret_typ)
     int_idxs = idx1:idx2-1
     # auc of the last interval
     if isfinite(hi)
       concend = interpextrapconc(nca, hi; method=method, kwargs...)
       if hi > _tlast # if we are extrapolating at the last point, let's use the logarithm trapezoid
         λz = lambdaz(nca; recompute=false, kwargs...)
-        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, maxidx(nca), method, linear, log, ret_typ)
       else
-        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, nca.maxidx, method, linear, log, ret_typ)
+        auc += intervalauc(conc[idx2], concend, time[idx2], hi, idx2, maxidx(nca), method, linear, log, ret_typ)
       end
     end
   else
@@ -176,7 +176,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
     time0 = zero(time[idx1])
     if time[idx1] > time0
       c0′ = c0(nca, true)
-      auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, nca.maxidx, method, linear, log, ret_typ)
+      auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, maxidx(nca), method, linear, log, ret_typ)
     end
   end
   if !isassigned(time, idx1+1) # if idx1+1 is not assigned
@@ -190,7 +190,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
   #
   # iterate over the interior points
   for i in idx1:idx2-1
-    auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, nca.maxidx, method, linear, log, ret_typ)
+    auc += intervalauc(conc[i], conc[i+1], time[i], time[i+1], i, maxidx(nca), method, linear, log, ret_typ)
   end
 
   # cache results
@@ -330,7 +330,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II};
   time′ = reinterpret(typeof(one(eltype(time))), time)
   conc′ = reinterpret(typeof(one(eltype(conc))), conc)
   outlier = false
-  _, cmaxidx = conc_maximum(conc, eachindex(conc))
+  _, cmaxidx = conc_extreme(conc, eachindex(conc), <)
   n = length(time)
   if slopetimes === nothing && idxs === nothing
     m = min(n-1, threshold-1, n-cmaxidx-1)

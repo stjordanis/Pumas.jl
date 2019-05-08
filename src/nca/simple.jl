@@ -1,5 +1,5 @@
 """
-  clast(nca::NCASubject)
+    clast(nca::NCASubject)
 
 Calculate `clast`
 """
@@ -15,7 +15,7 @@ function clast(nca::NCASubject; pred=false, kwargs...)
 end
 
 """
-  tlast(nca::NCASubject)
+    tlast(nca::NCASubject)
 
 Calculate `tlast`
 """
@@ -26,8 +26,7 @@ end
 
 # This function uses ``-1`` to denote missing as after checking `conc` is
 # strictly great than ``0``.
-function ctlast_idx(conc, time; llq=nothing, check=true)
-  check && checkconctime(conc, time)
+function ctlast_idx(conc, time; llq=nothing)
   llq === nothing && (llq = zero(eltype(conc)))
   # now we assume the data is checked
   f = x->(ismissing(x) || x<=llq)
@@ -36,8 +35,7 @@ function ctlast_idx(conc, time; llq=nothing, check=true)
   return idx
 end
 
-function ctfirst_idx(conc, time; llq=nothing, check=true)
-  check && checkconctime(conc, time)
+function ctfirst_idx(conc, time; llq=nothing)
   llq === nothing && (llq = zero(eltype(conc)))
   # now we assume the data is checked
   f = x->(ismissing(x) || x<=llq)
@@ -47,12 +45,12 @@ function ctfirst_idx(conc, time; llq=nothing, check=true)
 end
 
 """
-  tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+    tmax(nca::NCASubject; interval=nothing, kwargs...)
 
 Calculate ``T_{max}_{t_1}^{t_2}``
 """
-function tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
-  if interval isa Tuple
+function tmax(nca::NCASubject; interval=nothing, kwargs...)
+  if interval isa Union{Tuple, Nothing}
     return ctmax(nca; interval=interval, kwargs...)[2]
   else
     f = let nca=nca, kwargs=kwargs
@@ -63,13 +61,13 @@ function tmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
 end
 
 """
-  cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+    cmax(nca::NCASubject; interval=nothing, kwargs...)
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+function cmax(nca::NCASubject; interval=nothing, kwargs...)
   dose = nca.dose
-  if interval isa Tuple
+  if interval isa Union{Tuple, Nothing}
     sol = ctmax(nca; interval=interval, kwargs...)[1]
   else
     f = let nca=nca, kwargs=kwargs
@@ -81,68 +79,83 @@ function cmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
 end
 
 """
-  cmin(nca::NCASubject; kwargs...)
+    ctau(nca::NCASubject; method=:linear, kwargs...)
+
+Calculate concentration at τ
+"""
+ctau(nca::NCASubject; method=:linear, kwargs...) = interpextrapconc(nca, tau(nca; kwargs...); method=method, kwargs...)
+
+"""
+    cmin(nca::NCASubject; kwargs...)
 
 Calculate minimum observed concentration
 """
-function cmin(nca::NCASubject; kwargs...) # TODO: clowest C(tau)
+function cmin(nca::NCASubject; kwargs...)
   conc, time = nca.conc, nca.time
-  val, _ = conc_maximum(conc, eachindex(conc), true)
+  val, _ = conc_extreme(conc, eachindex(conc), >)
   return val
 end
 
 """
-  tmin(nca::NCASubject; kwargs...)
+    tmin(nca::ncasubject; kwargs...)
 
 Calculate time of minimum observed concentration
 """
 function tmin(nca::NCASubject; kwargs...)
   conc, time = nca.conc, nca.time
-  _, idx = conc_maximum(conc, eachindex(conc), true)
+  _, idx = conc_extreme(conc, eachindex(conc), >)
   return time[idx]
 end
 
-@inline function ctmax(nca::NCASubject; interval=(0.,Inf), kwargs...)
+function ctmax(nca::NCASubject; interval=nothing, kwargs...)
   conc, time = nca.conc, nca.time
-  if interval === (0., Inf)
-    val, idx = conc_maximum(conc, eachindex(conc))
-    return (cmax=val, tmax=time[idx])
+  c0′ = (interval === nothing || iszero(interval[1])) ? c0(nca, true) : missing
+  if interval === nothing
+    val, idx = conc_extreme(conc, eachindex(conc), <)
+    t = time[idx]
+    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+    return (val, t, idx)
+  elseif interval isa Tuple
+    @assert interval[1] < interval[2] "t0 must be less than t1"
+    interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
+    idx1, idx2 = let (lo, hi)=interval
+      findfirst(t->t>=lo, time),
+      findlast( t->t<=hi, time)
+    end
+    val, idx = conc_extreme(conc, idx1:idx2, <)
+    t = time[idx]
+    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+  else
+    throw(ArgumentError("interval must be nothing or a tuple."))
   end
-  @assert interval[1] < interval[2] "t0 must be less than t1"
-  interval[1] > time[end] && throw(ArgumentError("t0 is longer than observation time"))
-  idx1, idx2 = let (lo, hi)=interval
-    findfirst(t->t>=lo, time),
-    findlast( t->t<=hi, time)
-  end
-  val, idx = conc_maximum(conc, idx1:idx2)
-  return (cmax=val, tmax=time[idx])
+  return (val, t, idx)
 end
 
-@inline function conc_maximum(conc, idxs, min::Bool=false)
-  idx = 1
-  val = -oneunit(Base.nonmissingtype(eltype(conc)))
-  min && (val *= -Inf)
+maxidx(subj::NCASubject) = subj.maxidx == -2 ? (subj.maxidx = ctmax(subj)[3]) : subj.maxidx
+
+function conc_extreme(conc, idxs, lt)
+  local val, idx
+  for i in idxs
+    conci = conc[i]
+    !ismissing(conci) && (val = conci; idx=i; break) # find a sensible initialization
+  end
   for i in idxs
     if !ismissing(conc[i])
-      if min
-        val > conc[i] && (val = conc[i]; idx=i)
-      else
-        val < conc[i] && (val = conc[i]; idx=i)
-      end
+      lt(val, conc[i]) && (val = conc[i]; idx=i)
     end
   end
   return val, idx
 end
 
 """
-  thalf(nca::NCASubject; kwargs...)
+    thalf(nca::NCASubject; kwargs...)
 
 Calculate half life time.
 """
 thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs...)
 
 """
-  clf(nca::NCASubject; kwargs...)
+    clf(nca::NCASubject; kwargs...)
 
 Calculate total drug clearance divided by the bioavailability (F), which is just the
 inverse of the dose normalizedosed ``AUC_0^∞`` or ``AUC_0^τ`` (steady-state).
@@ -150,14 +163,14 @@ inverse of the dose normalizedosed ``AUC_0^∞`` or ``AUC_0^τ`` (steady-state).
 function clf(nca::NCASubject; ss=false, kwargs...)
   nca.dose === nothing && return missing
   if ss
-    map(inv, normalizedose(auctau(nca; kwargs...), nca))
+    map(x->1/x, normalizedose(auctau(nca; kwargs...), nca))
   else
-    map(inv, normalizedose(auc(nca; kwargs...), nca))
+    map(x->1/x, normalizedose(auc(nca; kwargs...), nca))
   end
 end
 
 """
-  vss(nca::NCASubject; kwargs...)
+    vss(nca::NCASubject; kwargs...)
 
 Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 ``V_{ss} = MRT * CL``.
@@ -165,7 +178,7 @@ Calculate apparent volume of distribution at equilibrium for IV bolus doses.
 vss(nca::NCASubject; kwargs...) = mrt(nca; kwargs...)*cl(nca; kwargs...)
 
 """
-  vz(nca::NCASubject; kwargs...)
+    vz(nca::NCASubject; kwargs...)
 
 Calculate the volume of distribution during the terminal phase.
 ``V_z = 1/(AUC_0^τ⋅λz)`` for dose normalizedosed `AUC`.
@@ -175,15 +188,15 @@ function vz(nca::NCASubject; ss=false, kwargs...)
   λ = lambdaz(nca; recompute=false, kwargs...)
   if ss
     τauc = auctau(nca; kwargs...)
-    @. inv(normalizedose(τauc, nca.dose) * λ)
+    @. 1/(normalizedose(τauc, nca.dose) * λ)
   else
     aucinf = normalizedose(auc(nca; kwargs...), nca)
-    @. inv(aucinf * λ)
+    @. 1/(aucinf * λ)
   end
 end
 
 """
-  bioav(nca::NCASubject; ithdose::Integer, kwargs...)
+    bioav(nca::NCASubject; ithdose::Integer, kwargs...)
 
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
@@ -208,7 +221,7 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ith
 end
 
 """
-  cl(nca::NCASubject; ithdose::Integer, kwargs...)
+    cl(nca::NCASubject; ithdose::Integer, kwargs...)
 
 Total drug clearance
 """
@@ -239,7 +252,7 @@ function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ss=fal
 end
 
 """
-  tlag(nca::NCASubject; kwargs...)
+    tlag(nca::NCASubject; kwargs...)
 
 The time prior to the first increase in concentration.
 """
@@ -251,7 +264,7 @@ function tlag(nca::NCASubject; kwargs...)
 end
 
 """
-  mrt(nca::NCASubject; kwargs...)
+    mrt(nca::NCASubject; kwargs...)
 
 Mean residence time from the time of dosing to the time of the last measurable
 concentration.
@@ -281,7 +294,7 @@ function mrt(nca::NCASubject; ss=false, kwargs...)
 end
 
 """
-  mat(nca::NCASubject; kwargs...)
+    mat(nca::NCASubject; kwargs...)
 
 Mean absorption time:
 ``MAT = MRT_po - MRT_iv``
@@ -306,20 +319,22 @@ function mat(nca::NCASubject; kwargs...)
 end
 
 """
-  tau(nca::NCASubject)
+    tau(nca::NCASubject)
 
 Dosing interval. For multiple dosing only.
 """
 function tau(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   has_ii(nca) && return nca.ii
-  dose = nca.dose
-  (dose === nothing || AUC isa Number) && return missing
-  dose isa NCADose && return nca.abstime[nca.lastidx]-dose.time
-  return dose[end].time-dose[end-1].time
+  return missing
+  # do not guess tau
+  #dose = nca.dose
+  #(dose === nothing || AUC isa Number) && return missing
+  #dose isa NCADose && return nca.abstime[nca.lastidx]-dose.time
+  #return dose[end].time-dose[end-1].time
 end
 
 """
-  cavg(nca::NCASubject)
+    cavg(nca::NCASubject)
 
 Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
 """
@@ -330,7 +345,7 @@ function cavg(nca::NCASubject; kwargs...)
 end
 
 """
-  fluctation(nca::NCASubject; kwargs...)
+    fluctation(nca::NCASubject; kwargs...)
 
 Peak trough fluctuation over one dosing interval at steady state.
 ``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}``
@@ -338,7 +353,7 @@ Peak trough fluctuation over one dosing interval at steady state.
 fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; kwargs...)
 
 """
-  accumulationindex(nca::NCASubject; kwargs...)
+    accumulationindex(nca::NCASubject; kwargs...)
 
 Theoretical accumulation ratio. ``Accumulation_index = 1/(1-exp(-λ_z*Tau))``.
 """
@@ -348,14 +363,14 @@ function accumulationindex(nca::NCASubject; kwargs...)
 end
 
 """
-  swing(nca::NCASubject; kwargs...)
+    swing(nca::NCASubject; kwargs...)
 
-  ``swing = (C_{max}-C_{min})/C_{min}``
+``swing = (C_{max}-C_{min})/C_{min}``
 """
 function swing(nca::NCASubject; kwargs...)
   _cmin = cmin(nca)
   sw = (cmax(nca) - _cmin) ./ _cmin
-  isinf(sw) ? missing : sw
+  (ismissing(sw) || isinf(sw)) ? missing : sw
 end
 
 """

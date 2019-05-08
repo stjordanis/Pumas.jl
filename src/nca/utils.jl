@@ -25,7 +25,8 @@ checkmonotonic(time, idxs) = checkmonotonic(nothing, time, idxs, nothing)
 end
 
 """
-  checkconctime(conc, time=nothing; monotonictime=true)
+    checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwargs...)
+
 Verify that the concentration and time are valid
 
 If the concentrations or times are invalid, will provide an error.
@@ -39,26 +40,26 @@ Reasons for being invalid are:
 Some cases may generate warnings
   1.  A negative concentration is often but not always an error; it will generate a warning.
 """
-function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwargs...)
+function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, verbose=true, kwargs...)
   # check conc
   conc == nothing && return
   E = eltype(conc)
   isallmissing = all(ismissing, conc)
   local _neg_idx, _missing_idx
   if isempty(conc)
-    @warn "No concentration data given"
+    verbose && @warn "No concentration data given"
   elseif !(E <: Maybe{Number} && conc isa AbstractArray) || E <: Maybe{Bool} && !isallmissing
     throw(ArgumentError("Concentration data must be numeric and an array"))
   elseif isallmissing
-    @warn "All concentration data is missing"
+    verbose && @warn "All concentration data is missing"
   elseif any(x -> (_neg_idx=x[1]; x[2]<zero(x[2])), enumerate(skipmissing(conc)))
-    @warn "Negative concentrations found at index $(_neg_idx)"
+    verbose && @warn "Negative concentrations found at index $(_neg_idx)"
   end
   # check time
   time == nothing && return
   T = eltype(time)
   if isempty(time)
-    @warn "No time data given"
+    verbose && @warn "No time data given"
   elseif any(x->(_missing_idx=x[1]; ismissing(x[2])), enumerate(time))
     throw(ArgumentError("Time may not be missing (missing occured at index $_missing_idx)"))
   elseif !(T <: Maybe{Number} && time isa AbstractArray)
@@ -72,7 +73,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwa
 end
 
 """
-  cleanmissingconc(conc, time; missingconc=nothing, check=true)
+    cleanmissingconc(conc, time; missingconc=nothing)
 
 Handle `missing` values in the concentration measurements as requested by the user.
 
@@ -81,8 +82,7 @@ Handle `missing` values in the concentration measurements as requested by the us
 #Arguments
 - `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
 """
-function cleanmissingconc(conc, time; missingconc=nothing, check=true, kwargs...)
-  check && checkconctime(conc, time; kwargs...)
+function cleanmissingconc(conc, time; missingconc=nothing, kwargs...)
   missingconc === nothing && (missingconc = :drop)
   Ec = eltype(conc)
   Tc = Base.nonmissingtype(Ec)
@@ -117,7 +117,7 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true, kwargs...
 end
 
 """
-  cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+    cleanblq(conc′, time′; llq=nothing, concblq=nothing, kwargs...)
 
 Handle BLQ values in the concentration measurements as requested by the user.
 
@@ -126,7 +126,7 @@ Handle BLQ values in the concentration measurements as requested by the user.
 concentrations can affect the output of which points are considered BLQ and which are
 considered "middle".  Values are considered BLQ if they are 0.
 
-#Arguments
+# Arguments
 - `conc`: Measured concentrations
 - `time`: Time of the concentration measurement
 - `...` Additional arguments passed to `cleanmissingconc`
@@ -150,15 +150,14 @@ The meaning of each of the list elements is:
    2. "keep" Keep the BLQ values
    3. a number Set the BLQ values to that number
 """
-@inline function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
-  conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check, kwargs...)
+@inline function cleanblq(conc, time; llq=nothing, concblq=nothing, kwargs...)
   isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
   # the default is from
   # https://github.com/billdenney/pknca/blob/38719483233d52533ac1d8f535c0016d2be70ae5/R/PKNCA.options.R#L78-L87
   concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
-  firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
+  firstidx = ctfirst_idx(conc, time, llq=llq)
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting,
     # hence, we take `tfirst` to be the `last(time)`
@@ -166,7 +165,7 @@ The meaning of each of the list elements is:
     tlast = tfirst + one(tfirst)
   else
     tfirst = time[firstidx]
-    lastidx = ctlast_idx(conc, time, llq=llq, check=false)
+    lastidx = ctlast_idx(conc, time, llq=llq)
     tlast = time[lastidx]
   end
   for n in (:first, :middle, :last)
@@ -266,29 +265,3 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                 )
   end
 end
-
-add_ii!(subj::NCASubject, ii::Number) = (subj.ii = ii; subj)
-function add_ii!(pop::NCAPopulation, ii::Number)
-  for subj in pop
-    add_ii!(subj, ii)
-  end
-  return pop
-end
-function add_ii!(pop::NCAPopulation, ii::AbstractArray)
-  if length(pop) == length(ii)
-    for idx in eachindex(pop)
-      add_ii!(pop[idx], ii[idx])
-    end
-  elseif (uids = unique(map(subj->subj.id, pop)); length(uids) == length(ii)) # this path is super slow, but thankful we will never run it internally
-    for i in eachindex(uids)
-      idxs = findall(subj -> subj.id == uids[i], pop)
-      for idx in idxs
-        add_ii!(pop[idx], ii[i])
-      end
-    end
-  else
-    throw(ArgumentError("`ii` ($(length(ii))) must be as long as the population ($(length(pop))) or the length of unique IDs ($(length(uids)))."))
-  end
-  return pop
-end
-add_ii!(nca::Union{NCASubject, NCAPopulation}, @nospecialize(ii)) = throw(ArgumentError("`ii::$(typeof(ii))` must be an vector or a scalar with the element type of time."))
