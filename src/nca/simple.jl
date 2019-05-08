@@ -26,8 +26,7 @@ end
 
 # This function uses ``-1`` to denote missing as after checking `conc` is
 # strictly great than ``0``.
-function ctlast_idx(conc, time; llq=nothing, check=true)
-  check && checkconctime(conc, time)
+function ctlast_idx(conc, time; llq=nothing)
   llq === nothing && (llq = zero(eltype(conc)))
   # now we assume the data is checked
   f = x->(ismissing(x) || x<=llq)
@@ -36,8 +35,7 @@ function ctlast_idx(conc, time; llq=nothing, check=true)
   return idx
 end
 
-function ctfirst_idx(conc, time; llq=nothing, check=true)
-  check && checkconctime(conc, time)
+function ctfirst_idx(conc, time; llq=nothing)
   llq === nothing && (llq = zero(eltype(conc)))
   # now we assume the data is checked
   f = x->(ismissing(x) || x<=llq)

@@ -72,16 +72,19 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
 end
 
 """
-    NCASubject(conc, time; concu=true, timeu=true, id=1, group=nothing, dose::T=nothing, llq=nothing, clean=true, lambdaz=nothing, ii=nothing, kwargs...)
+    NCASubject(conc, time; concu=true, timeu=true, id=1, group=nothing, dose::T=nothing, llq=nothing, lambdaz=nothing, ii=nothing, clean=true, check=true, kwargs...)
 
 Constructs a NCASubject
 """
 function NCASubject(conc, time;
                     concu=true, timeu=true,
-                    id=1, group=nothing, dose::T=nothing, llq=nothing, clean=true,
-                    lambdaz=nothing, ii=nothing, kwargs...) where T
+                    id=1, group=nothing, dose::T=nothing, llq=nothing,
+                    lambdaz=nothing, ii=nothing, clean=true, check=true, kwargs...) where T
   time isa AbstractRange && (time = collect(time))
   conc isa AbstractRange && (conc = collect(conc))
+  if clean
+    conc, time = cleanmissingconc(conc, time; kwargs...)
+  end
   if concu !== true || timeu !== true
     conc = map(x -> ismissing(x) ? x : x*concu, conc)
     time = map(x -> ismissing(x) ? x : x*timeu, time)
@@ -103,7 +106,9 @@ function NCASubject(conc, time;
     ct = let time=time, dose=dose
       map(eachindex(dose)) do i
         idxs = ithdoseidxs(time, dose, i)
-        conc′, time′ = clean ? cleanblq(@view(conc[idxs]), @view(time[idxs]); llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
+        conci, timei = @view(conc[idxs]), @view(time[idxs])
+        check && checkconctime(conci, timei; dose=dose, kwargs...)
+        conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
         iszero(time[idxs[1]]) ? (conc′, time′) : (conc′, time′.-time[idxs[1]]) # convert to TAD
       end
@@ -111,7 +116,7 @@ function NCASubject(conc, time;
     conc = map(x->x[1], ct)
     time = map(x->x[2], ct)
     maxidx  = fill(-2, n)
-    lastidx = @. ctlast_idx(conc, time; llq=llq, check=false)
+    lastidx = @. ctlast_idx(conc, time; llq=llq)
     return NCASubject{typeof(conc), typeof(time), typeof(abstime), eltype(time),
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
@@ -122,11 +127,12 @@ function NCASubject(conc, time;
                         fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
+  check && checkconctime(conc, time; dose=dose, kwargs...)
   conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
   abstime = time
   dose !== nothing && (dose = first(dose))
   maxidx = -2
-  lastidx = ctlast_idx(conc, time; llq=llq, check=false)
+  lastidx = ctlast_idx(conc, time; llq=llq)
   NCASubject{typeof(conc),   typeof(time), typeof(abstime), eltype(time),
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),

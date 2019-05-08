@@ -43,7 +43,7 @@ function read_nca(df; group=nothing, ii=nothing, kwargs...)
 end
 
 function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
-                       amt=:amt, route=:route,#= rate=nothing,=# duration=:duration,
+                       amt=:amt, route=:route,#= rate=nothing,=# duration=:duration, blq=:blq,
                        group=nothing, ii=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
   local ids, times, concs, amts
   try

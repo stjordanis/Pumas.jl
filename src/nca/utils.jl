@@ -25,7 +25,7 @@ checkmonotonic(time, idxs) = checkmonotonic(nothing, time, idxs, nothing)
 end
 
 """
-    checkconctime(conc, time=nothing; monotonictime=true)
+    checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwargs...)
 
 Verify that the concentration and time are valid
 
@@ -73,7 +73,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwa
 end
 
 """
-    cleanmissingconc(conc, time; missingconc=nothing, check=true)
+    cleanmissingconc(conc, time; missingconc=nothing)
 
 Handle `missing` values in the concentration measurements as requested by the user.
 
@@ -82,8 +82,7 @@ Handle `missing` values in the concentration measurements as requested by the us
 #Arguments
 - `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
 """
-function cleanmissingconc(conc, time; missingconc=nothing, check=true, kwargs...)
-  check && checkconctime(conc, time; kwargs...)
+function cleanmissingconc(conc, time; missingconc=nothing, kwargs...)
   missingconc === nothing && (missingconc = :drop)
   Ec = eltype(conc)
   Tc = Base.nonmissingtype(Ec)
@@ -118,7 +117,7 @@ function cleanmissingconc(conc, time; missingconc=nothing, check=true, kwargs...
 end
 
 """
-    cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
+    cleanblq(conc′, time′; llq=nothing, concblq=nothing, kwargs...)
 
 Handle BLQ values in the concentration measurements as requested by the user.
 
@@ -127,7 +126,7 @@ Handle BLQ values in the concentration measurements as requested by the user.
 concentrations can affect the output of which points are considered BLQ and which are
 considered "middle".  Values are considered BLQ if they are 0.
 
-#Arguments
+# Arguments
 - `conc`: Measured concentrations
 - `time`: Time of the concentration measurement
 - `...` Additional arguments passed to `cleanmissingconc`
@@ -151,15 +150,14 @@ The meaning of each of the list elements is:
    2. "keep" Keep the BLQ values
    3. a number Set the BLQ values to that number
 """
-@inline function cleanblq(conc′, time′; llq=nothing, concblq=nothing, missingconc=nothing, check=true, kwargs...)
-  conc, time = cleanmissingconc(conc′, time′; missingconc=missingconc, check=check, kwargs...)
+@inline function cleanblq(conc, time; llq=nothing, concblq=nothing, kwargs...)
   isempty(conc) && return conc, time
   llq === nothing && (llq = zero(eltype(conc)))
   # the default is from
   # https://github.com/billdenney/pknca/blob/38719483233d52533ac1d8f535c0016d2be70ae5/R/PKNCA.options.R#L78-L87
   concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
-  firstidx = ctfirst_idx(conc, time, llq=llq, check=false)
+  firstidx = ctfirst_idx(conc, time, llq=llq)
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting,
     # hence, we take `tfirst` to be the `last(time)`
@@ -167,7 +165,7 @@ The meaning of each of the list elements is:
     tlast = tfirst + one(tfirst)
   else
     tfirst = time[firstidx]
-    lastidx = ctlast_idx(conc, time, llq=llq, check=false)
+    lastidx = ctlast_idx(conc, time, llq=llq)
     tlast = time[lastidx]
   end
   for n in (:first, :middle, :last)
