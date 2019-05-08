@@ -52,7 +52,8 @@ data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0, 12]))
 sol  = solve(model,data,param,randeffs,alg=MethodOfSteps(Tsit5()))
 
 data = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
-sol  = solve(model,data,param,randeffs,saveat = Float64[], alg=MethodOfSteps(Tsit5()))
+sol1  = solve(model,data,param,randeffs,saveat = Float64[], alg=MethodOfSteps(Tsit5()))
+sol2  = solve(model,data,param,randeffs,saveat=0.01,alg=MethodOfSteps(Tsit5()))
 
 # Regression test on interpolation issue
 @test all(sol(24:0.5:30)[2,:] .< 55)

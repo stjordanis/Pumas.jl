@@ -223,24 +223,8 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
               end
 
               f.f.rates_on = false
-
-              ## Handle DDE History
-              if ProbType <: DiffEqBase.DDEProblem
-                ## Manually erase history for reset
-                resize!(integrator.sol.u,ss_idx[])
-                resize!(integrator.sol.t,ss_idx[])
-                resize!(integrator.sol.k,ss_idx[])
-                resize!(integrator.integrator.sol.u,ss_idx[])
-                resize!(integrator.integrator.sol.t,ss_idx[])
-                resize!(integrator.integrator.sol.k,ss_idx[])
-                integrator.saveiter = ss_idx[]
-                integrator.integrator.saveiter = ss_idx[]
-                if integrator.sol isa OrdinaryDiffEq.ODECompositeSolution
-                  resize!(integrator.sol.alg_choice,ss_idx[])
-                  resize!(integrator.integrator.sol.alg_choice,ss_idx[])
-                end
-              end
             end
+
             if !isempty(ss_tstop_cache)
               # Put these tstops back in since they were erased in the ss interval
               for t in ss_tstop_cache
@@ -259,6 +243,26 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
             ss_rate_end[] < ss_end[] && add_tstop!(integrator,ss_rate_end[])
             #add_tstop!(integrator,ss_end[])
           end
+
+          ## Handle DDE History
+          if ProbType <: DiffEqBase.DDEProblem
+            ## Manually erase history for reset
+            resize!(integrator.sol.u,ss_idx[])
+            resize!(integrator.sol.t,ss_idx[])
+            resize!(integrator.sol.k,ss_idx[])
+            resize!(integrator.integrator.sol.u,ss_idx[])
+            resize!(integrator.integrator.sol.t,ss_idx[])
+            resize!(integrator.integrator.sol.k,ss_idx[])
+            integrator.saveiter = ss_idx[]
+            integrator.integrator.saveiter = ss_idx[]
+            if integrator.sol isa OrdinaryDiffEq.ODECompositeSolution
+              resize!(integrator.sol.alg_choice,ss_idx[])
+              resize!(integrator.integrator.sol.alg_choice,ss_idx[])
+            end
+            integrator.prev_idx  = ss_idx[]-1
+            integrator.prev2_idx = ss_idx[]-1
+          end
+
         elseif integrator.t == ss_rate_end[] && cur_ev.amt != 0 # amt==0 means constant
           if typeof(f.f.rates) <: Union{Number,FieldVector,SArray,SLArray}
             f.f.rates = StaticArrays.setindex(f.f.rates,f.f.rates[cur_ev.cmt]-cur_ev.rate,cur_ev.cmt)
