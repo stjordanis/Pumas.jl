@@ -246,11 +246,13 @@ end
 function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
+  aucinf = auc
+  aumcinf = aumc
 
   # Calculate summary values
-  funcs = (lambdaz, lambdazr2, lambdazadjr2, lambdazintercept, lambdaznpoints, lambdaztimefirst,
+  funcs = (lambdazr2, lambdazadjr2, lambdaznpoints, lambdaz, lambdazintercept, lambdaztimefirst,
    cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
-   auc, auclast, auctau, aumc, aumclast, aumctau, auc_extrap_percent, aumc_extrap_percent,
+   auclast, auctau, aucinf, auc_extrap_percent, aumclast, aumctau, aumcinf, aumc_extrap_percent,
    cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
    swing, bioav, tau, cavg, mat)
   names = map(nameof, funcs)
