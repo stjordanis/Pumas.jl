@@ -40,26 +40,26 @@ Reasons for being invalid are:
 Some cases may generate warnings
   1.  A negative concentration is often but not always an error; it will generate a warning.
 """
-function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, kwargs...)
+function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, verbose=true, kwargs...)
   # check conc
   conc == nothing && return
   E = eltype(conc)
   isallmissing = all(ismissing, conc)
   local _neg_idx, _missing_idx
   if isempty(conc)
-    @warn "No concentration data given"
+    verbose && @warn "No concentration data given"
   elseif !(E <: Maybe{Number} && conc isa AbstractArray) || E <: Maybe{Bool} && !isallmissing
     throw(ArgumentError("Concentration data must be numeric and an array"))
   elseif isallmissing
-    @warn "All concentration data is missing"
+    verbose && @warn "All concentration data is missing"
   elseif any(x -> (_neg_idx=x[1]; x[2]<zero(x[2])), enumerate(skipmissing(conc)))
-    @warn "Negative concentrations found at index $(_neg_idx)"
+    verbose && @warn "Negative concentrations found at index $(_neg_idx)"
   end
   # check time
   time == nothing && return
   T = eltype(time)
   if isempty(time)
-    @warn "No time data given"
+    verbose && @warn "No time data given"
   elseif any(x->(_missing_idx=x[1]; ismissing(x[2])), enumerate(time))
     throw(ArgumentError("Time may not be missing (missing occured at index $_missing_idx)"))
   elseif !(T <: Maybe{Number} && time isa AbstractArray)

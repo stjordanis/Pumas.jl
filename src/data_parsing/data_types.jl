@@ -342,14 +342,14 @@ function Base.convert(::Type{NCADose}, ev::Event)
 end
 NCADose(dose::Event) = convert(NCADose, dose)
 
-function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv)
+function Base.convert(::Type{NCASubject}, subj::Subject; name=:dv, kwargs...)
   dose = convert.(NCADose, subj.events)
   ii = subj.events[end].ii
-  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id=subj.id, dose=nothing, clean=false, ii=ii)
-  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose, ii=ii)
+  (subj.observations === nothing || subj.time === nothing) && return NCASubject(Float64[], Float64[]; id=subj.id, dose=nothing, clean=false, ii=ii, kwargs...)
+  NCASubject(map(obs->obs.name, subj.observations), subj.time; clean=false, id=subj.id, dose=dose, ii=ii, kwargs...)
 end
 NCASubject(subj::Subject; name=:dv) = convert(NCASubject, subj; name=name)
 
-Base.convert(::Type{NCAPopulation}, population::Population; name=:dv) =
-  NCAPopulation(map(subject -> convert(NCASubject, subject; name=name), population))
-NCAPopulation(population::Population; name=:dv) = convert(NCAPopulation, population; name=name)
+Base.convert(::Type{NCAPopulation}, population::Population; name=:dv, kwargs...) =
+  NCAPopulation(map(subject -> convert(NCASubject, subject; name=name, kwargs...), population))
+NCAPopulation(population::Population; name=:dv, kwargs...) = convert(NCAPopulation, population; name=name, kwargs...)
