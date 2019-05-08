@@ -472,7 +472,7 @@ sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 @test sol.t == subject.time
 
-sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[],s abstol=1e-14, reltol=1e-14)
+sol = solve(mbioav_diffeq, subject, param, randeffs; saveat = Float64[], abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
 sol = solve(mbioav_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time, continuity=:left)
