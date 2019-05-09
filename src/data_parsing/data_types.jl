@@ -102,6 +102,7 @@ mutable struct DosageRegimen
                          ii::Number,
                          addl::Number,
                          rate::Number,
+                         duration::Number,
                          ss::Number)
     # amt = evid ∈ [0, 3] ? float(zero(amt)) : float(amt)
     amt = float(amt)
@@ -115,6 +116,8 @@ mutable struct DosageRegimen
     evid ∈ 1:4 || throw(ArgumentError("evid must be a valid event type"))
     if evid ∈ [0, 3]
       iszero(amt) || throw(ArgumentError("amt must be 0 for evid = $evid"))
+    elseif iszero(amt) && rate > 0 && duration > 0
+      amt = rate * duration
     else
       amt > zero(amt) || throw(ArgumentError("amt must be positive for evid = $evid"))
     end
@@ -125,27 +128,33 @@ mutable struct DosageRegimen
     addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
     rate ≥ zero(rate) || rate == -2 || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
-    return new(DataFrame(time = time, cmt = cmt, amt = amt,
-                         evid = evid, ii = ii, addl = addl,
-                         rate = rate, ss = ss))
+    if iszero(duration) && amt > 0 && rate > 0
+      duration = amt / rate
+    elseif iszero(rate) && amt > 0 && duration > 0
+      rate = amt / duration
+    elseif duration > 0 && rate > 0
+      @assert amt ≈ rate * duration
+    end
+    new(DataFrame(time = time, cmt = cmt, amt = amt, evid = evid, ii = ii, addl = addl,
+                  rate = rate, duration = duration, ss = ss))
   end
   DosageRegimen(amt::Numeric;
                 time::Numeric = 0,
-                cmt::Union{Numeric,Symbol}  = 1,
+                cmt::Union{Numeric,Symbol} = 1,
                 evid::Numeric = 1,
-                ii::Numeric   = zero.(time),
+                ii::Numeric = zero.(time),
                 addl::Numeric = 0,
                 rate::Numeric = zero.(amt)./oneunit.(time),
-                ss::Numeric   = 0) =
-  DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl,
-                               rate, ss))
+                duration::Numeric = zero(amt)./oneunit.(time),
+                ss::Numeric = 0) =
+  DosageRegimen(DosageRegimen.(amt, time, cmt, evid, ii, addl, rate, duration, ss))
   DosageRegimen(regimen::DosageRegimen) = regimen
   function DosageRegimen(regimen1::DosageRegimen,
                          regimen2::DosageRegimen;
                          offset = nothing)
-    data1 = getfield(regimen1, :data)
-    data2 = getfield(regimen2, :data)
-    if offset === nothing
+    data1 = regimen1.data
+    data2 = regimen2.data
+    if isnothing(offset)
       output = sort!(vcat(data1, data2), :time)
     else
       data2 = deepcopy(data2)
@@ -154,7 +163,7 @@ mutable struct DosageRegimen
                                      offset))
       output = sort!(vcat(data1, data2), :time)
     end
-    return new(output)
+    new(output)
   end
   DosageRegimen(regimens::AbstractVector{<:DosageRegimen}) = reduce(DosageRegimen, regimens)
   DosageRegimen(regimens::DosageRegimen...) = reduce(DosageRegimen, regimens)
