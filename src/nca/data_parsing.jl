@@ -41,7 +41,7 @@ end
 
 function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
                        amt=:amt, route=:route,#= rate=nothing,=# duration=:duration, blq=:blq,
-                       ii=:ii, group=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
+                       ii=:ii, ss=:ss, group=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
   local ids, times, concs, amts
   try
     df[id]
@@ -55,6 +55,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   blq = (blq in dfnames) ? blq : nothing
   amt = (amt in dfnames) ? amt : nothing
   ii  = (ii in dfnames) ? ii : nothing
+  ss  = (ss in dfnames) ? ss : nothing
   route = (route in dfnames) ? route : nothing
   occasion = (occasion in dfnames) ? occasion : nothing
   duration = (duration in dfnames) ? duration : nothing
@@ -64,7 +65,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   end
 
   # BLQ
-  @noinline blqerr() = throw(ArgumentError("blq has to be a vector of 0s and 1s."))
+  @noinline blqerr() = throw(ArgumentError("blq can only be 0 or 1"))
   if blq !== nothing
     blqs = df[blq]
     eltype(blqs) <: Union{Int, Bool} || blqerr()
@@ -81,6 +82,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   concs = df[conc]
   amts  = amt === nothing ? nothing : df[amt]
   iis  = ii === nothing ? nothing : df[ii]
+  sss  = ss === nothing ? nothing : df[ss]
   occasions = occasion === nothing ? nothing : df[occasion]
   uids = unique(ids)
   idx  = -1
@@ -113,8 +115,14 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
           routei == "ev" ? EV :
           throw(ArgumentError("route can only be `iv`, `ev`, or `inf`"))
       end
+      ss = map(dose_idx) do i
+        sss === nothing ? false :
+          sss[i] == 0 ? false :
+          sss[i] == 1 ? true :
+          throw(ArgumentError("ss can only be 0 or 1"))
+      end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′)
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ss)
     elseif occasion !== nothing
       subjoccasion = @view occasions[idx]
       occs = unique(subjoccasion)

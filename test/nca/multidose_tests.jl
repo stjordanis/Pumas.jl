@@ -96,3 +96,15 @@ for df in (data1, data2)
   df.route = "ev"
   @test_throws AssertionError read_nca(df, timeu=timeu, concu=concu, amtu=amtu);
 end
+
+df = DataFrame()
+df.time = collect(0:9)
+df.conc = [5, 4, 3, 2, 1, 5, 4, 3, 2, 1]
+df.amt =  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+df.route = "ev"
+df.ss =   [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+df.occasion = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+df.id = 1
+subj = @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)[1]
+@test !subj.dose[1].ss
+@test subj.dose[2].ss
