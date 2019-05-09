@@ -289,7 +289,7 @@ function mrt(nca::NCASubject; auctype=:inf, kwargs...)
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
   else
-    quotient = aumc(nca; kwargs...) / auc(nca; kwargs...)
+    quotient = aumc(nca; auctype=auctype, kwargs...) / auc(nca; auctype=auctype, kwargs...)
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
   end

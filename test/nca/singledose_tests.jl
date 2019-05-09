@@ -18,7 +18,7 @@ ncapop = @test_nowarn read_nca(data, id=:ID, time=:TIME, conc=:CObs, amt=:AMT_IV
 
 popncareport = NCAReport(ncapop, ithdose=1)
 @test_nowarn popncareport
-@test_broken display(NCA.to_markdown(popncareport))
+@test_skip display(NCA.to_markdown(popncareport))
 @test_nowarn NCA.to_dataframe(popncareport)
 
 lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
@@ -167,7 +167,7 @@ for i in 1:24
   @test NCA.auc_extrap_percent(nca) === NCA.auc_extrap_percent(conc[idx], t[idx])
   ncareport = @test_nowarn NCAReport(nca)
   i == 1 && @test_nowarn ncareport
-  i == 1 && @test_nowarn display(NCA.to_markdown(ncareport))
+  i == 1 && @test_skip display(NCA.to_markdown(ncareport))
   i == 1 && @test_nowarn NCA.to_dataframe(ncareport)
 end
 

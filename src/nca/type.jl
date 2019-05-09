@@ -248,14 +248,15 @@ macro defkwargs(sym, expr...)
   :((nca; kwargs...) -> $sym(nca; $(expr...), kwargs...)) |> esc
 end
 
-function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
+NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
+function NCAReport(nca::NCAPopulation; kwargs...)
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
   aucinf = auc
   aumcinf = aumc
 
   # TODO: CL for IV, CL/F
-  report_pairs = (
+  report_pairs = [
            "n_samples"          =>     n_samples,
            "dose"               =>     doseamt,
            "dose_type"          =>     dosetype,
@@ -304,11 +305,11 @@ function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
            "auc_tau"            =>     auctau,
            "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
            "aumc_tau"           =>     aumctau,
-          )
+          ]
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
-  vals  = (f(nca; label = false, kwargs...) for f in funcs)
-  values = NamedTuple{_names}(rename!(val, names(val)[1]=>name) for (val, name) in zip(vals, _names))
+  vals  = [f(nca; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
+  values = [i == 1 ? val : rename!(val, names(val)[1]=>name) for (i, (val, name)) in enumerate(zip(vals, _names))]
 
   NCAReport(settings, values)
 end
@@ -317,7 +318,7 @@ Base.summary(::NCAReport) = "NCAReport"
 
 function Base.show(io::IO, report::NCAReport)
   println(io, summary(report))
-  print(io, "  keys: $(keys(report.values))")
+  print(io, "  keys: $(map(x->names(x)[1], report.values))")
 end
 
 # units go under the header
@@ -344,12 +345,14 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   println(_io, "## Calculated Values")
   println(_io, "|         Name         |    Value   |")
   println(_io, "|:---------------------|-----------:|")
-  for entry in pairs(report.values)
-    _name = string(entry[1])
+  for entry in report.values
+    _name = string(names(entry)[1])
     name = replace(_name, "_"=>"\\_") # escape underscore
-    ismissing(entry[2]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
-    for (i, v) in enumerate(entry[2])
-      val = ismissing(v) ? v : round(ustrip(v), digits=2)*oneunit(v)
+    ismissing(entry[end]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
+    for v in entry[end]
+      val = ismissing(v) ? v :
+              v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
+              v
       @printf(_io, "| %s | %s |\n", name, val)
     end
   end

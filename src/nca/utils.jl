@@ -201,10 +201,10 @@ The meaning of each of the list elements is:
   return conc, time
 end
 
+@inline normalizedose(x::Number, d::Nothing) = missing
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
 @inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
-  D === Nothing && throw(ArgumentError("Dose must be known to compute normalizedosed quantity"))
   return normalizedose(x, subj.dose)
 end
 
