@@ -244,21 +244,71 @@ struct NCAReport{S,V}
   values::V
 end
 
+macro defkwargs(sym, expr...)
+  :((nca; kwargs...) -> $sym(nca; $(expr...), kwargs...)) |> esc
+end
+
 function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
   aucinf = auc
   aumcinf = aumc
 
-  # Calculate summary values
-  funcs = (lambdazr2, lambdazadjr2, lambdaznpoints, lambdaz, lambdazintercept, lambdaztimefirst,
-   cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
-   auclast, auctau, aucinf, auc_extrap_percent, aumclast, aumctau, aumcinf, aumc_extrap_percent,
-   cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
-   swing, bioav, tau, cavg)
   # TODO: CL for IV, CL/F
-  names = map(nameof, funcs)
-  values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))
+  report_pairs = (
+           "n_samples"          =>     n_samples,
+           "dose"               =>     doseamt,
+           "dose_type"          =>     dosetype,
+           "rsq"                =>     lambdazr2,
+           "rsq_adjusted"       =>     lambdazadjr2,
+           "no_points_lambda_z" =>     lambdaznpoints,
+           "lambda_z"           =>     lambdaz,
+           "lambda_z_intercept" =>     lambdazintercept,
+           "half_life"          =>     thalf,
+           "tlag"               =>     tlag,
+           "tmax"               =>     tmax,
+           "cmax"               =>     cmax,
+           "cmax_d"             =>     @defkwargs(cmax, normalize=true),
+           "tlast"              =>     tlast,
+           "clast"              =>     clast,
+           "clast_pred"         =>     @defkwargs(clast, pred=true),
+           "auclast"            =>     auclast,
+           "auclast_d"          =>     @defkwargs(auclast, normalize=true),
+           "aucinf_obs"         =>     auc,
+           "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
+           "auc_extrap_obs"     =>     auc_extrap_percent,
+           "vz_obs"             =>     vz,
+           "cl_obs"             =>     cl,
+           "aucinf_pred"        =>     @defkwargs(auc, pred=true),
+           "aucinf_d_pred"      =>     @defkwargs(auc, normalize=true, pred=true),
+           "auc_extrap_pred"    =>     @defkwargs(auc_extrap_percent, normalize=true, pred=true),
+           "tmin"               =>     tmin,
+           "cmin"               =>     cmin,
+           "ctau"               =>     ctau,
+           "cavg"               =>     cavg,
+           "swing"              =>     swing,
+           "swing_tau"          =>     @defkwargs(swing, tau=true),
+           "fluctuation"        =>     fluctuation,
+           "fluctuation_tau"    =>     @defkwargs(fluctuation, tau=true),
+           "vz_pred"            =>     @defkwargs(vz, pred=true),
+           "cl_pred"            =>     @defkwargs(cl, pred=true),
+           "aumclast"           =>     aumclast,
+           "aumcinf_obs"        =>     aumc,
+           "aumc_extrap_obs"    =>     aumc_extrap_percent,
+           "aumcinf_pred"       =>     @defkwargs(aumc, pred=true),
+           "aumc_extrap_pred"   =>     @defkwargs(aumc_extrap_percent, pred=true),
+           "mrtlast"            =>     @defkwargs(mrt, auctype=:last),
+           "mrtinf_obs"         =>     @defkwargs(mrt, auctype=:inf),
+           "mrtinf_pred"        =>     @defkwargs(mrt, auctype=:inf, pred=true),
+           "accumulation_index" =>     accumulationindex,
+           "auc_tau"            =>     auctau,
+           "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
+           "aumc_tau"           =>     aumctau,
+          )
+  _names = map(x->Symbol(x.first), report_pairs)
+  funcs = map(x->x.second, report_pairs)
+  vals  = (f(nca; label = false, kwargs...) for f in funcs)
+  values = NamedTuple{_names}(rename!(val, names(val)[1]=>name) for (val, name) in zip(vals, _names))
 
   NCAReport(settings, values)
 end

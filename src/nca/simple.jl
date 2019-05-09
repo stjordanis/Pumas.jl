@@ -65,7 +65,7 @@ end
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCASubject; interval=nothing, kwargs...)
+function cmax(nca::NCASubject; interval=nothing, normalize=false, kwargs...)
   dose = nca.dose
   if interval isa Union{Tuple, Nothing}
     sol = ctmax(nca; interval=interval, kwargs...)[1]
@@ -75,7 +75,7 @@ function cmax(nca::NCASubject; interval=nothing, kwargs...)
     end
     sol = map(f, interval)
   end
-  sol
+  normalize ? normalizedose(sol, nca) : sol
 end
 
 """
@@ -276,7 +276,7 @@ IV infusion:
 non-infusion:
   ``AUMC/AUC``
 """
-function mrt(nca::NCASubject; kwargs...)
+function mrt(nca::NCASubject; auctype=:inf, kwargs...)
   dose = nca.dose
   dose === nothing && return missing
   ti2 = dose.duration*1//2
@@ -284,8 +284,8 @@ function mrt(nca::NCASubject; kwargs...)
     τ = tau(nca; kwargs...)
     aumcτ = aumctau(nca; kwargs...)
     aucτ = aumctau(nca; kwargs...)
-    aumcinf = aumctau(nca; auctype=:inf, kwargs...)
-    quotient = (aumcτ + τ*(aucinf - aucτ)) / aucτ
+    _auc = auc(nca; auctype=auctype, kwargs...)
+    quotient = (aumcτ + τ*(_auc - aucτ)) / aucτ
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
   else
@@ -348,12 +348,16 @@ function cavg(nca::NCASubject; kwargs...)
 end
 
 """
-    fluctation(nca::NCASubject; kwargs...)
+    fluctuation(nca::NCASubject; usetau=false, kwargs...)
 
 Peak trough fluctuation over one dosing interval at steady state.
-``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}``
+``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}`` (usetau=false) or
+``Fluctuation = 100*(C_{max} - C_{tau})/C_{avg}`` (usetau=true)
 """
-fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; kwargs...)
+function fluctuation(nca::NCASubject; usetau=false, kwargs...)
+  _cmin = usetau ? tau(nca) : cmin(nca)
+  100*(cmax(nca) - _cmin)/cavg(nca; kwargs...)
+end
 
 """
     accumulationindex(nca::NCASubject; kwargs...)
@@ -366,12 +370,12 @@ function accumulationindex(nca::NCASubject; kwargs...)
 end
 
 """
-    swing(nca::NCASubject; kwargs...)
+    swing(nca::NCASubject; usetau=false, kwargs...)
 
-``swing = (C_{max}-C_{min})/C_{min}``
+``swing = (C_{max}-C_{min})/C_{min}`` (usetau=false) or ``swing = (C_{max}-C_{tau})/C_{tau}`` (usetau=true)
 """
-function swing(nca::NCASubject; kwargs...)
-  _cmin = cmin(nca)
+function swing(nca::NCASubject; usetau=false, kwargs...)
+  _cmin = usetau ? tau(nca) : cmin(nca)
   sw = (cmax(nca) - _cmin) ./ _cmin
   (ismissing(sw) || isinf(sw)) ? missing : sw
 end
@@ -547,3 +551,7 @@ function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,
   end
   return DataFrame(conc=conc′, time=tmptime)
 end
+
+n_samples(subj::NCASubject; kwargs...) = length(subj.time)
+doseamt(subj::NCASubject; kwargs...) = hasdose(subj) ? subj.dose.amt : missing
+dosetype(subj::NCASubject; kwargs...) = hasdose(subj) ? string(subj.dose.formulation) : missing
