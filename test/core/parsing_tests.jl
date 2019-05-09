@@ -87,8 +87,11 @@ end
   data = DataFrame(evs, true)
   @test size(data, 1) == 24
 end
+
 @testset "MDV" begin
   data = DataFrame(amt = 10, dv = 0, evid = 0, mdv = 1)
   output = read_pumas(data)
   @test ismissing(output[1].observations.dv[1])
+end
+
 end
