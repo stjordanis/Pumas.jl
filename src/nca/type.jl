@@ -24,10 +24,11 @@ struct NCADose{T,A}
   amt::A
   duration::T
   formulation::Formulation
-  function NCADose(time, amt, duration::D, formulation) where D
+  ss::Bool
+  function NCADose(time, amt, duration::D, formulation, ss=false) where D
     duration′ = D === Nothing ? zero(time) : duration
     formulation′ = formulation === EV ? EV : iszero(duration′) ? IVBolus : IVInfusion
-    return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′)
+    return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′, ss)
   end
 end
 
@@ -40,7 +41,8 @@ function Base.show(io::IO, n::NCADose)
   println(io, "  time:         $(n.time)")
   println(io, "  amt:          $(n.amt)")
   println(io, "  duration:     $(n.duration)")
-  print(  io, "  formulation:  $(n.formulation)")
+  println(io, "  formulation:  $(n.formulation)")
+  print(  io, "  ss:           $(n.ss)")
 end
 
 # any changes in here must be reflected to ./simple.jl, too
