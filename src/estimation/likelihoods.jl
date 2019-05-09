@@ -241,8 +241,27 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           param::NamedTuple,
                           ::Union{FO,FOI},
                           args...; kwargs...)
-  vrandeffs.=zero(vrandeffs)
-  vrandeffs
+  fill!(vrandeffs, 0)
+  return vrandeffs
+end
+
+"""
+    empirical_bayes_dist(model, subject, param, approx, ...)
+Estimate the distribution of random effects (typically a Normal approximation of the
+empirical Bayes posterior) of a particular subject at a particular parameter values. The
+result is returned as a `MvNormal`.
+"""
+function empirical_bayes_dist(m::PuMaSModel,
+                              subject::Subject,
+                              param::NamedTuple,
+                              vrandeffs::AbstractVector,
+                              approx::LikelihoodApproximation,
+                              args...; kwargs...)
+
+  H = ForwardDiff.hessian(vrandeffs) do _vrandeffs
+    penalized_conditional_nll(m, subject, param, _vrandeffs, approx, args...; kwargs...)
+  end
+  return MvNormal(vrandeffs, inv(Symmetric(H)))
 end
 
 """
@@ -1014,4 +1033,13 @@ TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io,mime,Base.Text(Base.summary(x)))
+end
+
+# empirical_bayes_dist for FiitedPuMaS
+function empirical_bayes_dist(fpm::FittedPuMaSModel)
+  StructArray(
+    (η=map(zip(fpm.data, fpm.vvrandeffs)) do (subject, vrandeffs)
+      empirical_bayes_dist(fpm.model, subject, fpm.param, vrandeffs, fpm.approx)
+    end,)
+    )
 end
