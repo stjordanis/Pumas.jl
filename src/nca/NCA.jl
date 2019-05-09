@@ -25,7 +25,7 @@ export NCAReport
 export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
-          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
+          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :vss, :vz,
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
           :swing)
@@ -91,7 +91,7 @@ end
 # add `tau`
 # Multiple dosing handling
 for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctation,
-          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss,
+          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :vz,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
     obj = map(eachindex(nca.dose)) do i

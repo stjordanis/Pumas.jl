@@ -9,7 +9,6 @@ Type of formulations. There are IV (intravenous) and EV (extravascular).
 @enum Formulation IVBolus IVInfusion EV DosingUnknown
 # Formulation behaves like scalar
 Broadcast.broadcastable(x::Formulation) = Ref(x)
-isiv(x) = x === IVBolus || x === IVInfusion
 
 """
     NCADose
@@ -256,7 +255,8 @@ function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
    cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
    auclast, auctau, aucinf, auc_extrap_percent, aumclast, aumctau, aumcinf, aumc_extrap_percent,
    cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
-   swing, bioav, tau, cavg, mat)
+   swing, bioav, tau, cavg)
+  # TODO: CL for IV, CL/F
   names = map(nameof, funcs)
   values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))
 

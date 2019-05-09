@@ -35,7 +35,6 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(map(x -> ismissing(x) ? x : x*timeu, msol[:Tlag])))
 @test_nowarn NCA.mrt(mncapop; auctype=:inf)
 @test_nowarn NCA.mrt(mncapop; auctype=:last)
-@test_nowarn NCA.mat(mncapop)
 @test_nowarn NCA.cl(mncapop, ithdose=1)
 @test NCA.tmin(mncapop[1])[1] == 20timeu
 @test NCA.cmin(mncapop[1])[1] == mncapop[1].conc[1][end-1]
