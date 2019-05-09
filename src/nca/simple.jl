@@ -200,7 +200,7 @@ end
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
-function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   n = nca.dose isa AbstractArray ? length(nca.dose) : 1
   ismissing(ithdose) && return n == 1 ? missing : fill(missing, n)
   multidose = n > 1
@@ -226,7 +226,7 @@ end
 #
 #Total drug clearance
 #"""
-#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
 #  nca.dose === nothing && return missing
 #  _clf = clf(nca; kwargs...)
 #  @show 1
@@ -281,10 +281,11 @@ function mrt(nca::NCASubject; auctype=:inf, kwargs...)
   dose === nothing && return missing
   ti2 = dose.duration*1//2
   if dose.ss
+    auctype === :last && return missing
     τ = tau(nca; kwargs...)
     aumcτ = aumctau(nca; kwargs...)
-    aucτ = aumctau(nca; kwargs...)
-    _auc = auc(nca; auctype=auctype, kwargs...)
+    aucτ = auctau(nca; kwargs...)
+    _auc = auc(nca; auctype=:inf, kwargs...)
     quotient = (aumcτ + τ*(_auc - aucτ)) / aucτ
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
@@ -326,8 +327,9 @@ end
 
 Dosing interval. For multiple dosing only.
 """
-function tau(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
-  has_ii(nca) && return nca.ii
+function tau(nca::NCASubject; kwargs...)
+  nca.dose !== nothing || return missing
+  !iszero(nca.dose.ii) && return nca.dose.ii
   return missing
   # do not guess tau
   #dose = nca.dose
@@ -482,11 +484,11 @@ end
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?
-function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II},
+function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
                        tau::Number, ntau=Inf, args...;
                        doseamount=nothing, additionaltime::Vector=T[],
                        steadystatetol::Number=1e-3, method=:linear,
-                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   D === Nothing && throw(ArgumentError("Dose must be known to compute superposition"))
   !(ntau isa Integer) && ntau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
   tau < oneunit(tau) && throw(ArgumentError("ntau must be an integer or Inf"))

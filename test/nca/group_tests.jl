@@ -4,6 +4,9 @@ using PuMaS
 file = PuMaS.example_nmtran_data("nca_test_data/masked_sort_data")
 df = CSV.read(file, missingstring="NA")
 df.ii = 12
+df.amt = 0.0
+df.amt[1:23:end] .= 0.1
+df.route = "ev"
 data = @test_nowarn read_nca(df, id=:ID, time=:TIME, conc=:TCONC, occasion=:PERIOD, group=[:METABOLITE], verbose=false)
 io = IOBuffer()
 show(io, "text/plain", data)
@@ -23,4 +26,4 @@ aucs = @test_nowarn NCA.auc(data3)
 
 # test ii
 df.ii = [0.1 * i for i in df.ID]
-pop = @test_nowarn read_nca(df, id=:ID, time=:TIME, conc=:TCONC, occasion=:PERIOD, group=[:METABOLITE], verbose=false)
+pop = @test_nowarn read_nca(df, id=:ID, time=:TIME, conc=:TCONC, group=[:PERIOD, :METABOLITE], verbose=false)

@@ -94,7 +94,7 @@ for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, 
           :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :vz,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
           :n_samples, :doseamt, :dosetype)
-  @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
+  @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}
     obj = map(eachindex(nca.dose)) do i
       local subj
       try

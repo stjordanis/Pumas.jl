@@ -315,7 +315,7 @@ TreeViews.nodelabel(io::IO, population::Population, i::Integer, mime::MIME"text/
 
 # Convert to NCA types
 import .NCA: NCAPopulation, NCASubject, NCADose
-using .NCA: Formulation, IVBolus, IVInfusion, EV, DosingUnknown
+using .NCA: Formulation, IVBolus, IVInfusion, EV
 function Base.convert(::Type{NCADose}, ev::Event)
   ev.evid === Int8(1) || return nothing
   time = ev.time

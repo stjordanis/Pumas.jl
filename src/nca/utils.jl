@@ -201,10 +201,11 @@ The meaning of each of the list elements is:
   return conc, time
 end
 
-@inline normalizedose(x::Number, d::Nothing) = missing
+@inline normalizedose(x::Missing, d) = missing
+@inline normalizedose(x, d::Nothing) = missing
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   return normalizedose(x, subj.dose)
 end
 
@@ -234,8 +235,8 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II},
-                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
@@ -258,7 +259,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                  nca.id,  nca.group,
                  conc,    time,    abstime,               # NCA measurements
                  maxidx,  lastidx,                        # idx cache
-                 dose,    nca.ii,                         # dose
+                 dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
                  firstpoint, points,                      # lambdaz related cache
                  auc, aumc, nca.method                    # AUC related cache
