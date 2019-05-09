@@ -19,16 +19,16 @@ export NCASubject, NCAPopulation, NCADose, showunits
 export read_nca, add_ii!
 #export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
 #       clast, tlast, cmax, tmax, cmin, c0, tmin, thalf, cl, clf, vss, vz,
-#       bioav, tlag, mrt, mat, tau, cavg, fluctation, accumulationindex,
+#       bioav, tlag, mrt, mat, tau, cavg, fluctuation, accumulationindex,
 #       swing, superposition
 export NCAReport
 export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
-          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :clf, :vss, :vz,
+          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :vss, :vz,
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
-          :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctation, :accumulationindex,
-          :swing)
+          :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctuation, :accumulationindex,
+          :swing, :n_samples, :doseamt, :dosetype)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
     ismulti = ismultidose(pop)
@@ -90,9 +90,10 @@ end
 
 # add `tau`
 # Multiple dosing handling
-for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctation,
-          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss,
-          :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst)
+for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
+          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :vz,
+          :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
+          :n_samples, :doseamt, :dosetype)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,II}
     obj = map(eachindex(nca.dose)) do i
       local subj

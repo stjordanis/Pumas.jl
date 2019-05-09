@@ -206,7 +206,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, inte
 end
 
 """
-  auc(nca::NCASubject; auctype::Symbol, method::Symbol, interval=nothing, kwargs...)
+  auc(nca::NCASubject; auctype::Symbol, method::Symbol, interval=nothing, normalize=false, kwargs...)
 
 Compute area under the curve (AUC) by linear trapezoidal rule `(method =
 :linear)` or by log-linear trapezoidal rule `(method = :linuplogdown)`.
@@ -227,8 +227,9 @@ function auc(nca::NCASubject; auctype=:inf, interval=nothing, kwargs...)
   end
 end
 
-@inline function auc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, auctype, interval; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+@inline function auc_nokwarg(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}, auctype, interval; normalize=false, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
   sol = _auc(nca, interval, auclinear, auclog, extrapaucinf, eltype(AUC); auctype=auctype, isauc=true, kwargs...)
+  normalize && (sol = normalizedose(sol, nca))
   return sol
 end
 
