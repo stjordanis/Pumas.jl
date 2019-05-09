@@ -123,7 +123,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
           throw(ArgumentError("ss can only be 0 or 1"))
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ii, ss)
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ii*timeu, ss)
     #elseif occasion !== nothing
     #  subjoccasion = @view occasions[idx]
     #  occs = unique(subjoccasion)
