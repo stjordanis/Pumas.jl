@@ -115,6 +115,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
           routei == "ev" ? EV :
           throw(ArgumentError("route can only be `iv`, `ev`, or `inf`"))
       end
+      ii = map(i -> iis === nothing ? false : iis[i], dose_idx)
       ss = map(dose_idx) do i
         sss === nothing ? false :
           sss[i] == 0 ? false :
@@ -122,21 +123,20 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
           throw(ArgumentError("ss can only be 0 or 1"))
       end
       duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
-      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ss)
-    elseif occasion !== nothing
-      subjoccasion = @view occasions[idx]
-      occs = unique(subjoccasion)
-      doses = map(occs) do occ
-        dose_idx = findfirst(isequal(occ), subjoccasion)
-        dose_time = subjtime[dose_idx]
-        NCADose(dose_time*timeu, zero(amtu), nothing, DosingUnknown)
-      end
+      doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ii, ss)
+    #elseif occasion !== nothing
+    #  subjoccasion = @view occasions[idx]
+    #  occs = unique(subjoccasion)
+    #  doses = map(occs) do occ
+    #    dose_idx = findfirst(isequal(occ), subjoccasion)
+    #    dose_time = subjtime[dose_idx]
+    #    NCADose(dose_time*timeu, zero(amtu), nothing, DosingUnknown)
+    #  end
     else
       doses = nothing
     end
     try
       ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu,
-                           ii=iis === nothing ? nothing : iis[i]*timeu,
                            concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
       @info "ID $id errored"
