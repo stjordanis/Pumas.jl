@@ -35,23 +35,22 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(map(x -> ismissing(x) ? x : x*timeu, msol[:Tlag])))
 @test_nowarn NCA.mrt(mncapop; auctype=:inf)
 @test_nowarn NCA.mrt(mncapop; auctype=:last)
-@test_nowarn NCA.mat(mncapop)
 @test_nowarn NCA.cl(mncapop, ithdose=1)
 @test NCA.tmin(mncapop[1])[1] == 20timeu
 @test NCA.cmin(mncapop[1])[1] == mncapop[1].conc[1][end-1]
-@test NCA.fluctation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
+@test NCA.fluctuation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
 @test NCA.accumulationindex(mncapop[1]) == 1 ./(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
 @test NCA.swing(mncapop[1])[1] == ((NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1]))[1]
 @test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
 
 ncareport1 = NCAReport(mncapop[1], ithdose=1)
 @test_nowarn ncareport1
-@test_nowarn display(NCA.to_markdown(ncareport1))
+@test_skip display(NCA.to_markdown(ncareport1))
 @test_nowarn NCA.to_dataframe(ncareport1)
 
 popncareport = NCAReport(mncapop, ithdose=1)
 @test_nowarn popncareport
-@test_broken display(NCA.to_markdown(popncareport))
+@test_skip display(NCA.to_markdown(popncareport))
 @test_nowarn NCA.to_dataframe(popncareport)
 
 data1 = CSV.read(IOBuffer("""
@@ -96,3 +95,15 @@ for df in (data1, data2)
   df.route = "ev"
   @test_throws AssertionError read_nca(df, timeu=timeu, concu=concu, amtu=amtu);
 end
+
+df = DataFrame()
+df.time = collect(0:9)
+df.conc = [5, 4, 3, 2, 1, 5, 4, 3, 2, 1]
+df.amt =  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+df.route = "ev"
+df.ss =   [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+df.occasion = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+df.id = 1
+subj = @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)[1]
+@test !subj.dose[1].ss
+@test subj.dose[2].ss

@@ -65,7 +65,7 @@ end
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCASubject; interval=nothing, kwargs...)
+function cmax(nca::NCASubject; interval=nothing, normalize=false, kwargs...)
   dose = nca.dose
   if interval isa Union{Tuple, Nothing}
     sol = ctmax(nca; interval=interval, kwargs...)[1]
@@ -75,7 +75,7 @@ function cmax(nca::NCASubject; interval=nothing, kwargs...)
     end
     sol = map(f, interval)
   end
-  sol
+  normalize ? normalizedose(sol, nca) : sol
 end
 
 """
@@ -155,17 +155,16 @@ Calculate half life time.
 thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs...)
 
 """
-    clf(nca::NCASubject; kwargs...)
+    cl(nca::NCASubject; kwargs...)
 
-Calculate total drug clearance divided by the bioavailability (F), which is just the
-inverse of the dose normalizedosed ``AUC_0^∞`` or ``AUC_0^τ`` (steady-state).
+Calculate total drug clearance.
 """
-function clf(nca::NCASubject; ss=false, kwargs...)
+function cl(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
-  if ss
-    map(x->1/x, normalizedose(auctau(nca; kwargs...), nca))
+  if nca.dose.ss
+    1/normalizedose(auctau(nca; kwargs...), nca)
   else
-    map(x->1/x, normalizedose(auc(nca; kwargs...), nca))
+    1/normalizedose(auc(nca; kwargs...), nca)
   end
 end
 
@@ -181,12 +180,12 @@ vss(nca::NCASubject; kwargs...) = mrt(nca; kwargs...)*cl(nca; kwargs...)
     vz(nca::NCASubject; kwargs...)
 
 Calculate the volume of distribution during the terminal phase.
-``V_z = 1/(AUC_0^τ⋅λz)`` for dose normalizedosed `AUC`.
+``V_z = 1/(AUC⋅λz)`` for dose normalizedosed `AUC`.
 """
-function vz(nca::NCASubject; ss=false, kwargs...)
+function vz(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
   λ = lambdaz(nca; recompute=false, kwargs...)
-  if ss
+  if nca.dose.ss
     τauc = auctau(nca; kwargs...)
     @. 1/(normalizedose(τauc, nca.dose) * λ)
   else
@@ -202,8 +201,9 @@ Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
 function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
-  ismissing(ithdose) && return missing
-  multidose = nca.dose isa AbstractArray
+  n = nca.dose isa AbstractArray ? length(nca.dose) : 1
+  ismissing(ithdose) && return n == 1 ? missing : fill(missing, n)
+  multidose = n > 1
   # if there is only a single dose
   multidose || return missing
   # if we only have IV or EV
@@ -220,36 +220,38 @@ function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ith
   return sol
 end
 
-"""
-    cl(nca::NCASubject; ithdose::Integer, kwargs...)
-
-Total drug clearance
-"""
-function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ss=false, ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
-  nca.dose === nothing && return missing
-  _clf = clf(nca; ss=ss, kwargs...)
-  dose = nca.dose
-  if nca.dose isa NCADose # single dose
-    isiv(dose.formulation) || return missing
-    _bioav = one(eltype(AUC))
-    return _bioav*_clf
-  else # multiple doses
-    # TODO: check back on logic for this ithdose for CL, not sure about the user specification
-    ismissing(ithdose) && throw(ArgumentError("`ithdose` must be provided for computing CL"))
-    map(eachindex(dose)) do idx
-      subj = subject_at_ithdose(nca, idx)
-      formulation = subj.dose.formulation
-      if idx == ithdose
-        isiv(formulation) || throw(ArgumentError("the formulation of `ithdose` must be IV"))
-      end
-      if isiv(formulation)
-        one(eltype(AUC))*_clf[idx]
-      else
-        missing
-      end
-    end # end multidoses
-  end # end if
-end
+#isiv(x) = x === IVBolus || x === IVInfusion
+#"""
+#    cl(nca::NCASubject; ithdose::Integer, kwargs...)
+#
+#Total drug clearance
+#"""
+#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,II}
+#  nca.dose === nothing && return missing
+#  _clf = clf(nca; kwargs...)
+#  @show 1
+#  dose = nca.dose
+#  if nca.dose isa NCADose # single dose
+#    isiv(dose.formulation) || return missing
+#    _bioav = one(eltype(AUC))
+#    return _bioav*_clf
+#  else # multiple doses
+#    # TODO: check back on logic for this ithdose for CL, not sure about the user specification
+#    ismissing(ithdose) && return missing
+#    map(eachindex(dose)) do idx
+#      subj = subject_at_ithdose(nca, idx)
+#      formulation = subj.dose.formulation
+#      if idx == ithdose
+#        isiv(formulation) || throw(ArgumentError("the formulation of `ithdose` must be IV"))
+#      end
+#      if isiv(formulation)
+#        one(eltype(AUC))*_clf[idx]
+#      else
+#        missing
+#      end
+#    end # end multidoses
+#  end # end if
+#end
 
 """
     tlag(nca::NCASubject; kwargs...)
@@ -258,7 +260,7 @@ The time prior to the first increase in concentration.
 """
 function tlag(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
-  isiv(nca.dose.formulation) && return missing
+  nca.dose.formulation !== EV && return missing
   idx = max(1, findfirst(c->c > nca.llq, nca.conc)-1)
   return nca.time[idx]
 end
@@ -274,49 +276,50 @@ IV infusion:
 non-infusion:
   ``AUMC/AUC``
 """
-function mrt(nca::NCASubject; ss=false, kwargs...)
+function mrt(nca::NCASubject; auctype=:inf, kwargs...)
   dose = nca.dose
   dose === nothing && return missing
   ti2 = dose.duration*1//2
-  if ss
+  if dose.ss
     τ = tau(nca; kwargs...)
     aumcτ = aumctau(nca; kwargs...)
     aucτ = aumctau(nca; kwargs...)
-    aumcinf = aumctau(nca; auctype=:inf, kwargs...)
-    quotient = (aumcτ + τ*(aucinf - aucτ)) / aucτ
+    _auc = auc(nca; auctype=auctype, kwargs...)
+    quotient = (aumcτ + τ*(_auc - aucτ)) / aucτ
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
   else
-    quotient = aumc(nca; kwargs...) / auc(nca; kwargs...)
+    quotient = aumc(nca; auctype=auctype, kwargs...) / auc(nca; auctype=auctype, kwargs...)
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
   end
 end
 
-"""
-    mat(nca::NCASubject; kwargs...)
-
-Mean absorption time:
-``MAT = MRT_po - MRT_iv``
-
-For multiple dosing only.
-"""
-function mat(nca::NCASubject; kwargs...)
-  # dose is checked in `mrt`, so we don't need to check it in `mat`
-  multidose = nca.dose isa AbstractArray
-  #multidose || error("Need more than one type of dose to calculate MAT")
-  multidose || return missing
-  mrt_po = mrt_iv = zero(eltype(eltype(nca.time)))
-  for idx in eachindex(nca.dose)
-    subj = subject_at_ithdose(nca, idx)
-    if isiv(subj.dose.formulation)
-      mrt_iv += mrt(subj; kwargs...)
-    else
-      mrt_po += mrt(subj; kwargs...)
-    end
-  end # end for
-  mrt_po - mrt_iv
-end
+# Not possible to calculate MAT
+#"""
+#    mat(nca::NCASubject; kwargs...)
+#
+#Mean absorption time:
+#``MAT = MRT_po - MRT_iv``
+#
+#For multiple dosing only.
+#"""
+#function mat(nca::NCASubject; kwargs...)
+#  # dose is checked in `mrt`, so we don't need to check it in `mat`
+#  multidose = nca.dose isa AbstractArray
+#  #multidose || error("Need more than one type of dose to calculate MAT")
+#  multidose || return missing
+#  mrt_po = mrt_iv = zero(eltype(eltype(nca.time)))
+#  for idx in eachindex(nca.dose)
+#    subj = subject_at_ithdose(nca, idx)
+#    if isiv(subj.dose.formulation)
+#      mrt_iv += mrt(subj; kwargs...)
+#    else
+#      mrt_po += mrt(subj; kwargs...)
+#    end
+#  end # end for
+#  mrt_po - mrt_iv
+#end
 
 """
     tau(nca::NCASubject)
@@ -345,12 +348,16 @@ function cavg(nca::NCASubject; kwargs...)
 end
 
 """
-    fluctation(nca::NCASubject; kwargs...)
+    fluctuation(nca::NCASubject; usetau=false, kwargs...)
 
 Peak trough fluctuation over one dosing interval at steady state.
-``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}``
+``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}`` (usetau=false) or
+``Fluctuation = 100*(C_{max} - C_{tau})/C_{avg}`` (usetau=true)
 """
-fluctation(nca::NCASubject; kwargs...) = 100*(cmax(nca) - cmin(nca))/cavg(nca; kwargs...)
+function fluctuation(nca::NCASubject; usetau=false, kwargs...)
+  _cmin = usetau ? tau(nca) : cmin(nca)
+  100*(cmax(nca) - _cmin)/cavg(nca; kwargs...)
+end
 
 """
     accumulationindex(nca::NCASubject; kwargs...)
@@ -363,12 +370,12 @@ function accumulationindex(nca::NCASubject; kwargs...)
 end
 
 """
-    swing(nca::NCASubject; kwargs...)
+    swing(nca::NCASubject; usetau=false, kwargs...)
 
-``swing = (C_{max}-C_{min})/C_{min}``
+``swing = (C_{max}-C_{min})/C_{min}`` (usetau=false) or ``swing = (C_{max}-C_{tau})/C_{tau}`` (usetau=true)
 """
-function swing(nca::NCASubject; kwargs...)
-  _cmin = cmin(nca)
+function swing(nca::NCASubject; usetau=false, kwargs...)
+  _cmin = usetau ? tau(nca) : cmin(nca)
   sw = (cmax(nca) - _cmin) ./ _cmin
   (ismissing(sw) || isinf(sw)) ? missing : sw
 end
@@ -544,3 +551,7 @@ function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,
   end
   return DataFrame(conc=conc′, time=tmptime)
 end
+
+n_samples(subj::NCASubject; kwargs...) = length(subj.time)
+doseamt(subj::NCASubject; kwargs...) = hasdose(subj) ? subj.dose.amt : missing
+dosetype(subj::NCASubject; kwargs...) = hasdose(subj) ? string(subj.dose.formulation) : missing

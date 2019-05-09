@@ -9,7 +9,6 @@ Type of formulations. There are IV (intravenous) and EV (extravascular).
 @enum Formulation IVBolus IVInfusion EV DosingUnknown
 # Formulation behaves like scalar
 Broadcast.broadcastable(x::Formulation) = Ref(x)
-isiv(x) = x === IVBolus || x === IVInfusion
 
 """
     NCADose
@@ -24,10 +23,11 @@ struct NCADose{T,A}
   amt::A
   duration::T
   formulation::Formulation
-  function NCADose(time, amt, duration::D, formulation) where D
+  ss::Bool
+  function NCADose(time, amt, duration::D, formulation, ss=false) where D
     duration′ = D === Nothing ? zero(time) : duration
     formulation′ = formulation === EV ? EV : iszero(duration′) ? IVBolus : IVInfusion
-    return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′)
+    return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′, ss)
   end
 end
 
@@ -40,7 +40,8 @@ function Base.show(io::IO, n::NCADose)
   println(io, "  time:         $(n.time)")
   println(io, "  amt:          $(n.amt)")
   println(io, "  duration:     $(n.duration)")
-  print(  io, "  formulation:  $(n.formulation)")
+  println(io, "  formulation:  $(n.formulation)")
+  print(  io, "  ss:           $(n.ss)")
 end
 
 # any changes in here must be reflected to ./simple.jl, too
@@ -243,20 +244,72 @@ struct NCAReport{S,V}
   values::V
 end
 
-function NCAReport(nca::Union{NCASubject, NCAPopulation}; kwargs...)
+macro defkwargs(sym, expr...)
+  :((nca; kwargs...) -> $sym(nca; $(expr...), kwargs...)) |> esc
+end
+
+NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
+function NCAReport(nca::NCAPopulation; kwargs...)
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
   aucinf = auc
   aumcinf = aumc
 
-  # Calculate summary values
-  funcs = (lambdazr2, lambdazadjr2, lambdaznpoints, lambdaz, lambdazintercept, lambdaztimefirst,
-   cmax, tmax, cmin, tmin, ctau, c0, clast, tlast, thalf,
-   auclast, auctau, aucinf, auc_extrap_percent, aumclast, aumctau, aumcinf, aumc_extrap_percent,
-   cl, vss, vz, tlag, mrt, fluctation, accumulationindex,
-   swing, bioav, tau, cavg, mat)
-  names = map(nameof, funcs)
-  values = NamedTuple{names}(f(nca; label = i==1, kwargs...) for (i, f) in enumerate(funcs))
+  # TODO: CL for IV, CL/F
+  report_pairs = [
+           "n_samples"          =>     n_samples,
+           "dose"               =>     doseamt,
+           "dose_type"          =>     dosetype,
+           "rsq"                =>     lambdazr2,
+           "rsq_adjusted"       =>     lambdazadjr2,
+           "no_points_lambda_z" =>     lambdaznpoints,
+           "lambda_z"           =>     lambdaz,
+           "lambda_z_intercept" =>     lambdazintercept,
+           "half_life"          =>     thalf,
+           "tlag"               =>     tlag,
+           "tmax"               =>     tmax,
+           "cmax"               =>     cmax,
+           "cmax_d"             =>     @defkwargs(cmax, normalize=true),
+           "tlast"              =>     tlast,
+           "clast"              =>     clast,
+           "clast_pred"         =>     @defkwargs(clast, pred=true),
+           "auclast"            =>     auclast,
+           "auclast_d"          =>     @defkwargs(auclast, normalize=true),
+           "aucinf_obs"         =>     auc,
+           "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
+           "auc_extrap_obs"     =>     auc_extrap_percent,
+           "vz_obs"             =>     vz,
+           "cl_obs"             =>     cl,
+           "aucinf_pred"        =>     @defkwargs(auc, pred=true),
+           "aucinf_d_pred"      =>     @defkwargs(auc, normalize=true, pred=true),
+           "auc_extrap_pred"    =>     @defkwargs(auc_extrap_percent, normalize=true, pred=true),
+           "tmin"               =>     tmin,
+           "cmin"               =>     cmin,
+           "ctau"               =>     ctau,
+           "cavg"               =>     cavg,
+           "swing"              =>     swing,
+           "swing_tau"          =>     @defkwargs(swing, tau=true),
+           "fluctuation"        =>     fluctuation,
+           "fluctuation_tau"    =>     @defkwargs(fluctuation, tau=true),
+           "vz_pred"            =>     @defkwargs(vz, pred=true),
+           "cl_pred"            =>     @defkwargs(cl, pred=true),
+           "aumclast"           =>     aumclast,
+           "aumcinf_obs"        =>     aumc,
+           "aumc_extrap_obs"    =>     aumc_extrap_percent,
+           "aumcinf_pred"       =>     @defkwargs(aumc, pred=true),
+           "aumc_extrap_pred"   =>     @defkwargs(aumc_extrap_percent, pred=true),
+           "mrtlast"            =>     @defkwargs(mrt, auctype=:last),
+           "mrtinf_obs"         =>     @defkwargs(mrt, auctype=:inf),
+           "mrtinf_pred"        =>     @defkwargs(mrt, auctype=:inf, pred=true),
+           "accumulation_index" =>     accumulationindex,
+           "auc_tau"            =>     auctau,
+           "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
+           "aumc_tau"           =>     aumctau,
+          ]
+  _names = map(x->Symbol(x.first), report_pairs)
+  funcs = map(x->x.second, report_pairs)
+  vals  = [f(nca; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
+  values = [i == 1 ? val : rename!(val, names(val)[1]=>name) for (i, (val, name)) in enumerate(zip(vals, _names))]
 
   NCAReport(settings, values)
 end
@@ -265,7 +318,7 @@ Base.summary(::NCAReport) = "NCAReport"
 
 function Base.show(io::IO, report::NCAReport)
   println(io, summary(report))
-  print(io, "  keys: $(keys(report.values))")
+  print(io, "  keys: $(map(x->names(x)[1], report.values))")
 end
 
 # units go under the header
@@ -292,12 +345,14 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   println(_io, "## Calculated Values")
   println(_io, "|         Name         |    Value   |")
   println(_io, "|:---------------------|-----------:|")
-  for entry in pairs(report.values)
-    _name = string(entry[1])
+  for entry in report.values
+    _name = string(names(entry)[1])
     name = replace(_name, "_"=>"\\_") # escape underscore
-    ismissing(entry[2]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
-    for (i, v) in enumerate(entry[2])
-      val = ismissing(v) ? v : round(ustrip(v), digits=2)*oneunit(v)
+    ismissing(entry[end]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
+    for v in entry[end]
+      val = ismissing(v) ? v :
+              v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
+              v
       @printf(_io, "| %s | %s |\n", name, val)
     end
   end
