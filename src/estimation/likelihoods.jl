@@ -146,8 +146,17 @@ function penalized_conditional_nll(m::PuMaSModel,
                                    param::NamedTuple,
                                    randeffs::NamedTuple,
                                    args...;kwargs...)
+
+  # First evaluate the penalty
   rfxset = m.random(param)
-  conditional_nll(m, subject, param, randeffs, args...;kwargs...) - _lpdf(rfxset.params, randeffs)
+  nl_randeffs = -_lpdf(rfxset.params, randeffs)
+
+  # If penalty is too large (likelihood would be Inf) then return without evaluating conditional likelihood
+  if nl_randeffs > log(floatmax(Float64))
+    return nl_randeffs
+  else
+    return conditional_nll(m, subject, param, randeffs, args...;kwargs...) + nl_randeffs
+  end
 end
 
 function penalized_conditional_nll(m::PuMaSModel,
@@ -155,43 +164,11 @@ function penalized_conditional_nll(m::PuMaSModel,
                                    param::NamedTuple,
                                    vrandeffs::AbstractVector,
                                    args...;kwargs...)
+
   rfxset = m.random(param)
   randeffs = TransformVariables.transform(totransform(rfxset), vrandeffs)
-  conditional_nll(m, subject, param, randeffs, args...;kwargs...) - _lpdf(rfxset.params, randeffs)
+  return penalized_conditional_nll(m, subject, param, randeffs, args...; kwargs...)
 end
-
-function penalized_conditional_nll_fn(m::PuMaSModel,
-                                      subject::Subject,
-                                      param::NamedTuple,
-                                      args...;kwargs...)
-  y -> penalized_conditional_nll(m, subject, param, y, args...; kwargs...)
-end
-
-
-
-"""
-    penalized_conditional_nll!(diffres::DiffResult, m::PuMaSModel, subject::Subject, param, param, args...;
-                               hessian=diffres isa HessianResult, kwargs...)
-
-Compute the penalized conditional negative log-likelihood (see [`penalized_conditional_nll`](@ref)),
-storing the gradient (and optionally, the Hessian) wrt to `param` in `diffres`.
-"""
-function penalized_conditional_nll!(diffres::DiffResult,
-                                    m::PuMaSModel,
-                                    subject::Subject,
-                                    param::NamedTuple,
-                                    vrandeffs::AbstractVector,
-                                    args...;
-                                    hessian=isa(diffres, DiffResult{2}),
-                                    kwargs...)
-  f = penalized_conditional_nll_fn(m, subject, param, args...; kwargs...)
-  if hessian
-    ForwardDiff.hessian!(diffres, f, vrandeffs)
-  else
-    ForwardDiff.gradient!(diffres, f, vrandeffs)
-  end
-end
-
 
 function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
   rfxset = m.random(param)
@@ -269,24 +246,6 @@ function empirical_bayes!(vrandeffs::AbstractVector,
 end
 
 """
-    empirical_bayes_dist(model, subject, param, approx, ...)
-
-Estimate the distribution of random effects (typically a Normal approximation of the
-empirical Bayes posterior) of a particular subject at a particular parameter values. The
-result is returned as a vector (transformed into Cartesian space).
-"""
-function empirical_bayes_dist(m::PuMaSModel,
-                              subject::Subject,
-                              param::NamedTuple,
-                              approx::LaplaceI,
-                              args...; kwargs...)
-  vrandeffs = empirical_bayes(m, subject, param, approx, args...; kwargs...)
-  diffres = DiffResults.HessianResult(vrandeffs)
-  penalized_conditional_nll!(diffres, m, subject, param, vrandeffs, args...; hessian=true, kwargs...)
-  MvNormal(vrandeffs, Symmetric(inv(DiffResults.hessian(diffres))))
-end
-
-"""
     marginal_nll(model, subject, param[, param], approx, ...)
     marginal_nll(model, population, param, approx, ...)
 
@@ -313,15 +272,24 @@ function marginal_nll(m::PuMaSModel,
                       vrandeffs::AbstractVector,
                       approx::LaplaceI,
                       args...; kwargs...)
+
+  # Initialize HessianResult for computing Hessian, gradient and value of negative loglikelihood in one go
   diffres = DiffResults.HessianResult(vrandeffs)
-  penalized_conditional_nll!(diffres, m, subject, param, vrandeffs, args...; hessian=true, kwargs...)
-  g, m, W = DiffResults.value(diffres), DiffResults.gradient(diffres), DiffResults.hessian(diffres)
+
+  # Compute the derivates
+  ForwardDiff.hessian!(diffres,
+    _vrandeffs -> penalized_conditional_nll(m, subject, param, _vrandeffs, args...; kwargs...),
+  vrandeffs)
+
+  # Extract the derivatives
+  nl, g, W = DiffResults.value(diffres), DiffResults.gradient(diffres), DiffResults.hessian(diffres)
+
   CW = cholesky!(Symmetric(W), check=false) # W is positive-definite, only compute Cholesky once.
   if issuccess(CW)
     p = length(vrandeffs)
-    g - (p*log(2π) - logdet(CW) + dot(m,CW\m))/2
+    nl - (p*log(2π) - logdet(CW) + dot(g, CW\g))/2
   else
-    return typeof(g)(Inf)
+    return typeof(nl)(Inf)
   end
 end
 
