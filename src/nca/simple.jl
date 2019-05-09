@@ -281,10 +281,11 @@ function mrt(nca::NCASubject; auctype=:inf, kwargs...)
   dose === nothing && return missing
   ti2 = dose.duration*1//2
   if dose.ss
+    auctype === :last && return missing
     τ = tau(nca; kwargs...)
     aumcτ = aumctau(nca; kwargs...)
-    aucτ = aumctau(nca; kwargs...)
-    _auc = auc(nca; auctype=auctype, kwargs...)
+    aucτ = auctau(nca; kwargs...)
+    _auc = auc(nca; auctype=:inf, kwargs...)
     quotient = (aumcτ + τ*(_auc - aucτ)) / aucτ
     dose.formulation === IVInfusion && (quotient -= ti2)
     return quotient
