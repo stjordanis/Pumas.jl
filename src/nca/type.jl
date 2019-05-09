@@ -6,7 +6,7 @@ using Markdown
 
 Type of formulations. There are IV (intravenous) and EV (extravascular).
 """
-@enum Formulation IVBolus IVInfusion EV DosingUnknown
+@enum Formulation IVBolus IVInfusion EV# DosingUnknown
 # Formulation behaves like scalar
 Broadcast.broadcastable(x::Formulation) = Ref(x)
 
@@ -16,7 +16,9 @@ Broadcast.broadcastable(x::Formulation) = Ref(x)
 `NCADose` takes the following arguments
 - `time`: time of the dose
 - `amt`: The amount of dosage
-- `formulation`: Type of formulation, `NCA.IV` or `NCA.EV`
+- `formulation`: Type of formulation, `NCA.IVBolus`, `NCA.IVInfusion` or `NCA.EV`
+- `ii`: interdose interval
+- `ss`: steady-state
 """
 struct NCADose{T,A}
   time::T
@@ -28,6 +30,7 @@ struct NCADose{T,A}
   function NCADose(time, amt, duration::D, formulation, ii=zero(time), ss=false) where D
     duration′ = D === Nothing ? zero(time) : duration
     formulation′ = formulation === EV ? EV : iszero(duration′) ? IVBolus : IVInfusion
+    time, ii = promote(time, ii)
     return new{typeof(time), typeof(amt)}(time, amt, duration′, formulation′, ii, ss)
   end
 end
