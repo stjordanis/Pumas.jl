@@ -393,6 +393,19 @@ end
                 1.47205E+00  6.97115E-01
                -1.12971E+00 -1.24210E-01]
 
+  foce_ebes_cov = [2.96349E-02  6.43970E-03 6.43970E-03 5.95626E-03
+                   1.13840E-01  1.97067E-02 1.97067E-02 1.53632E-02
+                   1.37480E-01  2.07479E-02 2.07479E-02 1.42631E-02
+                   2.91965E-02  9.78836E-03 9.78836E-03 1.35007E-02
+                   3.48071E-02  7.73824E-03 7.73824E-03 7.30707E-03
+                   5.87655E-02  2.22284E-02 2.22284E-02 3.92463E-02
+                   1.58693E-02  9.82976E-03 9.82976E-03 2.39503E-02
+                   5.74869E-02  1.64986E-02 1.64986E-02 2.20832E-02
+                   8.51151E-01  3.17941E-02 3.17941E-02 1.25183E-02
+                   4.95454E-03  3.20247E-03 3.20247E-03 6.51142E-03
+                   4.08289E-01  3.73648E-02 3.73648E-02 2.03508E-02
+                   1.46012E-02  5.21247E-03 5.21247E-03 7.67609E-03]
+
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
 
@@ -413,6 +426,15 @@ end
 
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
+  end
+
+  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    if i != 9
+      @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
+    else
+      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
+    end
   end
 end
 
@@ -499,6 +521,19 @@ end
                  1.46302E+00  7.37263E-01
                 -1.12603E+00 -8.76924E-02]
 
+  focei_ebes_cov = [2.48510E-02  7.25437E-03  7.25437E-03 9.35902E-03
+                    1.15339E-01  2.18488E-02  2.18488E-02 2.01031E-02
+                    1.38914E-01  2.24503E-02  2.24503E-02 1.85587E-02
+                    2.46574E-02  1.03515E-02  1.03515E-02 1.78935E-02
+                    3.40783E-02  9.74492E-03  9.74492E-03 1.18953E-02
+                    4.00166E-02  1.82229E-02  1.82229E-02 3.92109E-02
+                    1.18951E-02  8.95307E-03  8.95307E-03 2.70531E-02
+                    5.26418E-02  1.67790E-02  1.67790E-02 2.53672E-02
+                    8.16838E-01  3.06465E-02  3.06465E-02 1.54578E-02
+                    5.91844E-03  4.37397E-03  4.37397E-03 1.05092E-02
+                    3.96048E-01  3.79023E-02  3.79023E-02 2.46253E-02
+                    1.41688E-02  6.63702E-03  6.63702E-03 1.28516E-02]
+
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
@@ -518,6 +553,15 @@ end
 
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test o.vvrandeffs[i] ≈ focei_ebes[i,:] rtol=1e-3
+  end
+
+  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    if i != 9
+      @test ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=2e-1
+    else
+      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=2e-1
+    end
   end
 
   PuMaS.npde(   theopmodel_focei, theopp[1], param,
@@ -608,21 +652,43 @@ end
                 8.06659E-01  7.37918E-01
                -2.25546E+00 -8.58804E-02]
 
+  foce_ebes_cov = [2.15812E-02  3.05777E-03  3.05777E-03  3.85196E-03
+                   1.29718E-01  1.70524E-02  1.70524E-02  1.59179E-02
+                   1.92297E-01  1.99138E-02  1.99138E-02  1.41525E-02
+                   3.48411E-02  6.72686E-03  6.72686E-03  1.16407E-02
+                   6.10760E-02  7.92937E-03  7.92937E-03  1.00273E-02
+                   6.72710E-02  1.55304E-02  1.55304E-02  3.32063E-02
+                   2.24280E-02  6.89943E-03  6.89943E-03  2.28644E-02
+                   7.18688E-02  1.36676E-02  1.36676E-02  2.10787E-02
+                   2.25386E+00  4.60507E-02  4.60507E-02  8.15125E-03
+                   7.32259E-03  2.11950E-03  2.11950E-03  5.87831E-03
+                   7.04045E-01  5.72781E-02  5.72781E-02  2.61573E-02
+                   2.21674E-02  4.24659E-03  4.24659E-03  8.75169E-03]
+
   # Elapsed estimation time in seconds:     0.34
   # Elapsed covariance time in seconds:     0.31
 
   o = fit(theopmodel_foce, theopp, param, PuMaS.FOCE())
 
-  x_optim = o.param
+  o_estimates = o.param
 
   @test deviance(o) ≈ 102.871158475488 rtol=1e-5
 
-  @testset "test parameter $k" for k in keys(x_optim)
-    @test _extract(getfield(x_optim, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
+  @testset "test parameter $k" for k in keys(o_estimates)
+    @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
   end
 
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
+  end
+
+  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+    if i != 9
+      @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
+    else
+      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
+    end
   end
 end
 
@@ -727,6 +793,19 @@ end
                   1.44666E+00  6.99712E-01
                  -1.14629E+00 -1.26537E-01]
 
+  laplace_ebes_cov = [2.93845E-02  6.58620E-03  6.58620E-03  6.15918E-03
+                      8.77655E-02  1.52441E-02  1.52441E-02  1.46969E-02
+                      1.34060E-01  2.02319E-02  2.02319E-02  1.42611E-02
+                      2.50439E-02  8.56810E-03  8.56810E-03  1.33066E-02
+                      2.80689E-02  6.29305E-03  6.29305E-03  7.02909E-03
+                      4.82183E-02  1.79056E-02  1.79056E-02  3.66785E-02
+                      1.42044E-02  8.76942E-03  8.76942E-03  2.30211E-02
+                      5.16763E-02  1.48793E-02  1.48793E-02  2.15167E-02
+                      5.14173E-01  1.61073E-02  1.61073E-02  1.22365E-02
+                      5.22194E-03  3.44274E-03  3.44274E-03  6.76806E-03
+                      3.23248E-01  2.75247E-02  2.75247E-02  1.88999E-02
+                      1.23520E-02  4.49397E-03  4.49397E-03  7.51682E-03]
+
   # Elapsed estimation time in seconds:     0.23
   # Elapsed covariance time in seconds:     0.17
 
@@ -750,6 +829,15 @@ end
 
     @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
       @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=3e-3
+    end
+
+    ebe_cov = PuMaS.empirical_bayes_dist(o)
+    @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+      if i != 9
+        @test ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=2e-1
+      else
+        @test_broken ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=2e-1
+      end
     end
   end
 end
@@ -842,6 +930,19 @@ end
                     1.43116E+00  7.48520E-01
                    -1.15300E+00 -7.93525E-02]
 
+  laplacei_ebes_cov = [2.50922E-02  8.73478E-03  8.73478E-03  1.09246E-02
+                       1.05367E-01  2.07642E-02  2.07642E-02  2.00787E-02
+                       1.32364E-01  2.21959E-02  2.21959E-02  1.90778E-02
+                       2.27392E-02  1.05318E-02  1.05318E-02  1.84061E-02
+                       3.29183E-02  1.03562E-02  1.03562E-02  1.25563E-02
+                       3.37488E-02  1.74040E-02  1.74040E-02  3.91317E-02
+                       1.04365E-02  8.73379E-03  8.73379E-03  2.72465E-02
+                       5.56885E-02  1.72519E-02  1.72519E-02  2.57910E-02
+                       4.58448E-01  2.47681E-02  2.47681E-02  1.58825E-02
+                       6.12637E-03  4.60375E-03  4.60375E-03  1.11188E-02
+                       3.11433E-01  3.31735E-02  3.31735E-02  2.47868E-02
+                       1.23976E-02  6.46725E-03  6.46725E-03  1.29075E-02]
+
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
@@ -863,6 +964,15 @@ end
 
     @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
       @test o.vvrandeffs[i] ≈ laplacei_ebes[i,:] rtol=1e-3
+    end
+
+    ebe_cov = PuMaS.empirical_bayes_dist(o)
+    @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
+      if i != 9
+        @test ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] atol=2e-1
+      else
+        @test_broken ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] atol=2e-1
+      end
     end
   end
 end

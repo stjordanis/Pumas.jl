@@ -242,26 +242,13 @@ function empirical_bayes_dist(m::PuMaSModel,
                               subject::Subject,
                               param::NamedTuple,
                               vrandeffs::AbstractVector,
-                              approx::FOCEI,
+                              approx::LikelihoodApproximation,
                               args...; kwargs...)
 
-  H = ForwardDiff.hessian(vrandeffs) do _vrandeffs
-    penalized_conditional_nll(m, subject, param, _vrandeffs, approx, args...; kwargs...)
-  end
-  return MvNormal(vrandeffs, inv(Symmetric(H)))
-end
+  _, _, H = ∂²l∂η²(m, subject, param, vrandeffs, approx, args...; kwargs...)
 
-function empirical_bayes_dist(m::PuMaSModel,
-                              subject::Subject,
-                              param::NamedTuple,
-                              vrandeffs::AbstractVector,
-                              approx::LaplaceI,
-                              args...; kwargs...)
-
-  H = ForwardDiff.hessian(vrandeffs) do _vrandeffs
-    penalized_conditional_nll(m, subject, param, _vrandeffs, approx, args...; kwargs...)
-  end
-  return MvNormal(vrandeffs, inv(Symmetric(H)))
+  # FIXME! For now, we need to convert to Matrix since MvNormal doesn't support SMatrix
+  return MvNormal(vrandeffs, inv(cholesky(Symmetric(convert(Matrix, H)))))
 end
 
 """
