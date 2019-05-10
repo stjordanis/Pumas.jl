@@ -48,10 +48,13 @@ ncareport1 = NCAReport(mncapop[1], ithdose=1)
 @test_skip display(NCA.to_markdown(ncareport1))
 @test_nowarn NCA.to_dataframe(ncareport1)
 
-popncareport = NCAReport(mncapop, ithdose=1)
-@test_nowarn popncareport
+popncareport = NCAReport(mncapop)
 @test_skip display(NCA.to_markdown(popncareport))
-@test_nowarn NCA.to_dataframe(popncareport)
+df = @test_nowarn NCA.to_dataframe(popncareport)
+@test count(!ismissing, df.cl_obs) == 24
+@test count(!ismissing, df.cl_f_obs) == 72
+@test count(!ismissing, df.cl_pred) == 24
+@test count(!ismissing, df.cl_f_pred) == 72
 
 data1 = CSV.read(IOBuffer("""
 id,time,tad,conc,amt,occasion,formulation

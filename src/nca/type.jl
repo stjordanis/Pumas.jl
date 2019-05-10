@@ -248,13 +248,21 @@ macro defkwargs(sym, expr...)
 end
 
 NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
-function NCAReport(nca::NCAPopulation; kwargs...)
-  !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
-  settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
+function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, kwargs...) # strips out unnecessary user options
+  !hasdose(pop) && @warn "`dose` is not provided. No dependent quantities will be calculated"
+  settings = Dict(:multidose=>ismultidose(pop), :subject=>(pop isa NCASubject))
   aucinf = auc
   aumcinf = aumc
 
-  # TODO: CL for IV, CL/F
+  has_ev = hasdose(pop) && any(pop) do subj
+    subj.dose isa NCADose ? subj.dose.formulation === EV :
+                            any(d->d.formulation === EV, subj.dose)
+  end
+  has_iv = hasdose(pop) && any(pop) do subj
+    subj.dose isa NCADose ? subj.dose.formulation !== EV :
+                            any(d->d.formulation !== EV, subj.dose)
+  end
+
   report_pairs = [
            "n_samples"          =>     n_samples,
            "dose"               =>     doseamt,
@@ -278,20 +286,23 @@ function NCAReport(nca::NCAPopulation; kwargs...)
            "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
            "auc_extrap_obs"     =>     auc_extrap_percent,
            "vz_obs"             =>     vz,
-           "cl_obs"             =>     cl,
+           has_iv && "cl_obs"             =>     _cl,
+           has_ev && "cl_f_obs"           =>     _clf,
            "aucinf_pred"        =>     @defkwargs(auc, pred=true),
            "aucinf_d_pred"      =>     @defkwargs(auc, normalize=true, pred=true),
            "auc_extrap_pred"    =>     @defkwargs(auc_extrap_percent, normalize=true, pred=true),
            "tmin"               =>     tmin,
            "cmin"               =>     cmin,
+           "c0"                 =>     c0,
            "ctau"               =>     ctau,
            "cavg"               =>     cavg,
            "swing"              =>     swing,
-           "swing_tau"          =>     @defkwargs(swing, tau=true),
+           "swing_tau"          =>     @defkwargs(swing, usetau=true),
            "fluctuation"        =>     fluctuation,
-           "fluctuation_tau"    =>     @defkwargs(fluctuation, tau=true),
+           "fluctuation_tau"    =>     @defkwargs(fluctuation, usetau=true),
            "vz_pred"            =>     @defkwargs(vz, pred=true),
-           "cl_pred"            =>     @defkwargs(cl, pred=true),
+           has_iv && ("cl_pred"            =>     @defkwargs(_cl, pred=true)),
+           has_ev && ("cl_f_pred"          =>     @defkwargs(_clf, pred=true)),
            "aumclast"           =>     aumclast,
            "aumcinf_obs"        =>     aumc,
            "aumc_extrap_obs"    =>     aumc_extrap_percent,
@@ -305,9 +316,10 @@ function NCAReport(nca::NCAPopulation; kwargs...)
            "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
            "aumc_tau"           =>     aumctau,
           ]
+  deleteat!(report_pairs, findall(x->x===false, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
-  vals  = [f(nca; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
+  vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
   values = [i == 1 ? val : rename!(val, names(val)[1]=>name) for (i, (val, name)) in enumerate(zip(vals, _names))]
 
   NCAReport(settings, values)

@@ -159,13 +159,22 @@ thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs
 
 Calculate total drug clearance.
 """
-function cl(nca::NCASubject; kwargs...)
+function cl(nca::NCASubject; auctype=nothing, kwargs...)
   nca.dose === nothing && return missing
   if nca.dose.ss
     1/normalizedose(auctau(nca; kwargs...), nca)
   else
     1/normalizedose(auc(nca; kwargs...), nca)
   end
+end
+
+function _clf(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation === EV ? cl(nca; kwargs...) : missing
+end
+function _cl(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation !== EV ? cl(nca; kwargs...) : missing
 end
 
 """
@@ -343,10 +352,15 @@ end
 
 Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
 """
-function cavg(nca::NCASubject; kwargs...)
+function cavg(nca::NCASubject; pred=false, kwargs...)
   nca.dose === nothing && return missing
   subj = nca.dose isa NCADose ? nca : subject_at_ithdose(nca, 1)
-  return auctau(subj; kwargs...)/tau(subj; kwargs...)
+  ii = tau(subj)
+  if nca.dose.ss
+    return auctau(subj; kwargs...)/ii
+  else
+    return auc(subj; auctype=:inf, pred=pred)/ii
+  end
 end
 
 """
@@ -357,7 +371,7 @@ Peak trough fluctuation over one dosing interval at steady state.
 ``Fluctuation = 100*(C_{max} - C_{tau})/C_{avg}`` (usetau=true)
 """
 function fluctuation(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? tau(nca) : cmin(nca)
+  _cmin = usetau ? ctau(nca) : cmin(nca)
   100*(cmax(nca) - _cmin)/cavg(nca; kwargs...)
 end
 
@@ -377,7 +391,7 @@ end
 ``swing = (C_{max}-C_{min})/C_{min}`` (usetau=false) or ``swing = (C_{max}-C_{tau})/C_{tau}`` (usetau=true)
 """
 function swing(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? tau(nca) : cmin(nca)
+  _cmin = usetau ? ctau(nca) : cmin(nca)
   sw = (cmax(nca) - _cmin) ./ _cmin
   (ismissing(sw) || isinf(sw)) ? missing : sw
 end
@@ -390,10 +404,10 @@ Estimate the concentration at dosing time for an IV bolus dose.
 function c0(subj::NCASubject, returnev=false; verbose=true, kwargs...) # `returnev` is not intended to be used by users
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
-  iszero(t1) && return subj.conc[1]
   if subj.dose.formulation !== IVBolus
     return returnev ? zero(subj.conc[1]) : missing
   end
+  iszero(t1) && return subj.conc[1]
   t2 = ustrip(subj.time[2])
   c1 = ustrip(subj.conc[1]); c2 = ustrip(subj.conc[2])
   iszero(c1) && return c1
