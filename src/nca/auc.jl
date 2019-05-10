@@ -24,7 +24,6 @@ end
 
 """
     extrapaucinf(clast, tlast, lambdaz)
-idx = 1:16
 
 Extrapolate auc to the infinite.
 """

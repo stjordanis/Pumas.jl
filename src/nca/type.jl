@@ -248,7 +248,7 @@ macro defkwargs(sym, expr...)
 end
 
 NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
-function NCAReport(nca::NCAPopulation; kwargs...)
+function NCAReport(nca::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, kwargs...) # strips out unnecessary user options
   !hasdose(nca) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(nca), :subject=>(nca isa NCASubject))
   aucinf = auc
@@ -284,6 +284,7 @@ function NCAReport(nca::NCAPopulation; kwargs...)
            "auc_extrap_pred"    =>     @defkwargs(auc_extrap_percent, normalize=true, pred=true),
            "tmin"               =>     tmin,
            "cmin"               =>     cmin,
+           "c0"                 =>     c0,
            "ctau"               =>     ctau,
            "cavg"               =>     cavg,
            "swing"              =>     swing,
