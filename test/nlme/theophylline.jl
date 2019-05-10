@@ -741,7 +741,7 @@ end
     @test deviance(o) ≈ 123.76439574418291 rtol=1e-5
 
     @testset "test estimate of $k" for k in keys(o_estimates)
-      @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=1e-3
+      @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(laplace_estimated_params, k)) rtol=2e-3
     end
 
     @testset "test stderror of $k" for k in keys(o_estimates)
@@ -749,7 +749,7 @@ end
     end
 
     @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-      @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=2e-3
+      @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=3e-3
     end
   end
 end
