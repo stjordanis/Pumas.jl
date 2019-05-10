@@ -371,7 +371,7 @@ Peak trough fluctuation over one dosing interval at steady state.
 ``Fluctuation = 100*(C_{max} - C_{tau})/C_{avg}`` (usetau=true)
 """
 function fluctuation(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? tau(nca) : cmin(nca)
+  _cmin = usetau ? ctau(nca) : cmin(nca)
   100*(cmax(nca) - _cmin)/cavg(nca; kwargs...)
 end
 
@@ -391,7 +391,7 @@ end
 ``swing = (C_{max}-C_{min})/C_{min}`` (usetau=false) or ``swing = (C_{max}-C_{tau})/C_{tau}`` (usetau=true)
 """
 function swing(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? tau(nca) : cmin(nca)
+  _cmin = usetau ? ctau(nca) : cmin(nca)
   sw = (cmax(nca) - _cmin) ./ _cmin
   (ismissing(sw) || isinf(sw)) ? missing : sw
 end
