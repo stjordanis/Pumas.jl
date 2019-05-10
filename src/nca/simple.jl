@@ -159,13 +159,22 @@ thalf(nca::NCASubject; kwargs...) = log(2)./lambdaz(nca; recompute=false, kwargs
 
 Calculate total drug clearance.
 """
-function cl(nca::NCASubject; kwargs...)
+function cl(nca::NCASubject; auctype=nothing, kwargs...)
   nca.dose === nothing && return missing
   if nca.dose.ss
     1/normalizedose(auctau(nca; kwargs...), nca)
   else
     1/normalizedose(auc(nca; kwargs...), nca)
   end
+end
+
+function _clf(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation === EV ? cl(nca; kwargs...) : missing
+end
+function _cl(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation !== EV ? cl(nca; kwargs...) : missing
 end
 
 """
@@ -343,10 +352,15 @@ end
 
 Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
 """
-function cavg(nca::NCASubject; kwargs...)
+function cavg(nca::NCASubject; pred=false, kwargs...)
   nca.dose === nothing && return missing
   subj = nca.dose isa NCADose ? nca : subject_at_ithdose(nca, 1)
-  return auctau(subj; kwargs...)/tau(subj; kwargs...)
+  ii = tau(subj)
+  if nca.dose.ss
+    return auctau(subj; kwargs...)/ii
+  else
+    return auc(subj; auctype=:inf, pred=pred)/ii
+  end
 end
 
 """
