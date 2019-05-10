@@ -53,8 +53,10 @@ the derived produces distributions.
 conditional_nll(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
+                randeffs::NamedTuple,
+                approx::LikelihoodApproximation=LaplaceI(),
                 args...; kwargs...) =
-  first(conditional_nll_ext(m, subject, param, args...; kwargs...))
+  first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
 
 function conditional_nll_ext(m::PuMaSModel,
                              subject::Subject,
