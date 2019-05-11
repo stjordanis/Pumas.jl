@@ -61,12 +61,36 @@ function tmax(nca::NCASubject; interval=nothing, kwargs...)
 end
 
 """
-    cmax(nca::NCASubject; interval=nothing, kwargs...)
+    cmax(nca::NCASubject; normalize=false, interval=nothing, kwargs...)
 
 Calculate ``C_{max}_{t_1}^{t_2}``
 """
-function cmax(nca::NCASubject; interval=nothing, normalize=false, kwargs...)
+function cmax(nca::NCASubject; normalize=false, kwargs...)
   dose = nca.dose
+  cmax′ = _cmax(nca; kwargs...)
+  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
+    return cmax′
+  else # SS, so `cmax′` is actually `cmax_ss`
+    return cmax′/accumulationindex(nca)
+  end
+end
+
+"""
+    cmaxss(nca::NCASubject; normalize=false, kwargs...)
+
+Calculate ``C_{maxss}``
+"""
+function cmaxss(nca::NCASubject; interval=nothing, kwargs...)
+  dose = nca.dose
+  cmax′ = _cmax(nca; kwargs...)
+  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
+    return cmax′*accumulationindex(nca)
+  else # SS, so `cmax′` is actually `cmax_ss`
+    return cmax′
+  end
+end
+
+function _cmax(nca::NCASubject; interval=nothing, normalize=false, kwargs...)
   if interval isa Union{Tuple, Nothing}
     sol = ctmax(nca; interval=interval, kwargs...)[1]
   else
@@ -86,11 +110,36 @@ Calculate concentration at τ
 ctau(nca::NCASubject; method=:linear, kwargs...) = interpextrapconc(nca, tau(nca; kwargs...); method=method, kwargs...)
 
 """
-    cmin(nca::NCASubject; kwargs...)
+    cmin(nca::NCASubject; normalize=false, interval=nothing, kwargs...)
 
-Calculate minimum observed concentration
+Calculate ``C_{min}_{t_1}^{t_2}``
 """
-function cmin(nca::NCASubject; kwargs...)
+function cmin(nca::NCASubject; normalize=false, kwargs...)
+  dose = nca.dose
+  cmin′ = _cmin(nca; kwargs...)
+  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
+    return cmin′
+  else # SS, so `cmin′` is actually `cmin_ss`
+    return cmin′/accumulationindex(nca)
+  end
+end
+
+"""
+    cminss(nca::NCASubject; normalize=false, kwargs...)
+
+Calculate ``C_{minss}``
+"""
+function cminss(nca::NCASubject; interval=nothing, kwargs...)
+  dose = nca.dose
+  cmin′ = _cmin(nca; kwargs...)
+  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
+    return cmin′*accumulationindex(nca)
+  else # SS, so `cmin′` is actually `cmin_ss`
+    return cmin′
+  end
+end
+
+function _cmin(nca::NCASubject; kwargs...)
   conc, time = nca.conc, nca.time
   val, _ = conc_extreme(conc, eachindex(conc), >)
   return val
@@ -357,11 +406,11 @@ function tau(nca::NCASubject; kwargs...)
 end
 
 """
-    cavg(nca::NCASubject)
+    cavgss(nca::NCASubject)
 
-Average concentration over one period. ``C_{avg} = AUC_{tau}/Tau``. For multiple dosing only.
+Average concentration over one period. ``C_{avgss} = AUC_{tau}/Tau``.
 """
-function cavg(nca::NCASubject; pred=false, kwargs...)
+function cavgss(nca::NCASubject; pred=false, kwargs...)
   nca.dose === nothing && return missing
   subj = nca.dose isa NCADose ? nca : subject_at_ithdose(nca, 1)
   ii = tau(subj)
@@ -376,12 +425,12 @@ end
     fluctuation(nca::NCASubject; usetau=false, kwargs...)
 
 Peak trough fluctuation over one dosing interval at steady state.
-``Fluctuation = 100*(C_{max} - C_{min})/C_{avg}`` (usetau=false) or
-``Fluctuation = 100*(C_{max} - C_{tau})/C_{avg}`` (usetau=true)
+``Fluctuation = 100*(C_{maxss} - C_{minss})/C_{avgss}`` (usetau=false) or
+``Fluctuation = 100*(C_{maxss} - C_{tau})/C_{avgss}`` (usetau=true)
 """
 function fluctuation(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? ctau(nca) : cmin(nca)
-  100*(cmax(nca) - _cmin)/cavg(nca; kwargs...)
+  _cmin = usetau ? ctau(nca) : cminss(nca)
+  100*(cmaxss(nca) - _cmin)/cavgss(nca; kwargs...)
 end
 
 """
@@ -397,11 +446,11 @@ end
 """
     swing(nca::NCASubject; usetau=false, kwargs...)
 
-``swing = (C_{max}-C_{min})/C_{min}`` (usetau=false) or ``swing = (C_{max}-C_{tau})/C_{tau}`` (usetau=true)
+``swing = (C_{maxss}-C_{minss})/C_{minss}`` (usetau=false) or ``swing = (C_{maxss}-C_{tau})/C_{tau}`` (usetau=true)
 """
 function swing(nca::NCASubject; usetau=false, kwargs...)
-  _cmin = usetau ? ctau(nca) : cmin(nca)
-  sw = (cmax(nca) - _cmin) ./ _cmin
+  _cmin = usetau ? ctau(nca) : cminss(nca)
+  sw = (cmaxss(nca) - _cmin) ./ _cmin
   (ismissing(sw) || isinf(sw)) ? missing : sw
 end
 

@@ -282,7 +282,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "half_life"          =>     thalf,
            "tmax"               =>     tmax,
            "cmax"               =>     cmax,
-           #"cmaxss"             =>     cmaxss,
+           "cmaxss"             =>     cmaxss,
            (has_iv || has_inf) && "c0"                 =>     c0,
            "clast"              =>     clast,
            "clast_pred"         =>     @defkwargs(clast, pred=true),
@@ -304,9 +304,9 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            (has_iv || has_inf) && "vss_pred" => @defkwargs(vss, pred=true),
            (has_ii || is_ss) && "tmin"               =>     tmin,
            (has_ii || is_ss) && "cmin"               =>     cmin,
-           #(has_ii || is_ss) && "cminss"               =>     cminss,
+           (has_ii || is_ss) && "cminss"               =>     cminss,
            (has_ii || is_ss) && "ctau"               =>     ctau,
-           #(has_ii || is_ss) && "cavgss"               =>     cavgss,
+           (has_ii || is_ss) && "cavgss"               =>     cavgss,
            (has_ii || is_ss) && "fluctuation"        =>     fluctuation,
            (has_ii || is_ss) && "fluctuation_tau"    =>     @defkwargs(fluctuation, usetau=true),
            (has_ii || is_ss) && "accumulation_index" =>     accumulationindex,
@@ -343,7 +343,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "tau"                =>     tau,
            "tlag"               =>     tlag, #???
           ]
-  deleteat!(report_pairs, findall(x->x===false, report_pairs))
+  deleteat!(report_pairs, findall(x->x.first === false, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]

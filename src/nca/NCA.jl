@@ -17,17 +17,13 @@ export DataFrame
 
 export NCASubject, NCAPopulation, NCADose, showunits
 export read_nca, add_ii!
-#export auc, aumc, lambdaz, auc_extrap_percent, aumc_extrap_percent,
-#       clast, tlast, cmax, tmax, cmin, c0, tmin, thalf, cl, clf, vss, vz,
-#       bioav, tlag, mrt, mat, tau, cavg, fluctuation, accumulationindex,
-#       swing, superposition
 export NCAReport
 export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
-          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz, :_vz, :_vzf,
+          :cmax, :cmaxss, :tmax, :cmin, :cminss, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz, :_vz, :_vzf,
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
-          :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctuation, :accumulationindex,
+          :bioav, :tlag, :mrt, :mat, :tau, :cavgss, :fluctuation, :accumulationindex,
           :swing, :n_samples, :doseamt, :dosetype)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
@@ -90,7 +86,7 @@ end
 
 # add `tau`
 # Multiple dosing handling
-for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
+for f in (:c0, :clast, :tlast, :cmax, :cmaxss, :tmax, :cmin, :cminss, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
           :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz, :_vz, :_vzf,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
           :n_samples, :doseamt, :dosetype)
