@@ -25,7 +25,7 @@ export NCAReport
 export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
-          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz,
+          :cmax, :tmax, :cmin, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz, :_vz, :_vzf,
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavg, :fluctuation, :accumulationindex,
           :swing, :n_samples, :doseamt, :dosetype)
@@ -91,7 +91,7 @@ end
 # add `tau`
 # Multiple dosing handling
 for f in (:c0, :clast, :tlast, :cmax, :tmax, :cmin, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
-          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz,
+          :cavg, :tau, :auctau, :aumctau, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz, :_vz, :_vzf,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst,
           :n_samples, :doseamt, :dosetype)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}

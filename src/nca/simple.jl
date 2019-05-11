@@ -203,6 +203,15 @@ function vz(nca::NCASubject; kwargs...)
   end
 end
 
+function _vzf(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation === EV ? vz(nca; kwargs...) : missing
+end
+function _vz(nca::NCASubject; kwargs...)
+  nca.dose === nothing && return missing
+  nca.dose.formulation !== EV ? vz(nca; kwargs...) : missing
+end
+
 """
     bioav(nca::NCASubject; ithdose::Integer, kwargs...)
 
