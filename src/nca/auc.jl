@@ -311,7 +311,7 @@ end
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(replace(x->iszero(x) ? eps() : x, y)))
 
 """
-  lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> lambdaz
+    lambdaz(nca::NCASubject; threshold=10, idxs=nothing) -> lambdaz
 
 Calculate terminal elimination rate constant ``λz``.
 """
@@ -428,6 +428,16 @@ calculate `lambdaz` before calculating this quantity.
 See also [`lambdaz`](@ref).
 """
 lambdazr2(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.r2))
+
+"""
+  lambdazr(nca::NCASubject; kwargs...)
+
+Give the correlation coefficient (``r``) when calculating `λz`. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdazr(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); sqrt(first(nca.r2)))
 
 """
   lambdazadjr2(nca::NCASubject; kwargs...)

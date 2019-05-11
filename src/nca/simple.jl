@@ -68,10 +68,10 @@ Calculate ``C_{max}_{t_1}^{t_2}``
 function cmax(nca::NCASubject; normalize=false, kwargs...)
   dose = nca.dose
   cmax′ = _cmax(nca; kwargs...)
-  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
-    return cmax′
-  else # SS, so `cmax′` is actually `cmax_ss`
+  if dose !== nothing && dose.ss
     return cmax′/accumulationindex(nca)
+  else
+    return cmax′
   end
 end
 
@@ -117,10 +117,10 @@ Calculate ``C_{min}_{t_1}^{t_2}``
 function cmin(nca::NCASubject; normalize=false, kwargs...)
   dose = nca.dose
   cmin′ = _cmin(nca; kwargs...)
-  if dose === nothing || (!dose.ss && dose.ii > zero(dose.ii))
-    return cmin′
-  else # SS, so `cmin′` is actually `cmin_ss`
+  if dose !== nothing && dose.ss
     return cmin′/accumulationindex(nca)
+  else
+    return cmin′
   end
 end
 

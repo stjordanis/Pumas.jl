@@ -266,7 +266,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
   end
   has_ii = hasdose(pop) && any(pop) do subj
     subj.dose isa NCADose ? subj.dose.ii > zero(subj.dose.ii) :
-                            any(d->d.ii > zero(subj.dose.ii), subj.dose)
+                            any(d->d.ii > zero(d.ii), subj.dose)
   end
   is_ss = hasdose(pop) && any(pop) do subj
     subj.dose isa NCADose ? subj.dose.ss :
@@ -298,7 +298,6 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            (has_iv || has_inf) && "vz_pred"             =>     @defkwargs(_vz, pred=true),
            (has_iv || has_inf) && "cl_pred"             =>     @defkwargs(_cl, pred=true),
            has_ev && "vz_f_pred"             =>     @defkwargs(_vzf, pred=true),
-           has_ev && "cl_f_pred"           =>     @defkwargs(_clf, pred=true),
            has_ev && "cl_f_pred"           =>     @defkwargs(_clf, pred=true),
            (has_iv || has_inf) && "vss_obs" => vss,
            (has_iv || has_inf) && "vss_pred" => @defkwargs(vss, pred=true),
@@ -333,7 +332,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "n_samples"          =>     n_samples,
            "rsq"                =>     lambdazr2,
            "rsq_adjusted"       =>     lambdazadjr2,
-           #Corr_XY
+           "corr_xy"            =>     lambdazr,
            "no_points_lambda_z" =>     lambdaznpoints,
            "lambda_z_intercept" =>     lambdazintercept,
            # lower
@@ -343,7 +342,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "tau"                =>     tau,
            "tlag"               =>     tlag, #???
           ]
-  deleteat!(report_pairs, findall(x->x.first === false, report_pairs))
+  deleteat!(report_pairs, findall(x->x.first isa Bool, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]

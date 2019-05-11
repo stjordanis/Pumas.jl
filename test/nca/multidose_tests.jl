@@ -38,12 +38,14 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test_nowarn NCA.cl(mncapop, ithdose=1)
 @test NCA.tmin(mncapop[1])[1] == 20timeu
 @test NCA.cmin(mncapop[1])[1] == mncapop[1].conc[1][end-1]
-@test NCA.fluctuation(mncapop[1]) == 100 .*(NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cavg(mncapop[1])
+@test NCA.cminss(mncapop[1])[1] == NCA.cmin(mncapop[1])[1]*NCA.accumulationindex(mncapop[1])[1]
+@test NCA.cmaxss(mncapop[1])[1] == NCA.cmax(mncapop[1])[1]*NCA.accumulationindex(mncapop[1])[1]
+@test NCA.fluctuation(mncapop[1]) == 100 .*(NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cavgss(mncapop[1])
 @test NCA.accumulationindex(mncapop[1]) == 1 ./(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
-@test NCA.swing(mncapop[1])[1] == ((NCA.cmax(mncapop[1]) .- NCA.cmin(mncapop[1]))./NCA.cmin(mncapop[1]))[1]
+@test NCA.swing(mncapop[1])[1] == ((NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cminss(mncapop[1]))[1]
 @test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
 
-ncareport1 = NCAReport(mncapop[1], ithdose=1)
+ncareport1 = NCAReport(mncapop[1])
 @test_nowarn ncareport1
 @test_skip display(NCA.to_markdown(ncareport1))
 @test_nowarn NCA.to_dataframe(ncareport1)
