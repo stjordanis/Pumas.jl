@@ -349,6 +349,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G};
         λ = oneunit(_Z) * coef(model)[2]
         intercept = coef(model)[1]
         firstpoint = time[idxs[1]]
+        lastpoint = time[idxs[end]]
         points = i+1
       end
     end
@@ -364,6 +365,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G};
     intercept = coef(model)[1]
     r2 = oneunit(_F) * r²(model)
     firstpoint = time[idxs[1]]
+    lastpoint = time[idxs[end]]
     maxadjr2 = oneunit(_F) * adjr²(model)
   end
   if λ ≥ zero(λ)
@@ -374,6 +376,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G};
     nca.lambdaz[1] = -λ
     nca.points[1] = points
     nca.firstpoint[1] = firstpoint
+    nca.lastpoint[1] = lastpoint
     nca.r2[1] = r2
     nca.adjr2[1] = maxadjr2
     nca.intercept[1] = intercept
@@ -381,6 +384,7 @@ function lambdaz(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G};
     nca.lambdaz = -λ
     nca.points = points
     nca.firstpoint = firstpoint
+    nca.lastpoint = lastpoint
     nca.r2 = r2
     nca.adjr2 = maxadjr2
     nca.intercept = intercept
@@ -407,6 +411,23 @@ calculate `lambdaz` before calculating this quantity.
 See also [`lambdaz`](@ref).
 """
 lambdaztimefirst(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.firstpoint))
+
+"""
+  lambdaztimelast(nca::NCASubject; kwargs...)
+
+Give the last time point that is used in the `λz` calculation. Please
+calculate `lambdaz` before calculating this quantity.
+
+See also [`lambdaz`](@ref).
+"""
+lambdaztimelast(nca::NCASubject; kwargs...) = (lambdaz(nca; kwargs...); first(nca.lastpoint))
+
+"""
+    span(nca::NCASubject; kwargs...)
+
+Calculate span
+"""
+span(nca::NCASubject; kwargs...) = (lambdaztimelast(nca; kwargs...) - lambdaztimefirst(nca)) / thalf(nca)
 
 """
   lambdazintercept(nca::NCASubject; kwargs...)

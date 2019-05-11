@@ -253,6 +253,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
     adjr2 = view(nca.adjr2, i)
     intercept = view(nca.intercept, i)
     firstpoint = view(nca.firstpoint, i)
+    lastpoint = view(nca.lastpoint, i)
     points = view(nca.points, i)
     auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
     return NCASubject(
@@ -261,7 +262,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
-                 firstpoint, points,                      # lambdaz related cache
+                 firstpoint, lastpoint, points,           # lambdaz related cache
                  auc, aumc, nca.method                    # AUC related cache
                 )
   end

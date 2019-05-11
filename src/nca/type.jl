@@ -69,6 +69,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   adjr2::F
   intercept::F
   firstpoint::tEltype
+  lastpoint::tEltype
   points::P
   auc_last::AUC
   aumc_last::AUMC
@@ -127,7 +128,7 @@ function NCASubject(conc, time;
                       Vector{Int}, typeof(id), typeof(group)}(id, group,
                         conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
-                        fill(-unittime, n), fill(0, n),
+                        fill(-unittime, n), fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
@@ -142,7 +143,7 @@ function NCASubject(conc, time;
           typeof(r2_proto),  typeof(llq),   typeof(lastidx),
           Int, typeof(id),   typeof(group)}(id, group,
             conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
-            r2_proto,  r2_proto, intercept, unittime, 0,
+            r2_proto,  r2_proto, intercept, unittime, unittime, 0,
             auc_proto, aumc_proto, :___)
 end
 
@@ -335,9 +336,9 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "corr_xy"            =>     lambdazr,
            "no_points_lambda_z" =>     lambdaznpoints,
            "lambda_z_intercept" =>     lambdazintercept,
-           # lower
-           # upper
-           # span = (lambdaz_upper - lambdaz_lower) / hl
+           "lambda_z_lower"     =>     lambdaztimefirst,
+           "lambda_z_upper"     =>     lambdaztimelast,
+           "span"               =>     span,
            "route"              =>     dosetype,
            "tau"                =>     tau,
            "tlag"               =>     tlag, #???
