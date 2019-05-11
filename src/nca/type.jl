@@ -69,6 +69,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   adjr2::F
   intercept::F
   firstpoint::tEltype
+  lastpoint::tEltype
   points::P
   auc_last::AUC
   aumc_last::AUMC
@@ -127,7 +128,7 @@ function NCASubject(conc, time;
                       Vector{Int}, typeof(id), typeof(group)}(id, group,
                         conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
-                        fill(-unittime, n), fill(0, n),
+                        fill(-unittime, n), fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
@@ -142,7 +143,7 @@ function NCASubject(conc, time;
           typeof(r2_proto),  typeof(llq),   typeof(lastidx),
           Int, typeof(id),   typeof(group)}(id, group,
             conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
-            r2_proto,  r2_proto, intercept, unittime, 0,
+            r2_proto,  r2_proto, intercept, unittime, unittime, 0,
             auc_proto, aumc_proto, :___)
 end
 
@@ -251,72 +252,98 @@ NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs..
 function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, kwargs...) # strips out unnecessary user options
   !hasdose(pop) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(pop), :subject=>(pop isa NCASubject))
-  aucinf = auc
-  aumcinf = aumc
 
   has_ev = hasdose(pop) && any(pop) do subj
     subj.dose isa NCADose ? subj.dose.formulation === EV :
                             any(d->d.formulation === EV, subj.dose)
   end
   has_iv = hasdose(pop) && any(pop) do subj
-    subj.dose isa NCADose ? subj.dose.formulation !== EV :
-                            any(d->d.formulation !== EV, subj.dose)
+    subj.dose isa NCADose ? subj.dose.formulation === IVBolus :
+                            any(d->d.formulation === IVBolus, subj.dose)
   end
+  has_inf = hasdose(pop) && any(pop) do subj
+    subj.dose isa NCADose ? subj.dose.formulation === IVInfusion :
+                            any(d->d.formulation === IVInfusion, subj.dose)
+  end
+  has_ii = hasdose(pop) && any(pop) do subj
+    subj.dose isa NCADose ? subj.dose.ii > zero(subj.dose.ii) :
+                            any(d->d.ii > zero(d.ii), subj.dose)
+  end
+  is_ss = hasdose(pop) && any(pop) do subj
+    subj.dose isa NCADose ? subj.dose.ss :
+                            any(d->d.ss, subj.dose)
+  end
+  # c0 == ctau if SS
+  # add user defined interval AUC
+  # ~~interval Cmax??? low~~
 
   report_pairs = [
-           "n_samples"          =>     n_samples,
            "dose"               =>     doseamt,
-           "dose_type"          =>     dosetype,
-           "rsq"                =>     lambdazr2,
-           "rsq_adjusted"       =>     lambdazadjr2,
-           "no_points_lambda_z" =>     lambdaznpoints,
            "lambda_z"           =>     lambdaz,
-           "lambda_z_intercept" =>     lambdazintercept,
            "half_life"          =>     thalf,
-           "tlag"               =>     tlag,
            "tmax"               =>     tmax,
            "cmax"               =>     cmax,
-           "cmax_d"             =>     @defkwargs(cmax, normalize=true),
-           "tlast"              =>     tlast,
+           "cmaxss"             =>     cmaxss,
+           (has_iv || has_inf) && "c0"                 =>     c0,
            "clast"              =>     clast,
            "clast_pred"         =>     @defkwargs(clast, pred=true),
            "auclast"            =>     auclast,
-           "auclast_d"          =>     @defkwargs(auclast, normalize=true),
-           "aucinf_obs"         =>     auc,
-           "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
-           "auc_extrap_obs"     =>     auc_extrap_percent,
-           "vz_obs"             =>     vz,
-           has_iv && "cl_obs"             =>     _cl,
+           "tlast"              =>     tlast,
+           (has_ii || is_ss) || "aucinf_obs"         =>     auc,
+           (has_ii || is_ss) && "auc_tau"            =>     auctau,
+           (has_iv || has_inf) && "vz_obs"             =>     _vz,
+           (has_iv || has_inf) && "cl_obs"             =>     _cl,
+           has_ev && "vz_f_obs"             =>     _vzf,
            has_ev && "cl_f_obs"           =>     _clf,
-           "aucinf_pred"        =>     @defkwargs(auc, pred=true),
-           "aucinf_d_pred"      =>     @defkwargs(auc, normalize=true, pred=true),
-           "auc_extrap_pred"    =>     @defkwargs(auc_extrap_percent, normalize=true, pred=true),
-           "tmin"               =>     tmin,
-           "cmin"               =>     cmin,
-           "c0"                 =>     c0,
-           "ctau"               =>     ctau,
-           "cavg"               =>     cavg,
-           "swing"              =>     swing,
-           "swing_tau"          =>     @defkwargs(swing, usetau=true),
-           "fluctuation"        =>     fluctuation,
-           "fluctuation_tau"    =>     @defkwargs(fluctuation, usetau=true),
-           "vz_pred"            =>     @defkwargs(vz, pred=true),
-           has_iv && ("cl_pred"            =>     @defkwargs(_cl, pred=true)),
-           has_ev && ("cl_f_pred"          =>     @defkwargs(_clf, pred=true)),
+           (has_ii || is_ss) || "aucinf_pred"        =>     @defkwargs(auc, pred=true),
+           (has_iv || has_inf) && "vz_pred"             =>     @defkwargs(_vz, pred=true),
+           (has_iv || has_inf) && "cl_pred"             =>     @defkwargs(_cl, pred=true),
+           has_ev && "vz_f_pred"             =>     @defkwargs(_vzf, pred=true),
+           has_ev && "cl_f_pred"           =>     @defkwargs(_clf, pred=true),
+           (has_iv || has_inf) && "vss_obs" => vss,
+           (has_iv || has_inf) && "vss_pred" => @defkwargs(vss, pred=true),
+           (has_ii || is_ss) && "tmin"               =>     tmin,
+           (has_ii || is_ss) && "cmin"               =>     cmin,
+           (has_ii || is_ss) && "cminss"               =>     cminss,
+           (has_ii || is_ss) && "ctau"               =>     ctau,
+           (has_ii || is_ss) && "cavgss"               =>     cavgss,
+           (has_ii || is_ss) && "fluctuation"        =>     fluctuation,
+           (has_ii || is_ss) && "fluctuation_tau"    =>     @defkwargs(fluctuation, usetau=true),
+           (has_ii || is_ss) && "accumulation_index" =>     accumulationindex,
+           "cmax_d"             =>     @defkwargs(cmax, normalize=true),
+           "auclast_d"          =>     @defkwargs(auclast, normalize=true),
+           (has_ii || is_ss) || "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
+           (has_ii || is_ss) || "auc_extrap_obs"     =>     auc_extrap_percent, # ???
+           (has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
+           # back_extrap_obs
+           (has_ii || is_ss) || "aucinf_d_pred"       =>     @defkwargs(auc, normalize=true, pred=true),
+           (has_ii || is_ss) || "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true), # ???
+           # back_extrap_pred
            "aumclast"           =>     aumclast,
+           (has_ii || is_ss) && "aumc_tau"           =>     aumctau,
            "aumcinf_obs"        =>     aumc,
            "aumc_extrap_obs"    =>     aumc_extrap_percent,
            "aumcinf_pred"       =>     @defkwargs(aumc, pred=true),
            "aumc_extrap_pred"   =>     @defkwargs(aumc_extrap_percent, pred=true),
-           "mrtlast"            =>     @defkwargs(mrt, auctype=:last),
-           "mrtinf_obs"         =>     @defkwargs(mrt, auctype=:inf),
-           "mrtinf_pred"        =>     @defkwargs(mrt, auctype=:inf, pred=true),
-           "accumulation_index" =>     accumulationindex,
-           "auc_tau"            =>     auctau,
-           "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
-           "aumc_tau"           =>     aumctau,
+           (has_iv || has_inf) && "mrtlast"            =>     @defkwargs(mrt, auctype=:last),
+           (has_iv || has_inf) && "mrtinf_obs"         =>     @defkwargs(mrt, auctype=:inf),
+           (has_iv || has_inf) && "mrtinf_pred"        =>     @defkwargs(mrt, auctype=:inf, pred=true),
+           (has_ii || is_ss) && "swing"              =>     swing,
+           (has_ii || is_ss) && "swing_tau"          =>     @defkwargs(swing, usetau=true),
+           "n_samples"          =>     n_samples,
+           "rsq"                =>     lambdazr2,
+           "rsq_adjusted"       =>     lambdazadjr2,
+           "corr_xy"            =>     lambdazr,
+           "no_points_lambda_z" =>     lambdaznpoints,
+           "lambda_z_intercept" =>     lambdazintercept,
+           "lambda_z_lower"     =>     lambdaztimefirst,
+           "lambda_z_upper"     =>     lambdaztimelast,
+           "span"               =>     span,
+           "route"              =>     dosetype,
+           "tau"                =>     tau,
+           "tlag"               =>     tlag, #???
           ]
-  deleteat!(report_pairs, findall(x->x===false, report_pairs))
+  deleteat!(report_pairs, findall(x->x.first isa Bool, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
