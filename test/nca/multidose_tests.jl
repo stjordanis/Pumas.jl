@@ -59,6 +59,9 @@ df = @test_nowarn NCA.to_dataframe(popncareport)
 @test count(!ismissing, df.cl_f_obs) == 72
 @test count(!ismissing, df.cl_pred) == 24
 @test count(!ismissing, df.cl_f_pred) == 72
+popncareport = NCAReport(mncapop, sigdigits=2)
+df = @test_nowarn NCA.to_dataframe(popncareport)
+@test df.lambda_z[2] == round(ustrip(df.lambda_z[2]), sigdigits=2)*oneunit(df.lambda_z[2])
 
 data1 = CSV.read(IOBuffer("""
 id,time,tad,conc,amt,occasion,formulation

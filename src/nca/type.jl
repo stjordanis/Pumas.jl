@@ -253,7 +253,8 @@ macro defkwargs(sym, expr...)
 end
 
 NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
-function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, kwargs...) # strips out unnecessary user options
+function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, # strips out unnecessary user options
+                   sigdigits=nothing, kwargs...)
   !hasdose(pop) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(pop), :subject=>(pop isa NCASubject))
 
@@ -352,6 +353,17 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
+  if sigdigits !== nothing
+    for val in vals
+      col = val[end]
+      if eltype(col) <: Union{Missing, Number}
+        map!(col, col) do x
+          ismissing(x) ? missing :
+            round(ustrip(x), sigdigits=sigdigits)*oneunit(x)
+        end
+      end
+    end
+  end
   values = [i == 1 ? val : rename!(val, names(val)[1]=>name) for (i, (val, name)) in enumerate(zip(vals, _names))]
 
   NCAReport(settings, values)
