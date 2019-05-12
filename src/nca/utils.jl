@@ -158,6 +158,7 @@ The meaning of each of the list elements is:
   concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq)
+  conc′ = conc
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting,
     # hence, we take `tfirst` to be the `last(time)`
@@ -189,8 +190,9 @@ The meaning of each of the list elements is:
     if rule === :keep
       # do nothing
     elseif rule === :drop
-      conc = conc[.!mask]
-      time = time[.!mask]
+      idxs = .!mask
+      conc = conc[idxs]
+      time = time[idxs]
     elseif rule isa Number
       conc === conc′ && (conc = deepcopy(conc)) # if it aliases with the original array, then copy
       conc[mask] .= rule

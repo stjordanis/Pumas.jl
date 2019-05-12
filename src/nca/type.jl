@@ -87,9 +87,6 @@ function NCASubject(conc, time;
                     lambdaz=nothing, clean=true, check=true, kwargs...) where T
   time isa AbstractRange && (time = collect(time))
   conc isa AbstractRange && (conc = collect(conc))
-  if clean
-    conc, time = cleanmissingconc(conc, time; kwargs...)
-  end
   if concu !== true || timeu !== true
     conc = map(x -> ismissing(x) ? x : x*concu, conc)
     time = map(x -> ismissing(x) ? x : x*timeu, time)
@@ -112,6 +109,9 @@ function NCASubject(conc, time;
         idxs = ithdoseidxs(time, dose, i)
         conci, timei = @view(conc[idxs]), @view(time[idxs])
         check && checkconctime(conci, timei; dose=dose, kwargs...)
+        if clean
+          conci, timei = cleanmissingconc(conci, timei; kwargs...)
+        end
         conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
         iszero(time[idxs[1]]) ? (conc′, time′) : (conc′, time′.-time[idxs[1]]) # convert to TAD
@@ -132,6 +132,9 @@ function NCASubject(conc, time;
                         fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
+  if clean
+    conc, time = cleanmissingconc(conc, time; kwargs...)
+  end
   conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
   abstime = time
   dose !== nothing && (dose = first(dose))
