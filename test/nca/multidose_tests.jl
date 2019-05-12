@@ -44,6 +44,8 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.accumulationindex(mncapop[1]) == 1 ./(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
 @test NCA.swing(mncapop[1])[1] == ((NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cminss(mncapop[1]))[1]
 @test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
+@test NCA.auc_back_extrap_percent(mncapop[1])[1] == 0
+@test all(ismissing, NCA.auc_back_extrap_percent(mncapop[1])[2:end])
 
 ncareport1 = NCAReport(mncapop[1])
 @test_nowarn ncareport1

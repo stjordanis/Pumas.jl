@@ -72,6 +72,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   lastpoint::tEltype
   points::P
   auc_last::AUC
+  auc_0::AUC
   aumc_last::AUMC
   method::Symbol
 end
@@ -129,7 +130,7 @@ function NCASubject(conc, time;
                         conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(-unittime, n), fill(0, n),
-                        fill(auc_proto, n), fill(aumc_proto, n), :___)
+                        fill(auc_proto, n), fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
   if clean
@@ -147,7 +148,7 @@ function NCASubject(conc, time;
           Int, typeof(id),   typeof(group)}(id, group,
             conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, unittime, 0,
-            auc_proto, aumc_proto, :___)
+            auc_proto, auc_proto, aumc_proto, :___)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
@@ -276,9 +277,9 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
     subj.dose isa NCADose ? subj.dose.ss :
                             any(d->d.ss, subj.dose)
   end
-  # c0 == ctau if SS
-  # add user defined interval AUC
-  # ~~interval Cmax??? low~~
+  #TODO:
+  # add partial AUC
+  # interval Cmax??? low priority
 
   report_pairs = [
            "dose"               =>     doseamt,
@@ -319,13 +320,13 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "auclast_d"          =>     @defkwargs(auclast, normalize=true),
            (has_ii || is_ss) || "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
            "auc_extrap_obs"     =>     auc_extrap_percent,
-           (has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
-           # back_extrap_obs
+           has_iv && "auc_back_extrap_obs" => auc_back_extrap_percent,
            (has_ii || is_ss) || "aucinf_d_pred"       =>     @defkwargs(auc, normalize=true, pred=true),
-           "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true), # ???
-           # back_extrap_pred
+           #(has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
+           "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true),
+           has_iv && "auc_back_extrap_pred" => @defkwargs(auc_back_extrap_percent, pred=true),
            "aumclast"           =>     aumclast,
-           (has_ii || is_ss) && "aumc_tau"           =>     aumctau,
+           #(has_ii || is_ss) && "aumc_tau"           =>     aumctau,
            "aumcinf_obs"        =>     aumc,
            "aumc_extrap_obs"    =>     aumc_extrap_percent,
            "aumcinf_pred"       =>     @defkwargs(aumc, pred=true),

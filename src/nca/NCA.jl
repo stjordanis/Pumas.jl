@@ -22,7 +22,7 @@ export normalizedose
 
 for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst, :lambdaztimelast, :span,
           :cmax, :cmaxss, :tmax, :cmin, :cminss, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz, :_vz, :_vzf,
-          :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent,
+          :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :auc_back_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavgss, :fluctuation, :accumulationindex,
           :swing, :n_samples, :doseamt, :dosetype)
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
@@ -87,7 +87,7 @@ end
 # add `tau`
 # Multiple dosing handling
 for f in (:c0, :clast, :tlast, :cmax, :cmaxss, :tmax, :cmin, :cminss, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
-          :cavgss, :tau, :auctau, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz, :_vz, :_vzf,
+          :cavgss, :tau, :auctau, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :auc_back_extrap_percent, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz, :_vz, :_vzf,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst, :lambdaztimelast, :span,
           :n_samples, :doseamt, :dosetype)
   @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}

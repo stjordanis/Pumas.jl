@@ -1,20 +1,20 @@
 """
-    auclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+    auclinear(C₁, C₂, t₁, t₂)
 
 Compute area under the curve (AUC) in an interval by linear trapezoidal rule.
 """
-@inline function auclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@inline function auclinear(C₁, C₂, t₁, t₂)
   Δt = t₂ - t₁
   return ((C₁ + C₂) * Δt) / 2
 end
 
 """
-    auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+    auclog(C₁, C₂, t₁, t₂)
 
 Compute area under the curve (AUC) in an interval by log-linear trapezoidal
 rule.
 """
-@noinline function auclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function auclog(C₁, C₂, t₁, t₂)
   Δt = t₂ - t₁
   ΔC = C₂ - C₁
   lg = log(C₂/C₁)
@@ -30,22 +30,22 @@ Extrapolate auc to the infinite.
 @inline extrapaucinf(clast, tlast, lambdaz) = clast/lambdaz
 
 """
-    aumclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+    aumclinear(C₁, C₂, t₁, t₂)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
 by linear trapezoidal rule.
 """
-@inline function aumclinear(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@inline function aumclinear(C₁, C₂, t₁, t₂)
   return auclinear(C₁*t₁, C₂*t₂, t₁, t₂)
 end
 
 """
-    aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+    aumclog(C₁, C₂, t₁, t₂)
 
 Compute area under the first moment of the concentration (AUMC) in an interval
 by log-linear trapezoidal rule.
 """
-@noinline function aumclog(C₁::Number, C₂::Number, t₁::Number, t₂::Number)
+@noinline function aumclog(C₁, C₂, t₁, t₂)
   Δt = t₂ - t₁
   lg = log(C₂/C₁)
   return Δt*(t₂*C₂ - t₁*C₁)/lg - Δt^2*(C₂-C₁)/lg^2
@@ -172,10 +172,22 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}, interva
     idx1, idx2 = firstindex(time), lastindex(time)
     auc = zero(auc)
     # handle C0
+    if nca.auc_0 isa AbstractArray
+      nca.auc_0[1] = zero(nca.auc_0[1])
+    else
+      nca.auc_0 = zero(nca.auc_0)
+    end
     time0 = zero(time[idx1])
     if time[idx1] > time0
       c0′ = c0(nca, true)
-      auc += intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, maxidx(nca), method, linear, log, ret_typ)
+      ismissing(c0′) && throw(ArgumentError("AUC calculation cannot proceed, because `c0` gives missing"))
+      auc_0 = intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, maxidx(nca), method, linear, log, ret_typ)
+      if nca.auc_0 isa AbstractArray
+        nca.auc_0[1] = auc_0
+      else
+        nca.auc_0 = auc_0
+      end
+      auc += auc_0
     end
   end
   if !isassigned(time, idx1+1) # if idx1+1 is not assigned
@@ -300,6 +312,13 @@ function auc_extrap_percent(nca::NCASubject; kwargs...)
   auclast = auc(nca; auctype=:last, kwargs...)
   _auc  = (nca.dose !== nothing && nca.dose.ss) ? auctau(nca; auctype=:inf, kwargs...) : auc(nca; auctype=:inf, kwargs...)
   (_auc-auclast)/_auc * 100
+end
+
+function auc_back_extrap_percent(nca::NCASubject; interval=nothing, kwargs...)
+  (nca.dose !== nothing && nca.dose.formulation === IVBolus) || return missing
+  aucinf = auc(nca; auctype=:inf, kwargs...)
+  auc_0 = nca.auc_0[1]
+  auc_0/aucinf * 100
 end
 
 function aumc_extrap_percent(nca::NCASubject; kwargs...)
