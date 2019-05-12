@@ -282,6 +282,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "lambda_z"           =>     lambdaz,
            "half_life"          =>     thalf,
            "tmax"               =>     tmax,
+           has_ev && "tlag"               =>     tlag,
            "cmax"               =>     cmax,
            "cmaxss"             =>     cmaxss,
            (has_iv || has_inf) && "c0"                 =>     c0,
@@ -290,12 +291,13 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "auclast"            =>     auclast,
            "tlast"              =>     tlast,
            (has_ii || is_ss) || "aucinf_obs"         =>     auc,
-           (has_ii || is_ss) && "auc_tau"            =>     auctau,
+           (has_ii || is_ss) && "auc_tau_obs"            =>     auctau,
            (has_iv || has_inf) && "vz_obs"             =>     _vz,
            (has_iv || has_inf) && "cl_obs"             =>     _cl,
            has_ev && "vz_f_obs"             =>     _vzf,
            has_ev && "cl_f_obs"           =>     _clf,
            (has_ii || is_ss) || "aucinf_pred"        =>     @defkwargs(auc, pred=true),
+           (has_ii || is_ss) && "auc_tau_pred"            =>     @defkwargs(auctau, pred=true),
            (has_iv || has_inf) && "vz_pred"             =>     @defkwargs(_vz, pred=true),
            (has_iv || has_inf) && "cl_pred"             =>     @defkwargs(_cl, pred=true),
            has_ev && "vz_f_pred"             =>     @defkwargs(_vzf, pred=true),
@@ -313,11 +315,11 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "cmax_d"             =>     @defkwargs(cmax, normalize=true),
            "auclast_d"          =>     @defkwargs(auclast, normalize=true),
            (has_ii || is_ss) || "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
-           (has_ii || is_ss) || "auc_extrap_obs"     =>     auc_extrap_percent, # ???
+           "auc_extrap_obs"     =>     auc_extrap_percent,
            (has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
            # back_extrap_obs
            (has_ii || is_ss) || "aucinf_d_pred"       =>     @defkwargs(auc, normalize=true, pred=true),
-           (has_ii || is_ss) || "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true), # ???
+           "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true), # ???
            # back_extrap_pred
            "aumclast"           =>     aumclast,
            (has_ii || is_ss) && "aumc_tau"           =>     aumctau,
@@ -341,7 +343,6 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "span"               =>     span,
            "route"              =>     dosetype,
            "tau"                =>     tau,
-           "tlag"               =>     tlag, #???
           ]
   deleteat!(report_pairs, findall(x->x.first isa Bool, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)

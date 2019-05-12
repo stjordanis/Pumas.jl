@@ -297,15 +297,15 @@ function aumctau(nca::NCASubject; kwargs...)
 end
 
 function auc_extrap_percent(nca::NCASubject; kwargs...)
-  aucinf  = auc(nca; auctype=:inf, kwargs...)
   auclast = auc(nca; auctype=:last, kwargs...)
-  @. (aucinf-auclast)/aucinf * 100
+  _auc  = (nca.dose !== nothing && nca.dose.ss) ? auctau(nca; auctype=:inf, kwargs...) : auc(nca; auctype=:inf, kwargs...)
+  (_auc-auclast)/_auc * 100
 end
 
 function aumc_extrap_percent(nca::NCASubject; kwargs...)
   aumcinf  = aumc(nca; auctype=:inf, kwargs...)
   aumclast = aumc(nca; auctype=:last, kwargs...)
-  @. (aumcinf-aumclast)/aumcinf * 100
+  (aumcinf-aumclast)/aumcinf * 100
 end
 
 fitlog(x, y) = lm(hcat(fill!(similar(x), 1), x), log.(replace(x->iszero(x) ? eps() : x, y)))
