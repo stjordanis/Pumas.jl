@@ -72,6 +72,7 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
   lastpoint::tEltype
   points::P
   auc_last::AUC
+  auc_0::AUC
   aumc_last::AUMC
   method::Symbol
 end
@@ -87,9 +88,6 @@ function NCASubject(conc, time;
                     lambdaz=nothing, clean=true, check=true, kwargs...) where T
   time isa AbstractRange && (time = collect(time))
   conc isa AbstractRange && (conc = collect(conc))
-  if clean
-    conc, time = cleanmissingconc(conc, time; kwargs...)
-  end
   if concu !== true || timeu !== true
     conc = map(x -> ismissing(x) ? x : x*concu, conc)
     time = map(x -> ismissing(x) ? x : x*timeu, time)
@@ -112,6 +110,9 @@ function NCASubject(conc, time;
         idxs = ithdoseidxs(time, dose, i)
         conci, timei = @view(conc[idxs]), @view(time[idxs])
         check && checkconctime(conci, timei; dose=dose, kwargs...)
+        if clean
+          conci, timei = cleanmissingconc(conci, timei; kwargs...)
+        end
         conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
         iszero(time[idxs[1]]) ? (conc′, time′) : (conc′, time′.-time[idxs[1]]) # convert to TAD
@@ -129,9 +130,12 @@ function NCASubject(conc, time;
                         conc, time, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(-unittime, n), fill(0, n),
-                        fill(auc_proto, n), fill(aumc_proto, n), :___)
+                        fill(auc_proto, n), fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
+  if clean
+    conc, time = cleanmissingconc(conc, time; kwargs...)
+  end
   conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
   abstime = time
   dose !== nothing && (dose = first(dose))
@@ -144,7 +148,7 @@ function NCASubject(conc, time;
           Int, typeof(id),   typeof(group)}(id, group,
             conc, time, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, unittime, 0,
-            auc_proto, aumc_proto, :___)
+            auc_proto, auc_proto, aumc_proto, :___)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
@@ -249,7 +253,8 @@ macro defkwargs(sym, expr...)
 end
 
 NCAReport(nca::NCASubject; kwargs...) = NCAReport(NCAPopulation([nca]); kwargs...)
-function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, kwargs...) # strips out unnecessary user options
+function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=nothing, # strips out unnecessary user options
+                   sigdigits=nothing, kwargs...)
   !hasdose(pop) && @warn "`dose` is not provided. No dependent quantities will be calculated"
   settings = Dict(:multidose=>ismultidose(pop), :subject=>(pop isa NCASubject))
 
@@ -273,15 +278,16 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
     subj.dose isa NCADose ? subj.dose.ss :
                             any(d->d.ss, subj.dose)
   end
-  # c0 == ctau if SS
-  # add user defined interval AUC
-  # ~~interval Cmax??? low~~
+  #TODO:
+  # add partial AUC
+  # interval Cmax??? low priority
 
   report_pairs = [
            "dose"               =>     doseamt,
            "lambda_z"           =>     lambdaz,
            "half_life"          =>     thalf,
            "tmax"               =>     tmax,
+           has_ev && "tlag"               =>     tlag,
            "cmax"               =>     cmax,
            "cmaxss"             =>     cmaxss,
            (has_iv || has_inf) && "c0"                 =>     c0,
@@ -290,12 +296,13 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "auclast"            =>     auclast,
            "tlast"              =>     tlast,
            (has_ii || is_ss) || "aucinf_obs"         =>     auc,
-           (has_ii || is_ss) && "auc_tau"            =>     auctau,
+           (has_ii || is_ss) && "auc_tau_obs"            =>     auctau,
            (has_iv || has_inf) && "vz_obs"             =>     _vz,
            (has_iv || has_inf) && "cl_obs"             =>     _cl,
            has_ev && "vz_f_obs"             =>     _vzf,
            has_ev && "cl_f_obs"           =>     _clf,
            (has_ii || is_ss) || "aucinf_pred"        =>     @defkwargs(auc, pred=true),
+           (has_ii || is_ss) && "auc_tau_pred"            =>     @defkwargs(auctau, pred=true),
            (has_iv || has_inf) && "vz_pred"             =>     @defkwargs(_vz, pred=true),
            (has_iv || has_inf) && "cl_pred"             =>     @defkwargs(_cl, pred=true),
            has_ev && "vz_f_pred"             =>     @defkwargs(_vzf, pred=true),
@@ -313,14 +320,14 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "cmax_d"             =>     @defkwargs(cmax, normalize=true),
            "auclast_d"          =>     @defkwargs(auclast, normalize=true),
            (has_ii || is_ss) || "aucinf_d_obs"       =>     @defkwargs(auc, normalize=true),
-           (has_ii || is_ss) || "auc_extrap_obs"     =>     auc_extrap_percent, # ???
-           (has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
-           # back_extrap_obs
+           "auc_extrap_obs"     =>     auc_extrap_percent,
+           has_iv && "auc_back_extrap_obs" => auc_back_extrap_percent,
            (has_ii || is_ss) || "aucinf_d_pred"       =>     @defkwargs(auc, normalize=true, pred=true),
-           (has_ii || is_ss) || "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true), # ???
-           # back_extrap_pred
+           #(has_ii || is_ss) && "auc_tau_d"          =>     @defkwargs(auctau, normalize=true),
+           "auc_extrap_pred"     =>     @defkwargs(auc_extrap_percent, pred=true),
+           has_iv && "auc_back_extrap_pred" => @defkwargs(auc_back_extrap_percent, pred=true),
            "aumclast"           =>     aumclast,
-           (has_ii || is_ss) && "aumc_tau"           =>     aumctau,
+           #(has_ii || is_ss) && "aumc_tau"           =>     aumctau,
            "aumcinf_obs"        =>     aumc,
            "aumc_extrap_obs"    =>     aumc_extrap_percent,
            "aumcinf_pred"       =>     @defkwargs(aumc, pred=true),
@@ -341,12 +348,22 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "span"               =>     span,
            "route"              =>     dosetype,
            "tau"                =>     tau,
-           "tlag"               =>     tlag, #???
           ]
   deleteat!(report_pairs, findall(x->x.first isa Bool, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
+  if sigdigits !== nothing
+    for val in vals
+      col = val[end]
+      if eltype(col) <: Union{Missing, Number}
+        map!(col, col) do x
+          ismissing(x) ? missing :
+            round(ustrip(x), sigdigits=sigdigits)*oneunit(x)
+        end
+      end
+    end
+  end
   values = [i == 1 ? val : rename!(val, names(val)[1]=>name) for (i, (val, name)) in enumerate(zip(vals, _names))]
 
   NCAReport(settings, values)
