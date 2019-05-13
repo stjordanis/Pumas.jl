@@ -55,8 +55,8 @@ function makoid(t::Number, p)
   res
 end
 
-emax(t::AbstractVector, p) = emax.(t, p)
-emax_ng(t::AbstractVector, p) = emax_ng.(t, p)
-weibull(t::AbstractVector, p) = weibull.(t, p)
-double_weibull(t::AbstractVector, p) = double_weibull.(t, p)
-makoid(t::AbstractVector, p) = makoid.(t, p)
+emax(t::AbstractVector, p) = [emax(x, p) for x in t]
+emax_ng(t::AbstractVector, p) = [emax_ng(x,p) for x in t]
+weibull(t::AbstractVector, p) = [weibull(x,p) for x in t]
+double_weibull(t::AbstractVector, p) = [double_weibull(x, p) for x in t]
+makoid(t::AbstractVector, p) = [makoid(x,p) for x in t]

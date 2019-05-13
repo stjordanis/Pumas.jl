@@ -34,7 +34,7 @@ struct VivoPopulation{T<:VivoSubject} <: AbstractVector{T}
 end
 
 # VitroSubject
-mutable struct VitroSubject{ID, C, T, F, M, pType}
+mutable struct VitroSubject{ID, C, T, F, pType}
   id::ID
   conc::C
   time::T
@@ -47,9 +47,8 @@ mutable struct VitroSubject{ID, C, T, F, M, pType}
   lb::pType            # lower bound of params
   pmin::pType          # optimized params
   function VitroSubject(conc, time, form, id=1)
-    p0 = zero(conc); lb = zero()
     return new{typeof(id), typeof(conc), typeof(time),
-                typeof(form), typeof(one(conc))}(id, conc, time, form)
+                typeof(form), typeof(conc)}(id, conc, time, form)
   end
 end
 
@@ -65,10 +64,10 @@ function Base.show(io::IO, n::VitroSubject)
 end
 
 # VitroPopulation
-struct VitroPopulation{T<:VitroSubject} <: AbstractVector{T}
-  subjects::Vector{T}
-  function VitroPopulation(_pop::Vector{<:VitroSubject})
-    E = eltype(_pop)
+struct VitroPopulation{T<:VitroSubject} <: AbstractVector{AbstractDict{Any, T}}
+  subjects::Vector{Dict{Any, T}}
+  function VitroPopulation(_pop::Vector{Dict{Any, VitroSubject}})
+    E = eltype(values(_pop[1]))
     # TODO: can do some checking and other stuff
     return new{E}(_pop)
   end

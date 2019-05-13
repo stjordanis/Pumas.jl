@@ -112,18 +112,26 @@ function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...
   concs = df[conc]
   forms = df[form]
   uids = unique(ids)
+  uforms = unique(forms)
   idx  = -1
   # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    try
-      ncas[i] = VitroSubject(concs[idx], times[idx], forms[idx], ids[idx], kwargs...)
-    catch
-      @info "ID $id errored"
-      rethrow()
+    ind = Dict{Any, VitroSubject}()
+    for form in uforms
+      if form in forms[idx]
+        idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
+        try
+          ind[form] = VitroSubject(concs[idx_n], times[idx_n], form, id, kwargs...)
+        catch
+          @info "ID $id errored for formulation $(form)"
+          rethrow()
+        end
+      end
     end
+    ncas[i] = ind
   end
   # Use broadcast to tighten ncas element type
   pop = VitroPopulation(identity.(ncas))
