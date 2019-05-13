@@ -9,7 +9,7 @@ include("type.jl")
 include("data_parsing.jl")
 include("models.jl")
 # include("stats.jl")
-# include("plot_rec.jl")
+include("plot_rec.jl")
 include("utils.jl")
 
 export VitroSubject, VitroPopulation
