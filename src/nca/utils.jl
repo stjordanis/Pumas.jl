@@ -207,7 +207,7 @@ end
 @inline normalizedose(x, d::Nothing) = missing
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
   return normalizedose(x, subj.dose)
 end
 
@@ -237,13 +237,14 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
-                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,V}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
+    volume = nca.volume #TODO
     idx1 = isempty(1:i-1) ? 1 : sum(j->length(nca.time[j]), 1:i-1)+1
     idx2 = idx1+length(nca.time[i])-1
     abstime = @view nca.abstime[idx1:idx2]
@@ -260,7 +261,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
     auc, auc_0, aumc = view(nca.auc_last, i), view(nca.auc_0, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,  nca.group,
-                 conc,    time,    abstime,               # NCA measurements
+                 conc,    time,  volume,  abstime,        # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
