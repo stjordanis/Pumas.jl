@@ -34,14 +34,22 @@ struct VivoPopulation{T<:VivoSubject} <: AbstractVector{T}
 end
 
 # VitroSubject
-mutable struct VitroSubject{ID, C, T, F}
+mutable struct VitroSubject{ID, C, T, F, M, pType}
   id::ID
   conc::C
   time::T
   form::F
+  # params which are needed for modeling
+  m::Function          # model type
+  alg::Optim.FirstOrderOptimizer        # alg to optimize cost function
+  p0::pType            # intial values of params
+  ub::pType            # upper bound of params
+  lb::pType            # lower bound of params
+  pmin::pType          # optimized params
   function VitroSubject(conc, time, form, id=1)
+    p0 = zero(conc); lb = zero()
     return new{typeof(id), typeof(conc), typeof(time),
-                typeof(form)}(id, conc, time, form)
+                typeof(form), typeof(one(conc))}(id, conc, time, form)
   end
 end
 
