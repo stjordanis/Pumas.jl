@@ -6,6 +6,7 @@ function vitro_model(subj::VitroSubject, model::Union{Symbol, Function}; time_la
     pmin = Curvefit(subj.conc, subj.time, model, p0, alg, true, lower_bound, upper_bound).pmin
     subj.m = model; subj.alg = alg; subj.p0 = p0; subj.ub = upper_bound; subj.lb = lower_bound
     subj.pmin = pmin
+    println("Opt. params are $(pmin)")
     subj
 end
 
@@ -61,6 +62,7 @@ function _emax_ng(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [125.0, time[end]] : ub
     p0 = p0 === nothing ? [conc[end], time[2]] : p0
   end
+  lb, ub, p0
 end
 
 function _weibull(conc, time, time_lag, p0, ub, lb)
@@ -73,6 +75,7 @@ function _weibull(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [Inf, time[end], Inf] : ub
     p0 = p0 === nothing ? [1.0, 2.0, 3.0] : p0
   end
+  lb, ub, p0
 end
 
 function _double_weibull(conc, time, time_lag, p0, ub, lb)
@@ -85,6 +88,7 @@ function _double_weibull(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [125.0, 125.0, time[end], 25.0, time[end], 25.0] : p0
     p0 = p0 === nothing ? [40.0, 80.0, 5.0, 1.0, 7.0, 1.0] : p0
   end
+  lb, ub, p0
 end
 
 function _makoid(conc, time, time_lag, p0, ub, lb)
@@ -97,4 +101,5 @@ function _makoid(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [Inf, Inf, Inf] : ub
     p0 = p0 === nothing ? [1.0, 2.0, 3.0] : p0
   end
+  lb, ub, p0
 end
