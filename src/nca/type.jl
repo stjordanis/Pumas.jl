@@ -62,6 +62,8 @@ mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
   # the form of [TAD₁, TAD₂, ..., TADₙ] where `TADᵢ` denotes the TAD for the
   # `i`th dose, which is a vector. Hence, `time` could be a vector of vectors.
   time::T
+  start_time::Union{Nothing, T}
+  end_time::Union{Nothing, T}
   volume::V
   # `abstime` is always a vector, and it leaves untouched except BLQ handling
   abstime::TT
@@ -88,7 +90,7 @@ end
 Constructs a NCASubject
 """
 function NCASubject(conc, time;
-                    volume=nothing, concu=true, timeu=true, volumeu=true,
+                    start_time=nothing, end_time=nothing, volume=nothing, concu=true, timeu=true, volumeu=true,
                     id=1, group=nothing, dose::T=nothing, llq=nothing,
                     lambdaz=nothing, clean=true, check=true, kwargs...) where T
   time isa AbstractRange && (time = collect(time))
@@ -118,7 +120,7 @@ function NCASubject(conc, time;
         conci, timei = @view(conc[idxs]), @view(time[idxs])
         check && checkconctime(conci, timei; dose=dose, kwargs...)
         if clean
-          conci, timei = cleanmissingconc(conci, timei; kwargs...)
+          conci, timei, _ = cleanmissingconc(conci, timei; kwargs...)
         end
         conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
@@ -134,14 +136,20 @@ function NCASubject(conc, time;
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
                       Vector{Int}, typeof(id), typeof(group), typeof(volume)}(id, group,
-                        conc, time, volume, abstime, maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
+                        conc, time, #= no multidose urine =# nothing, nothing, volume, abstime,
+                        maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
   check && checkconctime(conc, time; dose=dose, kwargs...)
+  if check && start_time !== nothing
+    checkconctime(conc, start_time; dose=dose, kwargs...)
+    checkconctime(conc, end_time;   dose=dose, kwargs...)
+    checkconctime(volume, time;     dose=dose, kwargs...)
+  end
   if clean
-    conc, time = cleanmissingconc(conc, time; kwargs...)
+    conc, time, volume = cleanmissingconc(conc, time; volume=volume, kwargs...)
   end
   conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
   abstime = time
@@ -153,7 +161,7 @@ function NCASubject(conc, time;
           typeof(dose),      typeof(lambdaz_proto),
           typeof(r2_proto),  typeof(llq),   typeof(lastidx),
           Int, typeof(id),   typeof(group), typeof(volume)}(id, group,
-            conc, time, volume, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
+            conc, time, start_time, end_time, volume, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, unittime, 0,
             auc_proto, auc_proto, aumc_proto, :___)
 end

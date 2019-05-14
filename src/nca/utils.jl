@@ -82,19 +82,26 @@ Handle `missing` values in the concentration measurements as requested by the us
 #Arguments
 - `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
 """
-function cleanmissingconc(conc, time; missingconc=nothing, kwargs...)
+function cleanmissingconc(conc, time; volume=nothing, missingconc=nothing, missingvolume=nothing, kwargs...)
   missingconc === nothing && (missingconc = :drop)
   Ec = eltype(conc)
   Tc = Base.nonmissingtype(Ec)
   Et = eltype(time)
   Tt = Base.nonmissingtype(Et)
-  n = count(ismissing, conc)
+  if volume === nothing
+    Ev = eltype(volume)
+    Tv = Base.nonmissingtype(Ev)
+  else
+    Ev = Tv = Nothing
+  end
+  n = count(ismissing, conc) + (volume === nothing ? 0 : count(ismissing, volume))
   # fast path
-  Tc === Ec && Tt === Et && n == 0 && return conc, time
+  Tc === Ec && Tt === Et && Ev === Tv && n == 0 && return conc, time, volume
   len = length(conc)
   if missingconc === :drop
     newconc = similar(conc, Tc, len-n)
     newtime = similar(time, Tt, len-n)
+    newvolume = volume === nothing ? nothing : similar(volume, Tv, len-n)
     ii = 1
     @inbounds for i in eachindex(conc)
       if !ismissing(conc[i])
@@ -103,14 +110,18 @@ function cleanmissingconc(conc, time; missingconc=nothing, kwargs...)
         ii+=1
       end
     end
-    return newconc, newtime
+    return newconc, newtime, newvolume
   elseif missingconc isa Number
     newconc = similar(conc, Tc)
     newtime = Tt === Et ? time : similar(time, Tt)
+    newvolume = Tv === Ev ? volume : similar(volume, Tv)
     @inbounds for i in eachindex(newconc)
       newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
+      if missingvolume isa Number && volume !== nothing
+        newvolume[i] = ismissing(volume[i]) ? missingvolume : volume[i]
+      end
     end
-    return newconc, time
+    return newconc, time, newvolume
   else
     throw(ArgumentError("missingconc must be a number or :drop"))
   end
@@ -261,7 +272,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
     auc, auc_0, aumc = view(nca.auc_last, i), view(nca.auc_0, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,  nca.group,
-                 conc,    time,  volume,  abstime,        # NCA measurements
+                 conc,    time, nothing, nothing, nothing,  abstime,        # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,

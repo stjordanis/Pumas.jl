@@ -90,7 +90,11 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
   ids   = df[id]
   if urine
-    Δt = @. df[end_time] - df[start_time]
+    start_time′ = df[start_time]
+    end_time′ = df[end_time]
+    Δt = @. end_time′ - start_time′
+  else
+    start_time′ = end_time′ = nothing
   end
   times = urine ? @.(df[start_time] + Δt/2) : df[time]
   concs = urine ? @.(df[volume]*df[conc]/Δt) : df[conc]
@@ -152,6 +156,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     end
     try
       ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, volumeu=volumeu,
+                           start_time=start_time′, end_time=end_time′,
                            volume=urine ? df[volume][idx] : nothing,
                            concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
