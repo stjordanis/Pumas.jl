@@ -430,11 +430,7 @@ end
 
   ebe_cov = PuMaS.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    if i != 9
-      @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
-    else
-      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
-    end
+    @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=1e-3
   end
 end
 
@@ -557,11 +553,7 @@ end
 
   ebe_cov = PuMaS.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    if i != 9
-      @test ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=2e-1
-    else
-      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=2e-1
-    end
+    @test ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=1e-3
   end
 
   PuMaS.npde(   theopmodel_focei, theopp[1], param,
@@ -684,11 +676,7 @@ end
 
   ebe_cov = PuMaS.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    if i != 9
-      @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
-    else
-      @test_broken ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=2e-1
-    end
+    @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=1e-3
   end
 end
 
@@ -833,11 +821,7 @@ end
 
     ebe_cov = PuMaS.empirical_bayes_dist(o)
     @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-      if i != 9
-        @test ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=2e-1
-      else
-        @test_broken ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=2e-1
-      end
+        @test ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=1e-3
     end
   end
 end
@@ -968,11 +952,7 @@ end
 
     ebe_cov = PuMaS.empirical_bayes_dist(o)
     @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-      if i != 9
-        @test ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] atol=2e-1
-      else
-        @test_broken ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] atol=2e-1
-      end
+      @test ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] rtol=1e-3
     end
   end
 end

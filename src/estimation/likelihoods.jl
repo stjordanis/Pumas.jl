@@ -266,13 +266,14 @@ function empirical_bayes_dist(m::PuMaSModel,
                               subject::Subject,
                               param::NamedTuple,
                               vrandeffs::AbstractVector,
-                              approx::LikelihoodApproximation,
+                              approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
                               args...; kwargs...)
 
+  Ω = cov(m.random(param).params.η)
   _, _, H = ∂²l∂η²(m, subject, param, vrandeffs, approx, args...; kwargs...)
 
   # FIXME! For now, we need to convert to Matrix since MvNormal doesn't support SMatrix
-  return MvNormal(vrandeffs, inv(cholesky(Symmetric(convert(Matrix, H)))))
+  return MvNormal(vrandeffs, inv(cholesky(Symmetric(convert(Matrix, H + inv(Ω))))))
 end
 
 """
@@ -527,7 +528,7 @@ function _∂²l∂η²(nl_d::ForwardDiff.Dual,
                  args...; kwargs...)
 
   T = promote_type(numtype(param), numtype(vrandeffs))
-  return (ForwardDiff.value(nl_d), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)::Tuple{T,Vector{T},Matrix{T}}
+  return (ForwardDiff.value(nl_d), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)
 end
 
 function _∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::FO)
