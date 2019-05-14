@@ -51,10 +51,10 @@ Calculate ``T_{max}_{t_1}^{t_2}``
 """
 function tmax(nca::NCASubject; interval=nothing, kwargs...)
   if interval isa Union{Tuple, Nothing}
-    return ctmax(nca; interval=interval, kwargs...)[2]
+    return ctextreme(nca; interval=interval, kwargs...)[2]
   else
     f = let nca=nca, kwargs=kwargs
-      i -> ctmax(nca; interval=i, kwargs...)[2]
+      i -> ctextreme(nca; interval=i, kwargs...)[2]
     end
     map(f, interval)
   end
@@ -92,10 +92,10 @@ end
 
 function _cmax(nca::NCASubject; interval=nothing, normalize=false, kwargs...)
   if interval isa Union{Tuple, Nothing}
-    sol = ctmax(nca; interval=interval, kwargs...)[1]
+    sol = ctextreme(nca; interval=interval, kwargs...)[1]
   else
     f = let nca=nca, kwargs=kwargs
-      i -> ctmax(nca; interval=i, kwargs...)[1]
+      i -> ctextreme(nca; interval=i, kwargs...)[1]
     end
     sol = map(f, interval)
   end
@@ -140,8 +140,7 @@ function cminss(nca::NCASubject; interval=nothing, kwargs...)
 end
 
 function _cmin(nca::NCASubject; kwargs...)
-  conc, time = nca.conc, nca.time
-  val, _ = conc_extreme(conc, eachindex(conc), >)
+  val = ctextreme(nca, >)[1]
   return val
 end
 
@@ -151,18 +150,19 @@ end
 Calculate time of minimum observed concentration
 """
 function tmin(nca::NCASubject; kwargs...)
-  conc, time = nca.conc, nca.time
-  _, idx = conc_extreme(conc, eachindex(conc), >)
-  return time[idx]
+  val = ctextreme(nca, >)[2]
+  return val
 end
 
-function ctmax(nca::NCASubject; interval=nothing, kwargs...)
+function ctextreme(nca::NCASubject, lt=<; interval=nothing, kwargs...)
   conc, time = nca.conc, nca.time
   c0′ = (interval === nothing || iszero(interval[1])) ? c0(nca, true) : missing
   if interval === nothing
-    val, idx = conc_extreme(conc, eachindex(conc), <)
+    val, idx = conc_extreme(conc, eachindex(conc), lt)
     t = time[idx]
-    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+    if !ismissing(c0′)
+      val, t, idx = lt(val, c0′) ? (c0′, zero(t), -1) : (val, t, idx) # calculate max by default
+    end
     return (val, t, idx)
   elseif interval isa Tuple
     @assert interval[1] < interval[2] "t0 must be less than t1"
@@ -171,16 +171,18 @@ function ctmax(nca::NCASubject; interval=nothing, kwargs...)
       findfirst(t->t>=lo, time),
       findlast( t->t<=hi, time)
     end
-    val, idx = conc_extreme(conc, idx1:idx2, <)
+    val, idx = conc_extreme(conc, idx1:idx2, lt)
     t = time[idx]
-    ismissing(c0′) || (val = max(val, c0′); t=zero(t); idx=-1)
+    if !ismissing(c0′)
+      val, t, idx = lt(val, c0′) ? (c0′, zero(t), -1) : (val, t, idx) # calculate max by default
+    end
   else
     throw(ArgumentError("interval must be nothing or a tuple."))
   end
   return (val, t, idx)
 end
 
-maxidx(subj::NCASubject) = subj.maxidx == -2 ? (subj.maxidx = ctmax(subj)[3]) : subj.maxidx
+maxidx(subj::NCASubject) = subj.maxidx == -2 ? (subj.maxidx = ctextreme(subj)[3]) : subj.maxidx
 
 function conc_extreme(conc, idxs, lt)
   local val, idx
@@ -463,7 +465,9 @@ function c0(subj::NCASubject, returnev=false; verbose=true, kwargs...) # `return
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
   if subj.dose.formulation !== IVBolus
-    return returnev ? zero(subj.conc[1]) : missing
+    return !returnev ? missing :
+             subj.dose.ss ? ctau(subj; kwargs...) :
+               zero(subj.conc[1])
   end
   iszero(t1) && return subj.conc[1]
   t2 = ustrip(subj.time[2])

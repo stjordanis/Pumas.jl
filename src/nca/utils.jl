@@ -158,6 +158,7 @@ The meaning of each of the list elements is:
   concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
   concblq === :keep && return conc, time
   firstidx = ctfirst_idx(conc, time, llq=llq)
+  conc′ = conc
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
     # All measurements are BLQ; so apply the "first" BLQ rule to everyting,
     # hence, we take `tfirst` to be the `last(time)`
@@ -189,8 +190,9 @@ The meaning of each of the list elements is:
     if rule === :keep
       # do nothing
     elseif rule === :drop
-      conc = conc[.!mask]
-      time = time[.!mask]
+      idxs = .!mask
+      conc = conc[idxs]
+      time = time[idxs]
     elseif rule isa Number
       conc === conc′ && (conc = deepcopy(conc)) # if it aliases with the original array, then copy
       conc[mask] .= rule
@@ -255,7 +257,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
     firstpoint = view(nca.firstpoint, i)
     lastpoint = view(nca.lastpoint, i)
     points = view(nca.points, i)
-    auc, aumc = view(nca.auc_last, i), view(nca.aumc_last, i)
+    auc, auc_0, aumc = view(nca.auc_last, i), view(nca.auc_0, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,  nca.group,
                  conc,    time,    abstime,               # NCA measurements
@@ -263,7 +265,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
                  firstpoint, lastpoint, points,           # lambdaz related cache
-                 auc, aumc, nca.method                    # AUC related cache
+                 auc, auc_0, aumc, nca.method             # AUC related cache
                 )
   end
 end
