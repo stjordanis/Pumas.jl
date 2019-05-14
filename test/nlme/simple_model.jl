@@ -48,8 +48,6 @@ end
 @test deviance(mdsl1, data, param, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
 @test deviance(mdsl1, data, param, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
 @test deviance(mdsl1, data, param, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
-@test deviance(mdsl1, data, param, [0.0],PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
-@test deviance(mdsl1, data, param, (η=[0.0],),PuMaS.LaplaceI()) ≈ 57.19397077905644 rtol=1e-6
 
 ofn = function (cost,p)
   Optim.optimize(cost,p,BFGS(linesearch=Optim.LineSearches.BackTracking()),
