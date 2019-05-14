@@ -26,9 +26,32 @@ _lpdf(d::Distributions.MultivariateDistribution, x::AbstractVector) = logpdf(d,x
 _lpdf(d::Distributions.Sampleable, x::PDMat) = logpdf(d,x)
 _lpdf(d::Distributions.Sampleable, x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
-function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-  sum(keys(xs)) do k
-    haskey(ds, k) ? _lpdf(getindex(ds, k), getindex(xs, k)) : zero(getindex(xs, k))
+# function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
+#   sum(keys(xs)) do k
+#     haskey(ds, k) ? _lpdf(getindex(ds, k), getindex(xs, k)) : zero(getindex(xs, k))
+#   end
+# end
+
+Base.@pure function _intersect_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg{Symbol}})
+    names = Symbol[]
+    for n in an
+        if Base.sym_in(n, bn)
+            push!(names, n)
+        end
+    end
+    (names...,)
+end
+
+@generated function _lpdf(ds::NamedTuple{Nds}, xs::NamedTuple{Nxs}) where {Nds, Nxs}
+  names = _intersect_names(Nds, Nxs)
+  quote
+    # sum($names) do k
+      # _lpdf(getindex(ds, k), getindex(xs, k))
+    # end
+    s = 0.0
+    for k in $names
+      s += _lpdf(getindex(ds, k), getindex(xs, k))
+    end
   end
 end
 _lpdf(d::Domain, x) = 0.0
