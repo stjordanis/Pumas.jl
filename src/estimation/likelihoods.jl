@@ -26,11 +26,17 @@ _lpdf(d::Distributions.MultivariateDistribution, x::AbstractVector) = logpdf(d,x
 _lpdf(d::Distributions.Sampleable, x::PDMat) = logpdf(d,x)
 _lpdf(d::Distributions.Sampleable, x::Number) = isnan(x) ? zval(d) : logpdf(d,x)
 _lpdf(d::Constrained, x) = _lpdf(d.dist, x)
-# function _lpdf(ds::T, xs::S) where {T<:NamedTuple, S<:NamedTuple}
-#   sum(keys(xs)) do k
-#     haskey(ds, k) ? _lpdf(getindex(ds, k), getindex(xs, k)) : zero(getindex(xs, k))
-#   end
-# end
+_lpdf(d::Domain, x) = 0.0
+function _lpdf(ds::AbstractVector, xs::AbstractVector)
+  if length(ds) != length(xs)
+    throw(DimensionMismatch("vectors must have same length"))
+  end
+  l = _lpdf(ds[1], xs[1])
+  @inbounds for i in 2:length(ds)
+    l += _lpdf(ds[i], xs[i])
+  end
+  return l
+end
 
 Base.@pure function _intersect_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg{Symbol}})
     names = Symbol[]
@@ -43,27 +49,16 @@ Base.@pure function _intersect_names(an::Tuple{Vararg{Symbol}}, bn::Tuple{Vararg
 end
 
 @generated function _lpdf(ds::NamedTuple{Nds}, xs::NamedTuple{Nxs}) where {Nds, Nxs}
-  names = _intersect_names(Nds, Nxs)
+  _names = _intersect_names(Nds, Nxs)
   quote
-    # sum($names) do k
-      # _lpdf(getindex(ds, k), getindex(xs, k))
-    # end
-    s = 0.0
-    for k in $names
-      s += _lpdf(getindex(ds, k), getindex(xs, k))
+    names = $_names
+    l = _lpdf(getindex(ds, names[1]), getindex(xs, names[1]))
+    for i in 2:length(names)
+      name = names[i]
+      l += _lpdf(getindex(ds, name), getindex(xs, name))
     end
+    return l
   end
-end
-_lpdf(d::Domain, x) = 0.0
-function _lpdf(ds::AbstractVector, xs::AbstractVector)
-  if length(ds) != length(xs)
-    throw(DimensionMismatch("vectors must have same length"))
-  end
-  l = _lpdf(ds[1], xs[1])
-  @inbounds for i in 2:length(ds)
-    l += _lpdf(ds[i], xs[i])
-  end
-  return l
 end
 
 """
@@ -79,7 +74,7 @@ conditional_nll(m::PuMaSModel,
                 randeffs::NamedTuple,
                 args...; kwargs...) = first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
 
-function conditional_nll_ext(m::PuMaSModel,
+@inline function conditional_nll_ext(m::PuMaSModel,
                              subject::Subject,
                              param::NamedTuple,
                              randeffs::NamedTuple,
@@ -104,14 +99,14 @@ function conditional_nll_ext(m::PuMaSModel,
         # FIXME! Make this uniform across the two solution types
         any(isnan, solution isa PKPDAnalyticalSolution ? solution(obstimes)[end] : solution.u[end])
       # FIXME! Do we need to make this type stable?
-      return Inf, nothing
+      return numtype(collated)(Inf), nothing
     end
 
     # extract distributions
     derived_dist = m.derived(collated, solution, obstimes, subject)
   end
 
-  ll = _lpdf(derived_dist, subject.observations)
+  ll = _lpdf(derived_dist, subject.observations)::numtype(collated)
   return -ll, derived_dist
 end
 
@@ -322,7 +317,7 @@ function marginal_nll(m::PuMaSModel,
                       param::NamedTuple,
                       vrandeffs::AbstractVector,
                       ::FO,
-                      args...; kwargs...)
+                      args...; kwargs...)::promote_type(numtype(param), numtype(vrandeffs))
 
   # For FO, the conditional likelihood must be evaluated at η=0
   @assert iszero(vrandeffs)
@@ -350,7 +345,7 @@ function marginal_nll(m::PuMaSModel,
                       param::NamedTuple,
                       vrandeffs::AbstractVector,
                       approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
-                      args...; kwargs...)
+                      args...; kwargs...)::promote_type(numtype(param), numtype(vrandeffs))
 
   nl, _, W = ∂²l∂η²(m, subject, param, vrandeffs, approx, args...; kwargs...)
 
@@ -515,20 +510,25 @@ function ∂²l∂η²(m::PuMaSModel,
   nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
   if !isfinite(nl_d)
-    return ForwardDiff.value(nl_d), Nothing, Nothing
+    T = promote_type(numtype(param), numtype(vrandeffs))
+    return ForwardDiff.value(nl_d)::T, nothing, nothing
   end
 
   return _∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
-_∂²l∂η²(nl_d::ForwardDiff.Dual,
-        dv_d::AbstractVector{<:Union{Normal,LogNormal}},
-        m::PuMaSModel,
-        subject::Subject,
-        param::NamedTuple,
-        vrandeffs::AbstractVector,
-        ::FO,
-        args...; kwargs...) = (ForwardDiff.value(nl_d), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)
+function _∂²l∂η²(nl_d::ForwardDiff.Dual,
+                 dv_d::AbstractVector{<:Union{Normal,LogNormal}},
+                 m::PuMaSModel,
+                 subject::Subject,
+                 param::NamedTuple,
+                 vrandeffs::AbstractVector,
+                 ::FO,
+                 args...; kwargs...)
+
+  T = promote_type(numtype(param), numtype(vrandeffs))
+  return (ForwardDiff.value(nl_d), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)::Tuple{T,Vector{T},Matrix{T}}
+end
 
 function _∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::FO)
   # The dimension of the random effect vector
