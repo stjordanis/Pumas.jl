@@ -54,14 +54,12 @@ conditional_nll(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
                 randeffs::NamedTuple,
-                approx::LikelihoodApproximation=LaplaceI(),
-                args...; kwargs...) =
-  first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
+                args...; kwargs...) = first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
 
 function conditional_nll_ext(m::PuMaSModel,
                              subject::Subject,
                              param::NamedTuple,
-                             randeffs::NamedTuple=sample_randeffs(m, param),
+                             randeffs::NamedTuple,
                              args...; kwargs...)
 
   # Extract a vector of the time stamps for the observations
@@ -94,11 +92,19 @@ function conditional_nll_ext(m::PuMaSModel,
   return -ll, derived_dist
 end
 
+conditional_nll(m::PuMaSModel,
+                subject::Subject,
+                param::NamedTuple,
+                randeffs::NamedTuple,
+                approx::Union{FOI,FOCEI,LaplaceI},
+                args...; kwargs...) = conditional_nll(m, subject, param, randeffs, args...; kwargs...)
+
+
 function conditional_nll(m::PuMaSModel,
                          subject::Subject,
                          param::NamedTuple,
                          randeffs::NamedTuple,
-                         approx::Union{Laplace,FOCE},
+                         approx::Union{FO,FOCE,Laplace},
                          args...; kwargs...)
   l, dist    = conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...)
 
@@ -116,7 +122,7 @@ function conditional_nll(m::PuMaSModel,
                          subject::Subject,
                          param::NamedTuple,
                          vrandeffs::AbstractVector,
-                         approx::Union{Laplace,FOCE},
+                         approx::Union{FO,FOCE,Laplace},
                          args...; kwargs...)
   rfxset = m.random(param)
   randeffs = TransformVariables.transform(totransform(rfxset), vrandeffs)
@@ -134,7 +140,7 @@ function _conditional_nll(dv::AbstractVector{<:Normal}, dv0::AbstractVector{<:No
 end
 
 """
-    penalized_conditional_nll(m::PuMaSModel, subject::Subject, param, param, approx, args...; kwargs...)
+    penalized_conditional_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, args...; kwargs...)
 
 Compute the penalized conditional negative log-likelihood. This is the same as
 [`conditional_nll`](@ref), except that it incorporates the penalty from the prior
@@ -147,7 +153,6 @@ function penalized_conditional_nll(m::PuMaSModel,
                                    subject::Subject,
                                    param::NamedTuple,
                                    randeffs::NamedTuple,
-                                   approx::LikelihoodApproximation,
                                    args...;kwargs...)
 
   # First evaluate the penalty
@@ -158,7 +163,7 @@ function penalized_conditional_nll(m::PuMaSModel,
   if nl_randeffs > log(floatmax(Float64))
     return nl_randeffs
   else
-    return conditional_nll(m, subject, param, randeffs, approx, args...;kwargs...) + nl_randeffs
+    return conditional_nll(m, subject, param, randeffs, args...;kwargs...) + nl_randeffs
   end
 end
 
@@ -166,12 +171,11 @@ function penalized_conditional_nll(m::PuMaSModel,
                                    subject::Subject,
                                    param::NamedTuple,
                                    vrandeffs::AbstractVector,
-                                   approx::LikelihoodApproximation,
                                    args...;kwargs...)
 
   rfxset = m.random(param)
   randeffs = TransformVariables.transform(totransform(rfxset), vrandeffs)
-  return penalized_conditional_nll(m, subject, param, randeffs, approx, args...; kwargs...)
+  return penalized_conditional_nll(m, subject, param, randeffs, args...; kwargs...)
 end
 
 function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
@@ -310,7 +314,7 @@ function marginal_nll(m::PuMaSModel,
   FΩ = cholesky(Ω, check=false)
 
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-  if issuccess(FΩ)
+  if issuccess(FΩ) && isfinite(nl)
     invFΩ = inv(FΩ)
     return nl + (logdet(FΩ) - dldη'*((invFΩ + W)\dldη) + logdet(invFΩ + W))/2
   else # Ω is numerically singular
