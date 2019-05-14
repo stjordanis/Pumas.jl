@@ -503,7 +503,7 @@ function ∂²l∂η²(m::PuMaSModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector,
-                approx::LikelihoodApproximation,
+                approx::Union{FO,FOI,FOCE,FOCEI},
                 args...; kwargs...)
 
   # Compute the conditional likelihood and the conditional distributions of the dependent variable
@@ -511,8 +511,7 @@ function ∂²l∂η²(m::PuMaSModel,
   nl_d, dist_d = _conditional_nll_ext_η_gradient(m, subject, param, vrandeffs, args...; kwargs...)
 
   if !isfinite(nl_d)
-    T = promote_type(numtype(param), numtype(vrandeffs))
-    return ForwardDiff.value(nl_d)::T, nothing, nothing
+    return ForwardDiff.value(nl_d)::promote_type(numtype(param), numtype(vrandeffs)), nothing, nothing
   end
 
   return _∂²l∂η²(nl_d, dist_d.dv, m, subject, param, vrandeffs, approx, args...; kwargs...)
@@ -527,8 +526,7 @@ function _∂²l∂η²(nl_d::ForwardDiff.Dual,
                  ::FO,
                  args...; kwargs...)
 
-  T = promote_type(numtype(param), numtype(vrandeffs))
-  return (ForwardDiff.value(nl_d), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)
+  return (ForwardDiff.value(nl_d)::promote_type(numtype(param), numtype(vrandeffs)), _∂²l∂η²(subject.observations.dv, dv_d, FO())...)
 end
 
 function _∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::FO)
@@ -664,14 +662,12 @@ _∂²l∂η²(nl_d::ForwardDiff.Dual,
 
 
 # FIXME! Don't hardcode for dv
-function _∂²l∂η²(nl_d::ForwardDiff.Dual,
-                 dv_d::AbstractVector,
-                 m::PuMaSModel,
-                 subject::Subject,
-                 param::NamedTuple,
-                 vrandeffs::AbstractVector,
-                 approx::Union{Laplace,LaplaceI},
-                 args...; kwargs...)
+function ∂²l∂η²(m::PuMaSModel,
+                subject::Subject,
+                param::NamedTuple,
+                vrandeffs::AbstractVector,
+                approx::Union{Laplace,LaplaceI},
+                args...; kwargs...)
 
   # Initialize HessianResult for computing Hessian, gradient and value of negative loglikelihood in one go
   diffres = DiffResults.HessianResult(vrandeffs)
