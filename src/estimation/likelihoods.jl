@@ -749,12 +749,10 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   println(io, "FittedPuMaSModel\n")
   _print_fit_header(io, fpm)
   # Get all names
-  standard_errors = stderror(fpm)
   paramnames = []
   paramvals = []
   for (paramname, paramval) in pairs(fpm.param)
-    std = standard_errors[paramname]
-    _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, std, nothing)
+    _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
 
   maxname = maximum(length.(paramnames))+1
@@ -1039,31 +1037,42 @@ function StatsBase.stderror(pmi::FittedPuMaSModelInference)
 end
 
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDMat, std, quant)
-  matstd = std.mat
   mat = paramval.mat
   for j = 1:size(mat, 2)
-     for i = j:size(mat, 1)
-        _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))"
-        _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i, j], matstd[i, j], quant)
-     end
+    for i = j:size(mat, 1)
+      # We set stdij to nothing in case RSEs are not requested to avoid indexing
+      # into `nothing`.
+      stdij = _rse == nothing ? nothing : std.mat[i, j]
+      _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))"
+      _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i, j], stdij, quant)
+    end
   end
 end
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDiagMat, std, quant)
-  matstd = std.diag
   mat = paramval.diag
     for i = 1:length(mat)
+      # We set stdii to nothing in case RSEs are not requested to avoid indexing
+      # into `nothing`.
+      stdii = _rse == nothing ? nothing : std.diag[i]
       _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(i))"
-      _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i], matstd[i], quant)
+      _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i], stdii, quant)
     end
 end
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::AbstractVector, std, quant)
   for i in 1:length(paramval)
-    _push_varinfo!(_names, _vals, _rse, _confint, string(paramname, _to_subscript(i)), paramval[i], std[i], quant)
+    # We set stdi to nothing in case RSEs are not requested to avoid indexing
+    # into `nothing`.
+    stdi = _rse == nothing ? nothing : std[i]
+    _push_varinfo!(_names, _vals, _rse, _confint, string(paramname, _to_subscript(i)), paramval[i], stdi, quant)
   end
 end
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Number, std, quant)
+  # Push variable names and values. Values are truncated to five significant
+  # digits to control width of output.
   push!(_names, string(paramname))
   push!(_vals, string(round(paramval; sigdigits=5)))
+
+  # We only update RSEs and confints if an array was input.
   !(_rse == nothing) && push!(_rse, string(round(paramval/std; sigdigits=5)))
   !(_confint == nothing) && push!(_confint, string("[", round(paramval-std*quant; sigdigits=5),";", round(paramval+std*quant; sigdigits=5), "]"))
 end

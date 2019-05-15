@@ -96,6 +96,14 @@ end
   o_estimates = o.param
   o_stderror  = stderror(o)
 
+  o_infer = infer(o)
+
+  # Verify that show runs
+  io_buffer = IOBuffer()
+  show(io_buffer, o)
+  show(io_buffer, o_infer)
+
+
   @test deviance(o) ≈ 71.979975297638589
 
   @testset "test estimate of $k" for k in keys(o_estimates)
@@ -293,6 +301,13 @@ end
 
   o_estimates = o.param
   o_stderror  = stderror(o)
+
+  o_infer = infer(o)
+
+  # Verify that show runs
+  io_buffer = IOBuffer()
+  show(io_buffer, o)
+  show(io_buffer, o_infer)
 
   @test deviance(o) ≈ 71.979975297638589 rtol=1e-6
 
@@ -537,6 +552,13 @@ end
 
   o_estimates = o.param
   o_stderror  = stderror(o)
+
+  o_infer = infer(o)
+
+  # Verify that show runs
+  io_buffer = IOBuffer()
+  show(io_buffer, o)
+  show(io_buffer, o_infer)
 
   @test deviance(o) ≈ 115.40505379554628 rtol=1e-7
   @testset "test estimate of $k" for k in keys(o_estimates)
@@ -804,6 +826,13 @@ end
 
     o_estimates = o.param
     o_stderror  = stderror(o)
+
+    o_infer = infer(o)
+
+    # Verify that show runs
+    io_buffer = IOBuffer()
+    show(io_buffer, o)
+    show(io_buffer, o_infer)
 
     @test deviance(o) ≈ 123.76439574418291 rtol=1e-5
 
