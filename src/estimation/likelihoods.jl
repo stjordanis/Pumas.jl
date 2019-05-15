@@ -247,10 +247,12 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                                vrandeffs,
                                BFGS(linesearch=Optim.LineSearches.BackTracking(),
                                     # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
-                                    initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, vrandeffs)), length(vrandeffs), length(vrandeffs))),
-                               Optim.Options(show_trace=false);
-                               autodiff=:forward))
-
+                                    initial_invH=t -> Matrix(I/max(1, norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, vrandeffs))), length(vrandeffs), length(vrandeffs))),
+                                    Optim.Options(
+                                      show_trace=false,
+                                      extended_trace=true,
+                                    );
+                                    autodiff=:forward))
   return vrandeffs
 end
 
@@ -392,13 +394,14 @@ StatsBase.deviance(m::PuMaSModel,
 # where L is the marginal likelihood of the subject, ℓ is the penalized
 # conditional likelihood function and dη/dθ is the Jacobian of the optimal
 # value of η with respect to the population parameters θ
-function marginal_nll_gradient!(G::AbstractVector,
+function marginal_nll_gradient!(g::AbstractVector,
                                 model::PuMaSModel,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
                                 approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
-                                trf::TransformVariables.TransformTuple
+                                trf::TransformVariables.TransformTuple,
+                                args...; kwargs...
                                 )
 
   vparam = TransformVariables.inverse(trf, param)
@@ -411,7 +414,8 @@ function marginal_nll_gradient!(G::AbstractVector,
       subject,
       TransformVariables.transform(trf, _param),
       randeffs,
-      approx
+      approx,
+      args...; kwargs...
     ),
     vparam
   )
@@ -422,7 +426,8 @@ function marginal_nll_gradient!(G::AbstractVector,
       subject,
       param,
       (η=_η,),
-      approx
+      approx,
+      args...; kwargs...
     ),
     randeffs.η
   )
@@ -447,21 +452,22 @@ function marginal_nll_gradient!(G::AbstractVector,
 
   dηdθ = -∂²ℓ∂η² \ ∂²ℓ∂η∂θ
 
-  G .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
+  g .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
 
-  return G
+  return g
 end
 
 # Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
 # but much simpler since the expansion point in η is fixed. Hence,
 # the gradient is simply the partial derivative in θ
-function marginal_nll_gradient!(G::AbstractVector,
+function marginal_nll_gradient!(g::AbstractVector,
                                 model::PuMaSModel,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
                                 approx::Union{FO,FOI},
-                                trf::TransformVariables.TransformTuple
+                                trf::TransformVariables.TransformTuple,
+                                args...; kwargs...
                                 )
 
   # Compute first order derivatives of the marginal likelihood function
@@ -472,14 +478,39 @@ function marginal_nll_gradient!(G::AbstractVector,
       subject,
       TransformVariables.transform(trf, _param),
       randeffs,
-      approx
+      approx,
+      args...; kwargs...
     ),
     TransformVariables.inverse(trf, param)
   )
 
-  G .= ∂ℓ∂θ
+  g .= ∂ℓ∂θ
 
-  return G
+  return g
+end
+
+function marginal_nll_gradient!(g::AbstractVector,
+                                model::PuMaSModel,
+                                population::Population,
+                                param::NamedTuple,
+                                vvrandeffs::AbstractVector,
+                                approx::LikelihoodApproximation,
+                                trf::TransformVariables.TransformTuple,
+                                args...; kwargs...
+                                )
+
+  # Zero the gradient
+  fill!(g, 0)
+
+  # FIXME! Avoid this allocation
+  _g = similar(g)
+
+  for (subject, vrandeffs) in zip(population, vvrandeffs)
+    marginal_nll_gradient!(_g, model, subject, param, (η=vrandeffs,), approx, trf, args...; kwargs...)
+    g .+= _g
+  end
+
+  return g
 end
 
 function _conditional_nll_ext_η_gradient(m::PuMaSModel,
@@ -750,7 +781,7 @@ function DEFAULT_OPTIMIZE_FN(cost, p)
                  p,
                  BFGS(linesearch=Optim.LineSearches.BackTracking(),
                       # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
-                      initial_invH=t -> Matrix(I/norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, p)), length(p), length(p))
+                      initial_invH=t -> Matrix(I/norm(Optim.NLSolversBase.gradient(cost)), length(p), length(p))
                  ),
                  Optim.Options(show_trace=false, # Print progress
                                store_trace=true,
@@ -760,20 +791,56 @@ function DEFAULT_OPTIMIZE_FN(cost, p)
 end
 
 function Distributions.fit(m::PuMaSModel,
-                           data::Population,
+                           population::Population,
                            param::NamedTuple,
                            approx::LikelihoodApproximation,
                            args...;
                            optimize_fn = DEFAULT_OPTIMIZE_FN,
                            kwargs...)
+
+  # Compute transform object defining the transformations from NamedTuple to Vector while applying any parameter restrictions and apply the transformations
   trf = totransform(m.param)
   vparam = TransformVariables.inverse(trf, param)
-  cost = s -> marginal_nll(m, data, TransformVariables.transform(trf, s), approx, args...; kwargs...)
-  o = optimize_fn(cost,vparam)
 
-  # FIXME! The random effects are computed during the optimization so we should just store while optimizing instead of recomputing afterwards.
-  vvrandeffs = [empirical_bayes(m, subject, TransformVariables.transform(trf, o.minimizer), approx, args...) for subject in data]
-  return FittedPuMaSModel(m, data, o, approx, vvrandeffs)
+  vvrandeffs = [empirical_bayes(m, subject, param, approx, args...; kwargs...) for subject in population]
+
+  # Define cost function for the optimization
+  cost = Optim.NLSolversBase.OnceDifferentiable(
+    Optim.NLSolversBase.only_fg!() do f, g, vx
+      # The negative loglikelihood function
+      # Update the Empirical Bayes Estimates explicitly after each iteration
+
+      # Convert vector to NamedTuple
+      x = TransformVariables.transform(trf, vx)
+
+      # If not FO then update the EBEs
+      if !(approx isa FO)
+        for (subject, vrandeffs) in zip(population, vvrandeffs)
+          empirical_bayes!(vrandeffs, m, subject, x, approx, args...; kwargs...)
+        end
+      end
+
+      # Sum up loglikelihood contributions
+      nll = sum(zip(population, vvrandeffs)) do (subject, vrandeffs)
+        marginal_nll(m, subject, x, vrandeffs, approx, args...; kwargs...)
+      end
+
+      # Update score
+      if g !== nothing
+        marginal_nll_gradient!(g, m, population, x, vvrandeffs, approx, trf, args...; kwargs...)
+      end
+
+      return nll
+    end,
+
+    # The initial values
+    vparam
+  )
+
+  # Run the optimization
+  o = optimize_fn(cost, vparam)
+
+  return FittedPuMaSModel(m, population, o, approx, vvrandeffs)
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
