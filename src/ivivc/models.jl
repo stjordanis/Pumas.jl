@@ -1,3 +1,5 @@
+# For Vitro data
+
 # Emax model
 # p = [D_INF, γ, TD50, time_lag(optional)]
 function emax(t::Number, p)
@@ -60,3 +62,12 @@ emax_ng(t::AbstractVector, p) = [emax_ng(x, p) for x in t]
 weibull(t::AbstractVector, p) = [weibull(x, p) for x in t]
 double_weibull(t::AbstractVector, p) = [double_weibull(x, p) for x in t]
 makoid(t::AbstractVector, p) = [makoid(x, p) for x in t]
+
+# For Vivo data
+# bateman function
+function bateman(t::Number, p)
+  ka = p[1]; kel = p[2]; V = p[3]
+  (ka/(V*(ka - kel))) * (exp(-kel*t) - exp(-ka*t))
+end
+
+bateman(t::AbstractVector, p) = [bateman(x, p) for x in t]

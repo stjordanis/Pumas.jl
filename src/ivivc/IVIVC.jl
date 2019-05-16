@@ -19,6 +19,7 @@ export VivoSubject, VivoPopulation
 export read_vitro, read_vivo
 export emax, emax_ng, weibull, double_weibull, makoid
 export vitro_model, get_avail_models
+export vivo_model, get_avail_vivo_models
 export loglikelihood, nullloglikelihood, dof, nobs, deviance, mss,
        rss, aic, aicc, bic, r2
 end # module

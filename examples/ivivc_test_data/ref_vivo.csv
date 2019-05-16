@@ -1,0 +1,14 @@
+id,time,conc,dose,form
+1,0,0,50,solution
+1,0.25,4.72,,solution
+1,0.5,20.88,,solution
+1,1,43.81,,solution
+1,1.5,54.54,,solution
+1,2,54.81,,solution
+1,2.5,51.66,,solution
+1,3,48.94,,solution
+1,4,39.03,,solution
+1,6,23.64,,solution
+1,8,15.67,,solution
+1,12,5.771,,solution
+1,18,2.202,,solution

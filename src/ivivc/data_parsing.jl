@@ -42,29 +42,26 @@ function ___read_vivo(df; id=:id, time=:time, conc=:conc, form=:form, dose=:dose
   forms = df[form]
   doses = df[dose]
   uids = unique(ids)
+  uforms = unique(forms)
   idx  = -1
   # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    # the time array for the i-th subject
-    subjtime = @view times[idx]
-    dose_idx = findall(x->!ismissing(x) && x > zero(x), @view doses[idx])
-  
-    if length(dose_idx) == 1
-      dose_idx = dose_idx[1]
-      dose_time = subjtime[dose_idx[1]]
-    else
-      error("for a subject, dose column should contain only one nonzero value")
+    ind = Dict{Any, VivoSubject}()
+    for form in uforms
+      if form in forms[idx]
+        idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
+        try
+          ind[form] = VivoSubject(concs[idx_n], times[idx_n], form, doses[idx_n[1]], id, kwargs...)
+        catch
+          @info "ID $id errored for formulation $(form)"
+          rethrow()
+        end
+      end
     end
-      
-    try
-      ncas[i] = VivoSubject(concs[idx], times[idx], forms[idx], doses[idx], ids[idx], kwargs...)
-    catch
-      @info "ID $id errored"
-      rethrow()
-    end
+    ncas[i] = ind
   end
   # Use broadcast to tighten ncas element type
   pop = VivoPopulation(identity.(ncas))

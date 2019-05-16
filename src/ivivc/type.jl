@@ -24,10 +24,10 @@ function Base.show(io::IO, n::VivoSubject)
 end
 
 # VivoPopulation
-struct VivoPopulation{T<:VivoSubject} <: AbstractVector{T}
-  subjects::Vector{T}
-  function VivoPopulation(_pop::Vector{<:VivoSubject})
-    E = eltype(_pop)
+struct VivoPopulation{T<:VivoSubject} <: AbstractVector{AbstractDict{Any, T}}
+  subjects::Vector{Dict{Any, T}}
+  function VivoPopulation(_pop::Vector{Dict{Any, VivoSubject}})
+    E = eltype(values(_pop[1]))
     # TODO: can do some checking and other stuff
     return new{E}(_pop)
   end
