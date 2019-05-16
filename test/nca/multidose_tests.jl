@@ -40,7 +40,8 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test NCA.cmin(mncapop[1])[1] == mncapop[1].conc[1][end-1]
 @test NCA.cminss(mncapop[1])[1] == NCA.cmin(mncapop[1])[1]*NCA.accumulationindex(mncapop[1])[1]
 @test NCA.cmaxss(mncapop[1])[1] == NCA.cmax(mncapop[1])[1]*NCA.accumulationindex(mncapop[1])[1]
-@test NCA.fluctuation(mncapop[1]) == 100 .*(NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cavgss(mncapop[1])
+@test NCA.fluctuation(mncapop[1])[1] == (100 .*(NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cavgss(mncapop[1]))[1]
+@test NCA.fluctuation(mncapop[1], usetau=true) == (100 .*(NCA.cmaxss(mncapop[1]) .- NCA.ctau(mncapop[1]))./NCA.cavgss(mncapop[1]))
 @test NCA.accumulationindex(mncapop[1]) == 1 ./(1 .-exp.(-NCA.lambdaz(mncapop[1]).*NCA.tau(mncapop[1])))
 @test NCA.swing(mncapop[1])[1] == ((NCA.cmaxss(mncapop[1]) .- NCA.cminss(mncapop[1]))./NCA.cminss(mncapop[1]))[1]
 @test NCA.c0(mncapop[1])[1] == mncapop[1].conc[1][1]
@@ -112,6 +113,7 @@ df.conc = [5, 4, 3, 2, 1, 5, 4, 3, 2, 1]
 df.amt =  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 df.route = "ev"
 df.ss =   [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+df.ii = df.ss .* 24
 df.occasion = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
 df.id = 1
 subj = @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)[1]

@@ -140,6 +140,7 @@ function cminss(nca::NCASubject; interval=nothing, kwargs...)
 end
 
 function _cmin(nca::NCASubject; kwargs...)
+  (nca.dose !== nothing && nca.dose.formulation === EV && !nca.dose.ss) && return missing
   val = ctextreme(nca, >)[1]
   return val
 end
