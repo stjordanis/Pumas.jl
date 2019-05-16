@@ -263,17 +263,13 @@ function eiwres(m::PuMaSModel,
                 param::NamedTuple,
                 nsim::Integer)
   yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,param)
-  mean_yi = (mean.(dist.dv))
-  covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
-  sims_sum = (covm_yi)*(yi .- mean_yi)
+  l, dist = conditional_nll_ext(m, subject, param, sample_randeffs(m, param))
+  sims_sum = (yi .- mean.(dist.dv))./std.(dist.dv)
   for i in 2:nsim
-    l, dist = conditional_nll_ext(m,subject,param)
-    mean_yi = (mean.(dist.dv))
-    covm_yi = sqrt(inv((Diagonal(var.(dist.dv)))))
-    sims_sum .+= (covm_yi)*(yi .- mean_yi)
+    l, dist = conditional_nll_ext(m, subject, param, sample_randeffs(m, param))
+    sims_sum .+= (yi .- mean.(dist.dv))./std.(dist.dv)
   end
-  sims_sum./nsim
+  return sims_sum ./ nsim
 end
 
 function ipred(m::PuMaSModel,
