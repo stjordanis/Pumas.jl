@@ -1,5 +1,5 @@
 # IVIVCSubject
-mutable struct VivoSubject{ID, C, T, F, D}
+mutable struct VivoSubject{ID, C, T, F, D} <: Ivivc
   id::ID
   conc::C
   time::T
@@ -34,7 +34,7 @@ struct VivoPopulation{T<:VivoSubject} <: AbstractVector{T}
 end
 
 # VitroSubject
-mutable struct VitroSubject{ID, C, T, F, pType}
+mutable struct VitroSubject{ID, C, T, F, pType} <: Ivivc
   id::ID
   conc::C
   time::T
