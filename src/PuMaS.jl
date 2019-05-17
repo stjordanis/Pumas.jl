@@ -52,5 +52,5 @@ export process_nmtran, example_nmtran_data
 export @model, @nca
 # From StatsBase
 export fit, stderror, vcov, infer, aic, bic, deviance, informationmatrix
-
+export vpc
 end # module

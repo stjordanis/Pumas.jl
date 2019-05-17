@@ -426,3 +426,54 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
   end
   df
 end
+
+struct VPC
+  Fiftieth
+  Fifth_Ninetyfifth
+end
+
+function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
+  pop_quantiles = []
+  times = data[1].time
+  for i in 1:reps
+    sim = simobs(m, data, fixeffs)
+    quantiles_sim = []
+    for t in 1:length(sim[1].times)
+      sims_t = [sim[j].observed.dv[t] for j in 1:length(sim.sims)]
+      push!(quantiles_sim, quantile(sims_t,[0.05,0.5,0.95]))
+    end 
+    push!(pop_quantiles,quantiles_sim)
+  end
+  quantile_quantiles = []
+  for t in 1:length(times)
+    quantile_time = []
+    for j in 1:length(pop_quantiles[1][t])
+      quantile_index = Float64[]
+      for i in 1:reps
+        push!(quantile_index,pop_quantiles[i][t][j])
+      end
+      push!(quantile_time, quantile(quantile_index,[0.05,0.5,0.95]))
+    end
+    push!(quantile_quantiles,quantile_time)
+  end
+  fifty_percentiles = []
+  fith_ninetyfifth = []
+  for i in 1:3
+    push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles])
+    push!(fith_ninetyfifth, [[j[i][1],j[i][3]] for j in quantile_quantiles])
+  end
+  VPC(fifty_percentiles, fith_ninetyfifth)
+end
+
+@recipe function f(vpc::VPC, data::Population)
+  t = data[1].time
+  xlabel --> "time"
+  legend --> false
+  lw --> 3
+  ylabel --> "Observations"
+  title --> "VPC"
+  ribbon := vpc.Fifth_Ninetyfifth
+  fillalpha := 0.2
+  t,vpc.Fiftieth
+end
+
