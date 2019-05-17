@@ -634,3 +634,5 @@ end
 n_samples(subj::NCASubject; kwargs...) = length(subj.time)
 doseamt(subj::NCASubject; kwargs...) = hasdose(subj) ? subj.dose.amt : missing
 dosetype(subj::NCASubject; kwargs...) = hasdose(subj) ? string(subj.dose.formulation) : missing
+
+urine_volume(subj::NCASubject; kwargs...) = subj.volume === nothing ? missing : sum(subj.volume)

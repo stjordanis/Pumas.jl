@@ -120,7 +120,7 @@ function NCASubject(conc, time;
         conci, timei = @view(conc[idxs]), @view(time[idxs])
         check && checkconctime(conci, timei; dose=dose, kwargs...)
         if clean
-          conci, timei, _ = cleanmissingconc(conci, timei; kwargs...)
+          conci, timei, _, _, _ = cleanmissingconc(conci, timei; kwargs...)
         end
         conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
@@ -135,8 +135,8 @@ function NCASubject(conc, time;
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
-                      Vector{Int}, typeof(id), typeof(group), typeof(volume)}(id, group,
-                        conc, time, #= no multidose urine =# nothing, nothing, volume, abstime,
+                      Vector{Int}, typeof(id), typeof(group), Nothing}(id, group,
+                        conc, time, #= no multidose urine =# nothing, nothing, nothing, abstime,
                         maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(-unittime, n), fill(0, n),
@@ -149,9 +149,9 @@ function NCASubject(conc, time;
     checkconctime(volume, time;     dose=dose, kwargs...)
   end
   if clean
-    conc, time, volume = cleanmissingconc(conc, time; volume=volume, kwargs...)
+    conc, time, start_time, end_time, volume = cleanmissingconc(conc, time; start_time=start_time, end_time=end_time, volume=volume, kwargs...)
   end
-  conc, time = clean ? cleanblq(conc, time; llq=llq, dose=dose, kwargs...) : (conc, time)
+  conc, time = clean ? cleanblq(conc, time; start_time=start_time, end_time=end_time, llq=llq, dose=dose, kwargs...) : (conc, time)
   abstime = time
   dose !== nothing && (dose = first(dose))
   maxidx = -2

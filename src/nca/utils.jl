@@ -82,46 +82,54 @@ Handle `missing` values in the concentration measurements as requested by the us
 #Arguments
 - `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
 """
-function cleanmissingconc(conc, time; volume=nothing, missingconc=nothing, missingvolume=nothing, kwargs...)
+function cleanmissingconc(conc, time; start_time=nothing, end_time=nothing, volume=nothing, missingconc=nothing, missingvolume=nothing, kwargs...)
   missingconc === nothing && (missingconc = :drop)
   Ec = eltype(conc)
   Tc = Base.nonmissingtype(Ec)
   Et = eltype(time)
   Tt = Base.nonmissingtype(Et)
-  if volume === nothing
+  if volume !== nothing
     Ev = eltype(volume)
     Tv = Base.nonmissingtype(Ev)
   else
     Ev = Tv = Nothing
   end
-  n = count(ismissing, conc) + (volume === nothing ? 0 : count(ismissing, volume))
+  n_conc_missing = count(ismissing, conc)
+  n_vol_missing = volume === nothing ? 0 : count(ismissing, volume)
   # fast path
-  Tc === Ec && Tt === Et && Ev === Tv && n == 0 && return conc, time, volume
+  Tc === Ec && Tt === Et && Ev === Tv && n_conc_missing+n_vol_missing == 0 && return conc, time, start_time, end_time, volume
   len = length(conc)
   if missingconc === :drop
-    newconc = similar(conc, Tc, len-n)
-    newtime = similar(time, Tt, len-n)
-    newvolume = volume === nothing ? nothing : similar(volume, Tv, len-n)
-    ii = 1
+    newconc = similar(conc, Tc, 0)
+    newtime = similar(time, Tt, 0)
+    newstart_time = start_time === nothing ? nothing : similar(start_time, Tt, 0)
+    newend_time = end_time === nothing ? nothing : similar(end_time, Tt, 0)
+    newvolume = volume === nothing ? nothing : similar(volume, Tv, 0)
     @inbounds for i in eachindex(conc)
-      if !ismissing(conc[i])
-        newconc[ii] = conc[i]
-        newtime[ii] = time[i]
-        ii+=1
+      ismissing(conc[i]) && continue
+      (volume !== nothing && ismissing(volume[i])) && continue
+      push!(newconc, conc[i])
+      push!(newtime, time[i])
+      if start_time !== nothing && end_time !== nothing && volume !== nothing
+        push!(newstart_time, start_time[i])
+        push!(newend_time, end_time[i])
+        push!(newvolume, volume[i])
       end
     end
-    return newconc, newtime, newvolume
+    return newconc, newtime, newstart_time, newend_time, newvolume
   elseif missingconc isa Number
     newconc = similar(conc, Tc)
     newtime = Tt === Et ? time : similar(time, Tt)
+    newstart_time = Tt === Et ? start_time : similar(start_time, Tt)
+    newend_time = Tt === Et ? end_time : similar(end_time, Tt)
     newvolume = Tv === Ev ? volume : similar(volume, Tv)
     @inbounds for i in eachindex(newconc)
       newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
-      if missingvolume isa Number && volume !== nothing
+      if volume !== nothing
         newvolume[i] = ismissing(volume[i]) ? missingvolume : volume[i]
       end
     end
-    return newconc, time, newvolume
+    return newconc, time, newstart_time, newend_time, newvolume
   else
     throw(ArgumentError("missingconc must be a number or :drop"))
   end
@@ -255,7 +263,6 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
   @inbounds begin
     conc = nca.conc[i]
     time = nca.time[i]
-    volume = nca.volume #TODO
     idx1 = isempty(1:i-1) ? 1 : sum(j->length(nca.time[j]), 1:i-1)+1
     idx2 = idx1+length(nca.time[i])-1
     abstime = @view nca.abstime[idx1:idx2]
