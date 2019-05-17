@@ -430,6 +430,7 @@ end
 struct VPC
   Fiftieth
   Fifth_Ninetyfifth
+  Observation_Percentiles
 end
 
 function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
@@ -460,9 +461,16 @@ function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
   fith_ninetyfifth = []
   for i in 1:3
     push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles])
-    push!(fith_ninetyfifth, [[j[i][1],j[i][3]] for j in quantile_quantiles])
+    push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles])
   end
-  VPC(fifty_percentiles, fith_ninetyfifth)
+  quantiles_obs = [[],[],[]]
+  for t in 1:length(times)
+    obs_t = [data[i].observations.dv[t] for i in 1:length(data)]
+    push!(quantiles_obs[1], quantile(obs_t,0.05))
+    push!(quantiles_obs[2], quantile(obs_t,0.5))
+    push!(quantiles_obs[3], quantile(obs_t,0.95))
+  end 
+  VPC(fifty_percentiles, fith_ninetyfifth, quantiles_obs)
 end
 
 @recipe function f(vpc::VPC, data::Population)
@@ -474,6 +482,6 @@ end
   title --> "VPC"
   ribbon := vpc.Fifth_Ninetyfifth
   fillalpha := 0.2
-  t,vpc.Fiftieth
+  t,[vpc.Fiftieth, vpc.Observation_Percentiles]
 end
 
