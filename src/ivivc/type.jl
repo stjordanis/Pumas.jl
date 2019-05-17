@@ -1,13 +1,20 @@
 # IVIVCSubject
-mutable struct VivoSubject{ID, C, T, F, D} <: Ivivc
+mutable struct VivoSubject{ID, C, T, F, D, pType} <: Ivivc
   id::ID
   conc::C
   time::T
   form::F
   dose::D
+  # params which are needed for modeling
+  m::Function                           # model type
+  alg::Optim.FirstOrderOptimizer        # alg to optimize cost function
+  p0::pType                             # intial values of params
+  ub::Union{Nothing, pType}             # upper bound of params
+  lb::Union{Nothing, pType}             # lower bound of params
+  pmin::pType                           # optimized params
   function VivoSubject(conc, time, form, dose, id=1)
     return new{typeof(id), typeof(conc), typeof(time),
-                typeof(form), typeof(dose)}(id, conc, time, form, dose)
+                typeof(form), typeof(dose), typeof(conc)}(id, conc, time, form, dose)
   end
 end
 
@@ -40,12 +47,12 @@ mutable struct VitroSubject{ID, C, T, F, pType} <: Ivivc
   time::T
   form::F
   # params which are needed for modeling
-  m::Function          # model type
+  m::Function                           # model type
   alg::Optim.FirstOrderOptimizer        # alg to optimize cost function
-  p0::pType            # intial values of params
-  ub::pType            # upper bound of params
-  lb::pType            # lower bound of params
-  pmin::pType          # optimized params
+  p0::pType                             # intial values of params
+  ub::pType                             # upper bound of params
+  lb::pType                             # lower bound of params
+  pmin::pType                           # optimized params
   function VitroSubject(conc, time, form, id=1)
     return new{typeof(id), typeof(conc), typeof(time),
                 typeof(form), typeof(conc)}(id, conc, time, form)

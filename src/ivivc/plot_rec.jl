@@ -1,4 +1,4 @@
-@recipe function f(subj::VitroSubject; denseplot = true, plotdensity = 10_000)
+@recipe function f(subj::Ivivc; denseplot = true, plotdensity = 10_000)
   t = subj.time
   start = t[1]; stop = t[end]
   if denseplot
