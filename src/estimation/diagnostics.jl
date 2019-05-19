@@ -431,13 +431,16 @@ struct VPC
   Fiftieth
   Fifth_Ninetyfifth
   Observation_Percentiles
+  Simulations
 end
 
 function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
   pop_quantiles = []
   times = data[1].time
+  sims = []
   for i in 1:reps
     sim = simobs(m, data, fixeffs)
+    push!(sims, sim)
     quantiles_sim = []
     for t in 1:length(sim[1].times)
       sims_t = [sim[j].observed.dv[t] for j in 1:length(sim.sims)]
@@ -470,7 +473,11 @@ function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
     push!(quantiles_obs[2], quantile(obs_t,0.5))
     push!(quantiles_obs[3], quantile(obs_t,0.95))
   end 
-  VPC(fifty_percentiles, fith_ninetyfifth, quantiles_obs)
+  VPC(fifty_percentiles, fith_ninetyfifth, quantiles_obs, sims)
+end
+
+function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data)
+  vpc(fpm.m, fpm.data, fpm.param, reps)
 end
 
 @recipe function f(vpc::VPC, data::Population)
