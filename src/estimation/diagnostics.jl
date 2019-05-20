@@ -477,7 +477,7 @@ function vpc(m::PuMaSModel,data::Population, fixeffs::NamedTuple, reps::Integer)
 end
 
 function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data)
-  vpc(fpm.m, fpm.data, fpm.param, reps)
+  vpc(fpm.model, fpm.data, fpm.param, reps)
 end
 
 @recipe function f(vpc::VPC, data::Population)
