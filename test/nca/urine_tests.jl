@@ -1,4 +1,4 @@
-using PuMaS.NCA, Test
+using PuMaS, Test
 
 df = DataFrame()
 # Ref: https://www.boomer.org/c/p4/c05/c05.pdf
