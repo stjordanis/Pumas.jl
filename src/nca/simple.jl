@@ -270,7 +270,7 @@ end
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
-function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   n = nca.dose isa AbstractArray ? length(nca.dose) : 1
   ismissing(ithdose) && return n == 1 ? missing : fill(missing, n)
   multidose = n > 1
@@ -296,7 +296,7 @@ end
 #
 #Total drug clearance
 #"""
-#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
 #  nca.dose === nothing && return missing
 #  _clf = clf(nca; kwargs...)
 #  @show 1
@@ -330,7 +330,7 @@ The time prior to the first increase in concentration.
 """
 function tlag(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
-  nca.dose.formulation !== EV && return missing
+  (nca.rate === nothing && nca.dose.formulation !== EV) && return missing
   idx = max(1, findfirst(c->c > nca.llq, nca.conc)-1)
   return nca.time[idx]
 end
@@ -561,11 +561,11 @@ end
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?
-function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V},
+function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R},
                        tau::Number, ntau=Inf, args...;
                        doseamount=nothing, additionaltime::Vector=T[],
                        steadystatetol::Number=1e-3, method=:linear,
-                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   D === Nothing && throw(ArgumentError("Dose must be known to compute superposition"))
   !(ntau isa Integer) && ntau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
   tau < oneunit(tau) && throw(ArgumentError("ntau must be an integer or Inf"))

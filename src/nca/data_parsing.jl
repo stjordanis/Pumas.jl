@@ -93,11 +93,12 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     start_time′ = df[start_time]
     end_time′ = df[end_time]
     Δt = @. end_time′ - start_time′
+    times = @. start_time′ + Δt
   else
-    start_time′ = end_time′ = nothing
+    start_time′ = end_time′ = Δt = nothing
+    times = df[time]
   end
-  times = urine ? @.(df[start_time] + Δt/2) : df[time]
-  concs = urine ? @.(df[volume]*df[conc]/Δt) : df[conc]
+  concs = df[conc]
   amts  = amt === nothing ? nothing : df[amt]
   iis  = ii === nothing ? nothing : df[ii]
   sss  = ss === nothing ? nothing : df[ss]
@@ -110,7 +111,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
     # the time array for the i-th subject
-    subjtime = @view times[idx]
+    subjtime = @view(times[idx])
     if hasdose
       dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
       length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")

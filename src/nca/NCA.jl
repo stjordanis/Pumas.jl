@@ -20,11 +20,12 @@ export read_nca, add_ii!
 export NCAReport
 export normalizedose
 
-for f in (:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst, :lambdaztimelast, :span,
+for f in [:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst, :lambdaztimelast, :span,
           :cmax, :cmaxss, :tmax, :cmin, :cminss, :ctau, :c0, :tmin, :clast, :tlast, :thalf, :cl, :_cl, :_clf, :vss, :vz, :_vz, :_vzf,
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :auc_back_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavgss, :fluctuation, :accumulationindex,
-          :swing, :n_samples, :doseamt, :dosetype, :urine_volume)
+          :swing, :n_samples, :doseamt, :dosetype,
+          :tmax_rate, :max_rate, :mid_time_last, :rate_last, :aurc, :aurc_extrap_percent, :urine_volume]
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
     ismulti = ismultidose(pop)
@@ -86,11 +87,11 @@ end
 
 # add `tau`
 # Multiple dosing handling
-for f in (:c0, :clast, :tlast, :cmax, :cmaxss, :tmax, :cmin, :cminss, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
+for f in [:c0, :clast, :tlast, :cmax, :cmaxss, :tmax, :cmin, :cminss, :tmin, :ctau, :_auc, :tlag, :mrt, :fluctuation,
           :cavgss, :tau, :auctau, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :auc_back_extrap_percent, :accumulationindex, :swing, :vss, :cl, :_cl, :_clf, :vz, :_vz, :_vzf,
           :lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :lambdaznpoints, :lambdaztimefirst, :lambdaztimelast, :span,
-          :n_samples, :doseamt, :dosetype)
-  @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,V}
+          :n_samples, :doseamt, :dosetype]
+  @eval function $f(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}, args...; kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,V,R}
     obj = map(eachindex(nca.dose)) do i
       local subj
       try
@@ -102,6 +103,24 @@ for f in (:c0, :clast, :tlast, :cmax, :cmaxss, :tmax, :cmin, :cminss, :tmin, :ct
       $f(subj, args...; kwargs...)
     end
   end
+end
+
+# urine mapping
+for (urine_f, f) in [:tmax_rate => :tmax, :max_rate => :cmax, :mid_time_last => :tlast, :rate_last => :clast, :aurc => :auc, :lambdaz => :lambdaz, :aurc_extrap_percent => :auc_extrap_percent]
+  @eval function $urine_f(subj::NCASubject, args...; kwargs...)
+    subj′ = urine2plasma(subj)
+    return $f(subj′, args...; kwargs...)
+  end
+end
+
+function urine2plasma(subj::NCASubject)
+  NCASubject(subj.id,  subj.group,
+             subj.rate, nothing, subj.time, nothing, nothing, nothing, subj.abstime, # NCA measurements
+             subj.maxidx,  subj.lastidx,              # idx cache
+             subj.dose,                               # dose
+             subj.lambdaz, subj.llq, subj.r2, subj.adjr2, subj.intercept,
+             subj.firstpoint, subj.lastpoint, subj.points,           # lambdaz related cache
+             subj.auc_last, subj.auc_0, subj.aumc_last, subj.method) # AUC related cache
 end
 
 end

@@ -53,11 +53,12 @@ function Base.show(io::IO, n::NCADose)
 end
 
 # any changes in here must be reflected to ./simple.jl, too
-mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+mutable struct NCASubject{C,T,TT,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   # allow id to be non-int, e.g. 001-100-1001 or STUD011001
   id::ID
   group::G
   conc::C
+  rate::R
   # `time` will be time after dose (TAD) for multiple dosing, and it will be in
   # the form of [TAD₁, TAD₂, ..., TADₙ] where `TADᵢ` denotes the TAD for the
   # `i`th dose, which is a vector. Hence, `time` could be a vector of vectors.
@@ -99,8 +100,6 @@ function NCASubject(conc, time;
     conc = map(x -> ismissing(x) ? x : x*concu, conc)
     time = map(x -> ismissing(x) ? x : x*timeu, time)
   end
-  # TODO: volume checking and cleaning
-  volume === nothing ? nothing : volume .* volumeu
   multidose = T <: AbstractArray && length(dose) > 1
   nonmissingeltype(x) = Base.nonmissingtype(eltype(x))
   unitconc = float(oneunit(nonmissingeltype(conc)))
@@ -120,9 +119,9 @@ function NCASubject(conc, time;
         conci, timei = @view(conc[idxs]), @view(time[idxs])
         check && checkconctime(conci, timei; dose=dose, kwargs...)
         if clean
-          conci, timei, _, _, _ = cleanmissingconc(conci, timei; kwargs...)
+          conci, timei, _, _ = cleanmissingconc(conci, timei; kwargs...)
         end
-        conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...) : (conc[idxs], time[idxs])
+        conc′, time′ = clean ? cleanblq(conci, timei; llq=llq, dose=dose, kwargs...)[1:2] : (conc[idxs], time[idxs])
         clean && append!(abstime, time′)
         iszero(time[idxs[1]]) ? (conc′, time′) : (conc′, time′.-time[idxs[1]]) # convert to TAD
       end
@@ -135,23 +134,39 @@ function NCASubject(conc, time;
                       Vector{typeof(auc_proto)}, Vector{typeof(aumc_proto)},
                       typeof(dose), Vector{typeof(lambdaz_proto)},
                       Vector{typeof(r2_proto)}, typeof(llq), typeof(lastidx),
-                      Vector{Int}, typeof(id), typeof(group), Nothing}(id, group,
-                        conc, time, #= no multidose urine =# nothing, nothing, nothing, abstime,
+                      Vector{Int}, typeof(id), typeof(group), Nothing, Nothing}(id, group,
+                        conc, nothing, time, #= no multidose urine =# nothing, nothing, nothing, abstime,
                         maxidx, lastidx, dose, fill(lambdaz_proto, n), llq,
                         fill(r2_proto, n), fill(r2_proto, n), fill(intercept, n),
                         fill(-unittime, n), fill(-unittime, n), fill(0, n),
                         fill(auc_proto, n), fill(auc_proto, n), fill(aumc_proto, n), :___)
   end
-  check && checkconctime(conc, time; dose=dose, kwargs...)
-  if check && start_time !== nothing
-    checkconctime(conc, start_time; dose=dose, kwargs...)
-    checkconctime(conc, end_time;   dose=dose, kwargs...)
-    checkconctime(volume, time;     dose=dose, kwargs...)
+  isurine = volume !== nothing
+  volume = isurine ? volume .* volumeu : nothing
+  if check
+    if isurine
+      checkconctime(conc, start_time; dose=dose, kwargs...)
+      checkconctime(conc, end_time;   dose=dose, kwargs...)
+    else
+      checkconctime(conc, time; dose=dose, kwargs...)
+    end
   end
   if clean
-    conc, time, start_time, end_time, volume = cleanmissingconc(conc, time; start_time=start_time, end_time=end_time, volume=volume, kwargs...)
+    if isurine
+      conc, start_time, end_time, volume = cleanmissingconc(conc, start_time; end_time=end_time, volume=volume, kwargs...)
+      conc, start_time, end_time, volume = cleanblq(conc, start_time; end_time=end_time, volume=volume, llq=llq, dose=dose, kwargs...)
+    else
+      conc, time, _, _ = cleanmissingconc(conc, time; kwargs...)
+      conc, time, _, _ = cleanblq(conc, time; llq=llq, dose=dose, kwargs...)
+    end
   end
-  conc, time = clean ? cleanblq(conc, time; start_time=start_time, end_time=end_time, llq=llq, dose=dose, kwargs...) : (conc, time)
+  if isurine
+    Δt = @. end_time - start_time
+    time = @. start_time + Δt/2
+    rate = isurine ? @.(volume*conc/Δt) : conc
+  else
+    rate = nothing
+  end
   abstime = time
   dose !== nothing && (dose = first(dose))
   maxidx = -2
@@ -160,14 +175,14 @@ function NCASubject(conc, time;
           typeof(auc_proto), typeof(aumc_proto),
           typeof(dose),      typeof(lambdaz_proto),
           typeof(r2_proto),  typeof(llq),   typeof(lastidx),
-          Int, typeof(id),   typeof(group), typeof(volume)}(id, group,
-            conc, time, start_time, end_time, volume, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
+          Int, typeof(id),   typeof(group), typeof(volume), typeof(rate)}(id, group,
+            conc, rate, time, start_time, end_time, volume, abstime, maxidx, lastidx, dose, lambdaz_proto, llq,
             r2_proto,  r2_proto, intercept, unittime, unittime, 0,
             auc_proto, auc_proto, aumc_proto, :___)
 end
 
 showunits(nca::NCASubject, args...) = showunits(stdout, nca, args...)
-function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+function showunits(io::IO, ::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}, indent=0) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   pad   = " "^indent
   if D <: NCADose
     doseT = D.parameters[2]
@@ -247,13 +262,13 @@ end
 
 ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
 ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
-function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   return D <: AbstractArray
 end
 
 hasdose(nca::NCASubject) = hasdose(typeof(nca))
 hasdose(nca::NCAPopulation) = hasdose(eltype(nca.subjects))
-function hasdose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+function hasdose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   return D !== Nothing
 end
 
@@ -428,7 +443,7 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   return Markdown.parse(String(take!(_io)))
 end
 
-@recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+@recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
@@ -460,7 +475,7 @@ end
   end
 end
 
-@recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V}
+@recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
