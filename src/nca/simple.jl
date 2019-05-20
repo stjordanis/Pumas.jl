@@ -331,8 +331,8 @@ The time prior to the first increase in concentration.
 function tlag(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
   (nca.rate === nothing && nca.dose.formulation !== EV) && return missing
-  idx = max(1, findfirst(c->c > nca.llq, nca.conc)-1)
-  return nca.time[idx]
+  idx = findfirst(c->c > nca.llq, nca.conc)-1
+  return 1 <= idx <= length(nca.time) ? nca.time[idx] : zero(nca.time[1])
 end
 
 """
@@ -637,3 +637,8 @@ doseamt(subj::NCASubject; kwargs...) = hasdose(subj) ? subj.dose.amt : missing
 dosetype(subj::NCASubject; kwargs...) = hasdose(subj) ? string(subj.dose.formulation) : missing
 
 urine_volume(subj::NCASubject; kwargs...) = subj.volume === nothing ? missing : sum(subj.volume)
+amount_recovered(subj::NCASubject; kwargs...) = sum(prod, zip(subj.conc, subj.volume))
+function percent_recovered(subj::NCASubject; kwargs...)
+  subj.dose === nothing && return missing
+  sum(amount_recovered(subj) / subj.dose.amt) * 100
+end

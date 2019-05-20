@@ -96,9 +96,19 @@ function NCASubject(conc, time;
                     lambdaz=nothing, clean=true, check=true, kwargs...) where T
   time isa AbstractRange && (time = collect(time))
   conc isa AbstractRange && (conc = collect(conc))
-  if concu !== true || timeu !== true
+  if concu !== true
     conc = map(x -> ismissing(x) ? x : x*concu, conc)
-    time = map(x -> ismissing(x) ? x : x*timeu, time)
+  end
+  if timeu !== true
+    if time !== nothing
+      time = map(x -> ismissing(x) ? x : x*timeu, time)
+    end
+    if start_time !== nothing
+      start_time = map(x -> ismissing(x) ? x : x*timeu, start_time)
+    end
+    if end_time !== nothing
+      end_time = map(x -> ismissing(x) ? x : x*timeu, end_time)
+    end
   end
   multidose = T <: AbstractArray && length(dose) > 1
   nonmissingeltype(x) = Base.nonmissingtype(eltype(x))
@@ -163,7 +173,8 @@ function NCASubject(conc, time;
   if isurine
     Δt = @. end_time - start_time
     time = @. start_time + Δt/2
-    rate = isurine ? @.(volume*conc/Δt) : conc
+    rate = @.(volume*conc/Δt)
+    auc_proto = -oneunit(eltype(rate)) * oneunit(eltype(time))
   else
     rate = nothing
   end
@@ -309,11 +320,42 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
                             any(d->d.ss, subj.dose)
   end
   has_iv_inf = has_iv || has_inf
+  is_urine = any(subj->subj.volume !== nothing, pop)
   #TODO:
   # add partial AUC
   # interval Cmax??? low priority
-
-  report_pairs = [
+  if is_urine
+    report_pairs = [
+           "dose" => doseamt,
+           "urine_volume" => urine_volume,
+           "lambda_z" => lambdaz,
+           "tmax_rate" => tmax_rate,
+           "tlag" => tlag,
+           "max_rate" => max_rate,
+           "rate_last" => rate_last,
+           "mid_time_last" => mid_time_last,
+           "amount_recovered" => amount_recovered,
+           "percent_recovered" => percent_recovered,
+           "aurc_last_obs" => @defkwargs(aurc, auctype=:last),
+           "aurc_inf_obs" => aurc,
+           "aurc_extrap_obs" => aurc_extrap_percent,
+           "rate_last_pred" => @defkwargs(rate_last, pred=true),
+           "aurc_inf_pred" => @defkwargs(aurc, pred=true),
+           "aurc_extrap_pred" => @defkwargs(aurc_extrap_percent, pred=true),
+           "aurc_last_d_obs" => @defkwargs(aurc, auctype=:last, normalize=true),
+           "n_samples"          =>     n_samples,
+           "rsq"                =>     lambdazr2,
+           "rsq_adjusted"       =>     lambdazadjr2,
+           "corr_xy"            =>     lambdazr,
+           "no_points_lambda_z" =>     lambdaznpoints,
+           "lambda_z_intercept" =>     lambdazintercept,
+           "lambda_z_lower"     =>     lambdaztimefirst,
+           "lambda_z_upper"     =>     lambdaztimelast,
+           "span"               =>     span,
+           "route"              =>     dosetype,
+      ]
+  else
+    report_pairs = [
            "dose"               =>     doseamt,
            "lambda_z"           =>     lambdaz,
            "half_life"          =>     thalf,
@@ -377,7 +419,8 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
            "span"               =>     span,
            "route"              =>     dosetype,
            has_ii && "tau"      =>     tau,
-          ]
+        ]
+  end
   deleteat!(report_pairs, findall(x->x.first isa Bool, report_pairs))
   _names = map(x->Symbol(x.first), report_pairs)
   funcs = map(x->x.second, report_pairs)
@@ -385,11 +428,8 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
   if sigdigits !== nothing
     for val in vals
       col = val[end]
-      if eltype(col) <: Union{Missing, Number}
-        map!(col, col) do x
-          ismissing(x) ? missing :
-            round(ustrip(x), sigdigits=sigdigits)*oneunit(x)
-        end
+      map!(col, col) do x
+        x isa Number ? round(ustrip(x), sigdigits=sigdigits)*oneunit(x) : x
       end
     end
   end
@@ -408,7 +448,7 @@ end
 # units go under the header
 to_dataframe(report::NCAReport) = convert(DataFrame, report)
 function Base.convert(::Type{DataFrame}, report::NCAReport)
-  report.settings[:subject] && return DataFrame(map(x->[x], report.values))
+  #report.settings[:subject] && return DataFrame(map(x->[x], report.values))
   hcat(report.values...)
 end
 
@@ -434,9 +474,8 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
     name = replace(_name, "_"=>"\\_") # escape underscore
     ismissing(entry[end]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
     for v in entry[end]
-      val = ismissing(v) ? v :
-              v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
-              v
+      val =  v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
+             v
       @printf(_io, "| %s | %s |\n", name, val)
     end
   end

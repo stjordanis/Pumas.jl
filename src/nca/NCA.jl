@@ -25,7 +25,8 @@ for f in [:lambdaz, :lambdazr2, :lambdazadjr2, :lambdazr, :lambdazintercept, :la
           :interpextrapconc, :auc, :auclast, :auctau, :aumc, :aumclast, :aumctau, :auc_extrap_percent, :aumc_extrap_percent, :auc_back_extrap_percent,
           :bioav, :tlag, :mrt, :mat, :tau, :cavgss, :fluctuation, :accumulationindex,
           :swing, :n_samples, :doseamt, :dosetype,
-          :tmax_rate, :max_rate, :mid_time_last, :rate_last, :aurc, :aurc_extrap_percent, :urine_volume]
+          :tmax_rate, :max_rate, :mid_time_last, :rate_last, :aurc, :aurc_extrap_percent, :urine_volume, :percent_recovered, :amount_recovered
+         ]
   @eval $f(conc, time, args...; kwargs...) = $f(NCASubject(conc, time; kwargs...), args...; kwargs...) # f(conc, time) interface
   @eval function $f(pop::NCAPopulation, args...; label=true, kwargs...) # NCAPopulation handling
     ismulti = ismultidose(pop)
