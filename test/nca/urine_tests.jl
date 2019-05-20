@@ -9,7 +9,7 @@ df.conc = [1.666, 1.069, 0.592, 1000, 0.335, 0.21 , 0.116, 0.047, 0.009]
 df.id = 1
 df.amt = 0
 df.amt[1] = 10
-df.route = "ev"
+df.route = "iv"
 pop = read_nca(df)
 @test collect(skipmissing(df.volume)) == pop[1].volume
 @test [df.start_time[1:3]; df.start_time[5:end]] == pop[1].start_time

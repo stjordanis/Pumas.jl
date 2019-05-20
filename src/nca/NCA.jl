@@ -109,18 +109,35 @@ end
 for (urine_f, f) in [:tmax_rate => :tmax, :max_rate => :cmax, :mid_time_last => :tlast, :rate_last => :clast, :aurc => :auc, :lambdaz => :lambdaz, :aurc_extrap_percent => :auc_extrap_percent]
   @eval function $urine_f(subj::NCASubject, args...; kwargs...)
     subj′ = urine2plasma(subj)
-    return $f(subj′, args...; kwargs...)
+    ret = $f(subj′, args...; kwargs...)
+    cache_ncasubj!(subj, subj′)
+    return ret
   end
 end
 
 function urine2plasma(subj::NCASubject)
   NCASubject(subj.id,  subj.group,
-             subj.rate, nothing, subj.time, nothing, nothing, nothing, subj.abstime, # NCA measurements
+             subj.rate, subj.rate, subj.time, nothing, nothing, nothing, subj.abstime, # NCA measurements
              subj.maxidx,  subj.lastidx,              # idx cache
              subj.dose,                               # dose
              subj.lambdaz, subj.llq, subj.r2, subj.adjr2, subj.intercept,
              subj.firstpoint, subj.lastpoint, subj.points,           # lambdaz related cache
              subj.auc_last, subj.auc_0, subj.aumc_last, subj.method) # AUC related cache
+end
+
+function cache_ncasubj!(subj1::NCASubject, subj2::NCASubject)
+  subj1.lambdaz = subj2.lambdaz
+  subj1.r2 = subj2.r2
+  subj1.adjr2 = subj2.adjr2
+  subj1.intercept = subj2.intercept
+  subj1.firstpoint = subj2.firstpoint
+  subj1.lastpoint = subj2.lastpoint
+  subj1.points = subj2.points
+  subj1.auc_last = subj2.auc_last
+  subj1.auc_0 = subj2.auc_0
+  subj1.aumc_last = subj2.aumc_last
+  subj1.method = subj2.method
+  return nothing
 end
 
 end

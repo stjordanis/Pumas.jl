@@ -465,10 +465,11 @@ Estimate the concentration at dosing time for an IV bolus dose.
 function c0(subj::NCASubject, returnev=false; verbose=true, kwargs...) # `returnev` is not intended to be used by users
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
-  if subj.dose.formulation !== IVBolus
+  isurine = subj.rate !== nothing
+  if subj.dose.formulation !== IVBolus || isurine
     return !returnev ? missing :
-             subj.dose.ss ? ctau(subj; kwargs...) :
-               zero(subj.conc[1])
+               (isurine || !subj.dose.ss) ? zero(subj.conc[1]) :
+               ctau(subj; kwargs...)
   end
   iszero(t1) && return subj.conc[1]
   t2 = ustrip(subj.time[2])
