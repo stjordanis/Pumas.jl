@@ -7,4 +7,5 @@ using PuMaS.NCA, SafeTestsets
 @time @safetestset "Grouping Tests" begin include("group_tests.jl") end
 @time @safetestset "Infusion Tests" begin include("infusion_tests.jl") end
 @time @safetestset "PuMaS Integration Tests" begin include("pumas_tests.jl") end
+@time @safetestset "Urine Tests" begin include("urine_tests.jl") end
 end

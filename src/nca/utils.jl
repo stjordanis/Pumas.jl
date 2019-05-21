@@ -82,35 +82,51 @@ Handle `missing` values in the concentration measurements as requested by the us
 #Arguments
 - `missingconc`: How to handle `missing` concentrations?  Either 'drop' or a number to impute.
 """
-function cleanmissingconc(conc, time; missingconc=nothing, kwargs...)
+function cleanmissingconc(conc, time; end_time=nothing, volume=nothing, missingconc=nothing, missingvolume=nothing, kwargs...)
   missingconc === nothing && (missingconc = :drop)
   Ec = eltype(conc)
   Tc = Base.nonmissingtype(Ec)
   Et = eltype(time)
   Tt = Base.nonmissingtype(Et)
-  n = count(ismissing, conc)
+  if volume !== nothing
+    Ev = eltype(volume)
+    Tv = Base.nonmissingtype(Ev)
+  else
+    Ev = Tv = Nothing
+  end
+  n_conc_missing = count(ismissing, conc)
+  n_vol_missing = volume === nothing ? 0 : count(ismissing, volume)
   # fast path
-  Tc === Ec && Tt === Et && n == 0 && return conc, time
+  Tc === Ec && Tt === Et && Ev === Tv && n_conc_missing+n_vol_missing == 0 && return conc, time, end_time, volume
   len = length(conc)
   if missingconc === :drop
-    newconc = similar(conc, Tc, len-n)
-    newtime = similar(time, Tt, len-n)
-    ii = 1
+    newconc = similar(conc, Tc, 0)
+    newtime = similar(time, Tt, 0)
+    newend_time = end_time === nothing ? nothing : similar(end_time, Tt, 0)
+    newvolume = volume === nothing ? nothing : similar(volume, Tv, 0)
     @inbounds for i in eachindex(conc)
-      if !ismissing(conc[i])
-        newconc[ii] = conc[i]
-        newtime[ii] = time[i]
-        ii+=1
+      ismissing(conc[i]) && continue
+      (volume !== nothing && ismissing(volume[i])) && continue
+      push!(newconc, conc[i])
+      push!(newtime, time[i])
+      if end_time !== nothing && volume !== nothing
+        push!(newend_time, end_time[i])
+        push!(newvolume, volume[i])
       end
     end
-    return newconc, newtime
+    return newconc, newtime, newend_time, newvolume
   elseif missingconc isa Number
     newconc = similar(conc, Tc)
     newtime = Tt === Et ? time : similar(time, Tt)
+    newend_time = Tt === Et ? end_time : similar(end_time, Tt)
+    newvolume = Tv === Ev ? volume : similar(volume, Tv)
     @inbounds for i in eachindex(newconc)
       newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
+      if volume !== nothing
+        newvolume[i] = ismissing(volume[i]) ? missingvolume : volume[i]
+      end
     end
-    return newconc, time
+    return newconc, time, newend_time, newvolume
   else
     throw(ArgumentError("missingconc must be a number or :drop"))
   end
@@ -150,13 +166,13 @@ The meaning of each of the list elements is:
    2. "keep" Keep the BLQ values
    3. a number Set the BLQ values to that number
 """
-@inline function cleanblq(conc, time; llq=nothing, concblq=nothing, kwargs...)
-  isempty(conc) && return conc, time
+@inline function cleanblq(conc, time; end_time=nothing, volume=nothing, llq=nothing, concblq=nothing, kwargs...)
+  isempty(conc) && return conc, time, end_time, volume
   llq === nothing && (llq = zero(eltype(conc)))
   # the default is from
   # https://github.com/billdenney/pknca/blob/38719483233d52533ac1d8f535c0016d2be70ae5/R/PKNCA.options.R#L78-L87
   concblq === nothing && (concblq = Dict(:first=>:keep, :middle=>:drop, :last=>:keep))
-  concblq === :keep && return conc, time
+  concblq === :keep && return conc, time, end_time, volume
   firstidx = ctfirst_idx(conc, time, llq=llq)
   conc′ = conc
   if firstidx == -1 # if no firstidx is found, i.e., all measurements are BLQ
@@ -193,21 +209,25 @@ The meaning of each of the list elements is:
       idxs = .!mask
       conc = conc[idxs]
       time = time[idxs]
+      end_time === nothing || (end_time = end_time[idxs])
+      volume === nothing || (volume = volume[idxs])
     elseif rule isa Number
       conc === conc′ && (conc = deepcopy(conc)) # if it aliases with the original array, then copy
       conc[mask] .= rule
+      end_time === nothing || (end_time[mask] .= rule)
+      volume === nothing || (volume[mask] .= rule)
     else
       throw(ArgumentError("Unknown BLQ rule: $(repr(rule))"))
     end
   end
-  return conc, time
+  return conc, time, end_time, volume
 end
 
 @inline normalizedose(x::Missing, d) = missing
 @inline normalizedose(x, d::Nothing) = missing
 @inline normalizedose(x::Number, d::NCADose) = x/d.amt
 normalizedose(x::AbstractArray, d::AbstractVector{<:NCADose}) = normalizedose.(x, d)
-@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+@inline function normalizedose(x, subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   return normalizedose(x, subj.dose)
 end
 
@@ -237,8 +257,8 @@ Base.@propagate_inbounds function ithdoseidxs(time, dose, i::Integer)
   return idxs
 end
 
-Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
-                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G}
+Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R},
+                                                     i::Integer) where {C,TT,T,tEltype,AUC,AUMC,D<:AbstractArray,Z,F,N,I,P,ID,G,V,R}
   m = length(nca.dose)
   @boundscheck 1 <= i <= m || throw(BoundsError(nca.dose, i))
   @inbounds begin
@@ -260,7 +280,7 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
     auc, auc_0, aumc = view(nca.auc_last, i), view(nca.auc_0, i), view(nca.aumc_last, i)
     return NCASubject(
                  nca.id,  nca.group,
-                 conc,    time,    abstime,               # NCA measurements
+                 conc, nothing, time, nothing, nothing, nothing, abstime, # NCA measurements
                  maxidx,  lastidx,                        # idx cache
                  dose,                                    # dose
                  lambdaz, nca.llq, r2, adjr2, intercept,
