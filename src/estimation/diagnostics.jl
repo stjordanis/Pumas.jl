@@ -436,50 +436,54 @@ struct VPC
   idv
 end
 
-function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, output=0)
-  pop_quantiles = []
-  if idv == :time
-    idv_ = getproperty(data[1], idv)
-  else 
-    idv_ = getproperty(data[1].covariates, idv)
-  end 
-  sims = []
-  for i in 1:reps
-    sim = simobs(m, data, fixeffs)
-    push!(sims, sim)
-    quantiles_sim = []
-    for t in 1:length(idv_)
-      sims_t = [sim[j].observed.dv[t] for j in 1:length(sim.sims)]
-      push!(quantiles_sim, quantile(sims_t,quantiles))
+function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv])
+  vpcs = VPC[]
+  for dv_ in dv
+    pop_quantiles = []
+    if idv == :time
+      idv_ = getproperty(data[1], idv)
+    else 
+      idv_ = getproperty(data[1].covariates, idv)
     end 
-    push!(pop_quantiles,quantiles_sim)
-  end
-  quantile_quantiles = []
-  for t in 1:length(idv_)
-    quantile_time = []
-    for j in 1:length(pop_quantiles[1][t])
-      quantile_index = Float64[]
-      for i in 1:reps
-        push!(quantile_index,pop_quantiles[i][t][j])
+    sims = []
+    for i in 1:reps
+      sim = simobs(m, data, fixeffs)
+      push!(sims, sim)
+      quantiles_sim = []
+      for t in 1:length(idv_)
+        sims_t = [getproperty(sim[j].observed,dv_)[t] for j in 1:length(sim.sims)]
+        push!(quantiles_sim, quantile(sims_t,quantiles))
+      end 
+      push!(pop_quantiles,quantiles_sim)
+    end
+    quantile_quantiles = []
+    for t in 1:length(idv_)
+      quantile_time = []
+      for j in 1:length(pop_quantiles[1][t])
+        quantile_index = Float64[]
+        for i in 1:reps
+          push!(quantile_index,pop_quantiles[i][t][j])
+        end
+        push!(quantile_time, quantile(quantile_index,quantiles))
       end
-      push!(quantile_time, quantile(quantile_index,quantiles))
+      push!(quantile_quantiles,quantile_time)
     end
-    push!(quantile_quantiles,quantile_time)
-  end
-  fifty_percentiles = []
-  fith_ninetyfifth = []
-  for i in 1:3
-    push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles])
-    push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles])
-  end
-  quantiles_obs = [[] for j in 1:length(quantiles)]
-  for t in 1:length(idv_)
-    obs_t = [data[i].observations.dv[t] for i in 1:length(data)]
-    for j in 1:length(quantiles)
-      push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
+    fifty_percentiles = []
+    fith_ninetyfifth = []
+    for i in 1:3
+      push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles])
+      push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles])
     end
-  end 
-  VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv)
+    quantiles_obs = [[] for j in 1:length(quantiles)]
+    for t in 1:length(idv_)
+      obs_t = [getproperty(data[i].observations, dv_)[t] for i in 1:length(data)]
+      for j in 1:length(quantiles)
+        push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
+      end
+    end 
+    push!(vpcs, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv))
+  end
+  vpcs
 end
 
 function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwargs...)
@@ -487,12 +491,12 @@ function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwa
 end
 
 @recipe function f(vpc::VPC, data::Population)
-  if VPC.idv == :time
-    t = getproperty(data[1], VPC.idv)
+  if vpc.idv == :time
+    t = getproperty(data[1], vpc.idv)
   else 
-    t = getproperty(data[1].covariates, VPC.idv)
+    t = getproperty(data[1].covariates, vpc.idv)
   end
-  xlabel --> string(idv)
+  xlabel --> string(vpc.idv)
   legend --> false
   lw --> 3
   ylabel --> "Observations"
