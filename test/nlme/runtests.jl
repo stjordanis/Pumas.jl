@@ -13,6 +13,7 @@ if group == "All" || group == "NLME_NOBAYES"
     @time @safetestset "Poisson"                                     begin include("poisson_model.jl")             end
     @time @safetestset "Information matrix"                          begin include("information.jl")               end
     @time @safetestset "Bolus"                                       begin include("bolus.jl")                     end
+    @time @safetestset "Missing observations"                        begin include("missings.jl")                  end
   end
 end
 

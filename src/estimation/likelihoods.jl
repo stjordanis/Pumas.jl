@@ -571,13 +571,20 @@ function _∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:Normal}, ::F
 
   # Loop through the distribution vector and extract derivative information
   for j in eachindex(dv)
+    obsdvj = obsdv[j]
+
+    # We ignore missing observations when estimating the model
+    if ismissing(obsdvj)
+      continue
+    end
+
     dvj = dv[j]
     r = ForwardDiff.value(dvj.σ)^2
     f = SVector(ForwardDiff.partials(dvj.μ).values)
     fdr = f/r
 
     H    += fdr*f'
-    dldη += fdr*(obsdv[j] - ForwardDiff.value(dvj.μ))
+    dldη += fdr*(obsdvj - ForwardDiff.value(dvj.μ))
   end
 
   return dldη, H
@@ -594,12 +601,18 @@ function _∂²l∂η²(obsdv::AbstractVector, dv::AbstractVector{<:LogNormal}, 
 
   # Loop through the distribution vector and extract derivative information
   for j in eachindex(dv)
-    dvj = dv[j]
-    r = ForwardDiff.value(dvj.σ)^2
-    f = SVector(ForwardDiff.partials(dvj.μ).values)
+    obsdvj = obsdv[j]
+
+    # We ignore missing observations when estimating the model
+    if ismissing(obsdvj)
+      continue
+    end
+
+    r = ForwardDiff.value(dv[j].σ)^2
+    f = SVector(ForwardDiff.partials(dv[j].μ).values)
     fdr = f/r
     H += fdr*f'
-    dldη += fdr*(log(obsdv[j]) - ForwardDiff.value(dvj.μ))
+    dldη += fdr*(log(obsdvj) - ForwardDiff.value(dv[j].μ))
   end
 
   return dldη, H
