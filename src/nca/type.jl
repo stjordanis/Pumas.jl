@@ -483,18 +483,22 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
 end
 
 @recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
+  subj = urine2plasma(subj)
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
-  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  isurine  = R !== Nothing
+  timename = isurine ? "Midpoint" : "Time"
+  hasunits && (timename *= " ($(string(unit(eltype(T)))))")
+  concname = isurine ? "Excretion Rate" : "Concentration"
+  hasunits && (concname *= " ($(string(unit(eltype(C)))))")
   xguide --> timename
+  yguide --> concname
   label --> subj.id
-  vars = (ustrip.(subj.abstime), vcat(ustrip.(subj.conc)...))
+  vars = (ustrip.(subj.abstime), replace!(x->x<eps(one(x)) ? eps(one(x)) : x, vcat(map(x->ustrip.(x), subj.conc)...)))
   if linear
     @series begin
-      concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
-      yguide --> concname
       seriestype --> :path
       istwoplots && (subplot --> 1)
       _title = hastitle ? plotattributes[:title][1] : "Linear view"
@@ -515,21 +519,25 @@ end
 end
 
 @recipe function f(pop::NCAPopulation{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
+  pop = urine2plasma(pop)
   istwoplots = linear && loglinear
   istwoplots && (layout --> (1, 2))
   hastitle = length(get(plotattributes, :title, [])) >= 2
   hasunits = eltype(C) <: Quantity
-  timename = hasunits ? "Time ($(string(unit(eltype(T)))))" : "Time"
+  isurine  = R !== Nothing
+  timename = isurine ? "Midpoint" : "Time"
+  hasunits && (timename *= " ($(string(unit(eltype(T)))))")
+  concname = isurine ? "Excretion Rate" : "Concentration"
+  hasunits && (concname *= " ($(string(unit(eltype(C)))))")
   xguide --> timename
+  yguide --> concname
   label --> [subj.id for subj in pop]
   linestyle --> :auto
   legend --> false
   timearr = [ustrip.(subj.abstime) for subj in pop]
-  concarr = [vcat(map(x->ustrip.(x), subj.conc)...) for subj in pop]
+  concarr = [replace!(x->x < eps(one(x)) ? eps(one(x)) : x, vcat(map(x->ustrip.(x), subj.conc)...)) for subj in pop]
   if linear
     @series begin
-      concname = hasunits ? "Concentration ($(string(unit(eltype(C)))))" : "Concentration"
-      yguide --> concname
       seriestype --> :path
       istwoplots && (subplot --> 1)
       _title = hastitle ? plotattributes[:title][1] : "Linear view"
