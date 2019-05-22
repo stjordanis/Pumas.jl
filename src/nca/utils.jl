@@ -289,3 +289,33 @@ Base.@propagate_inbounds function subject_at_ithdose(nca::NCASubject{C,TT,T,tElt
                 )
   end
 end
+
+urine2plasma(pop::NCAPopulation) = NCAPopulation(map(urine2plasma, pop.subjects))
+function urine2plasma(subj::NCASubject)
+  if subj.rate === nothing
+    return subj
+  else
+    NCASubject(subj.id,  subj.group,
+               subj.rate, subj.rate, subj.time, nothing, nothing, nothing, subj.abstime, # NCA measurements
+               subj.maxidx,  subj.lastidx,              # idx cache
+               subj.dose,                               # dose
+               subj.lambdaz, subj.llq, subj.r2, subj.adjr2, subj.intercept,
+               subj.firstpoint, subj.lastpoint, subj.points,           # lambdaz related cache
+               subj.auc_last, subj.auc_0, subj.aumc_last, subj.method) # AUC related cache
+  end
+end
+
+function cache_ncasubj!(subj1::NCASubject, subj2::NCASubject)
+  subj1.lambdaz = subj2.lambdaz
+  subj1.r2 = subj2.r2
+  subj1.adjr2 = subj2.adjr2
+  subj1.intercept = subj2.intercept
+  subj1.firstpoint = subj2.firstpoint
+  subj1.lastpoint = subj2.lastpoint
+  subj1.points = subj2.points
+  subj1.auc_last = subj2.auc_last
+  subj1.auc_0 = subj2.auc_0
+  subj1.aumc_last = subj2.aumc_last
+  subj1.method = subj2.method
+  return nothing
+end
