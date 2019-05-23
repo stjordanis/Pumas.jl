@@ -270,7 +270,7 @@ end
 Bioavailability is the ratio of two AUC values.
 ``Bioavailability (F) = (AUC_0^\\infty_{po}/Dose_{po})/(AUC_0^\\infty_{iv}/Dose_{iv})``
 """
-function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+function bioav(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   n = nca.dose isa AbstractArray ? length(nca.dose) : 1
   ismissing(ithdose) && return n == 1 ? missing : fill(missing, n)
   multidose = n > 1
@@ -296,7 +296,7 @@ end
 #
 #Total drug clearance
 #"""
-#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+#function cl(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; ithdose=missing, kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
 #  nca.dose === nothing && return missing
 #  _clf = clf(nca; kwargs...)
 #  @show 1
@@ -330,9 +330,9 @@ The time prior to the first increase in concentration.
 """
 function tlag(nca::NCASubject; kwargs...)
   nca.dose === nothing && return missing
-  nca.dose.formulation !== EV && return missing
-  idx = max(1, findfirst(c->c > nca.llq, nca.conc)-1)
-  return nca.time[idx]
+  (nca.rate === nothing && nca.dose.formulation !== EV) && return missing
+  idx = findfirst(c->c > nca.llq, nca.conc)-1
+  return 1 <= idx <= length(nca.time) ? nca.time[idx] : zero(nca.time[1])
 end
 
 """
@@ -465,10 +465,11 @@ Estimate the concentration at dosing time for an IV bolus dose.
 function c0(subj::NCASubject, returnev=false; verbose=true, kwargs...) # `returnev` is not intended to be used by users
   subj.dose === nothing && return missing
   t1 = ustrip(subj.time[1])
-  if subj.dose.formulation !== IVBolus
+  isurine = subj.rate !== nothing
+  if subj.dose.formulation !== IVBolus || isurine
     return !returnev ? missing :
-             subj.dose.ss ? ctau(subj; kwargs...) :
-               zero(subj.conc[1])
+               (isurine || !subj.dose.ss) ? zero(subj.conc[1]) :
+               ctau(subj; kwargs...)
   end
   iszero(t1) && return subj.conc[1]
   t2 = ustrip(subj.time[2])
@@ -561,11 +562,11 @@ end
 
 # TODO: user input lambdaz, clast, and tlast?
 # TODO: multidose?
-function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G},
+function superposition(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R},
                        tau::Number, ntau=Inf, args...;
                        doseamount=nothing, additionaltime::Vector=T[],
                        steadystatetol::Number=1e-3, method=:linear,
-                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G}
+                       kwargs...) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   D === Nothing && throw(ArgumentError("Dose must be known to compute superposition"))
   !(ntau isa Integer) && ntau != Inf && throw(ArgumentError("ntau must be an integer or Inf"))
   tau < oneunit(tau) && throw(ArgumentError("ntau must be an integer or Inf"))
@@ -634,3 +635,10 @@ end
 n_samples(subj::NCASubject; kwargs...) = length(subj.time)
 doseamt(subj::NCASubject; kwargs...) = hasdose(subj) ? subj.dose.amt : missing
 dosetype(subj::NCASubject; kwargs...) = hasdose(subj) ? string(subj.dose.formulation) : missing
+
+urine_volume(subj::NCASubject; kwargs...) = subj.volume === nothing ? missing : sum(subj.volume)
+amount_recovered(subj::NCASubject; kwargs...) = sum(prod, zip(subj.conc, subj.volume))
+function percent_recovered(subj::NCASubject; kwargs...)
+  subj.dose === nothing && return missing
+  sum(amount_recovered(subj) / subj.dose.amt) * 100
+end

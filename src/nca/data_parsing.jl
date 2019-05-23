@@ -40,18 +40,28 @@ function read_nca(df; group=nothing, kwargs...)
 end
 
 function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
-                       amt=:amt, route=:route,#= rate=nothing,=# duration=:duration, blq=:blq,
-                       ii=:ii, ss=:ss, group=nothing, concu=true, timeu=true, amtu=true, verbose=true, kwargs...)
+                     start_time=:start_time, end_time=:end_time, volume=:volume,
+                     amt=:amt, route=:route,#= rate=nothing,=# duration=:duration, blq=:blq,
+                     ii=:ii, ss=:ss, group=nothing, concu=true, timeu=true, amtu=true, volumeu=true,
+                     verbose=true, kwargs...)
   local ids, times, concs, amts
-  try
-    df[id]
-    df[time]
-    df[conc]
-  catch x
-    @info "The CSV file has keys: $(names(df))"
-    throw(x)
-  end
   dfnames = names(df)
+  has_id = id in dfnames
+  has_time = time in dfnames
+  has_conc = conc in dfnames
+  if has_id && has_time && has_conc
+    urine = false
+  else
+    has_start_time = start_time in dfnames
+    has_end_time   = end_time   in dfnames
+    has_volume     = volume     in dfnames
+    if has_start_time && has_end_time && has_volume && has_conc
+      urine = true
+    else
+      @info "The CSV file has keys: $(names(df))"
+      throw(ArgumentError("The CSV file must have: `id, time, conc` or `id, start_time, end_time, volume, conc` columns"))
+    end
+  end
   blq = (blq in dfnames) ? blq : nothing
   amt = (amt in dfnames) ? amt : nothing
   ii  = (ii in dfnames) ? ii : nothing
@@ -73,12 +83,21 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     df = deleterows!(deepcopy(df), findall(isequal(1), blqs))
   end
 
-  sortvars = occasion === nothing ? (id, time) : (id, time, occasion)
+  sortvars = urine ? (occasion === nothing ? (id, start_time, end_time) : (id, start_time, end_time, occasion)) :
+                     (occasion === nothing ? (id, time) : (id, time, occasion))
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
   ids   = df[id]
-  times = df[time]
+  if urine
+    start_time′ = df[start_time]
+    end_time′ = df[end_time]
+    Δt = @. end_time′ - start_time′
+    times = @. start_time′ + Δt
+  else
+    start_time′ = end_time′ = Δt = nothing
+    times = df[time]
+  end
   concs = df[conc]
   amts  = amt === nothing ? nothing : df[amt]
   iis  = ii === nothing ? nothing : df[ii]
@@ -92,7 +111,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
     # the time array for the i-th subject
-    subjtime = @view times[idx]
+    subjtime = @view(times[idx])
     if hasdose
       dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
       length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")
@@ -137,7 +156,9 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
       doses = nothing
     end
     try
-      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu,
+      ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, volumeu=volumeu,
+                           start_time=start_time′, end_time=end_time′,
+                           volume=urine ? df[volume][idx] : nothing,
                            concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
       @info "ID $id errored"
