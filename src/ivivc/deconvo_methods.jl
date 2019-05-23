@@ -8,7 +8,7 @@ function wagner_nelson(c, t, kel)
   pushfirst!(auc_i, 0.0)       # area between first to first time point
   c_auc_i = cumsum(auc_i)
   X = c .+ (c_auc_i .* kel)
-  X ./ (c_auc_i[end] + c[end]/kel)  # area between time[end] and Inf is c[end]/kel
+  X ./ (c_auc_i[end] + c[end]/kel) ./ kel  # area between time[end] and Inf is c[end]/kel
 end
 
 ## Loo-Riegelman Method (two compartment model)
