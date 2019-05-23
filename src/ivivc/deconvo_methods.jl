@@ -1,3 +1,25 @@
+# Model dependent methods
+
+## Wagner Nelson method (one compartment model)
+function wagner_nelson(c, t, kel)
+  sub = NCASubject(c, t)
+  intervals = [(t[i], t[i+1]) for i = 1:length(t)-1]
+  auc_i = NCA.auc(sub, interval=intervals)
+  pushfirst!(auc_i, 0.0)       # area between first to first time point
+  c_auc_i = cumsum(auc_i)
+  X = c .+ (c_auc_i .* kel)
+  X ./ (c_auc_i[end] + c[end]/kel)  # area between time[end] and Inf is c[end]/kel
+end
+
+## Loo-Riegelman Method (two compartment model)
+
+
+
+# Model independent methods
+
+## Numerical Deconvolution
+
+
 # shooting method to estimate input_rate function
 # error function to be optimized
 function errfun(C_act, t, r, kel, param, alg; kwargs...)

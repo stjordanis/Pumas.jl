@@ -4,7 +4,7 @@ using Reexport
 using RecipesBase
 using OrdinaryDiffEq
 
-@reexport  using DataInterpolations, Optim
+@reexport  using DataInterpolations, Optim, ..NCA
 
 abstract type Ivivc end
 
@@ -22,7 +22,7 @@ export read_vitro, read_vivo
 export emax, emax_ng, weibull, double_weibull, makoid
 export vitro_model, get_avail_models
 export vivo_model, get_avail_vivo_models
-export calc_input_rate
+export calc_input_rate, wagner_nelson
 export loglikelihood, nullloglikelihood, dof, nobs, deviance, mss,
        rss, aic, aicc, bic, r2
 end # module
