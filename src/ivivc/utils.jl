@@ -64,6 +64,9 @@ function (subj::VivoSubject)(t::Union{AbstractVector{<:Number}, Number})
   subj.m(t, subj.pmin)
 end
 
+# simple linear regression function
+linreg(x, y) = hcat(fill!(similar(x), 1), x) \ y # ans[1] => intercept, ans[2] => slope
+
 # function (subj::VivoSubject)(t::Union{AbstractVector{<:Number}, Number})
 #   typeof(subj.m) <: Symbol ? get_avail_models()[subj.m](t, subj.pmin) : subj.m(t, subj.pmin)
 # end

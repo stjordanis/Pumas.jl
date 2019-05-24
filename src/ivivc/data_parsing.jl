@@ -1,5 +1,3 @@
-using CSV, DataFrames
-
 # Vivo Data
 """
     read_vivo(df::Union{DataFrame,AbstractString}; id=:id, time=:time,
