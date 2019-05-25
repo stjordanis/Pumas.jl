@@ -38,7 +38,7 @@ end
 make_function(prob::ODEProblem,fd) = ODEFunction{DiffEqBase.isinplace(prob)}(fd)
 make_function(prob::DDEProblem,fd) = DDEFunction{DiffEqBase.isinplace(prob)}(fd)
 make_function(prob::DiscreteProblem,fd) = DiscreteFunction{DiffEqBase.isinplace(prob)}(fd)
-make_function(prob::SDEProblem,fd) = SDEFunction{DiffEqBase.isinplace(prob)}(fd,fd.g)
+make_function(prob::SDEProblem,fd) = SDEFunction{DiffEqBase.isinplace(prob)}(fd,prob.g)
 
 function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
