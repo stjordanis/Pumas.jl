@@ -24,8 +24,7 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
   prob.callback != nothing && (cb = CallbackSet(cb, prob.callback))
 
   # Remake problem of correct type
-  inplace = DiffEqBase.isinplace(prob)
-  new_f = make_function(prob,fd,inplace)
+  new_f = make_function(prob,fd)
 
   _prob = remake(m.prob; callback=CallbackSet(cb,prob.callback), f=new_f, u0=Tu0, tspan=tspan)
 
@@ -36,8 +35,10 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
               kwargs...)
 end
 
-make_function(prob::Union{ODEProblem,DDEProblem,DiscreteProblem},fd,inplace) = DiffEqBase.parameterless_type(typeof(prob.f)){inplace}(fd)
-make_function(prob::SDEProblem,fd,inplace) = DiffEqBase.parameterless_type(typeof(prob.f)){inplace}(fd,prob.f.g)
+make_function(prob::ODEProblem,fd) = ODEFunction{DiffEqBase.isinplace(prob)}(fd)
+make_function(prob::DDEProblem,fd) = DDEFunction{DiffEqBase.isinplace(prob)}(fd)
+make_function(prob::DiscreteProblem,fd) = DiscreteFunction{DiffEqBase.isinplace(prob)}(fd)
+make_function(prob::SDEProblem,fd) = SDEFunction{DiffEqBase.isinplace(prob)}(fd,fd.g)
 
 function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)
