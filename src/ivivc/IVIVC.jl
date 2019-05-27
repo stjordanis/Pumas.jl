@@ -9,6 +9,10 @@ using CSV, DataFrames
 
 abstract type Ivivc end
 
+Base.size(A::Ivivc) = size(A.subjects)
+Base.getindex(A::Ivivc, i) = A.subjects[i]
+Base.setindex!(A::Ivivc, x, i) = A.subjects[i] = x
+
 include("type.jl")
 include("data_parsing.jl")
 include("models.jl")
