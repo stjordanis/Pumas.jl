@@ -437,6 +437,9 @@ struct VPC
 end
 
 function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv])
+  rand_seed = rand()
+  Random.seed!(rand_seed)
+  println("Seed set as $rand_seed")
   vpcs = VPC[]
   for dv_ in dv
     pop_quantiles = []
