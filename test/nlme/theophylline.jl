@@ -375,7 +375,7 @@ end
         #σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699
+  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699 rtol=1e-6
 
   foce_estimated_params = (
     θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -907,7 +907,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990
+  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990 rtol=1e-6
 
   laplacei_estimated_params = (
     θ = [1.60941E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)

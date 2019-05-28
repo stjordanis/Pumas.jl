@@ -3,16 +3,6 @@ import DiffResults: DiffResult
 const DEFAULT_RELTOL=1e-6
 const DEFAULT_ABSTOL=1e-12
 
-# _epsilon_factor_gradient(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, fdtype::Type{Val{:central}}) =
-  # if model.prob isa ExplicitModel ? cbrt(eps(numtype(param))) : cbrt(reltol)
-# _epsilon_factor_hessian(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, fdtype::Type{Val{:central}}) =
-  # if model.prob isa ExplicitModel ? eps(numtype(param))^0.25 : reltol^0.25
-# _epsilon_factor(reltol::AbstractFloat, ::Type{Val{:central}}) = cbrt(reltol)
-# _epsilon_factor(reltol::AbstractFloat, ::Type{Val{:central}}) = sqrt(eps(one(reltol)))
-_relative_accuracy(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat) =
-  model.prob isa ExplicitModel ? eps(numtype(param)) : reltol
-
-
 abstract type LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
 struct FOI <: LikelihoodApproximation end
@@ -258,12 +248,11 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           args...;
                           # We explicitly use reltol to compute the right step size for finite difference based gradient
                           reltol=DEFAULT_RELTOL,
+                          fdtype=Val{:central}(),
+                          fdrelstep=_fdrelstep(m, param, reltol, fdtype),
                           kwargs...)
 
   cost = _η -> penalized_conditional_nll(m, subject, param, (η=_η,), approx, args...; reltol=reltol, kwargs...)
-
-  relacc = _relative_accuracy(m, param, reltol)
-  fdrelstep = cbrt(relacc)
 
   vrandeffs .= Optim.minimizer(
     Optim.optimize(
@@ -284,8 +273,9 @@ function empirical_bayes!(vrandeffs::AbstractVector,
       Optim.Options(
         show_trace=false,
         extended_trace=true,
+        g_tol=1e-4
       );
-      autodiff=:finite))
+      autodiff=:forward))
   return vrandeffs
 end
 
@@ -437,7 +427,9 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
                                 reltol=DEFAULT_RELTOL,
-                                fdrelstep=cbrt(_relative_accuracy(model, param, reltol)),
+                                fdtype=Val{:central}(),
+                                fdrelstep=_fdrelstep(model, param, reltol, fdtype),
+                                fdabsstep=fdrelstep^2,
                                 kwargs...
                                 )
 
@@ -458,7 +450,7 @@ function marginal_nll_gradient!(g::AbstractVector,
     ),
     vparam,
     relstep=fdrelstep,
-    absstep=fdrelstep^2
+    absstep=fdabsstep
   )
 
   ∂ℓ∂η = DiffEqDiffTools.finite_difference_gradient(
@@ -474,12 +466,12 @@ function marginal_nll_gradient!(g::AbstractVector,
     ),
     randeffs.η,
     relstep=fdrelstep,
-    absstep=fdrelstep^2
+    absstep=fdabsstep
   )
 
   # Compute second order derivatives in high precision with ForwardDiff
   ∂²ℓ∂η² = ForwardDiff.hessian(
-    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx, args...; reltol=reltol),
+    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx, args...; reltol=reltol, kwargs...),
     randeffs.η
   )
 
@@ -505,8 +497,6 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
-_fdrelstep(::Val{:forward}, relacc::Real) = sqrt(relacc)
-_fdrelstep(::Val{:central}, relacc::Real) = cbrt(relacc)
 function _fdrelstep(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:forward})
   if model.prob isa ExplicitModel
     return sqrt(eps(numtype(param)))
@@ -535,9 +525,9 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
                                 reltol=DEFAULT_RELTOL,
-                                # fdtype=Val{:forward}(),
                                 fdtype=Val{:central}(),
                                 fdrelstep=_fdrelstep(model, param, reltol, fdtype),
+                                fdabsstep=fdrelstep^2,
                                 kwargs...
                                 )
 
@@ -557,7 +547,7 @@ function marginal_nll_gradient!(g::AbstractVector,
     TransformVariables.inverse(trf, param),
     typeof(fdtype);
     relstep=fdrelstep,
-    absstep=fdrelstep^2
+    absstep=fdabsstep
   )
 
   g .= ∂ℓ∂θ
@@ -1012,6 +1002,7 @@ function _observed_information(f::FittedPuMaSModel,
         reltol=reltol,
         fdtype=Val{:central}(),
         fdrelstep=fdrelstep_hessian,
+        fdabsstep=fdrelstep_hessian^2,
         kwargs...)
       return nothing
     end
@@ -1022,7 +1013,8 @@ function _observed_information(f::FittedPuMaSModel,
       marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf, args...;
         reltol=reltol,
         fdtype=Val{:central}(),
-        fdrelstepr=fdrelstep_score,
+        fdrelstep=fdrelstep_score,
+        fdabsstep=fdrelstep_hessian^2,
         kwargs...)
 
       # Update outer product of scores
@@ -1164,8 +1156,8 @@ end
 Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
-function infer(fpm::FittedPuMaSModel; level = 0.95)
-  _vcov = vcov(fpm)
+function infer(fpm::FittedPuMaSModel, args...; level = 0.95, kwargs...)
+  _vcov = vcov(fpm, args...; kwargs...)
   FittedPuMaSModelInference(fpm, _vcov, level)
 end
 function StatsBase.stderror(pmi::FittedPuMaSModelInference)
