@@ -786,19 +786,24 @@ function TreeViews.treelabel(io::IO,x::FittedPuMaSModel,
   show(io,mime,Base.Text(Base.summary(x)))
 end
 
-
-function DEFAULT_OPTIMIZE_FN(cost, p)
-  Optim.optimize(cost,
-                 p,
-                 BFGS(linesearch=Optim.LineSearches.BackTracking(),
-                      # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
-                      initial_invH=t -> Matrix(I/norm(Optim.NLSolversBase.gradient(cost)), length(p), length(p))
-                 ),
-                 Optim.Options(show_trace=false, # Print progress
-                               store_trace=true,
-                               extended_trace=true,
-                               g_tol=1e-3),
-                 autodiff=:finite)
+function DEFAULT_OPTIMIZE_FN(cost, p, callback)
+  Optim.optimize(
+    cost,
+    p,
+    BFGS(
+      linesearch=Optim.LineSearches.BackTracking(),
+      # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
+      initial_invH=t -> Matrix(I/norm(Optim.NLSolversBase.gradient(cost)), length(p), length(p))
+    ),
+    Optim.Options(
+      show_trace=false, # Print progress
+      store_trace=true,
+      extended_trace=true,
+      g_tol=1e-3,
+      allow_f_increases=true,
+      callback=callback
+    )
+  )
 end
 
 function Distributions.fit(m::PuMaSModel,
@@ -806,6 +811,14 @@ function Distributions.fit(m::PuMaSModel,
                            param::NamedTuple,
                            approx::LikelihoodApproximation,
                            args...;
+                           # optimize_fn should take the arguments cost, p, and callback where cost is a
+                           # NLSolversBase.OnceDifferentiable, p is a Vector, and cl is Function. Hence,
+                           # optimize_fn should evaluate cost with the NLSolversBase.value and
+                           # NLSolversBase.gradient interface. The cl callback should be called once per
+                           # outer iteration when applicable but it is not required that the optimization
+                           # procedure calls cl. In that case, the estimation of the EBEs will always begin
+                           # in zero. In addition, the returned object should support a opt_minimizer method
+                           # that returns the optimized parameters.
                            optimize_fn = DEFAULT_OPTIMIZE_FN,
                            kwargs...)
 
@@ -813,7 +826,19 @@ function Distributions.fit(m::PuMaSModel,
   trf = totransform(m.param)
   vparam = TransformVariables.inverse(trf, param)
 
-  vvrandeffs = [empirical_bayes(m, subject, param, approx, args...; kwargs...) for subject in population]
+  # We'll store the random effects estimate in vvrandeffs which allows us to carry the estimates from last
+  # iteration and use them as staring values in the next iteration. We also allocate a buffer to store the
+  # random effect estimate during an iteration since it might be modified several times during a line search
+  # before the new value has been found. We then define a callback which will store values of vvrandeffs_tmp
+  # in vvrandeffs once the iteration is done.
+  vvrandeffs     = [zero(mean(m.random(param).params.η)) for subject in population]
+  vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
+  cb = state -> begin
+    for i in eachindex(vvrandeffs)
+      copyto!(vvrandeffs[i], vvrandeffs_tmp[i])
+    end
+    return false
+  end
 
   # Define cost function for the optimization
   cost = Optim.NLSolversBase.OnceDifferentiable(
@@ -824,21 +849,20 @@ function Distributions.fit(m::PuMaSModel,
       # Convert vector to NamedTuple
       x = TransformVariables.transform(trf, vx)
 
-      # If not FO then update the EBEs
-      if !(approx isa FO)
-        for (subject, vrandeffs) in zip(population, vvrandeffs)
-          empirical_bayes!(vrandeffs, m, subject, x, approx, args...; kwargs...)
-        end
-      end
-
       # Sum up loglikelihood contributions
-      nll = sum(zip(population, vvrandeffs)) do (subject, vrandeffs)
-        marginal_nll(m, subject, x, vrandeffs, approx, args...; kwargs...)
+      nll = sum(zip(population, vvrandeffs, vvrandeffs_tmp)) do (subject, vrandeffs, vrandeffs_tmp)
+        # If not FO then compute EBE based on the estimates from last iteration stored in vvrandeffs
+        # and store the retult in vvrandeffs_tmp
+        if !(approx isa FO)
+          copyto!(vrandeffs_tmp, vrandeffs)
+          empirical_bayes!(vrandeffs_tmp, m, subject, x, approx, args...; kwargs...)
+        end
+        marginal_nll(m, subject, x, vrandeffs_tmp, approx, args...; kwargs...)
       end
 
       # Update score
       if g !== nothing
-        marginal_nll_gradient!(g, m, population, x, vvrandeffs, approx, trf, args...; kwargs...)
+        marginal_nll_gradient!(g, m, population, x, vvrandeffs_tmp, approx, trf, args...; kwargs...)
       end
 
       return nll
@@ -849,7 +873,14 @@ function Distributions.fit(m::PuMaSModel,
   )
 
   # Run the optimization
-  o = optimize_fn(cost, vparam)
+  o = optimize_fn(cost, vparam, cb)
+
+  # Update the random effects after optimization
+  if !(approx isa FO)
+    for (vrandeffs, subject) in zip(vvrandeffs, population)
+      empirical_bayes!(vrandeffs, m, subject, TransformVariables.transform(trf, opt_minimizer(o)), approx, args...; kwargs...)
+    end
+  end
 
   return FittedPuMaSModel(m, population, o, approx, vvrandeffs)
 end

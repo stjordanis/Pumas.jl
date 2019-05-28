@@ -96,6 +96,11 @@ using PuMaS, Test, LinearAlgebra
     _model in ("additive", "proportional", "exponential"),
       _approx in (PuMaS.FO(), PuMaS.FOCE(), PuMaS.FOCEI(), PuMaS.Laplace(), PuMaS.LaplaceI())
 
-    @test fit(model[_model], data, param, _approx) isa PuMaS.FittedPuMaSModel
+    if _model == "proportional" && _approx == PuMaS.LaplaceI()
+      # NONMEM also can't handle this one
+      @test_throws PosDefException fit(model[_model], data, param, _approx)
+    else
+      @test fit(model[_model], data, param, _approx) isa PuMaS.FittedPuMaSModel
+    end
   end
 end
