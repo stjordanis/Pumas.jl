@@ -4,6 +4,8 @@
     include("parsing_tests.jl") end
 @time @safetestset "DSL" begin
     include("dsl.jl") end
+@time @safetestset "Mixed PK" begin
+    include("mixed_pk.jl") end
 @time @safetestset "Parameters" begin
     include("params.jl") end
 @time @safetestset "Single Dosage Tests" begin
