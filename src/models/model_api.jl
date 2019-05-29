@@ -109,10 +109,17 @@ function _solve(m::PuMaSModel, subject, col, args...;
   if tspan === nothing
     tspan = float.(timespan(subject,tspan,saveat))
   end
-  u0  = m.init(col, tspan[1])
+
   if m.prob isa ExplicitModel
-    return _solve_analytical(m, subject, u0, tspan, col, args...;kwargs...)
+    return _solve_analytical(m, subject, tspan, col, args...;kwargs...)
+  elseif m.prob isa AnalyticalPKProblem
+    pk = _solve_analytical(m, subject, tspan, col, args...;kwargs...)
+    _col = (col...,___pk=pk)
+    u0  = m.init(col, tspan[1])
+    _prob = remake(m.prob.prob2; p=_col, u0=u0, tspan=tspan)
+    return solve(_prob,args...;saveat=saveat,alg=AutoTsit5(Rosenbrock23()),kwargs...)
   else
+    u0  = m.init(col, tspan[1])
     mtmp = PuMaSModel(m.param,
                      m.random,
                      m.pre,

@@ -15,4 +15,9 @@ function PKPDAnalyticalProblem(f,u0,tspan,args...;kwargs...)
   PKPDAnalyticalProblem{iip}(f,u0,tspan,args...;kwargs...)
 end
 
-export PKPDAnalyticalProblem
+struct AnalyticalPKProblem{P1<:ExplicitModel,P2}
+  pkprob::P1
+  prob2::P2
+end
+
+export PKPDAnalyticalProblem, AnalyticalPKProblem
