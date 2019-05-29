@@ -438,7 +438,7 @@ end
 
 function get_strat(data, stratify_on)
   strat_vals = []
-  cov_vals = []
+  cov_vals = Float64[]
   for i in 1:length(data)
     push!(cov_vals, getproperty(data[i].covariates,stratify_on))
   end
@@ -453,7 +453,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
   # rand_seed = rand()
   # Random.seed!(rand_seed)
   # println("Seed set as $rand_seed")
-  vpcs = VPC[]
+  vpcs = []
   num_val_strat_cov = 1
   strat_quant = [1]
   if stratify_on != nothing
@@ -466,6 +466,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
     else 
       idv_ = getproperty(data[1].covariates, idv)
     end 
+
     sims = []
     for i in 1:reps
       sim = simobs(m, data, fixeffs)
@@ -490,12 +491,13 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
       end 
       push!(pop_quantiles,quantiles_sim)
     end
+
     quantile_quantiles = []
     for strt in 1:length(strat_quant)
       quantile_strat = []
       for t in 1:length(idv_)
         quantile_time = []
-        for j in 1:length(pop_quantiles[1][t])
+        for j in 1:length(pop_quantiles[1][t][1])
           quantile_index = Float64[]
           for i in 1:reps
             push!(quantile_index,pop_quantiles[i][t][strt][j])
@@ -506,12 +508,14 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
       end
       push!(quantile_quantiles,quantile_strat)
     end
+
+    vpc_strat = VPC[]
     for strt in 1:length(strat_quant)
       fifty_percentiles = []
       fith_ninetyfifth = []
       for i in 1:3
-        push!(fifty_percentiles,[j[i][strt][2] for j in quantile_quantiles])
-        push!(fith_ninetyfifth, [(j[i][strt][1],j[i][strt][3]) for j in quantile_quantiles])
+        push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles[strt]])
+        push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles[strt]])
       end
       quantiles_obs = [[] for j in 1:length(quantiles)]
       for t in 1:length(idv_)
@@ -520,8 +524,9 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
           push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
         end
       end 
-      push!(vpcs, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv))
+      push!(vpc_strat, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv))
     end
+    push!(vpcs , vpc_strat)
   end
   vpcs
 end
