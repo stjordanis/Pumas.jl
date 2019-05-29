@@ -61,3 +61,45 @@ function Base.show(io::IO, m::MIME"text/plain", A::PKPDAnalyticalSolution)
   print(io,"u: ")
   show(io,m,A.u)
 end
+
+struct AnalyticalPKSolution{S1,S2}
+  pksol::S1
+  numsol::S2
+end
+Base.summary(A::AnalyticalPKSolution) = string("Timeseries Solution with uType Float64 and tType Float64")
+
+function (sol::AnalyticalPKSolution)(t,deriv::Type{<:Val}=Val{0};idxs=nothing,continuity=sol.pksol.continuity)
+  if idxs === nothing
+    [sol.pksol(t,deriv;idxs=idxs,continuity=continuity);sol.numsol(t,deriv;idxs=idxs,continuity=continuity)]
+  elseif idxs isa Number
+    pksize = length(sol.pksol.u[1])
+    if idxs <= pksize
+      sol.pksol(t,deriv;idxs=idxs,continuity=continuity)
+    else
+      sol.numsol(t,deriv;idxs=idxs-pksize,continuity=continuity)
+    end
+  else
+    error("Non-number idxs not supported with mixed analytical + numerical yet. Please file an issue.")
+  end
+end
+
+# No extra specialization yet
+# Can make the DiffEqArray more directly...
+function (sol::AnalyticalPKSolution)(ts::AbstractArray,deriv::Type{<:Val}=Val{0};idxs=nothing,continuity=sol.pksol.continuity)
+  if idxs === nothing
+    pku = sol.pksol(ts,deriv;idxs=idxs,continuity=continuity)
+    nsu = sol.numsol(ts,deriv;idxs=idxs,continuity=continuity)
+    @show zip(pku,nsu)
+    u = [[p;n] for (p,n) in zip(pku,nsu)]
+    return DiffEqArray(u,ts)
+  elseif idxs isa Number
+    pksize = length(sol.pksol.u[1])
+    if idxs <= pksize
+      return sol.pksol(ts,deriv;idxs=idxs,continuity=continuity)
+    else
+      return sol.numsol(ts,deriv;idxs=idxs-pksize,continuity=continuity)
+    end
+  else
+    error("Non-number idxs not supported with mixed analytical + numerical yet. Please file an issue.")
+  end
+end

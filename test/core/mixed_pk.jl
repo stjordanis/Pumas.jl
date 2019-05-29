@@ -1,6 +1,5 @@
 using PuMaS, Test, Random, LabelledArrays, StaticArrays
 
-
 # Read the data# Read the data
 data = process_nmtran(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
@@ -104,5 +103,6 @@ mdsl = @model begin
 end
 sol2 = solve(mdsl,subject,param,randeffs,abstol=1e-12,reltol=1e-12)
 
-t = 0.1:0.1:19.0
-@test all(sol1[i][1] .- sol2[i][3] < 1e-8 for i in 1:length(sol1))
+t = 0.25:0.25:19.0
+@test all(sol1(t[i])[3] .- sol2(t[i])[3] < 1e-8 for i in 1:length(t))
+@test all(sol1(t) .- sol2(t) .< 1e-8)
