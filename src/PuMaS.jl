@@ -28,9 +28,9 @@ include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 
+include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
-include("analytical_solutions/standard_models.jl")
 
 include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")

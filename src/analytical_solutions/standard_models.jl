@@ -2,8 +2,6 @@ export ImmediateAbsorptionModel, OneCompartmentModel, OneCompartmentParallelMode
 
 abstract type ExplicitModel end
 
-
-
 struct ImmediateAbsorptionModel <: ExplicitModel end
 function (::ImmediateAbsorptionModel)(t,t0,C0,dose,p,rate)
   Ke = p.CL/p.V
@@ -12,6 +10,7 @@ function (::ImmediateAbsorptionModel)(t,t0,C0,dose,p,rate)
   rKe + exp(-(t-t0)*Ke) * (-rKe + C0)
 end
 varnames(::Type{ImmediateAbsorptionModel}) = [:Central]
+pk_init(::ImmediateAbsorptionModel) = SLVector(Central=0.0)
 
 struct OneCompartmentModel <: ExplicitModel end
 function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
@@ -28,6 +27,7 @@ function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
   return LabelledArrays.SLVector(Depot=Depot, Central=Central)
 end
 varnames(::Type{OneCompartmentModel}) = [:Depot, :Central]
+pk_init(::OneCompartmentModel) = SLVector(Depot=0.0,Central=0.0)
 
 OneCompartmentParallelVector = @SLVector (:Depot1, :Depot2, :Central)
 
@@ -52,5 +52,6 @@ function (::OneCompartmentParallelModel)(t,t0,amounts,doses,p,rates)
   amt[3] * Se + rates[3]/ke*(1-Se) # next central (cmt==3)
   OneCompartmentParallelVector(Depot1,Depot2,Central)
 end
+pk_init(::OneCompartmentParallelModel) = SLVector(Depot1=0.0,Depot2=0.0,Central=0.0)
 
 varnames(::Type{OneCompartmentParallelModel}) = [:Depot1, :Depot2, :Central]
