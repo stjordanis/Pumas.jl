@@ -95,7 +95,8 @@ using PuMaS, LinearAlgebra, Test, CSV
   end
 
   @testset "proportional+additive error model" begin
-    mdl_proportional_additive = @model begin
+    mdl_proportional_additive = Dict()
+    mdl_proportional_additive["analytical"] = @model begin
       @param begin
        θ ∈ VectorDomain(2, lower=[0.0,0.0], upper=[20.0,20.0])
        Ω ∈ PDiagDomain(2)
@@ -116,12 +117,37 @@ using PuMaS, LinearAlgebra, Test, CSV
        conc = Central / V
       end
 
-      # Using ODE solver takes a while so disabling for now
-      #@dynamics begin
-      #    Central' =  - (CL/V)*Central
-      #end
-
       @dynamics ImmediateAbsorptionModel
+
+      @derived begin
+       dv ~ @. Normal(conc, sqrt(conc^2*σ_prop + σ_add))
+      end
+    end
+
+    mdl_proportional_additive["solver"] = @model begin
+      @param begin
+       θ ∈ VectorDomain(2, lower=[0.0,0.0], upper=[20.0,20.0])
+       Ω ∈ PDiagDomain(2)
+       σ_add ∈ RealDomain(lower=0.0001)
+       σ_prop ∈ RealDomain(lower=0.0001)
+      end
+
+      @random begin
+       η ~ MvNormal(Ω)
+      end
+
+      @pre begin
+       CL = θ[1] * exp(η[1])
+       V = θ[2] * exp(η[2])
+      end
+
+      @vars begin
+       conc = Central / V
+      end
+
+      @dynamics begin
+         Central' =  - (CL/V)*Central
+      end
 
       @derived begin
        dv ~ @. Normal(conc, sqrt(conc^2*σ_prop + σ_add))
@@ -135,8 +161,8 @@ using PuMaS, LinearAlgebra, Test, CSV
       σ_prop = 0.1
     )
 
-    @testset "FOCE estimation" begin
-      result = fit(mdl_proportional_additive, data, param_proportional_additive, PuMaS.FOCE())
+    @testset "FOCE estimation of $dyntype model" for dyntype in ("analytical", "solver")
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.FOCE())
       param = result.param
 
       @test param.θ      ≈ [4.12e-01, 7.20e+00] rtol=1e-3
@@ -145,8 +171,8 @@ using PuMaS, LinearAlgebra, Test, CSV
       @test param.σ_prop ≈ 2.41e-02 rtol=1e-3
     end
 
-    @testset "FOCEI estimation" begin
-      result = fit(mdl_proportional_additive, data, param_proportional_additive, PuMaS.FOCEI())
+    @testset "FOCEI estimation of $dyntype model" for dyntype in ("analytical", "solver")
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.FOCEI())
       param = result.param
 
       @test param.θ      ≈ [4.17e-01, 7.16e+00] rtol=1e-3
