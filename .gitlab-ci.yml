@@ -55,10 +55,25 @@ test-nca:
   - pushes
 
 
-test-nlme-nobayes:
+test-nlme-ml1:
   stage: test
   variables:
-    GROUP: "NLME_NOBAYES"
+    GROUP: "NLME_ML1"
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - julia --project -e 'using Pkg;
+                          Pkg.test("PuMaS"; coverage=true);'
+  only:
+    - master
+    - tags
+    - external
+    - pushes
+
+test-nlme-ml2:
+  stage: test
+  variables:
+    GROUP: "NLME_ML2"
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'

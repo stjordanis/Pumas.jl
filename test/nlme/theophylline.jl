@@ -22,7 +22,7 @@ end
   # 5.55  ;       KA__
   # 0.00524 0.00024  ;   COV KA~K
   # -0.128 0.00911 0.515  ;         K_
-  theopmodel_fo = @model begin
+  theopmodel_analytical_fo = @model begin
     @param begin
       θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
       θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
@@ -68,7 +68,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_fo, theopp, param, PuMaS.FO()) ≈ 137.16573310096661
+  @test deviance(theopmodel_analytical_fo, theopp, param, PuMaS.FO()) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -91,7 +91,7 @@ end
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = fit(theopmodel_fo, theopp, param, PuMaS.FO())
+  o = fit(theopmodel_analytical_fo, theopp, param, PuMaS.FO())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -224,7 +224,7 @@ end
   # 5.55  ;       KA__
   # 0.00524 0.00024  ;   COV KA~K
   # -0.128 0.00911 0.515  ;         K_
-  theopmodel_fo = @model begin
+  theopmodel_solver_fo = @model begin
     @param begin
       θ₁ ∈ RealDomain(lower=0.1,    upper=5.0, init=2.77)
       θ₂ ∈ RealDomain(lower=0.0008, upper=0.5, init=0.0781)
@@ -274,7 +274,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_fo, theopp, param, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
+  @test deviance(theopmodel_solver_fo, theopp, param, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -297,7 +297,7 @@ end
                          # Elapsed estimation time in seconds:     0.45
                          # Elapsed covariance time in seconds:     0.18
 
-  o = fit(theopmodel_fo, theopp, param, PuMaS.FO())
+  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -324,8 +324,8 @@ end
   end
 
   # Test that the types work on both stiff and non-stiff solver methods
-  o = fit(theopmodel_fo, theopp, param, PuMaS.FO(), alg=Tsit5())
-  o = fit(theopmodel_fo, theopp, param, PuMaS.FO(), alg=Rosenbrock23())
+  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO(), alg=Tsit5())
+  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO(), alg=Rosenbrock23())
 end
 
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error" begin
@@ -375,7 +375,7 @@ end
         #σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699
+  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699 rtol=1e-6
 
   foce_estimated_params = (
     θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -496,7 +496,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419
+  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419 rtol=1e-6
 
   focei_estimated_params = (
     θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -907,7 +907,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990
+  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990 rtol=1e-6
 
   laplacei_estimated_params = (
     θ = [1.60941E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
