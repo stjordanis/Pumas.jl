@@ -52,6 +52,6 @@ function (::OneCompartmentParallelModel)(t,t0,amounts,doses,p,rates)
   amt[3] * Se + rates[3]/ke*(1-Se) # next central (cmt==3)
   OneCompartmentParallelVector(Depot1,Depot2,Central)
 end
-pk_init(::OneCompartmentParallelVector) = SLVector(Depot1=0.0,Depot2=0.0,Central=0.0)
+pk_init(::OneCompartmentParallelModel) = SLVector(Depot1=0.0,Depot2=0.0,Central=0.0)
 
 varnames(::Type{OneCompartmentParallelModel}) = [:Depot1, :Depot2, :Central]
