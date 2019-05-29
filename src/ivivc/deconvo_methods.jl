@@ -22,32 +22,23 @@ end
 
 # shooting method to estimate input_rate function
 # error function to be optimized
-function errfun(C_act, t, r, kel, param, alg; kwargs...)
-  f(u,p,t) = r(u, t, param) - kel*u
-  c0 = zero(eltype(C_act))
+function errfun(C_act, t, f, u0, p; alg, kwargs...)
   tspan = (t[1], t[end])
-  prob = ODEProblem(f, c0, tspan)
+  prob = ODEProblem(f, u0, tspan, p)
   C = solve(prob, alg, reltol=1e-8, abstol=1e-8, saveat=t, kwargs...).u
   mse = sum(abs2.(C_act .- C))/length(C)
-  mse
 end
 
-function calc_input_rate(subj::VivoSubject, r, p0)
-  # for now, kel is p[2] incase of bateman model
-  kel = subj.pmin[2]
-  calc_input_rate(subj.conc, subj.time, r, kel, p0)
-end
-
-function calc_input_rate(C_act, t, r, kel, p0; d_alg=Tsit5(),
-                          alg=LBFGS(), box=false, lb=nothing, ub=nothing)
+function calc_input_rate(C_act, t, f, u0, p; d_alg=Tsit5(),
+                          alg=LBFGS(), box=false, lb=nothing, ub=nothing, kwargs...)
   if box == false
-    mfit = optimize(p->errfun(C_act, t, r, kel, p, d_alg), p0, alg)
+    mfit = optimize(p->errfun(C_act, t, f, u0, p, alg=d_alg, kwargs...), p, alg)
   else
     if lb == nothing || ub == nothing
       error("lower or upper bound should not be nothing")
     end
-    od = OnceDifferentiable(p->errfun(C_act, t, r, kel, p, d_alg), p0, autodiff=:finite)
-    mfit = optimize(od, lb, ub, p0, Fminbox(alg))
+    od = OnceDifferentiable(p->errfun(C_act, t, f, u0, p, alg=d_alg, kwargs...), p, autodiff=:finite)
+    mfit = optimize(od, lb, ub, p, Fminbox(alg))
   end
   pmin = Optim.minimizer(mfit)
   pmin
