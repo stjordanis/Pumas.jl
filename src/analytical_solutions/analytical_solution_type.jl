@@ -89,8 +89,7 @@ function (sol::AnalyticalPKSolution)(ts::AbstractArray,deriv::Type{<:Val}=Val{0}
   if idxs === nothing
     pku = sol.pksol(ts,deriv;idxs=idxs,continuity=continuity)
     nsu = sol.numsol(ts,deriv;idxs=idxs,continuity=continuity)
-    @show zip(pku,nsu)
-    u = [[p;n] for (p,n) in zip(pku,nsu)]
+    u = [[p;n] for (p,n) in zip(pku.u,nsu.u)]
     return DiffEqArray(u,ts)
   elseif idxs isa Number
     pksize = length(sol.pksol.u[1])
