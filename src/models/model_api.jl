@@ -118,7 +118,14 @@ function _solve(m::PuMaSModel, subject, col, args...;
     u0  = m.init(col, tspan[1])
     _prob = remake(m.prob.prob2; p=_col, u0=u0, tspan=tspan)
     numsol = solve(_prob,args...;saveat=saveat,alg=AutoTsit5(Rosenbrock23()),kwargs...)
-    return AnalyticalPKSolution(pksol,numsol)
+    if saveat !== nothing
+      t = saveat
+      u = [[pksol(numsol.t[i]);numsol[i]] for i in 1:length(numsol)]
+    else
+      t = numsol.t
+      u = numsol.u
+    end
+    return AnalyticalPKSolution(u,t,pksol,numsol)
   else
     u0  = m.init(col, tspan[1])
     mtmp = PuMaSModel(m.param,

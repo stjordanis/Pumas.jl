@@ -62,11 +62,34 @@ function Base.show(io::IO, m::MIME"text/plain", A::PKPDAnalyticalSolution)
   show(io,m,A.u)
 end
 
-struct AnalyticalPKSolution{S1,S2}
+struct AnalyticalPKSolution{T,N,uType,tType,S1,S2} <: DiffEqBase.AbstractTimeseriesSolution{T,N}
+  u::Vector{uType}
+  t::Vector{tType}
   pksol::S1
   numsol::S2
+  retcode::Symbol
+  AnalyticalPKSolution(u,t,pksol,numsol) = AnalyticalPKSolution(u,t,pksol,numsol,(size(u[1])..., length(u)))
+  AnalyticalPKSolution(u::AbstractVector{T},t,pksol,numsol,dims::NTuple{N}) where {T, N} =
+        new{eltype(T),N,eltype(u),eltype(t),typeof(pksol),typeof(numsol)}(u,t,pksol,numsol,
+            pksol==:Success && numsol==:Success ? :Success : :Failure)
 end
 Base.summary(A::AnalyticalPKSolution) = string("Timeseries Solution with uType Float64 and tType Float64")
+function Base.show(io::IO, A::AnalyticalPKSolution)
+  println(io,string("retcode: ",A.retcode))
+  print(io,"t: ")
+  show(io, A.t)
+  println(io)
+  print(io,"u: ")
+  show(io, A.u)
+end
+function Base.show(io::IO, m::MIME"text/plain", A::AnalyticalPKSolution)
+  println(io,string("retcode: ",A.retcode))
+  print(io,"t: ")
+  show(io,m,A.t)
+  println(io)
+  print(io,"u: ")
+  show(io,m,A.u)
+end
 
 function (sol::AnalyticalPKSolution)(t,deriv::Type{<:Val}=Val{0};idxs=nothing,continuity=sol.pksol.continuity)
   if idxs === nothing
