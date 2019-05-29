@@ -96,7 +96,7 @@ end
                              [-1.3817256  , 0.962485383],
                              [ 0.905043866, 0.302554671]], data)
 
-   @test PuMaS.cwresi(mdsl1, dt, param) ≈ sub_cwresi
+   @test PuMaS.cwresi(mdsl1, dt, param) ≈ sub_cwresi rtol=1e-6
 end
 
 @testset "iwres" for
@@ -126,7 +126,7 @@ end
                              [-1.38172560 , 0.942045331],
                              [ 0.905043866, 0.289051786]], data)
 
-    @test PuMaS.icwres(mdsl1, dt, param) ≈ sub_icwres
+    @test PuMaS.icwres(mdsl1, dt, param) ≈ sub_icwres rtol=1e-6
 end
 
 @testset "icwresi" for
@@ -141,7 +141,7 @@ end
                               [-1.38172560 , 0.925641802],
                               [ 0.905043866, 0.314343255]], data)
 
-    @test PuMaS.icwresi(mdsl1, dt, param) ≈ sub_icwresi
+    @test PuMaS.icwresi(mdsl1, dt, param) ≈ sub_icwresi rtol=1e-6
 end
 
 [PuMaS.eiwres(mdsl1, data[i], param, 10000) for i in 1:10]

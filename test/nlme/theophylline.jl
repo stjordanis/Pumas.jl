@@ -496,7 +496,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419
+  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419 rtol=1e-6
 
   focei_estimated_params = (
     θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)

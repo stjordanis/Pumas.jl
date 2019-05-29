@@ -273,7 +273,7 @@ function empirical_bayes!(vrandeffs::AbstractVector,
       Optim.Options(
         show_trace=false,
         extended_trace=true,
-        g_tol=1e-4
+        g_tol=1e-5
       );
       autodiff=:forward))
   return vrandeffs
