@@ -436,17 +436,87 @@ struct VPC
   idv
 end
 
-function get_strat(data, stratify_on)
+function get_strat(data::Population, stratify_on)
   strat_vals = []
   cov_vals = Float64[]
   for i in 1:length(data)
     push!(cov_vals, getproperty(data[i].covariates,stratify_on))
   end
   if length(unique(cov_vals)) <= 4
-    return length(unique(cov_vals)), unique(cov_vals)
+    return unique(cov_vals)
   else
-    return 4, quantile(cov_vals, [0.25,0.5,0.75,1.0])
+    return quantile(cov_vals, [0.25,0.5,0.75,1.0])
   end
+end
+
+function get_simulation_quantiles(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer, dv_, idv_, quantiles, strat_quant, stratify_on)
+  sims = []
+  pop_quantiles = []
+  for i in 1:reps
+    sim = simobs(m, data, fixeffs)
+    push!(sims, sim)
+    quantiles_sim = []
+    for t in 1:length(idv_)
+      sims_t = [Float64[] for i in 1:length(strat_quant)]
+      for j in 1:length(sim.sims)
+        for strt in 1:length(strat_quant)
+          if  stratify_on == nothing || (length(strat_quant)<4 && stratify_on != nothing && sim.sims[j].subject.covariates[stratify_on] <= strat_quant[strt])
+            push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
+          elseif stratify_on != nothing && sim.sims[j].subject.covariates[stratify_on] <= strat_quant[strt]
+            if strt > 1 && sim.sims[j].subject.covariates[stratify_on] > strat_quant[strt-1]
+              push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
+            elseif strt == 1
+              push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
+            end
+          end
+        end
+      end
+      push!(quantiles_sim, [quantile(sims_t[strt],quantiles) for strt in 1:length(strat_quant)])
+    end 
+    push!(pop_quantiles,quantiles_sim)
+  end
+  pop_quantiles, sims
+end
+
+function get_quant_quantiles(pop_quantiles, reps, idv_, quantiles, strat_quant)
+  quantile_quantiles = []
+  for strt in 1:length(strat_quant)
+    quantile_strat = []
+    for t in 1:length(idv_)
+      quantile_time = []
+      for j in 1:length(pop_quantiles[1][t][1])
+        quantile_index = Float64[]
+        for i in 1:reps
+          push!(quantile_index,pop_quantiles[i][t][strt][j])
+        end
+        push!(quantile_time, quantile(quantile_index,quantiles))
+      end
+      push!(quantile_strat,quantile_time)
+    end
+    push!(quantile_quantiles,quantile_strat)
+  end
+  quantile_quantiles
+end
+
+function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_quant)
+  vpc_strat = VPC[]
+  for strt in 1:length(strat_quant)
+    fifty_percentiles = []
+    fith_ninetyfifth = []
+    for i in 1:3
+      push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles[strt]])
+      push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles[strt]])
+    end
+    quantiles_obs = [[] for j in 1:length(quantiles)]
+    for t in 1:length(idv_)
+      obs_t = [getproperty(data[i].observations, dv_)[t] for i in 1:length(data)]
+      for j in 1:length(quantiles)
+        push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
+      end
+    end 
+    push!(vpc_strat, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv_))
+  end
+  vpc_strat
 end
 
 function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
@@ -454,79 +524,38 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
   # Random.seed!(rand_seed)
   # println("Seed set as $rand_seed")
   vpcs = []
-  num_val_strat_cov = 1
-  strat_quant = [1]
+  strat_quants = []
   if stratify_on != nothing
-    num_val_strat_cov,strat_quant = get_strat(data, stratify_on)
+    for strt in stratify_on
+      strat_quant = get_strat(data, strt)
+      push!(strat_quants , strat_quant)
+    end
+  else
+    push!(strat_quants, 1)
   end
+
   for dv_ in dv
-    pop_quantiles = []
     if idv == :time
       idv_ = getproperty(data[1], idv)
     else 
       idv_ = getproperty(data[1].covariates, idv)
-    end 
-
-    sims = []
-    for i in 1:reps
-      sim = simobs(m, data, fixeffs)
-      push!(sims, sim)
-      quantiles_sim = []
-      for t in 1:length(idv_)
-        sims_t = [Float64[] for i in 1:num_val_strat_cov]
-        for j in 1:length(sim.sims)
-          for strt in 1:length(strat_quant)
-            if  stratify_on == nothing || (num_val_strat_cov<4 && stratify_on != nothing && sim.sims[j].subject.covariates[stratify_on] <= strat_quant[strt])
-              push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
-            elseif stratify_on != nothing && sim.sims[j].subject.covariates[stratify_on] <= strat_quant[strt]
-              if strt > 1 && sim.sims[j].subject.covariates[stratify_on] > strat_quant[strt-1]
-                push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
-              elseif strt == 1
-                push!(sims_t[strt], getproperty(sim[j].observed,dv_)[t])
-              end
-            end
-          end
-        end
-        push!(quantiles_sim, [quantile(sims_t[strt],quantiles) for strt in 1:length(strat_quant)])
-      end 
-      push!(pop_quantiles,quantiles_sim)
     end
-
-    quantile_quantiles = []
-    for strt in 1:length(strat_quant)
-      quantile_strat = []
-      for t in 1:length(idv_)
-        quantile_time = []
-        for j in 1:length(pop_quantiles[1][t][1])
-          quantile_index = Float64[]
-          for i in 1:reps
-            push!(quantile_index,pop_quantiles[i][t][strt][j])
-          end
-          push!(quantile_time, quantile(quantile_index,quantiles))
-        end
-        push!(quantile_strat,quantile_time)
+    stratified_vpc = [] 
+    for strat in 1:length(strat_quants)
+      
+      if stratify_on != nothing
+        pop_quantiles, sims = get_simulation_quantiles(m,data,fixeffs,reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
+      else
+        pop_quantiles, sims = get_simulation_quantiles(m,data,fixeffs,reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
       end
-      push!(quantile_quantiles,quantile_strat)
+
+      quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
+
+      vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat])
+      push!(stratified_vpc, vpc_strat)
     end
 
-    vpc_strat = VPC[]
-    for strt in 1:length(strat_quant)
-      fifty_percentiles = []
-      fith_ninetyfifth = []
-      for i in 1:3
-        push!(fifty_percentiles,[j[i][2] for j in quantile_quantiles[strt]])
-        push!(fith_ninetyfifth, [(j[i][1],j[i][3]) for j in quantile_quantiles[strt]])
-      end
-      quantiles_obs = [[] for j in 1:length(quantiles)]
-      for t in 1:length(idv_)
-        obs_t = [getproperty(data[i].observations, dv_)[t] for i in 1:length(data)]
-        for j in 1:length(quantiles)
-          push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
-        end
-      end 
-      push!(vpc_strat, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv))
-    end
-    push!(vpcs , vpc_strat)
+    push!(vpcs , stratified_vpc)
   end
   vpcs
 end
