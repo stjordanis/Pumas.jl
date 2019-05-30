@@ -29,8 +29,8 @@ id,time,conc,form,dose
 1,16,10.61,medium,
 1,20,5.846,medium,
 1,24,3.043,medium,
-1,0,0,slow,
-1,0.5,7.657,slow,100
+1,0,0,slow,100
+1,0.5,7.657,slow,
 1,1,18.85,slow,
 1,1.5,30.63,slow,
 1,2,39.29,slow,
