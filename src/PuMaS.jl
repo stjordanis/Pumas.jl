@@ -1,6 +1,6 @@
 module PuMaS
 
-using DiffEqBase, DiffEqMonteCarlo, Reexport, StatsBase,
+using DiffEqBase, DiffEqDiffTools, DiffEqMonteCarlo, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools
@@ -29,9 +29,9 @@ include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 
+include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
 include("analytical_solutions/analytical_solution_type.jl")
-include("analytical_solutions/standard_models.jl")
 
 include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")

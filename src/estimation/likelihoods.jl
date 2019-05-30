@@ -1,6 +1,7 @@
 import DiffResults: DiffResult
 
-Base.@pure flattentype(t) = NamedTuple{fieldnames(typeof(t)), NTuple{length(t), eltype(eltype(t))}}
+const DEFAULT_RELTOL=1e-6
+const DEFAULT_ABSTOL=1e-12
 
 abstract type LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
@@ -75,10 +76,16 @@ conditional_nll(m::PuMaSModel,
                 args...; kwargs...) = first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
 
 @inline function conditional_nll_ext(m::PuMaSModel,
-                             subject::Subject,
-                             param::NamedTuple,
-                             randeffs::NamedTuple,
-                             args...; kwargs...)
+                                     subject::Subject,
+                                     param::NamedTuple,
+                                     randeffs::NamedTuple,
+                                     args...;
+                                     # This is the only entry point to the ODE solver for the estimation code
+                                     # so we need to make sure to set default tolerances here if they haven't
+                                     # been set elsewhere.
+                                     reltol=DEFAULT_RELTOL,
+                                     abstol=DEFAULT_ABSTOL,
+                                     kwargs...)
 
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
@@ -89,7 +96,7 @@ conditional_nll(m::PuMaSModel,
 
   # create solution object. By passing saveat=obstimes, we compute the solution only
   # at obstimes such that we can simply pass solution.u to m.derived
-  solution = _solve(m, subject, collated, args...; saveat=obstimes, kwargs...)
+  solution = _solve(m, subject, collated, args...; saveat=obstimes, reltol=reltol, abstol=abstol, kwargs...)
 
   if solution === nothing
     derived_dist = m.derived(collated, solution, obstimes, subject)
@@ -97,7 +104,7 @@ conditional_nll(m::PuMaSModel,
     # if solution contains NaN return Inf
     if (solution.retcode != :Success && solution.retcode != :Terminated) ||
         # FIXME! Make this uniform across the two solution types
-        any(isnan, solution isa PKPDAnalyticalSolution ? solution(obstimes)[end] : solution.u[end])
+        any(isnan, solution isa PKPDAnalyticalSolution ? solution(obstimes[end]) : solution.u[end])
       # FIXME! Do we need to make this type stable?
       return numtype(collated)(Inf), nothing
     end
@@ -238,21 +245,37 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           subject::Subject,
                           param::NamedTuple,
                           approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
-                          args...; kwargs...)
+                          args...;
+                          # We explicitly use reltol to compute the right step size for finite difference based gradient
+                          reltol=DEFAULT_RELTOL,
+                          fdtype=Val{:central}(),
+                          fdrelstep=_fdrelstep(m, param, reltol, fdtype),
+                          kwargs...)
 
-  cost = _η -> penalized_conditional_nll(m, subject, param, (η=_η,), approx, args...; kwargs...)
+  cost = _η -> penalized_conditional_nll(m, subject, param, (η=_η,), approx, args...; reltol=reltol, kwargs...)
 
-  vrandeffs .= Optim.minimizer(Optim.optimize(
-                               cost,
-                               vrandeffs,
-                               BFGS(linesearch=Optim.LineSearches.BackTracking(),
-                                    # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
-                                    initial_invH=t -> Matrix(I/max(1, norm(Optim.DiffEqDiffTools.finite_difference_gradient(cost, vrandeffs))), length(vrandeffs), length(vrandeffs))),
-                                    Optim.Options(
-                                      show_trace=false,
-                                      extended_trace=true,
-                                    );
-                                    autodiff=:forward))
+  vrandeffs .= Optim.minimizer(
+    Optim.optimize(
+      cost,
+      vrandeffs,
+      BFGS(
+        linesearch=Optim.LineSearches.BackTracking(),
+        # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
+        initial_invH=t -> Matrix(
+          I/max(1,
+            norm(DiffEqDiffTools.finite_difference_gradient(
+              cost,
+              vrandeffs,
+              relstep=fdrelstep,
+              absstep=fdrelstep^2))),
+          length(vrandeffs),
+          length(vrandeffs))),
+      Optim.Options(
+        show_trace=false,
+        extended_trace=true,
+        g_tol=1e-5
+      );
+      autodiff=:forward))
   return vrandeffs
 end
 
@@ -358,7 +381,7 @@ function marginal_nll(m::PuMaSModel,
   FΩ = cholesky(Ω, check=false)
 
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
-  if issuccess(FΩ)
+  if isfinite(nl) && issuccess(FΩ)
     return nl + (logdet(FΩ) + vrandeffs'*(FΩ\vrandeffs) + logdet(cholesky(Symmetric(inv(FΩ) + W))))/2
   else
     # Ω is numerically singular
@@ -401,40 +424,54 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 randeffs::NamedTuple,
                                 approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
                                 trf::TransformVariables.TransformTuple,
-                                args...; kwargs...
+                                args...;
+                                # We explicitly use reltol to compute the right step size for finite difference based gradient
+                                reltol=DEFAULT_RELTOL,
+                                fdtype=Val{:central}(),
+                                fdrelstep=_fdrelstep(model, param, reltol, fdtype),
+                                fdabsstep=fdrelstep^2,
+                                kwargs...
                                 )
 
   vparam = TransformVariables.inverse(trf, param)
 
   # Compute first order derivatives of the marginal likelihood function
   # with finite differencing to save compute time
-  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+  ∂ℓ∂θ = DiffEqDiffTools.finite_difference_gradient(
     _param -> marginal_nll(
       model,
       subject,
       TransformVariables.transform(trf, _param),
       randeffs,
       approx,
-      args...; kwargs...
+      args...;
+      reltol=reltol,
+      kwargs...
     ),
-    vparam
+    vparam,
+    relstep=fdrelstep,
+    absstep=fdabsstep
   )
 
-  ∂ℓ∂η = Optim.DiffEqDiffTools.finite_difference_gradient(
+  ∂ℓ∂η = DiffEqDiffTools.finite_difference_gradient(
     _η -> marginal_nll(
       model,
       subject,
       param,
       (η=_η,),
       approx,
-      args...; kwargs...
+      args...;
+      reltol=reltol,
+      kwargs...
     ),
-    randeffs.η
+    randeffs.η,
+    relstep=fdrelstep,
+    absstep=fdabsstep
   )
 
   # Compute second order derivatives in high precision with ForwardDiff
   ∂²ℓ∂η² = ForwardDiff.hessian(
-    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx),
+    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx, args...; reltol=reltol, kwargs...),
     randeffs.η
   )
 
@@ -444,7 +481,10 @@ function marginal_nll_gradient!(g::AbstractVector,
                                       subject,
                                       TransformVariables.transform(trf, _θ),
                                       (η=_η,),
-                                      approx),
+                                      approx,
+                                      args...;
+                                      reltol=reltol,
+                                      kwargs...),
       randeffs.η
     ),
     vparam
@@ -457,6 +497,21 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
+function _fdrelstep(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:forward})
+  if model.prob isa ExplicitModel
+    return sqrt(eps(numtype(param)))
+  else
+    return max(reltol, sqrt(eps(numtype(param))))
+  end
+end
+function _fdrelstep(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:central})
+  if model.prob isa ExplicitModel
+    return cbrt(eps(numtype(param)))
+  else
+    return max(reltol, cbrt(eps(numtype(param))))
+  end
+end
+
 # Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
 # but much simpler since the expansion point in η is fixed. Hence,
 # the gradient is simply the partial derivative in θ
@@ -467,21 +522,32 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 randeffs::NamedTuple,
                                 approx::Union{FO,FOI},
                                 trf::TransformVariables.TransformTuple,
-                                args...; kwargs...
+                                args...;
+                                # We explicitly use reltol to compute the right step size for finite difference based gradient
+                                reltol=DEFAULT_RELTOL,
+                                fdtype=Val{:central}(),
+                                fdrelstep=_fdrelstep(model, param, reltol, fdtype),
+                                fdabsstep=fdrelstep^2,
+                                kwargs...
                                 )
 
   # Compute first order derivatives of the marginal likelihood function
   # with finite differencing to save compute time
-  ∂ℓ∂θ = Optim.DiffEqDiffTools.finite_difference_gradient(
+  ∂ℓ∂θ = DiffEqDiffTools.finite_difference_gradient(
     _param -> marginal_nll(
       model,
       subject,
       TransformVariables.transform(trf, _param),
       randeffs,
       approx,
-      args...; kwargs...
+      args...;
+      reltol=reltol,
+      kwargs...
     ),
-    TransformVariables.inverse(trf, param)
+    TransformVariables.inverse(trf, param),
+    typeof(fdtype);
+    relstep=fdrelstep,
+    absstep=fdabsstep
   )
 
   g .= ∂ℓ∂θ
@@ -899,11 +965,21 @@ end
 marginal_nll(      f::FittedPuMaSModel) = marginal_nll(f.model, f.data, f.param, f.approx)
 StatsBase.deviance(f::FittedPuMaSModel) = deviance(    f.model, f.data, f.param, f.approx)
 
-function _observed_information(f::FittedPuMaSModel, ::Val{Score}) where Score
+function _observed_information(f::FittedPuMaSModel,
+                                ::Val{Score},
+                               args...;
+                               # We explicitly use reltol to compute the right step size for finite difference based gradient
+                               # The tolerance has to be stricter when computing the covariance than during estimation
+                               reltol=abs2(DEFAULT_RELTOL),
+                               kwargs...) where Score
   # Transformation the NamedTuple of parameters to a Vector
   # without applying any bounds (identity transform)
   trf = toidentitytransform(f.model.param)
-  vparam = TransformVariables.inverse(trf, f.param)
+  param = f.param
+  vparam = TransformVariables.inverse(trf, param)
+
+  fdrelstep_score = _fdrelstep(f.model, f.param, reltol, Val{:central}())
+  fdrelstep_hessian = sqrt(_fdrelstep(f.model, f.param, reltol, Val{:central}()))
 
   # Initialize arrays
   H = zeros(eltype(vparam), length(vparam), length(vparam))
@@ -919,17 +995,27 @@ function _observed_information(f::FittedPuMaSModel, ::Val{Score}) where Score
     subject = f.data[i]
 
     # Compute Hessian contribution and update Hessian
-    H .+= Optim.DiffEqDiffTools.finite_difference_jacobian(vparam) do _j, _param
+    H .+= DiffEqDiffTools.finite_difference_jacobian(vparam; relstep=fdrelstep_hessian, absstep=fdrelstep_hessian^2) do _j, _param
       param = TransformVariables.transform(trf, _param)
       vrandeffs = empirical_bayes(f.model, subject, param, f.approx)
-      marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf)
+      marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf, args...;
+        reltol=reltol,
+        fdtype=Val{:central}(),
+        fdrelstep=fdrelstep_hessian,
+        fdabsstep=fdrelstep_hessian^2,
+        kwargs...)
       return nothing
     end
 
     if Score
       # Compute score contribution
       vrandeffs = empirical_bayes(f.model, subject, f. param, f.approx)
-      marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf)
+      marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf, args...;
+        reltol=reltol,
+        fdtype=Val{:central}(),
+        fdrelstep=fdrelstep_score,
+        fdabsstep=fdrelstep_hessian^2,
+        kwargs...)
 
       # Update outer product of scores
       S .+= g .* g'
@@ -995,10 +1081,10 @@ end
 
 Compute the covariance matrix of the population parameters
 """
-function StatsBase.vcov(f::FittedPuMaSModel)
+function StatsBase.vcov(f::FittedPuMaSModel, args...; kwargs...)
 
   # Compute the observed information based on the Hessian (H) and the product of the outer scores (S)
-  H, S = _observed_information(f, Val(true))
+  H, S = _observed_information(f, Val(true), args...; kwargs...)
 
   # Use generialized eigenvalue decomposition to compute inv(H)*S*inv(H)
   F = eigen(Symmetric(H), Symmetric(S))
@@ -1070,8 +1156,8 @@ end
 Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
-function infer(fpm::FittedPuMaSModel; level = 0.95)
-  _vcov = vcov(fpm)
+function infer(fpm::FittedPuMaSModel, args...; level = 0.95, kwargs...)
+  _vcov = vcov(fpm, args...; kwargs...)
   FittedPuMaSModelInference(fpm, _vcov, level)
 end
 function StatsBase.stderror(pmi::FittedPuMaSModelInference)
