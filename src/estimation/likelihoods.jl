@@ -815,12 +815,17 @@ const _subscriptvector = ["₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈"
 _to_subscript(number) = join([_subscriptvector[parse(Int32, dig)] for dig in string(number)])
 
 function _print_fit_header(io, fpm)
-  println(io, "Successful minimization: $(Optim.converged(fpm.optim))")
+  println(io, string("Successful minimization:",
+                     lpad(string(Optim.converged(fpm.optim)), 20)))
   println(io)
-  println(io, "Objective function value: $(Optim.minimum(fpm.optim))")
-  println(io)
-  println(io, "Number of observation records: $(sum([length(sub.time) for sub in fpm.data]))")
-  println(io, "Number of subjects: $(length(fpm.data))")
+  println(io, string("Likelihood approximation:",
+                     lpad(typeof(fpm.approx), 19)))
+  println(io, string("Objective function value:",
+                     lpad(round(Optim.minimum(fpm.optim); sigdigits=round(Int, -log10(DEFAULT_RELTOL))), 19)))
+  println(io, string("Number of observation records:",
+                     lpad(sum([length(sub.time) for sub in fpm.data]), 14)))
+  println(io, string("Number of subjects:",
+                     lpad(length(fpm.data), 25)))
   println(io)
 end
 
@@ -834,22 +839,24 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
     _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
 
-  maxname = maximum(length.(paramnames))+1
-  maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
+  maxname = maximum(length, paramnames) + 1
+  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
   labels = " "^(maxname+1)*rpad("Estimate ", maxval)
   stringrows = []
   for (name, val) in zip(paramnames, paramvals)
-    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval)))
+    push!(stringrows, string("\n", rpad(name, maxname), lpad(val, maxval)))
   end
-  println(io, labels)
+
+  println(io)
+  print(io, labels)
   for stringrow in stringrows
-    println(io, stringrow)
+    print(io, stringrow)
   end
 end
 TreeViews.hastreeview(x::FittedPuMaSModel) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModel,
                              mime::MIME"text/plain" = MIME"text/plain"())
-  show(io,mime,Base.Text(Base.summary(x)))
+  show(io, mime, Base.Text(Base.summary(x)))
 end
 
 function DEFAULT_OPTIMIZE_FN(cost, p, callback)
@@ -997,7 +1004,7 @@ function _observed_information(f::FittedPuMaSModel,
     # Compute Hessian contribution and update Hessian
     H .+= DiffEqDiffTools.finite_difference_jacobian(vparam; relstep=fdrelstep_hessian, absstep=fdrelstep_hessian^2) do _j, _param
       param = TransformVariables.transform(trf, _param)
-      vrandeffs = empirical_bayes(f.model, subject, param, f.approx)
+      vrandeffs = empirical_bayes(f.model, subject, param, f.approx, args...; kwargs...)
       marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf, args...;
         reltol=reltol,
         fdtype=Val{:central}(),
@@ -1009,7 +1016,7 @@ function _observed_information(f::FittedPuMaSModel,
 
     if Score
       # Compute score contribution
-      vrandeffs = empirical_bayes(f.model, subject, f. param, f.approx)
+      vrandeffs = empirical_bayes(f.model, subject, f. param, f.approx, args...; kwargs...)
       marginal_nll_gradient!(g, f.model, subject, f.param, (η=vrandeffs,), f.approx, trf, args...;
         reltol=reltol,
         fdtype=Val{:central}(),
@@ -1203,8 +1210,8 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Numb
   push!(_vals, string(round(paramval; sigdigits=5)))
 
   # We only update RSEs and confints if an array was input.
-  !(_rse == nothing) && push!(_rse, string(round(paramval/std; sigdigits=5)))
-  !(_confint == nothing) && push!(_confint, string("[", round(paramval-std*quant; sigdigits=5),";", round(paramval+std*quant; sigdigits=5), "]"))
+  !(_rse == nothing) && push!(_rse, string(round(100*std/paramval; sigdigits=5)))
+  !(_confint == nothing) && push!(_confint, string("[", round(paramval - std*quant; sigdigits=5), ";", round(paramval+std*quant; sigdigits=5), "]"))
 end
 
 
@@ -1226,21 +1233,23 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
 
   for (paramname, paramval) in pairs(fpm.param)
     std = standard_errors[paramname]
-      _push_varinfo!(paramnames, paramvals, paramrse, paramconfint, paramname, paramval, std, quant)
+    _push_varinfo!(paramnames, paramvals, paramrse, paramconfint, paramname, paramval, std, quant)
   end
 
-  maxname = maximum(length.(paramnames))+1
-  maxval = max(maximum(length.(paramvals))+1, length("Estimate "))
-  maxrs = max(maximum(length.(paramrse))+1, length("RSE "))
-  maxconfint = max(maximum(length.(paramconfint))+1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
+  maxname = maximum(length, paramnames) + 1
+  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
+  maxrs = max(maximum(length, paramrse) + 1, length("RSE "))
+  maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
   labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad(string(round(pmi.level*100, sigdigits=6))*"%-conf. int.", maxconfint)
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
-    push!(stringrows, string(rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
+    push!(stringrows, string("\n", rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
   end
-  println(io, labels)
+
+  println(io)
+  print(io, labels)
   for stringrow in stringrows
-    println(io, stringrow)
+    print(io, stringrow)
   end
 end
 TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
