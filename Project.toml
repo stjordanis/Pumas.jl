@@ -4,6 +4,7 @@ uuid = "d7b8c89e-ad89-52e0-b9fd-d0ed321fa021"
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
@@ -46,7 +47,6 @@ TransformVariables = "0.3"
 julia = "1.1"
 
 [extras]
-DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
 Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
@@ -55,4 +55,4 @@ StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Measurements", "SafeTestsets", "StatsFuns", "DataInterpolations", "DiffEqDiffTools", "StochasticDiffEq"]
+test = ["Test", "Measurements", "SafeTestsets", "StatsFuns", "DiffEqDiffTools", "StochasticDiffEq"]
