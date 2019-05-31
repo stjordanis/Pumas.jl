@@ -43,7 +43,6 @@ function do_ivivc(vitro_batch, ref_vivo_pop, vivo_pop;
   ka, kel, V = 0.0, 0.0, 0.0
   if ref_vivo_model == nothing
     ref_vivo_model = lowercase(first(keys(ref_vivo_pop[1]))) == "solution" ? (:bateman) : (:iv)
-    @show ref_vivo_model
   end
   
   for (form, prof) in ref_vivo_pop[1]
