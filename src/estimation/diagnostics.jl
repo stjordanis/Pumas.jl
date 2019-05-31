@@ -427,11 +427,25 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
   df
 end
 
-struct VPC
+struct VPC_QUANT
   Fiftieth
   Fifth_Ninetyfifth
   Simulation_Percentiles
   Observation_Percentiles
+end
+
+struct VPC_STRAT
+  vpc_quant::Vector{VPC_QUANT}
+  strat
+end
+
+struct VPC_DV
+  vpc_strat::Vector{VPC_STRAT}
+  dv
+end
+
+struct VPC
+  vpc_dv::Vector{VPC_DV}
   Simulations
   idv
 end
@@ -449,12 +463,10 @@ function get_strat(data::Population, stratify_on)
   end
 end
 
-function get_simulation_quantiles(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer, dv_, idv_, quantiles, strat_quant, stratify_on)
-  sims = []
+function get_simulation_quantiles(sims, reps::Integer, dv_, idv_, quantiles, strat_quant, stratify_on)
   pop_quantiles = []
   for i in 1:reps
-    sim = simobs(m, data, fixeffs)
-    push!(sims, sim)
+    sim = sims[i]
     quantiles_sim = []
     for t in 1:length(idv_)
       sims_t = [Float64[] for i in 1:length(strat_quant)]
@@ -475,7 +487,7 @@ function get_simulation_quantiles(m::PuMaSModel, data::Population, fixeffs::Name
     end 
     push!(pop_quantiles,quantiles_sim)
   end
-  pop_quantiles, sims
+  pop_quantiles
 end
 
 function get_quant_quantiles(pop_quantiles, reps, idv_, quantiles, strat_quant)
@@ -498,8 +510,8 @@ function get_quant_quantiles(pop_quantiles, reps, idv_, quantiles, strat_quant)
   quantile_quantiles
 end
 
-function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_quant)
-  vpc_strat = VPC[]
+function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_quant, stratify_on)
+  vpc_strat = VPC_QUANT[]
   for strt in 1:length(strat_quant)
     fifty_percentiles = []
     fith_ninetyfifth = []
@@ -514,21 +526,77 @@ function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_qua
         push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
       end
     end 
-    push!(vpc_strat, VPC(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs, sims, idv_))
+    push!(vpc_strat, VPC_QUANT(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs))
   end
-  vpc_strat
+  VPC_STRAT(vpc_strat, stratify_on)
 end
 
 function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   # rand_seed = rand()
   # Random.seed!(rand_seed)
   # println("Seed set as $rand_seed")
-  vpcs = []
+  vpcs = VPC_DV[]
   strat_quants = []
   if stratify_on != nothing
     for strt in stratify_on
       strat_quant = get_strat(data, strt)
       push!(strat_quants , strat_quant)
+    end
+  else
+    push!(strat_quants, 1)
+  end
+
+  if idv == :time
+    idv_ = getproperty(data[1], idv)
+  else 
+    idv_ = getproperty(data[1].covariates, idv)
+  end
+
+  sims = []
+  for i in 1:reps
+    sim = simobs(m, data, fixeffs)
+    push!(sims, sim)
+  end
+
+  for dv_ in dv
+    stratified_vpc = VPC_STRAT[] 
+    for strat in 1:length(strat_quants)
+
+      if stratify_on != nothing
+        pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
+      else
+        pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
+      end
+
+      quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
+      vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on[strat])
+      push!(stratified_vpc, vpc_strat)
+    end
+    push!(vpcs , VPC_DV(stratified_vpc, dv_))
+  end
+  VPC(vpcs, sims, idv)
+end
+
+function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+  # rand_seed = rand()
+  # Random.seed!(rand_seed)
+  # println("Seed set as $rand_seed")
+  if typeof(sims) == VPC
+    sims = sims.Simulations
+  end
+
+  if idv == :time
+    idv_ = getproperty(data[1], idv)
+  else 
+    idv_ = getproperty(data[1].covariates, idv)
+  end
+
+  vpcs = []
+  strat_quants = []
+  if stratify_on != nothing
+    for strt in stratify_on
+      strat_quant = get_strat(data, strt)
+      push!(strat_quants, strat_quant)
     end
   else
     push!(strat_quants, 1)
@@ -544,20 +612,18 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
     for strat in 1:length(strat_quants)
       
       if stratify_on != nothing
-        pop_quantiles, sims = get_simulation_quantiles(m,data,fixeffs,reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
+        pop_quantiles = get_simulation_quantiles(sims, length(sims), dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
       else
-        pop_quantiles, sims = get_simulation_quantiles(m,data,fixeffs,reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
+        pop_quantiles = get_simulation_quantiles(sims, length(sims), dv_, idv_, quantiles, strat_quants[strat], nothing)
       end
 
       quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
-
-      vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat])
+      vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on)
       push!(stratified_vpc, vpc_strat)
     end
-
-    push!(vpcs , stratified_vpc)
+    push!(vpcs , VPC_DV(stratified_vpc, dv_))
   end
-  vpcs
+  VPC(vpcs, sims, idv)
 end
 
 function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwargs...)
@@ -570,13 +636,43 @@ end
   else 
     t = getproperty(data[1].covariates, vpc.idv)
   end
-  xlabel --> string(vpc.idv)
-  legend --> false
-  lw --> 3
-  ylabel --> "Observations"
+  layout --> length(vpc.vpc_dv)
   title --> "VPC"
-  ribbon := vpc.Fifth_Ninetyfifth
-  fillalpha := 0.2
-  t,[vpc.Fiftieth, vpc.Observation_Percentiles[1:3]]
+  for i in 1:length(vpc.vpc_dv)
+    @series begin
+      subplot := i
+      t,vpc.vpc_dv[i],data
+    end
+  end
+  
 end
 
+@recipe function f(t, vpc_dv::VPC_DV, data::Population)
+  layout --> length(vpc_dv.vpc_strat)
+  title --> "Per DV"
+  for strt in 1:length(vpc_dv.vpc_strat)
+    @series begin
+      subplot := strt
+      t, vpc_dv.vpc_strat[strt], data
+    end
+  end
+end
+
+@recipe function f(t, vpc_strt::VPC_STRAT, data::Population)
+  layout --> length(vpc_strt.vpc_quant)
+  title --> "Per Stratification"
+  for quant in 1:length(vpc_strt.vpc_quant)
+    @series begin
+      subplot := quant
+      t, vpc_strt.vpc_quant[quant], data
+    end
+  end
+end
+
+@recipe function f(t, vpc_quant::VPC_QUANT, data::Population)
+  legend --> false
+  lw --> 3
+  ribbon := vpc_quant.Fifth_Ninetyfifth
+  fillalpha := 0.2
+  t,[vpc_quant.Fiftieth, vpc_quant.Observation_Percentiles[1:3]]
+end
