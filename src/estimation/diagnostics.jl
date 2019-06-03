@@ -521,9 +521,11 @@ function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_qua
     end
     quantiles_obs = [[] for j in 1:length(quantiles)]
     for t in 1:length(idv_)
-      obs_t = [getproperty(data[i].observations, dv_)[t] for i in 1:length(data)]
-      for j in 1:length(quantiles)
-        push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
+      if dv_ in keys(data[1].observations)
+        obs_t = [getproperty(data[i].observations, dv_)[t] for i in 1:length(data)]
+        for j in 1:length(quantiles)
+          push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
+        end
       end
     end 
     push!(vpc_strat, VPC_QUANT(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs))
@@ -564,12 +566,15 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
 
       if stratify_on != nothing
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
+        quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
+        vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on[strat])
       else
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
+        quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
+        vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], nothing)
       end
 
-      quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
-      vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on[strat])
+      
       push!(stratified_vpc, vpc_strat)
     end
     push!(vpcs , VPC_DV(stratified_vpc, dv_))
@@ -631,12 +636,12 @@ function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwa
 end
 
 @recipe function f(vpc::VPC, data::Population)
+  layout --> length(vpc.vpc_dv)
   if vpc.idv == :time
     t = getproperty(data[1], vpc.idv)
   else 
     t = getproperty(data[1].covariates, vpc.idv)
   end
-  layout --> length(vpc.vpc_dv)
   title --> "VPC"
   for i in 1:length(vpc.vpc_dv)
     @series begin
@@ -648,22 +653,17 @@ end
 end
 
 @recipe function f(t, vpc_dv::VPC_DV, data::Population)
-  layout --> length(vpc_dv.vpc_strat)
-  title --> "Per DV"
   for strt in 1:length(vpc_dv.vpc_strat)
     @series begin
-      subplot := strt
       t, vpc_dv.vpc_strat[strt], data
     end
   end
 end
 
 @recipe function f(t, vpc_strt::VPC_STRAT, data::Population)
-  layout --> length(vpc_strt.vpc_quant)
   title --> "Per Stratification"
   for quant in 1:length(vpc_strt.vpc_quant)
     @series begin
-      subplot := quant
       t, vpc_strt.vpc_quant[quant], data
     end
   end
