@@ -36,12 +36,11 @@ function ___read_vivo(df; id=:id, time=:time, conc=:conc, form=:form, dose=:dose
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
-  # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    ind = Dict{Any, VivoSubject}()
+    ind = Dict{eltype(forms), VivoSubject}()
     for form in uforms
       if form in forms[idx]
         idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
@@ -98,12 +97,11 @@ function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
-  # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    ind = Dict{Any, VitroSubject}()
+    ind = Dict{eltype(forms), VitroSubject}()
     for form in uforms
       if form in forms[idx]
         idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
