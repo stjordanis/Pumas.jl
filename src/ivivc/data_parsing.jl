@@ -19,17 +19,11 @@ end
 
 function ___read_vivo(df; id=:id, time=:time, conc=:conc, form=:form, dose=:dose, kwargs...)
   local ids, times, concs, forms, doses
-  try
-    df[id]
-    df[time]
-    df[conc]
-    df[form]
-    df[dose]
-  catch x
+  key_check = haskey(df, id) && haskey(df, time) && haskey(df, conc) && haskey(df, form) && haskey(df, dose)
+  if !key_check
     @info "The CSV file has keys: $(names(df))"
-    throw(x)
+    throw(ArgumentError("The CSV file must have: id, time, conc, form, dose"))
   end
-  dfnames = names(df)
   sortvars = (id, time)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
@@ -88,16 +82,11 @@ end
 
 function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...)
   local ids, times, concs, forms
-  try
-    df[id]
-    df[time]
-    df[conc]
-    df[form]
-  catch x
+  key_check = haskey(df, id) && haskey(df, time) && haskey(df, conc) && haskey(df, form)
+  if !key_check
     @info "The CSV file has keys: $(names(df))"
-    throw(x)
+    throw(ArgumentError("The CSV file must have: id, time, conc, form"))
   end
-  dfnames = names(df)
   sortvars = (id, time)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`

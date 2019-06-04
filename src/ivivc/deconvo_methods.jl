@@ -5,10 +5,10 @@ function wagner_nelson(c, t, kel)
   sub = NCASubject(c, t)
   intervals = [(t[i], t[i+1]) for i = 1:length(t)-1]
   auc_i = NCA.auc(sub, interval=intervals)
-  pushfirst!(auc_i, 0.0)       # area between first to first time point
+  pushfirst!(auc_i, zero(eltype(auc_i)))       # area between first to first time point
   c_auc_i = cumsum(auc_i)
-  X = c .+ (c_auc_i .* kel)
-  X ./ (c_auc_i[end] + c[end]/kel) ./ kel  # area between time[end] and Inf is c[end]/kel
+  X = @. c + (c_auc_i * kel)
+  @. X / (c_auc_i[end] + c[end]/kel) / kel     # area between time[end] and Inf is c[end]/kel
 end
 
 ## Loo-Riegelman Method (two compartment model)
@@ -29,18 +29,17 @@ function errfun(C_act, t, f, u0, p; alg, kwargs...)
   mse = sum(abs2.(C_act .- C))/length(C)
 end
 
-function calc_input_rate(C_act, t, f, u0, p; d_alg=Tsit5(),
-                          alg=LBFGS(), box=false, lb=nothing, ub=nothing, kwargs...)
+function calc_input_rate(C_act, t, f, u0, p; alg=Tsit5(),
+                          opt_alg=LBFGS(), box=false, lb=nothing, ub=nothing, kwargs...)
   if box == false
-    mfit = optimize(p->errfun(C_act, t, f, u0, p, alg=d_alg, kwargs...), p, alg)
+    mfit = optimize(p->errfun(C_act, t, f, u0, p, alg=alg, kwargs...), p, opt_alg)
   else
     if lb == nothing || ub == nothing
       error("lower or upper bound should not be nothing")
     end
-    od = OnceDifferentiable(p->errfun(C_act, t, f, u0, p, alg=d_alg, kwargs...), p, autodiff=:finite)
-    mfit = optimize(od, lb, ub, p, Fminbox(alg))
+    od = OnceDifferentiable(p->errfun(C_act, t, f, u0, p, alg=alg, kwargs...), p, autodiff=:finite)
+    mfit = optimize(od, lb, ub, p, Fminbox(opt_alg))
   end
   pmin = Optim.minimizer(mfit)
   pmin
 end
-
