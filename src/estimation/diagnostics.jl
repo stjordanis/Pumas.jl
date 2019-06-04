@@ -636,16 +636,13 @@ function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwa
 end
 
 @recipe function f(vpc::VPC, data::Population)
-  layout --> length(vpc.vpc_dv)
   if vpc.idv == :time
     t = getproperty(data[1], vpc.idv)
   else 
     t = getproperty(data[1].covariates, vpc.idv)
   end
-  title --> "VPC"
   for i in 1:length(vpc.vpc_dv)
     @series begin
-      subplot := i
       t,vpc.vpc_dv[i],data
     end
   end
@@ -653,15 +650,16 @@ end
 end
 
 @recipe function f(t, vpc_dv::VPC_DV, data::Population)
+  layout --> length(vpc_dv.vpc_strat)
   for strt in 1:length(vpc_dv.vpc_strat)
     @series begin
+      subplot := strt
       t, vpc_dv.vpc_strat[strt], data
     end
   end
 end
 
 @recipe function f(t, vpc_strt::VPC_STRAT, data::Population)
-  title --> "Per Stratification"
   for quant in 1:length(vpc_strt.vpc_quant)
     @series begin
       t, vpc_strt.vpc_quant[quant], data
