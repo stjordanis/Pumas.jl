@@ -1210,7 +1210,7 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Numb
   push!(_vals, string(round(paramval; sigdigits=5)))
   # We only update RSEs and confints if an array was input.
   !(_rse == nothing) && push!(_rse, string(round(100*std/paramval; sigdigits=5)))
-  !(_confint == nothing) && push!(_confint, string("[", round(paramval - std*quant; sigdigits=5), ";", round(paramval+std*quant; sigdigits=5), "]"))
+  !(_confint == nothing) && push!(_confint, string("[", round(paramval - std*quant; sigdigits=5), "; ", round(paramval+std*quant; sigdigits=5), "]"))
 end
 
 
