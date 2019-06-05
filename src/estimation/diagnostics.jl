@@ -526,6 +526,8 @@ function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_qua
         for j in 1:length(quantiles)
           push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
         end
+      else 
+        quantiles_obs = nothing
       end
     end 
     push!(vpc_strat, VPC_QUANT(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs))
@@ -672,5 +674,9 @@ end
   lw --> 3
   ribbon := vpc_quant.Fifth_Ninetyfifth
   fillalpha := 0.2
-  t,[vpc_quant.Fiftieth, vpc_quant.Observation_Percentiles[1:3]]
+  if vpc_quant.Observation_Percentiles != nothing
+    t,[vpc_quant.Fiftieth, vpc_quant.Observation_Percentiles[1:3]]
+  else 
+    t, vpc_quant.Fiftieth
+  end
 end
