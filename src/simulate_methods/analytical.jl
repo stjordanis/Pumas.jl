@@ -2,7 +2,7 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, tspan, col,
                            args...; continuity = :right, kwargs...)
   f = m.prob isa ExplicitModel ? m.prob : m.prob.pkprob
   u0 = pk_init(f)
-  
+
   # we don't want to promote units
   if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
     Tu0 = map(float, u0)
