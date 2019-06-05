@@ -1179,7 +1179,7 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDMa
     for i = j:size(mat, 1)
       # We set stdij to nothing in case RSEs are not requested to avoid indexing
       # into `nothing`.
-      stdij = _rse == nothing ? nothing : std.mat[i, j]
+      stdij = _rse == nothing ? nothing : std[i, j]
       _name = string(paramname)*"$(_to_subscript(i)),$(_to_subscript(j))"
       _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i, j], stdij, quant)
     end
@@ -1208,7 +1208,6 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Numb
   # digits to control width of output.
   push!(_names, string(paramname))
   push!(_vals, string(round(paramval; sigdigits=5)))
-
   # We only update RSEs and confints if an array was input.
   !(_rse == nothing) && push!(_rse, string(round(100*std/paramval; sigdigits=5)))
   !(_confint == nothing) && push!(_confint, string("[", round(paramval - std*quant; sigdigits=5), ";", round(paramval+std*quant; sigdigits=5), "]"))
@@ -1235,15 +1234,26 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
     std = standard_errors[paramname]
     _push_varinfo!(paramnames, paramvals, paramrse, paramconfint, paramname, paramval, std, quant)
   end
-
+  getdecimal = x -> findfirst(c -> c=='.', x)
+  getsemicolon = x -> findfirst(c -> c==';', x)
+  getafterdec = x -> getsemicolon(x)-getdecimal(x)
+  getdecaftersemi = x -> getdecimal(x[getsemicolon(x):end])
+  getaftersemdec = x -> findall(c -> c == '.', x)[2]
+  getafterdecsemi = x -> length(x)-getaftersemdec(x)
   maxname = maximum(length, paramnames) + 1
   maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
   maxrs = max(maximum(length, paramrse) + 1, length("RSE "))
   maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
-  labels = " "^(maxname+1)*rpad("Estimate ", maxval)*rpad("RSE ", maxrs)*rpad(string(round(pmi.level*100, sigdigits=6))*"%-conf. int.", maxconfint)
+  maxdecconf = maximum(getdecimal, paramconfint)
+  maxaftdec = maximum(getafterdec, paramconfint)
+  maxdecaftsem = maximum(getdecaftersemi, paramconfint)
+  maxaftdecsem = maximum(getafterdecsemi, paramconfint)
+  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-6)*string(round(pmi.level*100, sigdigits=6))*"%-conf. int."
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
-    push!(stringrows, string("\n", rpad(name, maxname), lpad(val, maxval), lpad(rse, maxrs), lpad(confint, maxconfint)))
+    confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
+    row = string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint)
+    push!(stringrows, row)
   end
 
   println(io)

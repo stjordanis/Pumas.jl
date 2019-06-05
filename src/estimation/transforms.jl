@@ -125,7 +125,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
       error("not support")
     end
   end
-  PDMat(LinearAlgebra.copytri!(M, 'L')), ℓ
+  (LinearAlgebra.copytri!(M, 'L')), ℓ
 end
 
 TransformVariables.inverse_eltype(::VechTransform, y::PDMat{T}) where T = T
