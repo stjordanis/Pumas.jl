@@ -870,7 +870,7 @@ param = (θ = [
 sol = solve(mbld_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 @test 1000sol(subject.time;idxs=2,continuity=:left)[2:end]./30 ≈ subject.observations.cp[2:end] rtol=1e-5
 
-sol = solve(m_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
+sol = solve(mbld_diffeq, subject, param, randeffs; abstol=1e-14, reltol=1e-14, saveat=subject.time)
 @test sol.t == subject.time
 
 sim = simobs(mbld_diffeq, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
