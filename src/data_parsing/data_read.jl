@@ -45,6 +45,9 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   if evid ∉ colnames
     data[evid] = Int8(0)
   end
+  if mdv ∉ colnames
+    data[mdv] = Int8(0)
+  end
   if cvs isa AbstractVector{<:Integer}
     cvs = colnames[cvs]
   end
