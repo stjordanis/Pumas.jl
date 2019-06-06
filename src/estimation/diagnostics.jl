@@ -584,6 +584,10 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
   VPC(vpcs, sims, idv)
 end
 
+function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+  vpc(fpm.model, fpm.data, fpm.param, reps, quantiles=quantiles, idv=idv, dv=dv, stratify_on=stratify_on)
+end
+
 function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   # rand_seed = rand()
   # Random.seed!(rand_seed)
@@ -633,9 +637,6 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
   VPC(vpcs, sims, idv)
 end
 
-function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;kwargs...)
-  vpc(fpm.model, fpm.data, fpm.param, reps, kwargs...)
-end
 
 @recipe function f(vpc::VPC, data::Population)
   if vpc.idv == :time
@@ -645,35 +646,40 @@ end
   end
   for i in 1:length(vpc.vpc_dv)
     @series begin
-      t,vpc.vpc_dv[i],data
+      t,vpc.vpc_dv[i],data, vpc.idv
     end
   end
   
 end
 
-@recipe function f(t, vpc_dv::VPC_DV, data::Population)
-  layout --> length(vpc_dv.vpc_strat)
+@recipe function f(t, vpc_dv::VPC_DV, data::Population, idv=:time)
   for strt in 1:length(vpc_dv.vpc_strat)
     @series begin
-      subplot := strt
-      t, vpc_dv.vpc_strat[strt], data
+      t, vpc_dv.vpc_strat[strt], data, idv
     end
   end
 end
 
-@recipe function f(t, vpc_strt::VPC_STRAT, data::Population)
+@recipe function f(t, vpc_strt::VPC_STRAT, data::Population, idv=:time)
+  layout --> length(vpc_strt.vpc_quant)
+  if vpc_strt.strat != nothing
+    title --> "Stratified on:"*string(vpc_strt.strat)
+  end
   for quant in 1:length(vpc_strt.vpc_quant)
     @series begin
-      t, vpc_strt.vpc_quant[quant], data
+      subplot := quant
+      t, vpc_strt.vpc_quant[quant], data, idv
     end
   end
 end
 
-@recipe function f(t, vpc_quant::VPC_QUANT, data::Population)
+@recipe function f(t, vpc_quant::VPC_QUANT, data::Population, idv=:time)
   legend --> false
   lw --> 3
   ribbon := vpc_quant.Fifth_Ninetyfifth
   fillalpha := 0.2
+  xlabel --> string(idv)
+  ylabel --> "Observations"
   if vpc_quant.Observation_Percentiles != nothing
     t,[vpc_quant.Fiftieth, vpc_quant.Observation_Percentiles[1:3]]
   else 
