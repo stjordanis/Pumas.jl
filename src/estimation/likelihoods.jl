@@ -838,13 +838,13 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   for (paramname, paramval) in pairs(fpm.param)
     _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
-
-  maxname = maximum(length, paramnames) + 1
-  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
-  labels = " "^(maxname+1)*rpad("Estimate ", maxval)
+  getdecimal = x -> findfirst(c -> c=='.', x)
+  maxname = maximum(length, paramnames) 
+  maxval = max(maximum(length, paramvals), length("Estimate "))
+  labels = " "^(maxname+Int(round(maxval/2))-4)*"Estimate"
   stringrows = []
   for (name, val) in zip(paramnames, paramvals)
-    push!(stringrows, string("\n", rpad(name, maxname), lpad(val, maxval)))
+    push!(stringrows, string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val))
   end
 
   println(io)
@@ -1240,9 +1240,9 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   getdecaftersemi = x -> getdecimal(x[getsemicolon(x):end])
   getaftersemdec = x -> findall(c -> c == '.', x)[2]
   getafterdecsemi = x -> length(x)-getaftersemdec(x)
-  maxname = maximum(length, paramnames) + 1
-  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
-  maxrs = max(maximum(length, paramrse) + 1, length("RSE "))
+  maxname = maximum(length, paramnames) 
+  maxval = max(maximum(length, paramvals), length("Estimate "))
+  maxrs = max(maximum(length, paramrse), length("RSE "))
   maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
   maxdecconf = maximum(getdecimal, paramconfint)
   maxaftdec = maximum(getafterdec, paramconfint)
