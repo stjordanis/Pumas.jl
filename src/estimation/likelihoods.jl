@@ -1243,26 +1243,29 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   getaftersemdec = x -> findall(c -> c == '.', x)[2]
   getafterdecsemi = x -> length(x)-getaftersemdec(x)
   maxname = maximum(length, paramnames) 
-  maxval = max(maximum(length, paramvals), length("Estimate "))
-  maxrs = max(maximum(length, paramrse), length("RSE "))
-  maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
+  maxval = max(maximum(length, paramvals), length("Estimate"))
+  maxrs = max(maximum(length, paramrse), length("RSE"))
+  maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"% C.I."))
   maxdecconf = maximum(getdecimal, paramconfint)
   maxaftdec = maximum(getafterdec, paramconfint)
   maxdecaftsem = maximum(getdecaftersemi, paramconfint)
   maxaftdecsem = maximum(getafterdecsemi, paramconfint)
-  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-6)*string(round(pmi.level*100, sigdigits=6))*"%-conf. int."
+  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
+  
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
     row = string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint)
     push!(stringrows, row)
   end
-
+  println(io, "-"^max(length(labels),length(stringrows[1])))
   println(io)
   print(io, labels)
+  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
   for stringrow in stringrows
     print(io, stringrow)
   end
+  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
 end
 TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,
