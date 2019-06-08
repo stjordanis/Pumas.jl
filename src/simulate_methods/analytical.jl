@@ -140,7 +140,7 @@ function _solve_analytical(m::PuMaSModel, subject::Subject, tspan, col,
       end
     end
 
-    if isnan(u[i])
+    if any(x->any(isnan,x),u[i])
       retcode = :Unstable
       break
     end
