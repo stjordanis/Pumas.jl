@@ -822,8 +822,10 @@ function _print_fit_header(io, fpm)
                      lpad(typeof(fpm.approx), 19)))
   println(io, string("Objective function value:",
                      lpad(round(Optim.minimum(fpm.optim); sigdigits=round(Int, -log10(DEFAULT_RELTOL))), 19)))
-  println(io, string("Number of observation records:",
-                     lpad(sum([length(sub.time) for sub in fpm.data]), 14)))
+  println(io, string("Total number of observation records:",
+                     lpad(sum([length(sub.time) for sub in fpm.data]), 8)))
+  println(io, string("Number of active observation records:",
+                     lpad(sum(subject -> count(!ismissing, subject.observations.dv), fpm.data),7)))
   println(io, string("Number of subjects:",
                      lpad(length(fpm.data), 25)))
   println(io)
@@ -838,13 +840,13 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   for (paramname, paramval) in pairs(fpm.param)
     _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
-
-  maxname = maximum(length, paramnames) + 1
-  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
-  labels = " "^(maxname+1)*rpad("Estimate ", maxval)
+  getdecimal = x -> findfirst(c -> c=='.', x)
+  maxname = maximum(length, paramnames) 
+  maxval = max(maximum(length, paramvals), length("Estimate "))
+  labels = " "^(maxname+Int(round(maxval/2))-4)*"Estimate"
   stringrows = []
   for (name, val) in zip(paramnames, paramvals)
-    push!(stringrows, string("\n", rpad(name, maxname), lpad(val, maxval)))
+    push!(stringrows, string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val))
   end
 
   println(io)
@@ -1240,27 +1242,30 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   getdecaftersemi = x -> getdecimal(x[getsemicolon(x):end])
   getaftersemdec = x -> findall(c -> c == '.', x)[2]
   getafterdecsemi = x -> length(x)-getaftersemdec(x)
-  maxname = maximum(length, paramnames) + 1
-  maxval = max(maximum(length, paramvals) + 1, length("Estimate "))
-  maxrs = max(maximum(length, paramrse) + 1, length("RSE "))
-  maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"%-conf. int. "))
+  maxname = maximum(length, paramnames) 
+  maxval = max(maximum(length, paramvals), length("Estimate"))
+  maxrs = max(maximum(length, paramrse), length("RSE"))
+  maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"% C.I."))
   maxdecconf = maximum(getdecimal, paramconfint)
   maxaftdec = maximum(getafterdec, paramconfint)
   maxdecaftsem = maximum(getdecaftersemi, paramconfint)
   maxaftdecsem = maximum(getafterdecsemi, paramconfint)
-  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-6)*string(round(pmi.level*100, sigdigits=6))*"%-conf. int."
+  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
+  
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
     row = string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint)
     push!(stringrows, row)
   end
-
+  println(io, "-"^max(length(labels),length(stringrows[1])))
   println(io)
   print(io, labels)
+  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
   for stringrow in stringrows
     print(io, stringrow)
   end
+  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
 end
 TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,
