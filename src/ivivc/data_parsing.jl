@@ -19,17 +19,11 @@ end
 
 function ___read_vivo(df; id=:id, time=:time, conc=:conc, form=:form, dose=:dose, kwargs...)
   local ids, times, concs, forms, doses
-  try
-    df[id]
-    df[time]
-    df[conc]
-    df[form]
-    df[dose]
-  catch x
+  key_check = haskey(df, id) && haskey(df, time) && haskey(df, conc) && haskey(df, form) && haskey(df, dose)
+  if !key_check
     @info "The CSV file has keys: $(names(df))"
-    throw(x)
+    throw(ArgumentError("The CSV file must have: id, time, conc, form, dose"))
   end
-  dfnames = names(df)
   sortvars = (id, time)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
@@ -42,12 +36,11 @@ function ___read_vivo(df; id=:id, time=:time, conc=:conc, form=:form, dose=:dose
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
-  # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    ind = Dict{Any, VivoSubject}()
+    ind = Dict{eltype(forms), VivoSubject}()
     for form in uforms
       if form in forms[idx]
         idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
@@ -88,16 +81,11 @@ end
 
 function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...)
   local ids, times, concs, forms
-  try
-    df[id]
-    df[time]
-    df[conc]
-    df[form]
-  catch x
+  key_check = haskey(df, id) && haskey(df, time) && haskey(df, conc) && haskey(df, form)
+  if !key_check
     @info "The CSV file has keys: $(names(df))"
-    throw(x)
+    throw(ArgumentError("The CSV file must have: id, time, conc, form"))
   end
-  dfnames = names(df)
   sortvars = (id, time)
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
@@ -109,12 +97,11 @@ function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
-  # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
   ncas = Vector{Any}(undef, length(uids))
   for (i, id) in enumerate(uids)
     # id's range, and we know that it is sorted
     idx = findfirst(isequal(id), ids):findlast(isequal(id), ids)
-    ind = Dict{Any, VitroSubject}()
+    ind = Dict{eltype(forms), VitroSubject}()
     for form in uforms
       if form in forms[idx]
         idx_n = findfirst(isequal(form), forms[idx]):findlast(isequal(form), forms[idx])
