@@ -31,12 +31,11 @@ function Base.show(io::IO, n::VivoSubject)
 end
 
 # VivoPopulation
-struct VivoPopulation{T<:VivoSubject} <: Ivivc
-  subjects::Vector{Dict{Any, T}}
-  function VivoPopulation(_pop::Vector{Dict{Any, VivoSubject}})
-    E = eltype(values(_pop[1]))
+struct VivoPopulation{popType} <: Ivivc
+  subjects::popType
+  function VivoPopulation(_pop)
     # TODO: can do some checking and other stuff
-    return new{E}(_pop)
+    return new{typeof(_pop)}(_pop)
   end
 end
 
@@ -71,11 +70,10 @@ function Base.show(io::IO, n::VitroSubject)
 end
 
 # VitroPopulation
-struct VitroPopulation{T<:VitroSubject} <: Ivivc
-  subjects::Vector{Dict{Any, T}}
-  function VitroPopulation(_pop::Vector{Dict{Any, VitroSubject}})
-    E = eltype(values(_pop[1]))
+struct VitroPopulation{popType} <: Ivivc
+  subjects::popType
+  function VitroPopulation(_pop)
     # TODO: can do some checking and other stuff
-    return new{E}(_pop)
+    return new{typeof(_pop)}(_pop)
   end
 end
