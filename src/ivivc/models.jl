@@ -57,11 +57,11 @@ function makoid(t::Number, p)
   res
 end
 
-emax(t::AbstractVector, p) = [emax(x, p) for x in t]
-emax_ng(t::AbstractVector, p) = [emax_ng(x, p) for x in t]
-weibull(t::AbstractVector, p) = [weibull(x, p) for x in t]
-double_weibull(t::AbstractVector, p) = [double_weibull(x, p) for x in t]
-makoid(t::AbstractVector, p) = [makoid(x, p) for x in t]
+emax(t::AbstractVector, p) = emax.(t, Ref(p))
+emax_ng(t::AbstractVector, p) = emax_ng.(t, Ref(p))
+weibull(t::AbstractVector, p) = weibull.(t, Ref(p))
+double_weibull(t::AbstractVector, p) = double_weibull.(t, Ref(p))
+makoid(t::AbstractVector, p) = makoid.(t, Ref(p))
 
 # For Vivo data
 # bateman function
@@ -70,4 +70,4 @@ function bateman(t::Number, p)
   (ka/(V*(ka - kel))) * (exp(-kel*t) - exp(-ka*t))
 end
 
-bateman(t::AbstractVector, p) = [bateman(x, p) for x in t]
+bateman(t::AbstractVector, p) = bateman.(t, Ref(p))

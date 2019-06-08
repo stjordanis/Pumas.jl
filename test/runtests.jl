@@ -27,6 +27,8 @@ if group == "All" || group == "Features"
     include("features/runtests.jl")
 end
 
-
+if group == "All" || group == "IVIVC"
+    include("ivivc/runtests.jl")
+end
 
 end

@@ -104,7 +104,7 @@ conditional_nll(m::PuMaSModel,
     # if solution contains NaN return Inf
     if (solution.retcode != :Success && solution.retcode != :Terminated) ||
         # FIXME! Make this uniform across the two solution types
-        any(isnan, solution isa PKPDAnalyticalSolution ? solution(obstimes[end]) : solution.u[end])
+        any(x->any(isnan,x), solution isa PKPDAnalyticalSolution ? solution(obstimes[end]) : solution.u[end])
       # FIXME! Do we need to make this type stable?
       return numtype(collated)(Inf), nothing
     end
