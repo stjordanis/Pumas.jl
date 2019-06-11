@@ -284,6 +284,25 @@ function TreeViews.treelabel(io::IO, subject::Subject, mime::MIME"text/plain")
   show(io, mime, Text(summary(subject)))
 end
 
+@recipe function f(obs::Subject; obsnames=nothing)
+  t = obs.time
+  names = Symbol[]
+  plot_vars = []
+  for (n,v) in pairs(obs.observations)
+    if obsnames !== nothing
+      !(n in obsnames) && continue
+    end
+    push!(names,n)
+    push!(plot_vars,v)
+  end
+  xlabel --> "time"
+  legend --> false
+  lw --> 3
+  ylabel --> reshape(names,1,length(names))
+  layout --> good_layout(length(names))
+  title --> "Subject ID: $(obs.id)"
+  t,plot_vars
+end
 
 # Define Population as an alias
 """
@@ -312,6 +331,17 @@ function TreeViews.treelabel(io::IO, population::Population, mime::MIME"text/pla
   show(io, mime, Text(summary(population)))
 end
 TreeViews.nodelabel(io::IO, population::Population, i::Integer, mime::MIME"text/plain") = show(io, mime, Text(population[i].id))
+
+@recipe function f(pop::Population)
+  for p in pop
+    @series begin
+      lw --> 1.5
+      title --> "Population Simulation"
+      p
+    end
+  end
+  nothing
+end
 
 # Convert to NCA types
 import .NCA: NCAPopulation, NCASubject, NCADose
