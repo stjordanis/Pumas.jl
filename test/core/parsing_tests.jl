@@ -89,6 +89,6 @@ end
 end
 @testset "MDV" begin
   data = DataFrame(amt = 10, dv = 0, evid = 0, mdv = 1)
-  output = process_nmtran(df)
+  output = process_nmtran(data)
   @test ismissing(output[1].observations.dv[1])
 end
