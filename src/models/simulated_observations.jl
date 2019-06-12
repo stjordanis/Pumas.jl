@@ -34,7 +34,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     ## Otherwise they are set to `missing`.
     for ev in events
       ind = searchsortedlast(obs.times, ev.time)
-      if obs.times[ind] == ev.time
+      if ind != 0 && obs.times[ind] == ev.time
         ev_row = vcat(ev.time, df[ind, obs_columns]...,
                       ev.amt, ev.evid, ev.cmt, ev.rate)
         push!(df, ev_row)
