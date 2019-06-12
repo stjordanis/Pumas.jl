@@ -149,8 +149,8 @@ numtype(X::PDMats.AbstractPDMat) = numtype(eltype(X))
 # numtype(x::Tuple)         = reduce(promote_type, map(numtype,x))
 numtype(x::Tuple)         = promote_type(map(numtype, x)...)
 numtype(x::NamedTuple) = numtype(values(x))
-numtype(x::Function) = Float64 # To allow time-varying covariates
-numtype(x::String) = Float64 # To allow string covariates
+numtype(x::Function) = Float32 # To allow time-varying covariates
+numtype(x::AbstractString) = Float32 # To allow string covariates
 
 zero(x) = Base.zero(x)
 zero(x::Tuple) = map(zero,x)
