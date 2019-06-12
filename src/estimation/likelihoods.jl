@@ -848,7 +848,7 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   for (name, val) in zip(paramnames, paramvals)
     push!(stringrows, string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, "\n"))
   end
-  println(io,"\n" ,"-"^max(length(labels)+1,maximum(length.(stringrows))))
+  println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
   print(io, labels)
   println(io,"\n" ,"-"^max(length(labels)+1,maximum(length.(stringrows))))
   for stringrow in stringrows
