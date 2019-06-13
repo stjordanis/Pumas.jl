@@ -127,7 +127,7 @@ m_tv = @model begin
     @covariates wt
 
     @pre begin
-        _wt = @tvcov wt t LinearInterpolation
+        _wt = @tvcov wt t DataInterpolations.LinearInterpolation
         Ka = θ[1]
         CL = t -> θ[2] * ((_wt(t)/70)^0.75) * θ[4] * exp(η[1])
         V  = θ[3] * exp(η[2])
