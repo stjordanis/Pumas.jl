@@ -484,7 +484,7 @@ function get_simulation_quantiles(sims, reps::Integer, dv_, idv_, quantiles, str
         end
       end
       push!(quantiles_sim, [quantile(sims_t[strt],quantiles) for strt in 1:length(strat_quant)])
-    end 
+    end
     push!(pop_quantiles,quantiles_sim)
   end
   pop_quantiles
@@ -526,10 +526,10 @@ function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_qua
         for j in 1:length(quantiles)
           push!(quantiles_obs[j], quantile(obs_t,quantiles[j]))
         end
-      else 
+      else
         quantiles_obs = nothing
       end
-    end 
+    end
     push!(vpc_strat, VPC_QUANT(fifty_percentiles, fith_ninetyfifth, quantile_quantiles, quantiles_obs))
   end
   VPC_STRAT(vpc_strat, stratify_on)
@@ -552,7 +552,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
 
   if idv == :time
     idv_ = getproperty(data[1], idv)
-  else 
+  else
     idv_ = getproperty(data[1].covariates, idv)
   end
 
@@ -563,7 +563,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
   end
 
   for dv_ in dv
-    stratified_vpc = VPC_STRAT[] 
+    stratified_vpc = VPC_STRAT[]
     for strat in 1:length(strat_quants)
 
       if stratify_on != nothing
@@ -576,7 +576,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
         vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], nothing)
       end
 
-      
+
       push!(stratified_vpc, vpc_strat)
     end
     push!(vpcs , VPC_DV(stratified_vpc, dv_))
@@ -598,7 +598,7 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
 
   if idv == :time
     idv_ = getproperty(data[1], idv)
-  else 
+  else
     idv_ = getproperty(data[1].covariates, idv)
   end
 
@@ -616,12 +616,12 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
   for dv_ in dv
     if idv == :time
       idv_ = getproperty(data[1], idv)
-    else 
+    else
       idv_ = getproperty(data[1].covariates, idv)
     end
-    stratified_vpc = [] 
+    stratified_vpc = []
     for strat in 1:length(strat_quants)
-      
+
       if stratify_on != nothing
         pop_quantiles = get_simulation_quantiles(sims, length(sims), dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
       else
@@ -637,11 +637,38 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
   VPC(vpcs, sims, idv)
 end
 
+# inspect is the main function when you want all the diagnostics output and
+# print, plot, look into issues or fit quality.
+struct SubjectEBES{T1, T2, T3}
+  ebes::T1
+  subject::T2
+  approx::T3
+end
+function empirical_bayes(fpm::FittedPuMaSModel, approx=fpm.approx)
+  subjects = fpm.data
+
+  if approx == fpm.approx
+    ebes = fpm.vvrandeffs
+    return [SubjectEBES(e, s, approx) for (e, s) in zip(ebes, subjects)]
+  else
+    # re-estimate under approx
+    return [SubjectEBES(empirical_bayes(fpm.model, subject, fpm.param, approx), subject, approx) for subject in subjects]
+  end
+end
+
+
+function inspect()
+  pred = DataFrame(predict())
+  inf = DataFrame(infer())
+  res = DataFrame(wresiduals())
+  ebes = DataFrame(estimate_bayes())
+
+end
 
 @recipe function f(vpc::VPC, data::Population)
   if vpc.idv == :time
     t = getproperty(data[1], vpc.idv)
-  else 
+  else
     t = getproperty(data[1].covariates, vpc.idv)
   end
   for i in 1:length(vpc.vpc_dv)
@@ -649,7 +676,7 @@ end
       t,vpc.vpc_dv[i],data, vpc.idv
     end
   end
-  
+
 end
 
 @recipe function f(t, vpc_dv::VPC_DV, data::Population, idv=:time)
@@ -682,7 +709,7 @@ end
   ylabel --> "Observations"
   if vpc_quant.Observation_Percentiles != nothing
     t,[vpc_quant.Fiftieth, vpc_quant.Observation_Percentiles[1:3]]
-  else 
+  else
     t, vpc_quant.Fiftieth
   end
 end
