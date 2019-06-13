@@ -6,6 +6,8 @@ using DiffEqBase, DiffEqDiffTools, DiffEqMonteCarlo, Reexport, StatsBase,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools,
       DataInterpolations
 
+import DataInterpolations
+
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
 

@@ -57,6 +57,6 @@ the interpolation scheme interp from DataInterpolations.jl. Returns a function
 time-varying as well, allowing one to mix subjects with multiple measurements
 and subjects with a single measurement. Defaults to do a left-sided ZeroSpline.
 """
-macro tvcov(u,t,interp=ZeroSpline,args...)
+macro tvcov(u,t,interp=DataInterpolations.ZeroSpline,args...)
     :($(esc(u)) isa AbstractArray ? $(interp)($(esc(u)),$(esc(t)),$(args)...) : t -> $(esc(u)))
 end
