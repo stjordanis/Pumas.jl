@@ -52,7 +52,10 @@ end
 @tvcov u t interp
 
 Creates an interpolation of the time-varying covariate u at time points t using
-the interpolation scheme interp from DataInterpolations.jl
+the interpolation scheme interp from DataInterpolations.jl. Returns a function
+`(t)` that does the interpolation. This is safe for values which are not
+time-varying as well, allowing one to mix subjects with multiple measurements
+and subjects with a single measurement. Defaults to do a left-sided ZeroSpline.
 """
 macro tvcov(u,t,interp=ZeroSpline)
     :($u isa AbstractArray ? ZeroSpline($u,$t) : t -> $u)
