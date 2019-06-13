@@ -1,5 +1,6 @@
 name = "PuMaS"
 uuid = "d7b8c89e-ad89-52e0-b9fd-d0ed321fa021"
+version = "v0.0.6"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
