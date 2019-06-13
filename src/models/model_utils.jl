@@ -47,3 +47,13 @@ function eventnum(t::AbstractArray{T}, events::AbstractArray{E}) where {T<:Real,
   dose_times = [ev.time for ev in events if ev.evid == 1 || ev.evid == 4]
   [findlast(ev->(ev.evid == 1 || ev.evid == 4) && ev.time < _t ,events) for _t in t]
 end
+
+"""
+@tvcov u t interp
+
+Creates an interpolation of the time-varying covariate u at time points t using
+the interpolation scheme interp from DataInterpolations.jl
+"""
+macro tvcov(u,t,interp=ZeroSpline)
+    :($u isa AbstractArray ? ZeroSpline($u,$t) : t -> $u)
+end

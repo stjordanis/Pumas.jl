@@ -22,7 +22,7 @@ include("dsl/model_macro.jl")
 include("models/params.jl")
 include("models/simulated_observations.jl")
 include("models/model_api.jl")
-include("models/derived_utils.jl")
+include("models/model_utils.jl")
 
 include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
@@ -49,7 +49,7 @@ export conditional_nll
 export predict, wresiduals, empirical_bayes
 export ηshrinkage, ϵshrinkage
 export process_nmtran, example_nmtran_data
-export @model, @nca
+export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, infer, aic, bic, deviance, informationmatrix
 export vpc
