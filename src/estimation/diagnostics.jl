@@ -637,6 +637,10 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
   VPC(vpcs, sims, idv)
 end
 
+function Base.show(io::IO, mime::MIME"text/plain", vpc::VPC)
+  
+end
+
 
 @recipe function f(vpc::VPC, data::Population)
   if vpc.idv == :time
