@@ -32,7 +32,7 @@ end
 function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
-                        event_data = true)
+                        mdv=:mdv, event_data = true)
   data = copy(data)
   colnames = names(data)
 
@@ -45,11 +45,19 @@ function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
   if evid ∉ colnames
     data[evid] = Int8(0)
   end
+  if mdv ∉ colnames
+    data[mdv] = Int8(0)
+  end
   if cvs isa AbstractVector{<:Integer}
     cvs = colnames[cvs]
   end
   if dvs isa AbstractVector{<:Integer}
     dvs = colnames[dvs]
+  end
+  allowmissing!(data, dvs)
+  mdv = isone.(data[mdv])
+  for dv in dvs
+    data[dv] .= ifelse.(mdv, missing, data[dv])
   end
   Subject.(groupby(data, id), Ref(colnames), id, time, evid, amt, addl, ii, cmt,
            rate, ss, Ref(cvs), Ref(dvs), event_data)
