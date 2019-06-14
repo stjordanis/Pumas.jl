@@ -698,6 +698,12 @@ struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5, T6}
   df::T6
   covariates::Bool
 end
+predict(i::FittedPuMaSModelInspection) = i.pred
+infer(i::FittedPuMaSModelInspection) = i.inference
+wres(i::FittedPuMaSModelInspection) = i.wres
+emperical_bayes(i::FittedPuMaSModelInspection) = i.ebes
+DataFrames(i::FittedPuMaSModelInspection) = i.df
+
 function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
                     wres_approx=o.approx, ebes_approx=o.approx,
                     include_covariates=true)
