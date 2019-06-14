@@ -689,24 +689,20 @@ function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=t
   df
 end
 
-struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5, T6}
+struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5}
   o::T1
   pred::T2
   inference::T3
   wres::T4
   ebes::T5
-  df::T6
-  covariates::Bool
 end
-predict(i::FittedPuMaSModelInspection) = i.pred
+StatsBase.predict(i::FittedPuMaSModelInspection) = i.pred
 infer(i::FittedPuMaSModelInspection) = i.inference
 wres(i::FittedPuMaSModelInspection) = i.wres
 emperical_bayes(i::FittedPuMaSModelInspection) = i.ebes
-DataFrames(i::FittedPuMaSModelInspection) = i.df
 
 function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
-                    wres_approx=o.approx, ebes_approx=o.approx,
-                    include_covariates=true)
+                    wres_approx=o.approx, ebes_approx=o.approx)
   pred = predict(o, pred_approx)
   inference = try
     infer(o, infer_approx)
@@ -715,12 +711,15 @@ function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
   end
   res = wresiduals(o, wres_approx)
   ebes = empirical_bayes(o, ebes_approx)
-  pred_df = DataFrame(pred; include_covariates=false)
-  res_df = DataFrame(res; include_covariates=false)
-  ebes_df = DataFrame(ebes; include_covariates=include_covariates)
-  #pred, inf, res, ebes
+
+  FittedPuMaSModelInspection(o, pred, inference, res, ebes)
+end
+function DataFrame(i::FittedPuMaSModelInspection; include_covariates=true)
+  pred_df = DataFrame(i.pred; include_covariates=false)
+  res_df = DataFrame(i.wres; include_covariates=false)
+  ebes_df = DataFrame(i.ebes; include_covariates=include_covariates)
+
   df = join(join(pred_df, res_df; on=:id), ebes_df; on=:id)
-  FittedPuMaSModelInspection(o, pred, inference, wres, ebes, df, include_covariates)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInspection)
@@ -732,7 +731,6 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInspecti
     # maybe add a message here about how to rethrow the error
     println(io, "Inference was successful: false\n")
   end
-  println(io, "DataFrame includes covariates: $(pmi.covariates)\n")
   println(io, "Likehood approximations used for")
   println(io, " * Predictions:        $(pmi.pred[1].approx)")
   println(io, " * Weighted residuals: $(pmi.pred[1].approx)")
