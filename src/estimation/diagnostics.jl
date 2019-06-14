@@ -698,7 +698,7 @@ struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5}
 end
 StatsBase.predict(i::FittedPuMaSModelInspection) = i.pred
 infer(i::FittedPuMaSModelInspection) = i.inference
-wres(i::FittedPuMaSModelInspection) = i.wres
+wresiduals(i::FittedPuMaSModelInspection) = i.wres
 emperical_bayes(i::FittedPuMaSModelInspection) = i.ebes
 
 function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
@@ -714,7 +714,7 @@ function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
 
   FittedPuMaSModelInspection(o, pred, inference, res, ebes)
 end
-function DataFrame(i::FittedPuMaSModelInspection; include_covariates=true)
+function DataFrames.DataFrame(i::FittedPuMaSModelInspection; include_covariates=true)
   pred_df = DataFrame(i.pred; include_covariates=false)
   res_df = DataFrame(i.wres; include_covariates=false)
   ebes_df = DataFrame(i.ebes; include_covariates=include_covariates)
@@ -732,9 +732,9 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInspecti
     println(io, "Inference was successful: false\n")
   end
   println(io, "Likehood approximations used for")
-  println(io, " * Predictions:        $(pmi.pred[1].approx)")
-  println(io, " * Weighted residuals: $(pmi.pred[1].approx)")
-  println(io, " * Empirical bayes:    $(pmi.ebes[1].approx)\n")
+  println(io, " * Predictions:        $(first(predict(pmi)).approx)")
+  println(io, " * Weighted residuals: $(first(wresiduals(pmi)).approx)")
+  println(io, " * Empirical bayes:    $(first(empirical_bayes(pmi)).approx)\n")
 end
 
 
