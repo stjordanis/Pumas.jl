@@ -57,7 +57,7 @@ end
 function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
   resid = vresid[1]
   df = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
-  df[:approx] = resid.approx
+  df[:wres_approx] = resid.approx
   if include_covariates
      covariates = resid.subject.covariates
      for (cov, value) in pairs(covariates)
@@ -68,7 +68,7 @@ function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covaria
     for i = 2:length(vresid)
       resid = vresid[i]
       df_i = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
-      df_i[:approx] = resid.approx
+      df_i[:wres_approx] = resid.approx
       if include_covariates
          covariates = resid.subject.covariates
          for (cov, value) in pairs(covariates)
@@ -402,7 +402,7 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
   # TODO add covariates
   pred = vpred[1]
   df = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
-  df[:approx] = pred.approx
+  df[:pred_approx] = pred.approx
   if include_covariates
      covariates = pred.subject.covariates
      for (cov, value) in pairs(covariates)
@@ -413,7 +413,7 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
     for i = 2:length(vpred)
       pred = vpred[i]
       df_i = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
-      df_i[:approx] = pred.approx
+      df_i[:pred_approx] = pred.approx
 
       if include_covariates
          covariates = pred.subject.covariates
@@ -656,14 +656,84 @@ function empirical_bayes(fpm::FittedPuMaSModel, approx=fpm.approx)
   end
 end
 
-
-function inspect()
-  pred = DataFrame(predict())
-  inf = DataFrame(infer())
-  res = DataFrame(wresiduals())
-  ebes = DataFrame(estimate_bayes())
-
+function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=true)
+  ebes = vebes[1]
+  df = DataFrame(id = fill(ebes.subject.id, length(ebes.subject.time)))
+  for i = 1:length(ebes.ebes)
+    df[Symbol("ebes_$i")] = ebes.ebes[i]
+  end
+  df[:ebes_approx] = ebes.approx
+  if include_covariates
+     covariates = ebes.subject.covariates
+     for (cov, value) in pairs(covariates)
+       df[cov] = value
+     end
+  end
+  if length(vebes)>1
+    for i = 2:length(vebes)
+      ebes = vebes[i]
+      df_i = DataFrame(id = fill(ebes.subject.id, length(ebes.subject.time)))
+      for i = 1:length(ebes.ebes)
+        df_i[Symbol("ebes_$i")] = ebes.ebes[i]
+      end
+      df_i[:ebes_approx] = ebes.approx
+      if include_covariates
+         covariates = ebes.subject.covariates
+         for (cov, value) in pairs(covariates)
+           df_i[cov] = value
+         end
+      end
+      df = vcat(df, df_i)
+    end
+  end
+  df
 end
+
+struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5, T6}
+  o::T1
+  pred::T2
+  inference::T3
+  wres::T4
+  ebes::T5
+  df::T6
+  covariates::Bool
+end
+function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
+                    wres_approx=o.approx, ebes_approx=o.approx,
+                    include_covariates=true)
+  pred = predict(o, pred_approx)
+  inference = try
+    infer(o, infer_approx)
+  catch inference_error
+    inference_error
+  end
+  res = wresiduals(o, wres_approx)
+  ebes = empirical_bayes(o, ebes_approx)
+  pred_df = DataFrame(pred; include_covariates=false)
+  res_df = DataFrame(res; include_covariates=false)
+  ebes_df = DataFrame(ebes; include_covariates=include_covariates)
+  #pred, inf, res, ebes
+  df = join(join(pred_df, res_df; on=:id), ebes_df; on=:id)
+  FittedPuMaSModelInspection(o, pred, inference, wres, ebes, df, include_covariates)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInspection)
+  println(io, "FittedPuMaSModelInspection\n")
+  println(io, "Fitting was successful: $(Optim.converged(pmi.o.optim))")
+  if isa(pmi.inference, FittedPuMaSModelInference)
+    println(io, "Inference was successful: true\n")
+  else
+    # maybe add a message here about how to rethrow the error
+    println(io, "Inference was successful: false\n")
+  end
+  println(io, "DataFrame includes covariates: $(pmi.covariates)\n")
+  println(io, "Likehood approximations used for")
+  println(io, " * Predictions:        $(pmi.pred[1].approx)")
+  println(io, " * Weighted residuals: $(pmi.pred[1].approx)")
+  println(io, " * Empirical bayes:    $(pmi.ebes[1].approx)\n")
+end
+
+
 
 @recipe function f(vpc::VPC, data::Population)
   if vpc.idv == :time
