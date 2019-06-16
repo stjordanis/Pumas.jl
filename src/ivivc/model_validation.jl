@@ -21,6 +21,8 @@ function percentage_prediction_error(t, C_act, C_pre)
   cmax_pre = NCA.cmax(sub_pre)
   cmax_pe = (cmax_act - cmax_pre)/cmax_act * 100.0
   # return cmax_pe and auc_pe
+  println("cmax prediction error $(cmax_pe) %")
+  println("auc prediction error $(auc_pe) %")
   cmax_pe, auc_pe
 end
 

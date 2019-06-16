@@ -27,7 +27,7 @@ include("main.jl")
 export VitroSubject, VitroPopulation
 export VivoSubject, VivoPopulation
 export read_vitro, read_vivo
-export emax, emax_ng, weibull, double_weibull, makoid
+export emax, emax_ng, weibull, double_weibull, makoid, emax_r, weibull_r
 export vitro_model, get_avail_models
 export vivo_model, get_avail_vivo_models
 export calc_input_rate, wagner_nelson, do_ivivc, percentage_prediction_error

@@ -71,3 +71,11 @@ function bateman(t::Number, p)
 end
 
 bateman(t::AbstractVector, p) = bateman.(t, Ref(p))
+
+
+# Rate (derivative w.r.t time) of vitro models
+# derivative of emax function
+emax_r(t, p) = @. p[1] * p[2] * (p[3]^p[2]) * (t^(p[2]-1)) / ((p[3]^p[2] + t^p[2])^2)
+
+# derivative of weibull function
+weibull_r(t, p) = @. p[1] * exp(-(t/p[2])^p[3]) * inv(p[2]^p[3]) * p[3] * (t^(p[3]-1))
