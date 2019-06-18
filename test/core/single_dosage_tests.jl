@@ -1,7 +1,7 @@
 using PuMaS, Test, CSV, Random
 
 # Read the data
-data = process_nmtran(example_nmtran_data("data1"),
+data = read_pumas(example_nmtran_data("data1"),
                       [:sex,:wt,:etn])
 
 # Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations

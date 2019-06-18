@@ -67,7 +67,7 @@ _data = DataFrame(pop_obs1)
 plot(pop_obs)
 =#
 
-data = process_nmtran(_data,[:isPM,:Wt],[:conc,:dv])
+data = read_pumas(_data,[:isPM,:Wt],[:conc,:dv])
 
 obs2 = simobs(m_diffeq, data[1], param, randeffs)
 @test_broken _data2 = DataFrame(obs2)

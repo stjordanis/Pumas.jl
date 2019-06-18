@@ -6,7 +6,7 @@ StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisra
 
 @testset "Poisson model" begin
 
-  df = process_nmtran(example_nmtran_data("sim_poisson"),[:dose])
+  df = read_pumas(example_nmtran_data("sim_poisson"),[:dose])
 
 
   poisson_model = @model begin

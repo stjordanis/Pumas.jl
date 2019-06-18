@@ -7,7 +7,7 @@ using PuMaS, LinearAlgebra, Test, CSV
   pkdata = CSV.read(example_nmtran_data("event_data/CS1_IV1EST_PAR"))
   pkdata[:dv] = pkdata[:CONC]
   pkdata.CMT = 1
-  data = process_nmtran(pkdata,[:AGE, :WT, :SCR, :CLCR], [:dv],
+  data = read_pumas(pkdata,[:AGE, :WT, :SCR, :CLCR], [:dv],
                         id=:ID, time=:TIME, amt=:AMT, evid=:MDV, cmt=:CMT)
 
 

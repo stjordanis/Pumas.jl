@@ -14,8 +14,8 @@ to_nt(obj::Any) = propertynames(obj) |>
     for x ∈ x))
 
 """
-    process_nmtran(filepath::String, args...; kwargs...)
-    process_nmtran(data, cvs=Symbol[], dvs=Symbol[:dv];
+    read_pumas(filepath::String, args...; kwargs...)
+    read_pumas(data, cvs=Symbol[], dvs=Symbol[:dv];
                    id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                    ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
                    event_data = true)
@@ -26,13 +26,13 @@ Import NMTRAN-formatted data.
 - `dvs` dependent variables specified by either names or column numbers
 - `event_data` toggles assertions applicable to event data
 """
-function process_nmtran(filepath::AbstractString, args...; kwargs...)
-  process_nmtran(CSV.read(filepath, missingstrings=["."]), args...; kwargs...)
+function read_pumas(filepath::AbstractString; kwargs...)
+  read_pumas(CSV.read(filepath, missingstrings=["."]), args...; kwargs...)
 end
-function process_nmtran(data,cvs=Symbol[],dvs=Symbol[:dv];
-                        id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
-                        ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
-                        mdv=:mdv, event_data = true)
+function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv]
+                         id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
+                         ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
+                         mdv=:mdv, event_data = true)
   data = copy(data)
   colnames = names(data)
 
