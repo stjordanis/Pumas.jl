@@ -2,7 +2,7 @@ using Test
 using PuMaS, LinearAlgebra, Optim
 
 @testset "likelihood tests from NLME.jl" begin
-data = process_nmtran(example_nmtran_data("sim_data_model1"))
+data = read_pumas(example_nmtran_data("sim_data_model1"))
 #-----------------------------------------------------------------------# Test 1
 mdsl1 = @model begin
     @param begin

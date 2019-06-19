@@ -3,7 +3,7 @@ using PuMaS, LinearAlgebra, Optim, CSV
 
 @testset "Models from the Wang paper" begin
 
-  data = process_nmtran(example_nmtran_data("wang"))
+  data = read_pumas(example_nmtran_data("wang"))
 
   # Add initial events following Wang's model
   for i in eachindex(data)
@@ -117,7 +117,7 @@ using PuMaS, LinearAlgebra, Optim, CSV
     # First we load a new verison of data and log transform dv
     _df = CSV.read(example_nmtran_data("wang"))
     _df[:dv] = log.(_df[:dv])
-    data_log = process_nmtran(_df)
+    data_log = read_pumas(_df)
 
     # Add initial events following Wang's model
     for i in eachindex(data_log)

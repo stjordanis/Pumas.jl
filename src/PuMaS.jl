@@ -50,7 +50,7 @@ export tad, eventnum
 export conditional_nll
 export predict, wresiduals, empirical_bayes
 export ηshrinkage, ϵshrinkage
-export process_nmtran, example_nmtran_data
+export read_pumas, example_nmtran_data
 export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, infer, aic, bic, deviance, informationmatrix
