@@ -29,8 +29,8 @@ using PuMaS, Test, LinearAlgebra
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_nmtran(example_nmtran_data("event_data/data23"),
-                         [], [:ev1,:cp,:periph,:resp])[1]
+subject = read_pumas(example_nmtran_data("event_data/data23"),
+                         cvs = [], dvs = [:ev1,:cp,:periph,:resp])[1]
 
 
 m23 = @model begin
@@ -129,8 +129,8 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
-subject = process_nmtran(example_nmtran_data("event_data/data24"),
-                         [], [:ev1,:cp,:periph,:resp])[1]
+subject = read_pumas(example_nmtran_data("event_data/data24"),
+                         cvs = [], dvs = [:ev1,:cp,:periph,:resp])[1]
 
 
 m24 = @model begin

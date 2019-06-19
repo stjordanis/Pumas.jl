@@ -10,8 +10,8 @@ FD_hessian = function (f, x)
 end
 
 @testset "Derivatives w.r.t regular parameters" begin
-    data = process_nmtran(example_nmtran_data("data1"),
-                        [:sex,:wt,:etn])
+    data = read_pumas(example_nmtran_data("data1"),
+                        cvs = [:sex,:wt,:etn])
     subject = data[1]
     # Cut off the `t=0` pre-dose observation as it throws conditional_nll calculations
     # off the scale (variance of the simulated distribution is too small).
@@ -158,8 +158,8 @@ end
         end
     end
 
-    subject = process_nmtran(example_nmtran_data("event_data/data2"),
-                         [], [:cp])[1]
+    subject = read_pumas(example_nmtran_data("event_data/data2"),
+                         cvs = [], dvs = [:cp])[1]
 
     θ₀ = [1.5, 1.0, 30.0, 5.0]
     param = (θ = θ₀,)
@@ -200,8 +200,8 @@ end
         end
     end
 
-    subject = process_nmtran(example_nmtran_data("event_data/data5"),
-                         [], [:cp])[1]
+    subject = read_pumas(example_nmtran_data("event_data/data5"),
+                         cvs = [], dvs = [:cp])[1]
 
     θ₀ = [1.5, 1.0, 30.0, 0.412]
     param = (θ = θ₀,)

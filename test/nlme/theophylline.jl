@@ -11,7 +11,7 @@ _extract(A) = A
 # Control verbosity of solver output
 verbose = false
 
-theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:SEX,:WT])
+theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:SEX,:WT])
 @testset "Check that Events is fully typed when parsed" begin
   @test theopp[1].events isa Vector{PuMaS.Event{Float64,Float64,Float64,Float64,Float64,Float64,Int}}
 end
