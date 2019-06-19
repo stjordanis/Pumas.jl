@@ -28,9 +28,9 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     var = observed[k]
     lenvar = length(var)
     if lenvar != ntime && lenvar == nev # NCA quantities
-      # pad NCA quantities with `nothing`
+      # pad NCA quantities
       i = 0
-      var = map(t -> t in evtimes ? var[i+=1] : nothing, times)
+      var = map(t -> t in evtimes ? var[i+=1] : var[i], times)
     end
     setproperty!(df, k, deepcopy(var))
   end
