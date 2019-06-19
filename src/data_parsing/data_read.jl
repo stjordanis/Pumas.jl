@@ -27,9 +27,9 @@ Import NMTRAN-formatted data.
 - `event_data` toggles assertions applicable to event data
 """
 function read_pumas(filepath::AbstractString; kwargs...)
-  read_pumas(CSV.read(filepath, missingstrings=["."]), args...; kwargs...)
+  read_pumas(CSV.read(filepath, missingstrings=["."]) ; kwargs...)
 end
-function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv]
+function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
                          id=:id, time=:time, evid=:evid, amt=:amt, addl=:addl,
                          ii=:ii, cmt=:cmt, rate=:rate, ss=:ss,
                          mdv=:mdv, event_data = true)

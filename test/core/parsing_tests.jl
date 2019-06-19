@@ -28,7 +28,7 @@ using PuMaS, Test, CSV
   end
 end
 @testset "Time Variant Covariates" begin
-  data = read_pumas(example_nmtran_data("time_varying_covariates"), [:weight, :dih])
+  data = read_pumas(example_nmtran_data("time_varying_covariates"), cvs = [:weight, :dih])
   @test data[1].covariates.weight |> (x -> isa(x, Vector{Int}) && length(x) == 7)
   @test data[1].covariates.dih == 2
 end
@@ -74,8 +74,8 @@ end
                                   dv2 = [0, 0, missing, 2],
                                   x = [missing, missing, 0.5, 0.75],
                                   amt = [0.25, 0.25, 0, 0]),
-                         [:x],
-                         [:dv1, :dv2])
+                         cvs = [:x],
+                         dvs = [:dv1, :dv2])
   @test isa(data, Population)
   isa(data[1].observations[1], NamedTuple{(:dv1,:dv2),NTuple{2, Union{Missing,Float64}}})
 end

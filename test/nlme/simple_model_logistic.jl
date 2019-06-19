@@ -3,7 +3,7 @@ using PuMaS, Test, StatsFuns
 @testset "Logistic regression example" begin
 
     data = read_pumas(joinpath(dirname(pathof(PuMaS)), "..", "examples", "pain_remed.csv"),
-                          [:arm, :dose, :conc, :painord,:remed];
+                          cvs = [:arm, :dose, :conc, :painord,:remed];
                           time=:time, event_data=false)
 
     mdsl = @model begin

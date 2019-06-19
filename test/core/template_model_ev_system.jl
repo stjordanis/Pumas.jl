@@ -54,7 +54,7 @@ m_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data2"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -132,7 +132,7 @@ mlag_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data3"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 
 param = (θ = [1.5,  #Ka
@@ -217,7 +217,7 @@ mlagbioav_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data4"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -303,7 +303,7 @@ mbioav_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data5"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -382,7 +382,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data6"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [1.5,  #Ka
            1.0,  #CL
@@ -460,7 +460,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data7"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -516,7 +516,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data8"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -574,7 +574,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data9"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -625,7 +625,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data10"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -677,7 +677,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data11"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -725,7 +725,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data12"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -767,7 +767,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data13"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [ 1.5,  #Ka
             1.0,  #CL
@@ -855,7 +855,7 @@ mbld_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data14"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
           1.5,  #Ka
@@ -894,7 +894,7 @@ sim = simobs(mbld_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data15"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
            1.5,  #Ka
@@ -939,7 +939,7 @@ maximum(sim[:cp] - subject.observations.cp)
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data16"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
               1.5,  #Ka
@@ -978,7 +978,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12, c
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data17"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
               1.0,  #Ka
@@ -1009,7 +1009,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data18"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
             1.0,  #Ka
@@ -1090,7 +1090,7 @@ mparbl_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data19"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
             0.8,  #Ka1
@@ -1161,7 +1161,7 @@ mbl2_analytic = @model begin
 end
 
 subject = read_pumas(example_nmtran_data("event_data/data20"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
             0.5,  #Ka1
@@ -1193,7 +1193,7 @@ sim = simobs(mbl2_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data21"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
             1.5,  #Ka
@@ -1224,7 +1224,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12, c
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data22"),
-                         [], [:cp])[1]
+                         cvs = [], dvs = [:cp])[1]
 
 param = (θ = [
             1.5,  #Ka

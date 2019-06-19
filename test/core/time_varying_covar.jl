@@ -1,7 +1,7 @@
 using PuMaS, StaticArrays, DataInterpolations, Test
 
 data = read_pumas(example_nmtran_data("data1"),
-                      [:sex,:wt,:etn])
+                      cvs = [:sex,:wt,:etn])
 
 for subject in data
     if subject.time[1] == 0

@@ -4,7 +4,7 @@ using PuMaS, Test, Distributions
 cvs = [:ka, :cl, :v]
 dvs = [:dv]
 data = read_pumas(example_nmtran_data("oral1_1cpt_KAVCL_MD_data"),
-                      cvs, dvs)
+                      cvs =  cvs , dvs = dvs)
 
 m_diffeq = @model begin
 

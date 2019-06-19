@@ -30,7 +30,7 @@ using PuMaS, Test, LinearAlgebra
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data23"),
-                         [], [:ev1,:cp,:periph,:resp])[1]
+                         cvs = [], dvs = [:ev1,:cp,:periph,:resp])[1]
 
 
 m23 = @model begin
@@ -130,7 +130,7 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # mdv = 1: indicates that observations are not avaialable at this dosing record
 
 subject = read_pumas(example_nmtran_data("event_data/data24"),
-                         [], [:ev1,:cp,:periph,:resp])[1]
+                         cvs = [], dvs = [:ev1,:cp,:periph,:resp])[1]
 
 
 m24 = @model begin
