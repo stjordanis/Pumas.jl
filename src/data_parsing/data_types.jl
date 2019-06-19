@@ -347,7 +347,7 @@ end
 import .NCA: NCAPopulation, NCASubject, NCADose
 using .NCA: Formulation, IVBolus, IVInfusion, EV
 function Base.convert(::Type{NCADose}, ev::Event)
-  ev.evid === Int8(1) || return nothing
+  (ev.evid == Int8(0) || ev.evid == Int8(2) || ev.evid == Int8(3)) && return nothing
   time = ev.time
   amt = ev.amt
   duration = isinf(ev.duration) ? zero(ev.duration) : ev.duration
