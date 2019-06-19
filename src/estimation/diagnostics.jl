@@ -662,26 +662,19 @@ function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=t
   df
 end
 
-struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5}
+struct FittedPuMaSModelInspection{T1, T2, T3, T4}
   o::T1
   pred::T2
-  inference::T3
-  wres::T4
-  ebes::T5
+  wres::T3
+  ebes::T4
 end
 StatsBase.predict(i::FittedPuMaSModelInspection) = i.pred
-infer(i::FittedPuMaSModelInspection) = i.inference
 wresiduals(i::FittedPuMaSModelInspection) = i.wres
 empirical_bayes(i::FittedPuMaSModelInspection) = i.ebes
 
 function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
                     wres_approx=o.approx, ebes_approx=o.approx)
   pred = predict(o, pred_approx)
-  inference = try
-    infer(o, infer_approx)
-  catch inference_error
-    inference_error
-  end
   res = wresiduals(o, wres_approx)
   ebes = empirical_bayes(o, ebes_approx)
 
