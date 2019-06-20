@@ -17,13 +17,28 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
   include_events=true, event_order_reverse=true,
   include_covariates=true)
   nrows = length(obs.times)
-  df = DataFrame(merge((time=obs.times,), deepcopy(obs.observed)))
+  events = obs.subject.events
+  nev = events isa Array ? length(events) : 0
+  evtimes = map(ev->ev.time, events)
+  times = obs.times
+  ntime = length(obs.times)
+  observed = obs.observed
+  df = DataFrame(time=deepcopy(times))
+  for k in keys(observed)
+    var = observed[k]
+    lenvar = length(var)
+    if lenvar != ntime && lenvar == nev # NCA quantities
+      # pad NCA quantities
+      i = 0
+      var = map(t -> t in evtimes ? var[i+=1] : var[i], times)
+    end
+    setproperty!(df, k, deepcopy(var))
+  end
   obs_columns = [keys(obs.observed)...]
   if include_events
     # Append event columns
     ## For observations we have `evid=0` and `cmt=0`, the latter
     ## subject to changes in the future
-    events = obs.subject.events
     df[:amt]  = zeros(typeof(events[1].amt),  nrows)
     df[:evid] = zeros(typeof(events[1].evid), nrows)
     df[:cmt]  = missings(typeof(events[1].cmt), nrows)
