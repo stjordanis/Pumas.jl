@@ -10,6 +10,7 @@ struct FOCE <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
 struct LaplaceI <: LikelihoodApproximation end
+struct HCubeQuad <: LikelihoodApproximation end
 
 """
     _lpdf(d,x)
@@ -233,7 +234,7 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           m::PuMaSModel,
                           subject::Subject,
                           param::NamedTuple,
-                          ::Union{FO,FOI},
+                          ::Union{FO,FOI,HCubeQuad},
                           args...; kwargs...)
 
   fill!(vrandeffs, 0)
@@ -389,6 +390,18 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      randeffs::AbstractVector,
+                      approx::HCubeQuad,
+                      low::AbstractVector=-4*sqrt.(var(m.random(param).params.η)),
+                      high::AbstractVector=4*sqrt.(var(m.random(param).params.η)),
+                      args...; kwargs...)
+
+  -log(hcubature(randeff -> exp(-conditional_nll(m, subject, param, (η = randeff,), args...; kwargs...))*pdf(m.random(param).params.η, randeff), low, high)[1])
+end
+
 # deviance is NONMEM-equivalent marginal negative loglikelihood
 """
     deviance(model, subject, param[, param], approx, ...)
@@ -520,7 +533,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
-                                approx::Union{FO,FOI},
+                                approx::Union{FO,FOI,HCubeQuad},
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient

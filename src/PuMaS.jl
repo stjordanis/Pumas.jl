@@ -3,7 +3,7 @@ module PuMaS
 using DiffEqBase, DiffEqDiffTools, DiffEqMonteCarlo, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings, RecipesBase, StructArrays, RecursiveArrayTools
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
 
 import DataInterpolations
 

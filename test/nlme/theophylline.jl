@@ -983,6 +983,10 @@ end
     @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
       @test ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] rtol=1e-3
     end
+
+    @testset "Cubature based estimation deviance test" begin
+      @test deviance(theopmodel_laplacei, theopp, param, PuMaS.HCubeQuad()) ≈ 281.1606964897779 rtol=1e-6 #regression test
+    end
   end
 end
 end

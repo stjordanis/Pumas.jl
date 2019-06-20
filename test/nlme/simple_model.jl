@@ -47,6 +47,7 @@ end
 @test deviance(mdsl1, data, param, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
 @test deviance(mdsl1, data, param, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
 @test deviance(mdsl1, data, param, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.HCubeQuad()) ≈ 56.92491372848633 rtol=1e-6 #regression test
 
 # Supporting outer AD optimization makes it harder to store the
 # EBEs since their type changes during AD optimization so for
