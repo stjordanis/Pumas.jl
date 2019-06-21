@@ -30,9 +30,13 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     if lenvar != ntime && lenvar == nev # NCA quantities
       # pad NCA quantities
       i = 0
-      var = map(t -> t in evtimes ? var[i+=1] : var[i], times)
+      var = map(times) do t
+        i1 = min(i+1, nev)
+        t >= evtimes[i1] && (i = i1)
+        var[i1]
+      end
     end
-    setproperty!(df, k, deepcopy(var))
+    df[k] = deepcopy(var)
   end
   obs_columns = [keys(obs.observed)...]
   if include_events
