@@ -10,6 +10,7 @@ struct FOCE <: LikelihoodApproximation end
 struct FOCEI <: LikelihoodApproximation end
 struct Laplace <: LikelihoodApproximation end
 struct LaplaceI <: LikelihoodApproximation end
+struct HCubeQuad <: LikelihoodApproximation end
 
 """
     _lpdf(d,x)
@@ -233,7 +234,7 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           m::PuMaSModel,
                           subject::Subject,
                           param::NamedTuple,
-                          ::Union{FO,FOI},
+                          ::Union{FO,FOI,HCubeQuad},
                           args...; kwargs...)
 
   fill!(vrandeffs, 0)
@@ -389,6 +390,18 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
+function marginal_nll(m::PuMaSModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      randeffs::AbstractVector,
+                      approx::HCubeQuad,
+                      low::AbstractVector=-4*sqrt.(var(m.random(param).params.η)),
+                      high::AbstractVector=4*sqrt.(var(m.random(param).params.η)),
+                      args...; kwargs...)
+
+  -log(hcubature(randeff -> exp(-conditional_nll(m, subject, param, (η = randeff,), args...; kwargs...))*pdf(m.random(param).params.η, randeff), low, high)[1])
+end
+
 # deviance is NONMEM-equivalent marginal negative loglikelihood
 """
     deviance(model, subject, param[, param], approx, ...)
@@ -520,7 +533,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
-                                approx::Union{FO,FOI},
+                                approx::Union{FO,FOI,HCubeQuad},
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
@@ -843,17 +856,18 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   getdecimal = x -> findfirst(c -> c=='.', x)
   maxname = maximum(length, paramnames) 
   maxval = max(maximum(length, paramvals), length("Estimate "))
-  labels = " "^(maxname+Int(round(maxval/2))-4)*"Estimate"
+  labels = " "^(maxname+Int(round(maxval/2))-3)*"Estimate"
   stringrows = []
   for (name, val) in zip(paramnames, paramvals)
-    push!(stringrows, string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val))
+    push!(stringrows, string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, "\n"))
   end
-
-  println(io)
+  println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
   print(io, labels)
+  println(io,"\n" ,"-"^max(length(labels)+1,maximum(length.(stringrows))))
   for stringrow in stringrows
     print(io, stringrow)
   end
+  println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
 end
 TreeViews.hastreeview(x::FittedPuMaSModel) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModel,
@@ -1250,22 +1264,21 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   maxaftdec = maximum(getafterdec, paramconfint)
   maxdecaftsem = maximum(getdecaftersemi, paramconfint)
   maxaftdecsem = maximum(getafterdecsemi, paramconfint)
-  labels = " "^(maxname+Int(round(maxval/2))-4)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
+  labels = " "^(maxname+Int(round(maxval/2))-3)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
   
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
-    row = string("\n", name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint)
+    row = string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint, "\n")
     push!(stringrows, row)
   end
-  println(io, "-"^max(length(labels),length(stringrows[1])))
-  println(io)
+  println(io, "-"^max(length(labels)+1,length(stringrows[1])))
   print(io, labels)
-  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
+  println(io, "\n",  "-"^max(length(labels)+1,length(stringrows[1])))
   for stringrow in stringrows
     print(io, stringrow)
   end
-  println(io, "\n",  "-"^max(length(labels),length(stringrows[1])))
+  println(io, "-"^max(length(labels)+1,length(stringrows[1])))
 end
 TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
 function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,

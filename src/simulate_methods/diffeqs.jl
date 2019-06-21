@@ -35,10 +35,14 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
               kwargs...)
 end
 
-make_function(prob::ODEProblem,fd) = ODEFunction{DiffEqBase.isinplace(prob)}(fd)
-make_function(prob::DDEProblem,fd) = DDEFunction{DiffEqBase.isinplace(prob)}(fd)
-make_function(prob::DiscreteProblem,fd) = DiscreteFunction{DiffEqBase.isinplace(prob)}(fd)
-make_function(prob::SDEProblem,fd) = SDEFunction{DiffEqBase.isinplace(prob)}(fd,prob.g)
+using DiffEqBase: RECOMPILE_BY_DEFAULT
+# We force `make_function` to call the constructor directly, so that
+# `ODEFunction` won't try to check the existence of `f(Val{:analytic}, ...)`
+# which can lead to issues.
+make_function(prob::ODEProblem,fd) = ODEFunction{DiffEqBase.isinplace(prob), RECOMPILE_BY_DEFAULT}(fd)
+make_function(prob::DDEProblem,fd) = DDEFunction{DiffEqBase.isinplace(prob), RECOMPILE_BY_DEFAULT}(fd)
+make_function(prob::DiscreteProblem,fd) = DiscreteFunction{DiffEqBase.isinplace(prob), RECOMPILE_BY_DEFAULT}(fd)
+make_function(prob::SDEProblem,fd) = SDEFunction{DiffEqBase.isinplace(prob), RECOMPILE_BY_DEFAULT}(fd,prob.g)
 
 function build_pkpd_problem(_prob::DiffEqBase.AbstractJumpProblem,set_parameters,θ,ηi,datai)
   prob,tstops = build_pkpd_problem(_prob.prob,set_parameters,θ,ηi,datai)

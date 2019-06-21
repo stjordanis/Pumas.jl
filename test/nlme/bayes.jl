@@ -6,7 +6,7 @@ else
     nsamples = 10_000
 end
 
-theopp = process_nmtran(example_nmtran_data("event_data/THEOPP"),[:WT,:SEX])
+theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:WT,:SEX])
 
 @testset "Model with analytical solution" begin
   theopmodel_bayes = @model begin

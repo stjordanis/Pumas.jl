@@ -1,7 +1,7 @@
 using PuMaS, Test, LinearAlgebra
 
 @testset "Test with missing values" begin
-  data = process_nmtran(example_nmtran_data("sim_data_model1"))
+  data = read_pumas(example_nmtran_data("sim_data_model1"))
 
   # Make a missing observation
   push!(data[1].observations.dv, missing)
