@@ -30,6 +30,7 @@ include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
+include("estimation/vpc.jl")
 
 include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
