@@ -288,13 +288,17 @@ end
   xlabel --> string(idv)
   ylabel --> "Observations"
   if data != nothing
-    t, vpc_quant.Fiftieth, data
+    for y in [vpc_quant.Fiftieth, data]
+      @series begin
+        t, y
+      end 
+    end 
   else 
     t, vpc_quant.Fiftieth
   end
 end
 
-@recipe function f(data::OBS_QUANT)
-  fiftieth = [quant[2] for quant in data.Observation_Quantiles]
-  fiftieth
+@recipe function f(t, data::OBS_QUANT)
+  seriestype := :scatter
+  t, data.Observation_Quantiles
 end
