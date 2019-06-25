@@ -19,9 +19,14 @@ struct VPC_DV
   dv::Symbol
 end
 
+struct OBS_VPC
+  t::AbstractVector
+  Obs_vpc::AbstractVector  
+end
+
 struct VPC
   vpc_dv::Vector{VPC_DV}
-	Observation_quantile::AbstractVector
+	Obs_vpc::OBS_VPC
   Simulations::AbstractVector
   idv::Symbol
   data::Population
@@ -42,7 +47,7 @@ function get_strat(data::Population, stratify_on::Symbol)
 end
 
 #Compute quantiles of the simulations for the population for a dv, idv and strata
-function get_simulation_quantiles(sims::AbstractVector, reps::Integer, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Symbol)
+function get_simulation_quantiles(sims::AbstractVector, reps::Integer, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Union{Symbol,Nothing})
   pop_quantiles = []
   for i in 1:reps
     sim = sims[i]
@@ -69,7 +74,7 @@ function get_simulation_quantiles(sims::AbstractVector, reps::Integer, dv_::Symb
   pop_quantiles
 end
 
-function get_observation_quantiles(data::Population, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Symbol)
+function get_observation_quantiles(data::Population, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Union{Symbol,Nothing})
   quantiles_obs = []
   obs_t = []
   for strt in 1:length(strat_quant)
@@ -114,7 +119,7 @@ function get_quant_quantiles(pop_quantiles::AbstractVector, reps::Int, idv_::Abs
 end
 
 #For each strata store it's quantiles of the quantiles
-function get_vpc(quantile_quantiles::AbstractVector, strat_quant, stratify_on)
+function get_vpc(quantile_quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Union{Symbol,Nothing})
   vpc_strat = VPC_QUANT[]
   for strt in 1:length(strat_quant)
     fifty_percentiles = []
@@ -154,7 +159,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
       push!(strat_quants , strat_quant)
     end
   else
-    push!(strat_quants, 1)
+    push!(strat_quants, [1])
   end
 
   if idv == :time
@@ -192,7 +197,39 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
     push!(vpcs, VPC_DV(stratified_vpc, dv_))
     push!(obs_vpc, obs_vpc_dv) 
   end
-  VPC(vpcs, obs_vpc, sims, idv, data)
+  VPC(vpcs, OBS_VPC(idv_, obs_vpc), sims, idv, data)
+end
+
+function vpc_obs(data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+  strat_quants = []
+  if stratify_on != nothing
+    for strt in stratify_on
+      strat_quant = get_strat(data, strt)
+      push!(strat_quants , strat_quant)
+    end
+  else
+    push!(strat_quants, [1])
+  end
+  
+  if idv == :time
+    idv_ = getproperty(data[1], idv)
+  else 
+    idv_ = getproperty(data[1].covariates, idv)
+  end
+  
+  obs_vpc = []
+  for dv_ in dv
+    obs_vpc_dv = []
+    for strat in 1:length(strat_quants)
+      if stratify_on != nothing
+        push!(obs_vpc_dv, get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat]))
+      else
+        push!(obs_vpc_dv, get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing))
+      end
+    end
+    push!(obs_vpc, obs_vpc_dv)
+  end
+  OBS_VPC(idv_, obs_vpc)
 end
 
 #Use FittedPuMaSModel object for vpc
@@ -224,7 +261,7 @@ function vpc(sims::AbstractVector, data::Population;quantiles = [0.05,0.5,0.95],
       push!(strat_quants, strat_quant)
     end
   else
-    push!(strat_quants, 1)
+    push!(strat_quants, [1])
   end
 
   for dv_ in dv
@@ -250,7 +287,7 @@ function vpc(sims::AbstractVector, data::Population;quantiles = [0.05,0.5,0.95],
     push!(vpcs, VPC_DV(stratified_vpc, dv_))
     push!(obs_vpc, obs_vpc_dv) 
   end
-  VPC(vpcs, obs_vpc, sims, idv, data)
+  VPC(vpcs, OBS_VPC(idv_, obs_vpc), sims, idv, data)
 end
 
 # function show(io::IO, mime::MIME"text/plain", vpc::VPC)
@@ -258,7 +295,7 @@ end
 # end
 
 #Recipes for the VPC and subsequent objects that store the quantiles per dv, strata and quantiles
-@recipe function f(vpc::VPC;data=vpc.data)
+@recipe function f(vpc::VPC; data=vpc.data)
   if vpc.idv == :time
     t = getproperty(data[1], vpc.idv)
   else 
@@ -266,7 +303,7 @@ end
   end
   for i in 1:length(vpc.vpc_dv)
     @series begin
-      t, vpc.vpc_dv[i], vpc.Observation_quantile[i], vpc.idv
+      t, vpc.vpc_dv[i], vpc.Obs_vpc.Obs_vpc[i], vpc.idv
     end
   end
   
@@ -308,6 +345,18 @@ end
     end 
   else 
     t, vpc_quant.Fiftieth
+  end
+end
+
+@recipe function f(Obs_vpc::OBS_VPC)
+  for i in 1:length(Obs_vpc.Obs_vpc)
+    for j in 1:length(Obs_vpc.Obs_vpc[i])
+      for k in 1:length(Obs_vpc.Obs_vpc[i][j])
+        @series begin
+          Obs_vpc.t, Obs_vpc.Obs_vpc[i][j][k]
+        end
+      end 
+    end
   end
 end
 

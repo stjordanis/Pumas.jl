@@ -55,5 +55,5 @@ export read_pumas, example_nmtran_data
 export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, infer, aic, bic, deviance, informationmatrix
-export vpc
+export vpc, vpc_obs
 end # module
