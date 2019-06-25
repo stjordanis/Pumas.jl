@@ -12,6 +12,7 @@ end
 struct VPC_STRAT
   vpc_quant::Vector{VPC_QUANT}
   strat::Symbol
+  strata_val::AbstractVector
 end
 
 struct VPC_DV
@@ -130,7 +131,7 @@ function get_vpc(quantile_quantiles::AbstractVector, strat_quant::AbstractVector
     end
     push!(vpc_strat, VPC_QUANT(fifty_percentiles, fith_ninetyfifth, quantile_quantiles))
   end
-  VPC_STRAT(vpc_strat, stratify_on)
+  VPC_STRAT(vpc_strat, stratify_on, strat_quant)
 end
 
 """
@@ -310,22 +311,18 @@ end
 end
 
 @recipe function f(t, vpc_dv::VPC_DV, data, idv=:time)
-  for strt in 1:length(vpc_dv.vpc_strat)
-    @series begin
-      t, vpc_dv.vpc_strat[strt], data[strt], idv
-    end
-  end
-end
-
-@recipe function f(t, vpc_strt::VPC_STRAT, data, idv=:time)
-  layout --> length(vpc_strt.vpc_quant)
-  if vpc_strt.strat != nothing
-    title --> "Stratified on:"*string(vpc_strt.strat)
-  end
-  for quant in 1:length(vpc_strt.vpc_quant)
-    @series begin
-      subplot := quant
-      t, vpc_strt.vpc_quant[quant], data[quant], idv
+  layout --> sum([length(vpc_dv.vpc_strat[i].vpc_quant) for i in 1:length(vpc_dv.vpc_strat)])
+  j = 1
+  for (i,vpc_strt) in enumerate(vpc_dv.vpc_strat)
+    for quant in 1:length(vpc_strt.vpc_quant)
+      @series begin
+        subplot := j
+        if vpc_strt.strat != nothing
+          title --> "Stratified on: "*string(vpc_strt.strat, " ", round(vpc_strt.strata_val[quant], sigdigits = 3))
+        end
+        t, vpc_strt.vpc_quant[quant], data[i][quant], idv
+      end
+      j += 1
     end
   end
 end
