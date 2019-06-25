@@ -1,33 +1,34 @@
 #Structures to store the quantiles of the simulations per dv, stratification and quantile
 struct VPC_QUANT
-  Fiftieth
-  Fifth_Ninetyfifth
-  Simulation_Percentiles
+  Fiftieth::AbstractVector
+  Fifth_Ninetyfifth::AbstractVector
+  Simulation_Percentiles::AbstractVector
 end
 
 struct OBS_QUANT
-  Observation_Quantiles
+  Observation_Quantiles::AbstractVector
 end
 
 struct VPC_STRAT
   vpc_quant::Vector{VPC_QUANT}
-  strat
+  strat::Symbol
 end
 
 struct VPC_DV
   vpc_strat::Vector{VPC_STRAT}
-  dv
+  dv::Symbol
 end
 
 struct VPC
   vpc_dv::Vector{VPC_DV}
-	Observation_quantile
-  Simulations
-  idv
+	Observation_quantile::AbstractVector
+  Simulations::AbstractVector
+  idv::Symbol
+  data::Population
 end
 
 #Compute the quantiles of the stratification covariate
-function get_strat(data::Population, stratify_on)
+function get_strat(data::Population, stratify_on::Symbol)
   strat_vals = []
   cov_vals = Float64[]
   for i in 1:length(data)
@@ -41,7 +42,7 @@ function get_strat(data::Population, stratify_on)
 end
 
 #Compute quantiles of the simulations for the population for a dv, idv and strata
-function get_simulation_quantiles(sims, reps::Integer, dv_, idv_, quantiles, strat_quant, stratify_on)
+function get_simulation_quantiles(sims::AbstractVector, reps::Integer, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Symbol)
   pop_quantiles = []
   for i in 1:reps
     sim = sims[i]
@@ -68,7 +69,7 @@ function get_simulation_quantiles(sims, reps::Integer, dv_, idv_, quantiles, str
   pop_quantiles
 end
 
-function get_observation_quantiles(data, dv_, idv_, quantiles, strat_quant, stratify_on)
+function get_observation_quantiles(data::Population, dv_::Symbol, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector, stratify_on::Symbol)
   quantiles_obs = []
   obs_t = []
   for strt in 1:length(strat_quant)
@@ -92,7 +93,7 @@ function get_observation_quantiles(data, dv_, idv_, quantiles, strat_quant, stra
 end
 
 #Compute quantiles of the quantiles to get the values for the ribbons 
-function get_quant_quantiles(pop_quantiles, reps, idv_, quantiles, strat_quant)
+function get_quant_quantiles(pop_quantiles::AbstractVector, reps::Int, idv_::AbstractVector, quantiles::AbstractVector, strat_quant::AbstractVector)
   quantile_quantiles = []
   for strt in 1:length(strat_quant)
     quantile_strat = []
@@ -113,7 +114,7 @@ function get_quant_quantiles(pop_quantiles, reps, idv_, quantiles, strat_quant)
 end
 
 #For each strata store it's quantiles of the quantiles
-function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_quant, stratify_on)
+function get_vpc(quantile_quantiles::AbstractVector, strat_quant, stratify_on)
   vpc_strat = VPC_QUANT[]
   for strt in 1:length(strat_quant)
     fifty_percentiles = []
@@ -127,7 +128,19 @@ function get_vpc(quantile_quantiles, data, dv_, idv_, sims ,quantiles, strat_qua
   VPC_STRAT(vpc_strat, stratify_on)
 end
 
-#Main function for vpc to calculate the quantiles and get a VPC object with stratified quantiles per dv and idv
+"""
+vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+
+Computes the quantiles for VPC. The default quantiles are the 5th, 50th and 95th percentiles. 
+  args: PuMaSModel, Population, Parameters and Number of Repetitions  
+        
+  Instead of the model, simulations from a previous vpc run (obtained from VPC.Simulations) or a FittedPuMaSModel can be used.
+
+  kwargs: quantiles - Takes an array of quantiles to be calculated. The first three indices are used for plotting. 
+          idv - The idv to be used, defaults to time. 
+          dv - Takes an array of symbols of the dvs for which the quantiles are computed.
+          stratify_on - Takes an array of symbols of covariates which the VPC is stratified on.
+"""
 function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   # rand_seed = rand()
   # Random.seed!(rand_seed)
@@ -164,12 +177,12 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
       if stratify_on != nothing
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
-        vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on[strat])
+        vpc_strat = get_vpc(quantile_quantiles, strat_quants[strat], stratify_on[strat])
         obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
       else
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
-        vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], nothing)
+        vpc_strat = get_vpc(quantile_quantiles, strat_quants[strat], nothing)
         obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing)
       end
 
@@ -179,7 +192,7 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
     push!(vpcs, VPC_DV(stratified_vpc, dv_))
     push!(obs_vpc, obs_vpc_dv) 
   end
-  VPC(vpcs, obs_vpc, sims, idv)
+  VPC(vpcs, obs_vpc, sims, idv, data)
 end
 
 #Use FittedPuMaSModel object for vpc
@@ -187,8 +200,8 @@ function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;qua
   vpc(fpm.model, fpm.data, fpm.param, reps, quantiles=quantiles, idv=idv, dv=dv, stratify_on=stratify_on)
 end
 
-# #Use simulations from a previous vpc calculation for a different statification
-function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+#Use simulations from a previous vpc calculation for a different statification
+function vpc(sims::AbstractVector, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   # rand_seed = rand()
   # Random.seed!(rand_seed)
   # println("Seed set as $rand_seed")
@@ -237,15 +250,15 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
     push!(vpcs, VPC_DV(stratified_vpc, dv_))
     push!(obs_vpc, obs_vpc_dv) 
   end
-  VPC(vpcs, obs_vpc, sims, idv)
+  VPC(vpcs, obs_vpc, sims, idv, data)
 end
 
-# function Base.show(io::IO, mime::MIME"text/plain", vpc::VPC)
-  
+# function show(io::IO, mime::MIME"text/plain", vpc::VPC)
+#   println(io, "")  
 # end
 
 #Recipes for the VPC and subsequent objects that store the quantiles per dv, strata and quantiles
-@recipe function f(vpc::VPC, data::Population)
+@recipe function f(vpc::VPC;data=vpc.data)
   if vpc.idv == :time
     t = getproperty(data[1], vpc.idv)
   else 
