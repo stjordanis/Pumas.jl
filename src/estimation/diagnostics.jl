@@ -678,7 +678,7 @@ function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
   res = wresiduals(o, wres_approx)
   ebes = empirical_bayes(o, ebes_approx)
 
-  FittedPuMaSModelInspection(o, pred, inference, res, ebes)
+  FittedPuMaSModelInspection(o, pred, res, ebes)
 end
 function DataFrames.DataFrame(i::FittedPuMaSModelInspection; include_covariates=true)
   pred_df = DataFrame(i.pred; include_covariates=include_covariates)
@@ -691,12 +691,7 @@ end
 function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInspection)
   println(io, "FittedPuMaSModelInspection\n")
   println(io, "Fitting was successful: $(Optim.converged(pmi.o.optim))")
-  if isa(pmi.inference, FittedPuMaSModelInference)
-    println(io, "Inference was successful: true\n")
-  else
-    # maybe add a message here about how to rethrow the error
-    println(io, "Inference was successful: false\n")
-  end
+
   println(io, "Likehood approximations used for")
   println(io, " * Predictions:        $(first(predict(pmi)).approx)")
   println(io, " * Weighted residuals: $(first(wresiduals(pmi)).approx)")
