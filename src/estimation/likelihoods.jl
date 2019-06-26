@@ -1018,7 +1018,10 @@ function _observed_information(f::FittedPuMaSModel,
     subject = f.data[i]
 
     # Compute Hessian contribution and update Hessian
-    H .+= DiffEqDiffTools.finite_difference_jacobian(vparam; relstep=fdrelstep_hessian, absstep=fdrelstep_hessian^2) do _j, _param
+    H .+= DiffEqDiffTools.finite_difference_jacobian(vparam,
+                                                     Val{:central};
+                                                     relstep=fdrelstep_hessian,
+                                                     absstep=fdrelstep_hessian^2) do _j, _param
       param = TransformVariables.transform(trf, _param)
       vrandeffs = empirical_bayes(f.model, subject, param, f.approx, args...; kwargs...)
       marginal_nll_gradient!(_j, f.model, subject, param, (η=vrandeffs,), f.approx, trf, args...;
