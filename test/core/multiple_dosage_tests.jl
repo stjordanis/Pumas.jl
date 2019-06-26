@@ -45,8 +45,8 @@ m_analytic = @model begin
 end
 
 subject1 = data[1]
-param = ()
-randeffs = ()
+param = NamedTuple()
+randeffs = NamedTuple()
 
 sol_diffeq   = solve(m_diffeq,subject1,param,randeffs)
 sol_analytic = solve(m_analytic,subject1,param,randeffs)

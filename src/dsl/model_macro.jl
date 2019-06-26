@@ -4,20 +4,28 @@ using ModelingToolkit
 
 islinenum(x) = x isa LineNumberNode
 function nt_expr(set, prefix=nothing)
-  t = :(())
-  for p in set
-    sym = prefix === nothing ? p : Symbol(prefix, p)
-    push!(t.args, :($p = $sym))
+  if isempty(set)
+    return :(NamedTuple())
+  else
+    t = :(())
+    for p in set
+      sym = prefix === nothing ? p : Symbol(prefix, p)
+      push!(t.args, :($p = $sym))
+    end
+    return t
   end
-  t
 end
 function nt_expr(dict::AbstractDict, prefix=nothing)
-  t = :(())
-  for (p,d) in pairs(dict)
-    sym = prefix === nothing ? d : Symbol(prefix, d)
-    push!(t.args, :($p = $sym))
+  if isempty(dict)
+    return :(NamedTuple())
+  else
+    t = :(())
+    for (p,d) in pairs(dict)
+      sym = prefix === nothing ? d : Symbol(prefix, d)
+      push!(t.args, :($p = $sym))
+    end
+    return t
   end
-  t
 end
 
 function var_def(tupvar, indvars)
@@ -171,14 +179,17 @@ function extract_pre!(vars, prevars, exprs)
   newexpr
 end
 
+_keys(x) = x
+_keys(x::AbstractDict) = keys(x)
+
 function pre_obj(preexpr, prevars, params, randoms, covariates)
   quote
-    function (_param, _random, _subject)
+    function (_param::NamedTuple, _random::NamedTuple, _subject::Subject)
       _covariates = _subject.covariates
       $(esc(:t)) = _subject.time
-      $(var_def(:_param, params))
-      $(var_def(:_random, randoms))
-      $(var_def(:_covariates, covariates))
+      $(Expr(:block, [:($(esc(v)) = _param.$v) for v in _keys(params)]...))
+      $(Expr(:block, [:($(esc(v)) = _random.$v) for v in _keys(randoms)]...))
+      $(Expr(:block, [:($(esc(v)) = _covariates.$v) for v in _keys(covariates)]...))
       $(esc(preexpr))
       $(esc(nt_expr(prevars)))
     end
