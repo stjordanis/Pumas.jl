@@ -1,5 +1,6 @@
 name = "PuMaS"
 uuid = "d7b8c89e-ad89-52e0-b9fd-d0ed321fa021"
+version = "0.0.6"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -18,6 +19,7 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DynamicHMC = "bbc10e6e-7c05-544b-b16e-64fede858acb"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
+HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
 LabelledArrays = "2ee39098-c373-598a-b85f-a56591580800"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LogDensityProblems = "6fdf6af0-433a-55f7-b3ed-c6c6e0b8df7c"

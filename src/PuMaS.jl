@@ -3,7 +3,9 @@ module PuMaS
 using DiffEqBase, DiffEqDiffTools, DiffEqMonteCarlo, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
-      Missings, RecipesBase, StructArrays, RecursiveArrayTools
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
+
+import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, PDMats, DataFrames
@@ -22,7 +24,7 @@ include("dsl/model_macro.jl")
 include("models/params.jl")
 include("models/simulated_observations.jl")
 include("models/model_api.jl")
-include("models/derived_utils.jl")
+include("models/model_utils.jl")
 
 include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
@@ -48,8 +50,8 @@ export tad, eventnum
 export conditional_nll
 export predict, wresiduals, empirical_bayes
 export ηshrinkage, ϵshrinkage
-export process_nmtran, example_nmtran_data
-export @model, @nca
+export read_pumas, example_nmtran_data
+export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect

@@ -1,7 +1,7 @@
 using PuMaS, StaticArrays, DataInterpolations, Test
 
-data = process_nmtran(example_nmtran_data("data1"),
-                      [:sex,:wt,:etn])
+data = read_pumas(example_nmtran_data("data1"),
+                      cvs = [:sex,:wt,:etn])
 
 for subject in data
     if subject.time[1] == 0
@@ -105,7 +105,7 @@ obs_dsl = simobs(m_diffeq,subject1,param,randeffs)
 ############################
 
 #=
-tv_subject = process_nmtran(example_nmtran_data("time_varying_covariates"),
+tv_subject = read_pumas(example_nmtran_data("time_varying_covariates"),
                       [:weight])[1]
 =#
 
@@ -127,7 +127,7 @@ m_tv = @model begin
     @covariates wt
 
     @pre begin
-        _wt = LinearInterpolation(wt,t)
+        _wt = @tvcov wt t DataInterpolations.LinearInterpolation
         Ka = θ[1]
         CL = t -> θ[2] * ((_wt(t)/70)^0.75) * θ[4] * exp(η[1])
         V  = θ[3] * exp(η[2])

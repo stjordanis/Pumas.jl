@@ -1,7 +1,7 @@
 using Test
 using PuMaS, LinearAlgebra, Optim
 
-theopp_nlme = process_nmtran(example_nmtran_data("THEOPP"))
+theopp_nlme = read_pumas(example_nmtran_data("THEOPP"))
 
 #likelihood tests from NLME.jl
 #-----------------------------------------------------------------------# Test 2

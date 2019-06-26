@@ -119,6 +119,7 @@ p = (  θ = [11.5,  #CL
       Ω = diagm(0 => [0.04,0.04,0.04,0.04])
       )
 sim = @test_nowarn simobs(parmet, ev1, p)
+@test_nowarn DataFrame(sim)
 dose = NCADose.(sim[1].subject.events)
 for i in eachindex(sim.sims)
   subjcp = NCASubject(sim[i].observed.cp, sim[i].times, dose=dose, clean=false)
