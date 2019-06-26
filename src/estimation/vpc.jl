@@ -11,13 +11,13 @@ end
 
 struct VPC_STRAT
   vpc_quant::Vector{VPC_QUANT}
-  strat::Symbol
+  strat::Union{Symbol, Nothing}
   strata_val::AbstractVector
 end
 
 struct VPC_DV
   vpc_strat::Vector{VPC_STRAT}
-  dv::Symbol
+  dv::Union{Symbol, Nothing}
 end
 
 struct OBS_VPC
@@ -82,7 +82,7 @@ function get_observation_quantiles(data::Population, dv_::Symbol, idv_::Abstract
     push!(obs_t, [Float64[] for i in 1:length(idv_)])
     for t in 1:length(idv_)
       for j in 1:length(data)
-        if  stratify_on == nothing || (length(strat_quant)<4 && stratify_on != nothing && data[j].covariates[stratify_on] <= strat_quant[strt])
+        if (stratify_on == nothing || (length(strat_quant)<4 && stratify_on != nothing && data[j].covariates[stratify_on] <= strat_quant[strt]))
           push!(obs_t[strt][t], getproperty(data[j].observations,dv_)[t])
         elseif stratify_on != nothing && data[j].covariates[stratify_on] <= strat_quant[strt]
           if strt > 1 && data[j].covariates[stratify_on] > strat_quant[strt-1]
@@ -166,10 +166,14 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
   if idv == :time
     idv_ = getproperty(data[1], idv)
   else 
-    idv_ = getproperty(data[1].covariates, idv)
+    idv_ = [getproperty(data[i].covariates, idv) for i in 1:length(data)]
   end
 
   sims = [simobs(m, data, fixeffs) for i in 1:reps]
+
+  if idv_ == nothing && idv == :time
+    idv_ = Array(getproperty(sims[1][1], :times))
+  end
 
   for dv_ in dv
     stratified_vpc = VPC_STRAT[]
@@ -180,12 +184,20 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
         vpc_strat = get_vpc(quantile_quantiles, strat_quants[strat], stratify_on[strat])
-        obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
+        if data[1].observations != nothing
+          obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
+        else
+          obs_quantiles = [nothing for i in 1:length(strat_quants[strat])]
+        end
       else
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
         vpc_strat = get_vpc(quantile_quantiles, strat_quants[strat], nothing)
-        obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing)
+        if data[1].observations != nothing
+          obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing)
+        else
+          obs_quantiles = [nothing for i in 1:length(strat_quants[strat])]
+        end
       end
 
       push!(obs_vpc_dv, obs_quantiles)
@@ -270,12 +282,20 @@ function vpc(sims::AbstractVector, data::Population;quantiles = [0.05,0.5,0.95],
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],stratify_on[strat])
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
         vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], stratify_on[strat])
-        obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
+        if data[1].observations != nothing
+          obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], stratify_on[strat])
+        else
+          obs_quantiles = [nothing for i in 1:length(strat_quants[strat])]
+        end
       else
         pop_quantiles = get_simulation_quantiles(sims, reps, dv_, idv_, quantiles, strat_quants[strat],nothing)
         quantile_quantiles = get_quant_quantiles(pop_quantiles,reps,idv_,quantiles, strat_quants[strat])
         vpc_strat = get_vpc(quantile_quantiles, data, dv_, idv_, sims, quantiles, strat_quants[strat], nothing)
-        obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing)
+        if data[1].observations != nothing  
+          obs_quantiles = get_observation_quantiles(data, dv_, idv_, quantiles, strat_quants[strat], nothing)
+        else
+          obs_quantiles = [nothing for i in 1:length(strat_quants[strat])]
+        end
       end
 
       push!(obs_vpc_dv, obs_quantiles)
@@ -293,11 +313,7 @@ end
 
 #Recipes for the VPC and subsequent objects that store the quantiles per dv, strata and quantiles
 @recipe function f(vpc::VPC; data=vpc.data)
-  if vpc.idv == :time
-    t = getproperty(data[1], vpc.idv)
-  else 
-    t = getproperty(data[1].covariates, vpc.idv)
-  end
+  t = vpc.Obs_vpc.t
   for i in 1:length(vpc.vpc_dv)
     @series begin
       t, vpc.vpc_dv[i], vpc.Obs_vpc.Obs_vpc[i], vpc.idv
