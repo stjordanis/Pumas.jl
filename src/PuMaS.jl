@@ -30,6 +30,7 @@ include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
+include("estimation/vpc.jl")
 
 include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
@@ -54,5 +55,5 @@ export read_pumas, example_nmtran_data
 export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, infer, aic, bic, deviance, informationmatrix
-export vpc
+export vpc, vpc_obs
 end # module
