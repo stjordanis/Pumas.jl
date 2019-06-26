@@ -169,11 +169,8 @@ function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer
     idv_ = getproperty(data[1].covariates, idv)
   end
 
-  sims = []
-  for i in 1:reps
-    sim = simobs(m, data, fixeffs)
-    push!(sims, sim)
-  end
+  sims = SimulatedPopulation[]
+  pmap(i->push!(sims, simobs(m, data, fixeffs)),1:reps)
 
   for dv_ in dv
     stratified_vpc = VPC_STRAT[]
