@@ -629,8 +629,6 @@ function vpc(sims, data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv
   VPC(vpcs, sims, idv)
 end
 
-# inspect is the main function when you want all the diagnostics output and
-# print, plot, look into issues or fit quality.
 struct SubjectEBES{T1, T2, T3}
   ebes::T1
   subject::T2
@@ -662,23 +660,49 @@ function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=t
   df
 end
 
-struct FittedPuMaSModelInspection{T1, T2, T3, T4}
+struct FittedPuMaSModelInspection{T1, T2, T3, T4, T5}
   o::T1
   pred::T2
   wres::T3
   ebes::T4
+  derived::T5
 end
 StatsBase.predict(i::FittedPuMaSModelInspection) = i.pred
 wresiduals(i::FittedPuMaSModelInspection) = i.wres
 empirical_bayes(i::FittedPuMaSModelInspection) = i.ebes
 
-function inspect(o; pred_approx=o.approx, infer_approx=o.approx,
-                    wres_approx=o.approx, ebes_approx=o.approx)
-  pred = predict(o, pred_approx)
-  res = wresiduals(o, wres_approx)
-  ebes = empirical_bayes(o, ebes_approx)
+derived(i::FittedPuMaSModelInspection) = i.derived
+function derived(o::FittedPuMaSModel, args...; obstimes=nothing, kwargs...)
+  model = o.model
+  vrandeffs = empirical_bayes(o)
+  subjects = o.data
+  param = o.param
+  derived_population = []
+  if isa(obstimes, Nothing)
+    obstimes = [observationtimes(subject) for subject in subjects]
+  else
+    obstimes = [observationtimes(subject) for subject in subjects]
+  end
+  for (subject, randeffs, _obstimes) in zip(subjects, vrandeffs, obstimes)
+    # refactor this loop into seperate function and do an array comprehension
+    @show typeof(param)
+    col = model.pre(param, randeffs, subject)
+    model.prob !== nothing && (isnothing(_obstimes) || isempty(_obstimes)) &&
+                            throw(ArgumentError("obstimes is empty."))
+    sol = _solve(model, subject, col, args...; saveat=_obstimes, kwargs...)
+    derived_subject = model.derived(col,sol,_obstimes,subject)
+    push!(derived_population, derived_subject)
+  end
+  derived_population
+end
 
-  FittedPuMaSModelInspection(o, pred, res, ebes)
+function inspect(fpm; pred_approx=fpm.approx, infer_approx=fpm.approx,
+                    wres_approx=fpm.approx, ebes_approx=fpm.approx)
+  pred = predict(fpm, pred_approx)
+  res = wresiduals(fpm, wres_approx)
+  ebes = empirical_bayes(fpm, ebes_approx)
+  derivedvars = derived(fpm)
+  FittedPuMaSModelInspection(fpm, pred, res, ebes, derivedvars)
 end
 function DataFrames.DataFrame(i::FittedPuMaSModelInspection; include_covariates=true)
   pred_df = DataFrame(i.pred; include_covariates=include_covariates)
