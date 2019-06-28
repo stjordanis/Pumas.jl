@@ -197,9 +197,9 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::SAEM
     ℓ_rfx = sum(enumerate(b.data)) do (i,subject)
       # compute the random effect density, likelihood and log-Jacobian
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[((i-1)*n) .+ (1:n)])
-      j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
+      j_y - PuMaS.penalized_conditional_nll(b.model, subject, param, y, b.args...; b.kwargs...)
     end
-    return LogDensityProblems.Value(isnan(ℓ) ? -Inf : ℓ_rfx)
+    return LogDensityProblems.Value(isnan(ℓ_rfx) ? -Inf : ℓ_rfx)
   catch e
     if e isa ArgumentError
       return LogDensityProblems.Value(-Inf)
