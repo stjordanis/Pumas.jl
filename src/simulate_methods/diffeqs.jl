@@ -4,12 +4,12 @@ function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[
   col = prob.p
   u0 = prob.u0
 
+  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
   # we don't want to promote units
-  if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
+  if T <: Unitful.Quantity
     Tu0 = map(float, u0)
   else
     # Promotion to handle Dual numbers
-    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
     Tu0 = convert.(T,u0)
   end
 
