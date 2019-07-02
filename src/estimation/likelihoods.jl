@@ -334,9 +334,64 @@ function marginal_nll(m::PuMaSModel,
 end
 
 function marginal_nll(m::PuMaSModel,
-                      data::Population,
-                      args...; kwargs...)
-  sum(subject -> marginal_nll(m, subject, args...; kwargs...), data)
+                      # restrict to Vector to avoid distributed arrays taking
+                      # this path
+                      population::Vector{<:Subject},
+                      args...;
+                      parallel_type::ParallelType=Threading,
+                      kwargs...)
+
+  nll1 = marginal_nll(m, population[1], args...; kwargs...)
+  # Compute first subject separately to determine return type and to return
+  # early in case the parameter values cause the likelihood to be Inf. This
+  # can e.g. happen if the ODE solver can't solve the ODE for the chosen
+  # parameter values.
+  if isinf(nll1)
+    return nll1
+  end
+
+  # The different parallel computations are separated out into functions
+  # to make it easier to infer the return types
+  if parallel_type === Serial
+    return sum(subject -> marginal_nll(m, subject, args...; kwargs...), population)
+  elseif parallel_type === Threading
+    return _marginal_nll_threads(nll1, m, population, args...; kwargs...)
+  elseif parallel_type === Distributed # Distributed
+    return _marginal_nll_pmap(nll1, m, population, args...; kwargs...)
+  else
+    throw(ArgumentError("parallel type $parallel_type not implemented"))
+  end
+end
+
+function _marginal_nll_threads(nll1::T,
+                               m::PuMaSModel,
+                               population::Vector{<:Subject},
+                               args...;
+                               kwargs...)::T where T
+
+  # Allocate array to store likelihood values for each subject in the threaded
+  # for loop
+  nlls = fill(T(Inf), length(population) - 1)
+
+  # Run threaded for loop for the remaining subjects
+  Threads.@threads for i in 2:length(population)
+    nlls[i - 1] = marginal_nll(m, population[i], args...; kwargs...)
+  end
+
+  return nll1 + sum(nlls)
+end
+
+function _marginal_nll_pmap(nll1::T,
+                            m::PuMaSModel,
+                            population::Vector{<:Subject},
+                            args...;
+                            kwargs...)::T where T
+
+  nlls = convert(Vector{T},
+                 pmap(subject -> marginal_nll(m, subject, args...; kwargs...),
+                 population[2:length(population)]))
+
+    return nll1 + sum(nlls)
 end
 
 function marginal_nll(m::PuMaSModel,

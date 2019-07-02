@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra
 
 theopp_nlme = read_pumas(example_nmtran_data("THEOPP"))
 
@@ -50,6 +50,6 @@ param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
 @test bic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
 param = init_param(mdsl2)
 randeffs = [empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
-[PuMaS.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[PuMaS.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
-[PuMaS.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]
+@test [PuMaS.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]   isa Vector # FIXME! come up with a better test
+@test [PuMaS.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]  isa Vector # FIXME! come up with a better test
+@test [PuMaS.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)] isa Vector # FIXME! come up with a better test

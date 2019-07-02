@@ -42,12 +42,18 @@ for (ηstar, dt) in zip([-0.114654,0.0350263,-0.024196,-0.0870518,0.0750881,0.05
     @test empirical_bayes(mdsl1, dt, param, PuMaS.LaplaceI())[1] ≈ ηstar rtol=1e-3
 end
 
-@test deviance(mdsl1, data, param, PuMaS.FOCEI())    ≈ 56.410938825140313 rtol=1e-6
-@test deviance(mdsl1, data, param, PuMaS.FOCE())     ≈ 56.476216665029462 rtol=1e-6
-@test deviance(mdsl1, data, param, PuMaS.FO())       ≈ 56.474912258255571 rtol=1e-6
-@test deviance(mdsl1, data, param, PuMaS.Laplace())  ≈ 56.613069180382027 rtol=1e-6
-@test deviance(mdsl1, data, param, PuMaS.LaplaceI()) ≈ 56.810343602063618 rtol=1e-6
-@test deviance(mdsl1, data, param, PuMaS.HCubeQuad()) ≈ 56.92491372848633 rtol=1e-6 #regression test
+@test deviance(mdsl1, data, param, PuMaS.FO())        ≈ 56.474912258255571 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.FOCE())      ≈ 56.476216665029462 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.FOCEI())     ≈ 56.410938825140313 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.Laplace())   ≈ 56.613069180382027 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.LaplaceI())  ≈ 56.810343602063618 rtol=1e-6
+@test deviance(mdsl1, data, param, PuMaS.HCubeQuad()) ≈ 56.92491372848633  rtol=1e-6 #regression test
+
+# FIXME! Distributed testing should use multiple processes instead of just testing
+# the code path
+@testset "parallel_type = $p" for p in (PuMaS.Serial, PuMaS.Threading, PuMaS.Distributed)
+    @test deviance(mdsl1, data, param, PuMaS.FO(), parallel_type=p) ≈ 56.474912258255571 rtol=1e-6
+end
 
 # Supporting outer AD optimization makes it harder to store the
 # EBEs since their type changes during AD optimization so for
