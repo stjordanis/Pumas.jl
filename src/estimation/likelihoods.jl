@@ -425,11 +425,16 @@ StatsBase.deviance(m::PuMaSModel,
 # problem. This functions follows the approach of Almquist et al. (2015) by
 # computing the gradient
 #
-# dL/dθ = ∂ℓ/∂θ + dη/dθ'*∂ℓ/∂η
+# dℓᵐ/dθ = ∂ℓᵐ/∂θ + dη/dθ'*∂ℓᵐ/∂η
 #
-# where L is the marginal likelihood of the subject, ℓ is the penalized
-# conditional likelihood function and dη/dθ is the Jacobian of the optimal
-# value of η with respect to the population parameters θ
+# where ℓᵐ is the marginal likelihood of the subject and dη/dθ is the Jacobian
+# of the optimal value of η with respect to the population parameters θ. By
+# exploiting that η is computed as the optimum in θ, the Jacobian can be
+# computed as
+#
+# dη/dθ = -∂²ℓᵖ∂η² \ ∂²ℓᵖ∂η∂θ
+#
+# ℓᵖ is the penalized conditional likelihood function.
 function marginal_nll_gradient!(g::AbstractVector,
                                 model::PuMaSModel,
                                 subject::Subject,
@@ -450,7 +455,7 @@ function marginal_nll_gradient!(g::AbstractVector,
 
   # Compute first order derivatives of the marginal likelihood function
   # with finite differencing to save compute time
-  ∂ℓ∂θ = DiffEqDiffTools.finite_difference_gradient(
+  ∂ℓᵐ∂θ = DiffEqDiffTools.finite_difference_gradient(
     _param -> marginal_nll(
       model,
       subject,
@@ -466,7 +471,7 @@ function marginal_nll_gradient!(g::AbstractVector,
     absstep=fdabsstep
   )
 
-  ∂ℓ∂η = DiffEqDiffTools.finite_difference_gradient(
+  ∂ℓᵐ∂η = DiffEqDiffTools.finite_difference_gradient(
     _η -> marginal_nll(
       model,
       subject,
@@ -483,12 +488,12 @@ function marginal_nll_gradient!(g::AbstractVector,
   )
 
   # Compute second order derivatives in high precision with ForwardDiff
-  ∂²ℓ∂η² = ForwardDiff.hessian(
-    t -> penalized_conditional_nll(model, subject, param, (η=t,), approx, args...; reltol=reltol, kwargs...),
+  ∂²ℓᵖ∂η² = ForwardDiff.hessian(
+    _η -> penalized_conditional_nll(model, subject, param, (η=_η,), approx, args...; reltol=reltol, kwargs...),
     randeffs.η
   )
 
-  ∂²ℓ∂η∂θ = ForwardDiff.jacobian(
+  ∂²ℓᵖ∂η∂θ = ForwardDiff.jacobian(
     _θ -> ForwardDiff.gradient(
       _η -> penalized_conditional_nll(model,
                                       subject,
@@ -503,9 +508,9 @@ function marginal_nll_gradient!(g::AbstractVector,
     vparam
   )
 
-  dηdθ = -∂²ℓ∂η² \ ∂²ℓ∂η∂θ
+  dηdθ = -∂²ℓᵖ∂η² \ ∂²ℓᵖ∂η∂θ
 
-  g .= ∂ℓ∂θ .+ dηdθ'*∂ℓ∂η
+  g .= ∂ℓᵐ∂θ .+ dηdθ'*∂ℓᵐ∂η
 
   return g
 end
@@ -546,7 +551,7 @@ function marginal_nll_gradient!(g::AbstractVector,
 
   # Compute first order derivatives of the marginal likelihood function
   # with finite differencing to save compute time
-  ∂ℓ∂θ = DiffEqDiffTools.finite_difference_gradient(
+  g .= DiffEqDiffTools.finite_difference_gradient(
     _param -> marginal_nll(
       model,
       subject,
@@ -562,8 +567,6 @@ function marginal_nll_gradient!(g::AbstractVector,
     relstep=fdrelstep,
     absstep=fdabsstep
   )
-
-  g .= ∂ℓ∂θ
 
   return g
 end
