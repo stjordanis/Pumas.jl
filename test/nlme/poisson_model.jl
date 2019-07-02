@@ -1,9 +1,5 @@
 using PuMaS, Test
 
-# avoid rand issue for now
-using StatsFuns, ForwardDiff
-StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisrand(min(ForwardDiff.value(x),1e6))
-
 @testset "Poisson model" begin
 
   df = read_pumas(example_nmtran_data("sim_poisson"),cvs = [:dose])
