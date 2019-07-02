@@ -97,6 +97,8 @@ end
   o_stderror  = stderror(o)
 
   o_infer = infer(o)
+  o_inspect = inspect(o)
+
 
   # Verify that show runs
   io_buffer = IOBuffer()

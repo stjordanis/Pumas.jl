@@ -854,7 +854,7 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
     _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
   getdecimal = x -> findfirst(c -> c=='.', x)
-  maxname = maximum(length, paramnames) 
+  maxname = maximum(length, paramnames)
   maxval = max(maximum(length, paramvals), length("Estimate "))
   labels = " "^(maxname+Int(round(maxval/2))-3)*"Estimate"
   stringrows = []
@@ -1180,7 +1180,9 @@ Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
 function infer(fpm::FittedPuMaSModel, args...; level = 0.95, kwargs...)
+  print("Calculating: variance-covariance matrix")
   _vcov = vcov(fpm, args...; kwargs...)
+  println(". Done.")
   FittedPuMaSModelInference(fpm, _vcov, level)
 end
 function StatsBase.stderror(pmi::FittedPuMaSModelInference)
@@ -1256,7 +1258,7 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   getdecaftersemi = x -> getdecimal(x[getsemicolon(x):end])
   getaftersemdec = x -> findall(c -> c == '.', x)[2]
   getafterdecsemi = x -> length(x)-getaftersemdec(x)
-  maxname = maximum(length, paramnames) 
+  maxname = maximum(length, paramnames)
   maxval = max(maximum(length, paramvals), length("Estimate"))
   maxrs = max(maximum(length, paramrse), length("RSE"))
   maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"% C.I."))
@@ -1265,7 +1267,7 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   maxdecaftsem = maximum(getdecaftersemi, paramconfint)
   maxaftdecsem = maximum(getafterdecsemi, paramconfint)
   labels = " "^(maxname+Int(round(maxval/2))-3)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
-  
+
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
