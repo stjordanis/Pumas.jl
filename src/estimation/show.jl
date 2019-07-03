@@ -28,7 +28,7 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
     _push_varinfo!(paramnames, paramvals, nothing, nothing, paramname, paramval, nothing, nothing)
   end
   getdecimal = x -> findfirst(c -> c=='.', x)
-  maxname = maximum(length, paramnames) 
+  maxname = maximum(length, paramnames)
   maxval = max(maximum(length, paramvals), length("Estimate "))
   labels = " "^(maxname+Int(round(maxval/2))-3)*"Estimate"
   stringrows = []
@@ -71,6 +71,8 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDia
       _push_varinfo!(_names, _vals, _rse, _confint, _name, mat[i], stdii, quant)
     end
 end
+_push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Diagonal, std, quant) =
+  _push_varinfo!(_names, _vals, _rse, _confint, paramname, PDiagMat(paramval.diag), std, quant)
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::AbstractVector, std, quant)
   for i in 1:length(paramval)
     # We set stdi to nothing in case RSEs are not requested to avoid indexing
@@ -96,7 +98,6 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   println(io, "FittedPuMaSModelInference\n")
   _print_fit_header(io, pmi.fpm)
 
-
   # Get all names
   standard_errors = stderror(pmi)
   paramnames = []
@@ -110,13 +111,13 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
     std = standard_errors[paramname]
     _push_varinfo!(paramnames, paramvals, paramrse, paramconfint, paramname, paramval, std, quant)
   end
-  getdecimal = x -> findfirst(c -> c=='.', x)
+  getdecimal = x -> occursin("NaN", x) ? 2 : findfirst(isequal('.'), x)
   getsemicolon = x -> findfirst(c -> c==';', x)
-  getafterdec = x -> getsemicolon(x)-getdecimal(x)
+  getafterdec = x -> getsemicolon(x) - getdecimal(x)
   getdecaftersemi = x -> getdecimal(x[getsemicolon(x):end])
-  getaftersemdec = x -> findall(c -> c == '.', x)[2]
-  getafterdecsemi = x -> length(x)-getaftersemdec(x)
-  maxname = maximum(length, paramnames) 
+  getaftersemdec = x -> occursin("NaN", x) ? length(x) - 1 : findall(isequal('.'), x)[2]
+  getafterdecsemi = x -> length(x) - getaftersemdec(x)
+  maxname = maximum(length, paramnames)
   maxval = max(maximum(length, paramvals), length("Estimate"))
   maxrs = max(maximum(length, paramrse), length("RSE"))
   maxconfint = max(maximum(length, paramconfint) + 1, length(string(round(pmi.level*100, sigdigits=6))*"% C.I."))

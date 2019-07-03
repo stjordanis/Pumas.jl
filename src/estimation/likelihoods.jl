@@ -1133,11 +1133,7 @@ Compute the standard errors of the population parameters and return
 the result as a `NamedTuple` matching the `NamedTuple` of population
 parameters.
 """
-function StatsBase.stderror(f::FittedPuMaSModel)
-  trf = toidentitytransform(f.model.param)
-  ss = sqrt.(diag(vcov(f)))
-  return TransformVariables.transform(trf, ss)
-end
+StatsBase.stderror(f::FittedPuMaSModel) = stderror(infer(f))
 
 function _E_and_V(m::PuMaSModel,
                   subject::Subject,
@@ -1195,8 +1191,8 @@ function infer(fpm::FittedPuMaSModel, args...; level = 0.95, kwargs...)
   FittedPuMaSModelInference(fpm, _vcov, level)
 end
 function StatsBase.stderror(pmi::FittedPuMaSModelInference)
-  trf = toidentitytransform(pmi.fpm.model.param)
   ss = sqrt.(diag(pmi.vcov))
+  trf = tostderrortransform(pmi.fpm.model.param)
   return TransformVariables.transform(trf, ss)
 end
 

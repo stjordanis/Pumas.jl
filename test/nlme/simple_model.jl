@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using PuMaS, LinearAlgebra
 
 @testset "likelihood tests from NLME.jl" begin
 data = read_pumas(example_nmtran_data("sim_data_model1"))
@@ -7,7 +7,7 @@ data = read_pumas(example_nmtran_data("sim_data_model1"))
 mdsl1 = @model begin
     @param begin
         θ ∈ VectorDomain(1, init=[0.5])
-        Ω ∈ PDiagDomain(init=[0.04])
+        Ω ∈ ConstDomain(Diagonal([0.04]))
         Σ ∈ ConstDomain(0.1)
     end
 
@@ -54,6 +54,28 @@ end
 @testset "parallel_type = $p" for p in (PuMaS.Serial, PuMaS.Threading, PuMaS.Distributed)
     @test deviance(mdsl1, data, param, PuMaS.FO(), parallel_type=p) ≈ 56.474912258255571 rtol=1e-6
 end
+
+ft = fit(mdsl1, data, param, PuMaS.FOCEI())
+@test sprint((io, t) -> show(io, MIME"text/plain"(), t), ft) ==
+"""
+FittedPuMaSModel
+
+Successful minimization:                true
+
+Likelihood approximation:        PuMaS.FOCEI
+Objective function value:            45.6238
+Total number of observation records:      20
+Number of active observation records:     20
+Number of subjects:                       10
+
+--------------
+     Estimate
+--------------
+θ₁    0.36476
+Ω₁,₁  0.04
+Σ     0.1
+--------------
+"""
 
 # Supporting outer AD optimization makes it harder to store the
 # EBEs since their type changes during AD optimization so for
