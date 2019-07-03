@@ -96,7 +96,7 @@ function DiffEqBase.solve(m::PuMaSModel, pop::Population,
   elseif parallel_type == SplitThreads
     error("SplitThreads is not yet implemented")
   end
-  MonteCarloSolution(sols,time,true)
+  EnsembleSolution(sols,time,true)
 end
 
 """
