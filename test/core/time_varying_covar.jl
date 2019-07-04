@@ -1,4 +1,4 @@
-using PuMaS, StaticArrays, DataInterpolations, Test
+using Pumas, StaticArrays, DataInterpolations, Test
 
 data = read_pumas(example_nmtran_data("data1"),
                       cvs = [:sex,:wt,:etn])
@@ -47,7 +47,7 @@ function derived_f(col,sol,obstimes,obs)
     (conc = conc,)
 end
 
-mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f)
+mobj = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
 param = (θ = [2.268,74.17,468.6,0.5876],
          Ω = [0.05 0.0;

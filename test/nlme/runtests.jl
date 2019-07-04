@@ -1,5 +1,5 @@
 using Test, SafeTestsets
-using PuMaS, LinearAlgebra, Optim, StatsBase
+using Pumas, LinearAlgebra, Optim, StatsBase
 
 if group == "All" || group == "NLME_ML1"
   @time @safetestset "Maximum-likelihood models 1" begin

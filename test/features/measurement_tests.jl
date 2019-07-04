@@ -1,4 +1,4 @@
-using PuMaS, Measurements, LabelledArrays
+using Pumas, Measurements, LabelledArrays
 using Random, LinearAlgebra, Test
 
 data = read_pumas(example_nmtran_data("data1"), cvs = [:sex,:wt,:etn])
@@ -98,7 +98,7 @@ end
         (conc = _conc, cmax = _cmax)
     end
     observed_f(col,sol,obstimes,samples,subject) = samples
-    model = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+    model = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
     # Initial data
     θ₀ = [2.268, 74.17, 468.6, 0.5876]

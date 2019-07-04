@@ -1,4 +1,4 @@
-using PuMaS, Test, Random, LabelledArrays
+using Pumas, Test, Random, LabelledArrays
 
 
 # Read the data# Read the data
@@ -101,7 +101,7 @@ function observed_f(col,sol,obstimes,samples,subject)
      dv = samples.dv)
 end
 
-mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+mobj = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 param = init_param(mdsl)
 randeffs = init_randeffs(mdsl, param)
@@ -136,7 +136,7 @@ function onecompartment_f_iip(du,u,p,t)
 end
 prob = ODEProblem(onecompartment_f_iip,nothing,nothing,nothing)
 
-mobj_iip = PuMaSModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
+mobj_iip = PumasModel(p,rfx_f,col_f,init_f_iip,prob,derived_f,observed_f)
 sol2 = solve(mobj_iip,subject,param,randeffs)
 
 @test conditional_nll(mobj_iip,subject,param,randeffs) ≈ conditional_nll(mobj,subject,param,randeffs) rtol=5e-3

@@ -1,4 +1,4 @@
-using PuMaS, Test, LinearAlgebra
+using Pumas, Test, LinearAlgebra
 
 @testset "Testing dose control parameters" begin
 
@@ -62,8 +62,8 @@ p = ( θ = [1.5,  #Ka
   )
 
 
-sim = simobs(m_diffeq, ev16, p; abstol=1e-14, reltol=1e-14, parallel_type = PuMaS.Serial)
-simm2 = simobs(m_diffeq, evm216, p; abstol=1e-14, reltol=1e-14, parallel_type = PuMaS.Serial)
+sim = simobs(m_diffeq, ev16, p; abstol=1e-14, reltol=1e-14, parallel_type = Pumas.Serial)
+simm2 = simobs(m_diffeq, evm216, p; abstol=1e-14, reltol=1e-14, parallel_type = Pumas.Serial)
 
 @test maximum(maximum(s[:cp]) for s in sim.sims) < 1e4
 @test maximum(maximum(s[:cp]) for s in simm2.sims) < 1e4
@@ -111,6 +111,6 @@ p_error = (θ = [1.5,  #Ka
            σ_prop = 0.00
   )
 
-@test_throws ArgumentError simobs(m_error, evm216, p_error, parallel_type = PuMaS.Serial)
+@test_throws ArgumentError simobs(m_error, evm216, p_error, parallel_type = Pumas.Serial)
 
 end # testset

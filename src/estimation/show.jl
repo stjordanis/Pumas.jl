@@ -18,8 +18,8 @@ function _print_fit_header(io, fpm)
   println(io)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
-  println(io, "FittedPuMaSModel\n")
+function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPumasModel)
+  println(io, "FittedPumasModel\n")
   _print_fit_header(io, fpm)
   # Get all names
   paramnames = []
@@ -43,8 +43,8 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPuMaSModel)
   end
   println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
 end
-TreeViews.hastreeview(x::FittedPuMaSModel) = true
-function TreeViews.treelabel(io::IO,x::FittedPuMaSModel,
+TreeViews.hastreeview(x::FittedPumasModel) = true
+function TreeViews.treelabel(io::IO,x::FittedPumasModel,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io, mime, Base.Text(Base.summary(x)))
 end
@@ -92,10 +92,10 @@ function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::Numb
 end
 
 
-function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInference)
+function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPumasModelInference)
   fpm = pmi.fpm
 
-  println(io, "FittedPuMaSModelInference\n")
+  println(io, "FittedPumasModelInference\n")
   _print_fit_header(io, pmi.fpm)
 
   # Get all names
@@ -141,8 +141,8 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPuMaSModelInferenc
   end
   println(io, "-"^max(length(labels)+1,length(stringrows[1])))
 end
-TreeViews.hastreeview(x::FittedPuMaSModelInference) = true
-function TreeViews.treelabel(io::IO,x::FittedPuMaSModelInference,
+TreeViews.hastreeview(x::FittedPumasModelInference) = true
+function TreeViews.treelabel(io::IO,x::FittedPumasModelInference,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io,mime,Base.Text(Base.summary(x)))
 end

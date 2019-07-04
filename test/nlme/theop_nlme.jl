@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra
+using Pumas, LinearAlgebra
 
 theopp_nlme = read_pumas(example_nmtran_data("THEOPP"))
 
@@ -38,18 +38,18 @@ mdsl2 = @model begin
 end
 
 param = init_param(mdsl2)
-@test @inferred(deviance(mdsl2, theopp_nlme, param, PuMaS.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
-@test fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()) isa PuMaS.FittedPuMaSModel
-@test ηshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
-@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 0.09091845 rtol = 1e-6
-ϵshrinkage(mdsl2,theopp_nlme, param, PuMaS.FOCE(),[empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme])
-param = fit(mdsl2, theopp_nlme, param, PuMaS.FOCE()).param
-@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCEI(),[empirical_bayes(mdsl2,subject,param,PuMaS.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
-@test ϵshrinkage(mdsl2, theopp_nlme, param, PuMaS.FOCE()) ≈ 0.1268684 rtol = 1e-3
-@test aic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 477.5715543243326 rtol = 1e-3 #regression test
-@test bic(mdsl2, theopp_nlme, param, PuMaS.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
+@test @inferred(deviance(mdsl2, theopp_nlme, param, Pumas.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
+@test fit(mdsl2, theopp_nlme, param, Pumas.FOCE()) isa Pumas.FittedPumasModel
+@test ηshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
+@test ϵshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ 0.09091845 rtol = 1e-6
+ϵshrinkage(mdsl2,theopp_nlme, param, Pumas.FOCE(),[empirical_bayes(mdsl2,subject,param,Pumas.FOCEI()) for subject in theopp_nlme])
+param = fit(mdsl2, theopp_nlme, param, Pumas.FOCE()).param
+@test ϵshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI(),[empirical_bayes(mdsl2,subject,param,Pumas.FOCE()) for subject in theopp_nlme]) ≈ 0.4400298 rtol = 1e-3
+@test ϵshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCE()) ≈ 0.1268684 rtol = 1e-3
+@test aic(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ 477.5715543243326 rtol = 1e-3 #regression test
+@test bic(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ 509.2823754727827 rtol = 1e-3 #regression test
 param = init_param(mdsl2)
-randeffs = [empirical_bayes(mdsl2,subject,param,PuMaS.FOCEI()) for subject in theopp_nlme]
-@test [PuMaS.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]   isa Vector # FIXME! come up with a better test
-@test [PuMaS.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]  isa Vector # FIXME! come up with a better test
-@test [PuMaS.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)] isa Vector # FIXME! come up with a better test
+randeffs = [empirical_bayes(mdsl2,subject,param,Pumas.FOCEI()) for subject in theopp_nlme]
+@test [Pumas.ipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]   isa Vector # FIXME! come up with a better test
+@test [Pumas.cipred(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)]  isa Vector # FIXME! come up with a better test
+@test [Pumas.cipredi(mdsl2, subject, param, randeff) for (subject,randeff) in zip(theopp_nlme,randeffs)] isa Vector # FIXME! come up with a better test

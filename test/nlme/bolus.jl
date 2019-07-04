@@ -1,4 +1,4 @@
-using PuMaS, LinearAlgebra, Test, CSV
+using Pumas, LinearAlgebra, Test, CSV
 
 @testset "One compartment intravenous bolus study" begin
   #No. of subjects= 100, Dose = 100 or 250mg,DV=Plasma concentration, ug/ml
@@ -76,7 +76,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     )
 
     @testset "FO estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional[dyntype], data, param_proportional, PuMaS.FO())
+      result = fit(mdl_proportional[dyntype], data, param_proportional, Pumas.FO())
       param = result.param
 
       @test param.θ      ≈ [3.5592e-01, 8.5888e+00] rtol=1e-3
@@ -85,7 +85,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "FOCE estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional[dyntype], data, param_proportional, PuMaS.FOCE())
+      result = fit(mdl_proportional[dyntype], data, param_proportional, Pumas.FOCE())
       param = result.param
 
       @test param.θ      ≈ [3.19e-01, 9.22e+00] rtol=1e-3
@@ -94,7 +94,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "FOCEI estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional[dyntype], data, param_proportional, PuMaS.FOCEI())
+      result = fit(mdl_proportional[dyntype], data, param_proportional, Pumas.FOCEI())
       param = result.param
 
       @test param.θ      ≈ [3.91e-01, 7.56e+00] rtol=1e-3
@@ -105,7 +105,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     @testset "Laplace estimation of $dyntype model" for dyntype in ("analytical", "solver")
       # FIXME! This should also work for solver based version
       if dyntype == "analytical"
-        result = fit(mdl_proportional[dyntype], data, param_proportional, PuMaS.Laplace())
+        result = fit(mdl_proportional[dyntype], data, param_proportional, Pumas.Laplace())
         param = result.param
 
         @test param.θ      ≈ [3.1616e-01, 9.2127e+00] rtol=1e-3
@@ -117,7 +117,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "LaplaceI estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional[dyntype], data, param_proportional, PuMaS.LaplaceI())
+      result = fit(mdl_proportional[dyntype], data, param_proportional, Pumas.LaplaceI())
       param = result.param
 
       @test param.θ      ≈ [3.7400e-01, 7.5009e+00] rtol=1e-3
@@ -194,7 +194,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     )
 
     @testset "FO estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.FO())
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, Pumas.FO())
       param = result.param
 
       @test param.θ      ≈ [4.2224e-01, 6.5691e+00] rtol=1e-3
@@ -204,7 +204,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "FOCE estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.FOCE())
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, Pumas.FOCE())
       param = result.param
 
       @test param.θ      ≈ [4.12e-01, 7.20e+00] rtol=1e-3
@@ -214,7 +214,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "FOCEI estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.FOCEI())
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, Pumas.FOCEI())
       param = result.param
 
       @test param.θ      ≈ [4.17e-01, 7.16e+00] rtol=1e-3
@@ -224,7 +224,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "Laplace estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.Laplace())
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, Pumas.Laplace())
       param = result.param
 
       @test param.θ      ≈ [4.0791e-01, 7.2004e+00] rtol=1e-3
@@ -234,7 +234,7 @@ using PuMaS, LinearAlgebra, Test, CSV
     end
 
     @testset "LaplaceI estimation of $dyntype model" for dyntype in ("analytical", "solver")
-      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, PuMaS.LaplaceI())
+      result = fit(mdl_proportional_additive[dyntype], data, param_proportional_additive, Pumas.LaplaceI())
       param = result.param
 
       @test param.θ      ≈ [4.1156e-01, 7.1442e+00] rtol=1e-3

@@ -1,9 +1,9 @@
-using PuMaS.NCA, Test, CSV
-using PuMaS
+using Pumas.NCA, Test, CSV
+using Pumas
 
-multiple_doses_file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL")
+multiple_doses_file = Pumas.example_nmtran_data("nca_test_data/dapa_IV_ORAL")
 mdata = CSV.read(multiple_doses_file)
-msol = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
+msol = CSV.read(Pumas.example_nmtran_data("nca_test_data/dapa_IV_ORAL_sol"))
 
 timeu = u"hr"
 concu = u"mg/L"

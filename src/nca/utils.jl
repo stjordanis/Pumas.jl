@@ -67,7 +67,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, ver
   end
   monotonictime && checkmonotonic(conc, time, eachindex(time), dose)
   # check both
-  # TODO: https://github.com/UMCTM/PuMaS.jl/issues/153
+  # TODO: https://github.com/UMCTM/Pumas.jl/issues/153
   length(conc) != length(time) && throw(ArgumentError("Concentration and time must be the same length"))
   return
 end

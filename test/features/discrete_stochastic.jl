@@ -1,4 +1,4 @@
-using PuMaS, Test, DiffEqJump
+using Pumas, Test, DiffEqJump
 
 θ = [
      1.5,  #Ka
@@ -44,7 +44,7 @@ function derived_f(col,sol,obstimes,subject)
     (dv=dv,)
 end
 
-model = PuMaS.PuMaSModel(p,randomfx,pre_f,init_f,jump_prob,derived_f)
+model = Pumas.PumasModel(p,randomfx,pre_f,init_f,jump_prob,derived_f)
 
 param = init_param(model)
 randeffs = init_randeffs(model, param)

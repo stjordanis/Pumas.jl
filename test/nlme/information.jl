@@ -1,4 +1,4 @@
-using PuMaS, LinearAlgebra
+using Pumas, LinearAlgebra
 
 @testset "Test informationmatrix with warfarin data" begin
 
@@ -44,14 +44,14 @@ using PuMaS, LinearAlgebra
            Ω  = Diagonal([0.07, 0.02, 0.6]),
            σ  = 0.01)
 
-  @test logdet(sum(PuMaS._expected_information(model,
+  @test logdet(sum(Pumas._expected_information(model,
                                                d,
                                                param,
-                                               (η=empirical_bayes(model, d, param, PuMaS.FO()),),
-                                               PuMaS.FO()
+                                               (η=empirical_bayes(model, d, param, Pumas.FO()),),
+                                               Pumas.FO()
                                                ) for d in data)) ≈ 53.8955 rtol=1e-6
 
-  ft = fit(model, data, param, PuMaS.FO())
+  ft = fit(model, data, param, Pumas.FO())
 
   @test logdet(informationmatrix(ft)) isa Number
 

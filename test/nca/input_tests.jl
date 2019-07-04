@@ -1,4 +1,4 @@
-using PuMaS.NCA, Test, PuMaS
+using Pumas.NCA, Test, Pumas
 
 @test_nowarn NCA.checkconctime([1,2,3,4], 1:4)
 @test_nowarn NCA.checkconctime([1,2,missing,4], 1:4)

@@ -15,7 +15,7 @@ build:
     - julia --project -e 'using Pkg;
                           Pkg.update();
                           Pkg.instantiate();
-                          using PuMaS;'
+                          using Pumas;'
   only:
   - master
   - tags
@@ -31,7 +31,7 @@ test-core:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
   - master
   - tags
@@ -47,7 +47,7 @@ test-nca:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
   - master
   - tags
@@ -63,7 +63,7 @@ test-nlme-ml1:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
     - master
     - tags
@@ -78,7 +78,7 @@ test-nlme-ml2:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
     - master
     - tags
@@ -94,7 +94,7 @@ test-nlme-bayes:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
     - master
     - tags
@@ -110,7 +110,7 @@ test-features:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - julia --project -e 'using Pkg;
-                          Pkg.test("PuMaS"; coverage=true);'
+                          Pkg.test("Pumas"; coverage=true);'
   only:
   - master
   - tags

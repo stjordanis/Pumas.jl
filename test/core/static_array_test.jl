@@ -1,4 +1,4 @@
-using PuMaS, Test, Random, LinearAlgebra, LabelledArrays
+using Pumas, Test, Random, LinearAlgebra, LabelledArrays
 
 # Read the data# Read the data
 data = read_pumas(example_nmtran_data("data1"),
@@ -84,7 +84,7 @@ end
 
 observed_f(col,sol,obstimes,samples,subject) = samples
 
-mstatic = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+mstatic = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 param = init_param(mdsl)
 randeffs = init_randeffs(mdsl, param)
@@ -115,7 +115,7 @@ function derived_f(col,sol,obstimes,subject)
     (conc = conc,)
 end
 
-mstatic2 = PuMaSModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
+mstatic2 = PumasModel(p,rfx_f,col_f2,init_f,prob,derived_f,observed_f)
 
 subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, time = [0, 12], cmt = 2))
 

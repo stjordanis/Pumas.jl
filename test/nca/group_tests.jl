@@ -1,7 +1,7 @@
-using PuMaS.NCA, Test, CSV
-using PuMaS
+using Pumas.NCA, Test, CSV
+using Pumas
 
-file = PuMaS.example_nmtran_data("nca_test_data/masked_sort_data")
+file = Pumas.example_nmtran_data("nca_test_data/masked_sort_data")
 df = CSV.read(file, missingstring="NA")
 df.ii = 12
 df.amt = 0.0

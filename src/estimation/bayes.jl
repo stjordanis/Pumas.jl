@@ -2,12 +2,12 @@ using LogDensityProblems, DynamicHMC
 import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
 
 
-function dim_param(m::PuMaSModel)
+function dim_param(m::PumasModel)
   t_param = totransform(m.param)
   dimension(t_param)
 end
 
-function dim_rfx(m::PuMaSModel)
+function dim_rfx(m::PumasModel)
   x = init_param(m)
   rfx = m.random(x)
   t_rfx = totransform(rfx)
@@ -55,7 +55,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
     ℓ_rfx = sum(enumerate(b.data)) do (i,subject)
       # compute the random effect density, likelihood and log-Jacobian
       y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view v[(m+(i-1)*n) .+ (1:n)])
-      j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
+      j_y - Pumas.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
     end
     ℓ = ℓ_param + ℓ_rfx
     return LogDensityProblems.Value(isnan(ℓ) ? -Inf : ℓ)
@@ -98,7 +98,7 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
         rfx = b.model.random(x)
         t_rfx = totransform(rfx)
         y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view u[m .+ (1:n)])
-        j_y - PuMaS.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
+        j_y - Pumas.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
       end
       copyto!(b.buffer, m+1, v, m+(i-1)*n+1, n)
 
@@ -127,7 +127,7 @@ end
 
 struct BayesMCMC <: LikelihoodApproximation end
 
-function Distributions.fit(model::PuMaSModel, data::Population, ::BayesMCMC,
+function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC,
                            args...; nsamples=5000, kwargs...)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
   chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)

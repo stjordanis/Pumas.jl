@@ -1,7 +1,7 @@
-using PuMaS.NCA, Test, CSV
-using PuMaS
+using Pumas.NCA, Test, CSV
+using Pumas
 
-file = PuMaS.example_nmtran_data("nca_test_data/dapa_IV")
+file = Pumas.example_nmtran_data("nca_test_data/dapa_IV")
 data = CSV.read(file)
 
 timeu = u"hr"
@@ -35,7 +35,7 @@ conc = Float64.(data[:CObs])*concu
 t = Float64.(data[:TIME])*timeu
 doses = Float64.(data[:AMT_IV])[1:16:end]*u"mg"
 
-data = CSV.read(PuMaS.example_nmtran_data("nca_test_data/dapa_IV_sol"))
+data = CSV.read(Pumas.example_nmtran_data("nca_test_data/dapa_IV_sol"))
 
 correct_auc = Float64.(data[:AUCINF_obs])*concu*timeu
 correct_auc_last = Float64.(data[:AUClast])*concu*timeu

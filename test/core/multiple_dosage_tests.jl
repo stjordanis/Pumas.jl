@@ -1,4 +1,4 @@
-using PuMaS, Test, Random
+using Pumas, Test, Random
 
 # Load data
 cvs = [:ka, :cl, :v]

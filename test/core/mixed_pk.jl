@@ -1,4 +1,4 @@
-using PuMaS, Test, Random, LabelledArrays, StaticArrays
+using Pumas, Test, Random, LabelledArrays, StaticArrays
 
 # Read the data# Read the data
 data = read_pumas(example_nmtran_data("data1"),
@@ -57,7 +57,7 @@ function observed_f(col,sol,obstimes,samples,subject)
      dv = samples.dv)
 end
 
-mobj = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
+mobj = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f,observed_f)
 
 param = (θ = ones(4), Ω = [1.0 0.0
                            0.0 1.0], Σ = 1.0, a = 0.2)

@@ -1,4 +1,4 @@
-function _solve_analytical(m::PuMaSModel, subject::Subject, tspan, col,
+function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
                            args...; continuity = :right, kwargs...)
   f = m.prob isa ExplicitModel ? m.prob : m.prob.pkprob
   u0 = pk_init(f)
