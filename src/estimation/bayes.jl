@@ -158,6 +158,7 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
 end
 
 <<<<<<< refs/remotes/origin/master
+<<<<<<< refs/remotes/origin/master
 function Distributions.fit(model::PumasModel, data::Population, param::NamedTuple, ::BayesMCMC,
   args...; nsamples=5000, kwargs...)
   fit(model, data, BayesMCMC(), param,args...;nsamples = nsamples, kwargs...)
@@ -262,6 +263,8 @@ function Distributions.fit(model::PuMaSModel, data::Population, fixeffs::NamedTu
 >>>>>>> Basic set up for SAEM
 end
 
+=======
+>>>>>>> Reorganize SAEM to a separate file
 # remove unnecessary PDMat wrappers
 _clean_param(x) = x
 _clean_param(x::PDMat) = x.mat

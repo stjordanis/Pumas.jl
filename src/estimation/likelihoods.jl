@@ -1199,33 +1199,3 @@ function empirical_bayes_dist(fpm::FittedPumasModel)
     end,)
     )
 end
-
-function E_step(m::PuMaSModel, population::Population, param::NamedTuple, approx)
-  t_param = totransform(m.param)
-  param = TransformVariables.transform(t_param, fit(m, population, param, approx).optim.minimizer)
-  b = fit(m, population, param, SAEM(), nsamples = 500)
-  eta_vec = mean(map(get_position, b.chain))
-end
-
-function M_step(m, population, fixeffs, randeffs_vec, i, gamma, Qs, approx)
-  if i == 1
-    sum(-conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) for (subject,randeff) in zip(population,randeffs_vec[1]))
-  elseif Qs[i] == -Inf
-    Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) - (gamma/length(randeffs_vec))*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) - M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]))
-  else
-    Qs[i] 
-  end
-end
-
-function SAEM_calc(m::PuMaSModel, population::Population, param::NamedTuple, n, approx)
-  eta_vec = []
-  for i in 1:n
-    eta = E_step(m, population, param, approx)
-    dimrandeff = length(m.random(param).params.η)
-    push!(eta_vec,[eta[j:j+dimrandeff-1] for j in 1:dimrandeff:length(eta)])
-    t_param = totransform(m.param)
-    cost = fixeffs -> M_step(m, population, TransformVariables.transform(t_param, fixeffs), eta_vec, length(eta_vec), 0.001, [-Inf for i in 1:length(eta_vec)], approx)
-    param = TransformVariables.transform(t_param, Optim.minimizer(Optim.optimize(cost, TransformVariables.inverse(t_param,param), Optim.BFGS())))
-  end
-  param
-end
