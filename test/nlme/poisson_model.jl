@@ -1,8 +1,4 @@
-using PuMaS, Test
-
-# avoid rand issue for now
-using StatsFuns, ForwardDiff
-StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisrand(min(ForwardDiff.value(x),1e6))
+using Pumas, Test
 
 @testset "Poisson model" begin
 
@@ -64,12 +60,12 @@ StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisra
 
 
   for (i,est) in enumerate(initial_estimates)
-    @test empirical_bayes(poisson_model, df[i], param, PuMaS.LaplaceI())[1] ≈ est rtol=1e-5
+    @test empirical_bayes(poisson_model, df[i], param, Pumas.LaplaceI())[1] ≈ est rtol=1e-5
   end
-  @test 2*PuMaS.marginal_nll(poisson_model, df, param, PuMaS.LaplaceI()) ≈ 4015.70427796336 rtol=1e-3
+  @test 2*Pumas.marginal_nll(poisson_model, df, param, Pumas.LaplaceI()) ≈ 4015.70427796336 rtol=1e-3
 
-  o = fit(poisson_model, df, param, PuMaS.LaplaceI())
-  @test 2*PuMaS.marginal_nll(o) ≈ 3809.80599298763 rtol=1e-3
+  o = fit(poisson_model, df, param, Pumas.LaplaceI())
+  @test 2*Pumas.marginal_nll(o) ≈ 3809.80599298763 rtol=1e-3
 
   p = o.param
   @test p.θ₁       ≈ 1.0293E+00 rtol=1e-3
@@ -77,7 +73,7 @@ StatsFuns.RFunctions.poisrand(x::ForwardDiff.Dual) = StatsFuns.RFunctions.poisra
   @test p.Ω.mat[1] ≈ 1.2201E-01 rtol=1e-3
 
   # FO/FOCE(I) not supported for
-  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FO())
-  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FOCE())
-  @test_throws ArgumentError fit(poisson_model, df, param, PuMaS.FOCEI())
+  @test_throws ArgumentError fit(poisson_model, df, param, Pumas.FO())
+  @test_throws ArgumentError fit(poisson_model, df, param, Pumas.FOCE())
+  @test_throws ArgumentError fit(poisson_model, df, param, Pumas.FOCEI())
 end

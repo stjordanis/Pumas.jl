@@ -1,6 +1,6 @@
-module PuMaS
+module Pumas
 
-using DiffEqBase, DiffEqDiffTools, DiffEqMonteCarlo, Reexport, StatsBase,
+using DiffEqBase, DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
@@ -30,6 +30,8 @@ include("estimation/transforms.jl")
 include("estimation/likelihoods.jl")
 include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
+include("estimation/vpc.jl")
+include("estimation/show.jl")
 
 include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
@@ -44,7 +46,7 @@ include("simulate_methods/analytical.jl")
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
 
 export Subject, Population, DosageRegimen
-export PuMaSModel, init_param, init_randeffs, sample_randeffs
+export PumasModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll
@@ -55,5 +57,5 @@ export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
-export vpc
+export vpc, vpc_obs
 end # module

@@ -1,4 +1,4 @@
-using PuMaS, Test
+using Pumas, Test
 pop = Population(map(i -> Subject(id=i,cvs=(dose=[10,20,30],)),1:3))
 poisson_model = @model begin
   @param begin

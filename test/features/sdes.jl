@@ -1,4 +1,4 @@
-using PuMaS, Test, StochasticDiffEq
+using Pumas, Test, StochasticDiffEq
 
 θ = [
      1.5,  #Ka
@@ -45,7 +45,7 @@ function observed_f(col,sol,obstimes,samples,subject)
     samples
 end
 
-model = PuMaS.PuMaSModel(p,randomfx,pre_f,init_f,prob,derived_f,observed_f)
+model = Pumas.PumasModel(p,randomfx,pre_f,init_f,prob,derived_f,observed_f)
 
 param = init_param(model)
 randeffs = init_randeffs(model, param)

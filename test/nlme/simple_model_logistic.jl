@@ -1,8 +1,8 @@
-using PuMaS, Test, StatsFuns
+using Pumas, Test, StatsFuns
 
 @testset "Logistic regression example" begin
 
-    data = read_pumas(joinpath(dirname(pathof(PuMaS)), "..", "examples", "pain_remed.csv"),
+    data = read_pumas(joinpath(dirname(pathof(Pumas)), "..", "examples", "pain_remed.csv"),
                           cvs = [:arm, :dose, :conc, :painord,:remed];
                           time=:time, event_data=false)
 
@@ -33,9 +33,9 @@ using PuMaS, Test, StatsFuns
     param = (θ₁=0.01, θ₂=0.001, Ω=fill(1.0, 1, 1))
 
     @testset "testing with $approx approximation" for
-        approx in (PuMaS.FO(), PuMaS.FOCE(), PuMaS.FOCEI(), PuMaS.Laplace(), PuMaS.LaplaceI())
+        approx in (Pumas.FO(), Pumas.FOCE(), Pumas.FOCEI(), Pumas.Laplace(), Pumas.LaplaceI())
 
-        if approx == PuMaS.LaplaceI()
+        if approx == Pumas.LaplaceI()
             param = fit(mdsl, data, param, approx).param
 
             # Test values computed with MixedModels.jl
@@ -43,7 +43,7 @@ using PuMaS, Test, StatsFuns
             @test param.θ₂                ≈  1.7389379466901713 rtol=1e-3
             @test param.Ω.chol.factors[1] ≈  1.5376005165566606 rtol=1e-3
         else
-            @test_throws ArgumentError PuMaS.marginal_nll(mdsl, data, param, approx)
+            @test_throws ArgumentError Pumas.marginal_nll(mdsl, data, param, approx)
         end
     end
 

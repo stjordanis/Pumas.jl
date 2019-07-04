@@ -41,9 +41,10 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJac, t::C
 end
 
 
-function TransformVariables.inverse_eltype(t::ConstantTransform, y::T) where T<:Real
-  T
-end
+# function TransformVariables.inverse_eltype(t::ConstantTransform, y::T) where T<:Real
+  # T
+# end
+TransformVariables.inverse_eltype(t::ConstantTransform, ::Any) = eltype(t.val)
 function TransformVariables.inverse(t::ConstantTransform, v)
   @assert t.val == v
   Float64[]
@@ -170,8 +171,8 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
     PDiagMat(d), ℓ
 end
 
-TransformVariables.inverse_eltype(::PuMaS.PDiagTransform, y::PDiagMat{T}) where T = T
-TransformVariables.inverse_eltype(::PuMaS.PDiagTransform, y::Diagonal{T}) where T = T
+TransformVariables.inverse_eltype(::Pumas.PDiagTransform, y::PDiagMat{T}) where T = T
+TransformVariables.inverse_eltype(::Pumas.PDiagTransform, y::Diagonal{T}) where T = T
 
 function TransformVariables.inverse!(x::AbstractVector, t::PDiagTransform, y::PDiagMat)
   index = TransformVariables.firstindex(x)
@@ -210,7 +211,7 @@ function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, 
     PDiagMat(d), ℓ
 end
 
-TransformVariables.inverse_eltype(::PuMaS.DiagonalTransform, y::Union{Diagonal{T},PDiagMat{T}}) where T = T
+TransformVariables.inverse_eltype(::Pumas.DiagonalTransform, y::Union{Diagonal{T},PDiagMat{T}}) where T = T
 
 function TransformVariables.inverse!(x::AbstractVector, t::DiagonalTransform, y::PDiagMat)
   index = TransformVariables.firstindex(x)
@@ -270,7 +271,14 @@ totransform(p::ParamSet) = as(map(totransform, p.params))
 # numerical or automatic differentiation of a all population parameters. For that
 # we need some convenience functions
 toidentitytransform(p::ParamSet) = as(map(toidentitytransform, p.params))
+toidentitytransform(p::ConstDomain) = totransform(p)
 toidentitytransform(::RealDomain) = as(Real,-∞,∞)
 toidentitytransform(d::VectorDomain) = as(Vector, length(d.lower))
 toidentitytransform(d::PSDDomain) = VechTransform(size(d.init, 1))
 toidentitytransform(d::PDiagDomain) = DiagonalTransform(size(d.init, 1))
+
+# When using TransformVariables for transforming standard errors, we need to
+# ensure that ConstDomains return NaNs.
+tostderrortransform(p::ParamSet)    = as(map(tostderrortransform, p.params))
+tostderrortransform(d::Domain)      = toidentitytransform(d)
+tostderrortransform(d::ConstDomain) = ConstantTransform(d.val*NaN32)

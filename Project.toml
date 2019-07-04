@@ -1,4 +1,4 @@
-name = "PuMaS"
+name = "Pumas"
 uuid = "d7b8c89e-ad89-52e0-b9fd-d0ed321fa021"
 version = "0.0.6"
 
@@ -12,7 +12,6 @@ DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
 DiffEqJump = "c894b116-72e5-5b58-be3c-e6d8d4ac2b12"
-DiffEqMonteCarlo = "78ddff82-25fc-5f2b-89aa-309469cbf16f"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -44,7 +43,7 @@ TreeViews = "a2a6695c-b41b-5b7d-aed9-dbfdeacea5d7"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-DiffEqDiffTools = "0.10"
+DiffEqDiffTools = "0.11, 0.12"
 LabelledArrays = "0.7.1"
 TransformVariables = "0.3"
 julia = "1.1"

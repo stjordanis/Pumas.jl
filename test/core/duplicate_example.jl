@@ -1,6 +1,6 @@
 # Test for duplicate data in examples, which could be generated
 # because of a bug in NONMEM.
-using PuMaS, CSV
+using Pumas, CSV
 
 function locate_duplicate(data, fullpath)
     unique_rows = Set()
@@ -14,7 +14,7 @@ function locate_duplicate(data, fullpath)
     end
 end
 
-dir = joinpath(dirname(pathof(PuMaS)), "..", "examples")
+dir = joinpath(dirname(pathof(Pumas)), "..", "examples")
 for (rootpath, dirs, files) in walkdir(dir)
     for file in files
         if lowercase(file[end-2:end]) == "csv"

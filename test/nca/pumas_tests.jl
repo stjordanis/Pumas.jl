@@ -1,4 +1,4 @@
-using PuMaS
+using Pumas
 using LinearAlgebra
 
 choose_covariates() = (isPM = rand([1, 0]),
@@ -58,7 +58,7 @@ p = (  θ = [1.5,  #Ka
     )
 
 
-sim = @test_nowarn simobs(m_diffeq, ev2, p; abstol=1e-14, reltol=1e-14, parallel_type=PuMaS.Serial)
+sim = @test_nowarn simobs(m_diffeq, ev2, p; abstol=1e-14, reltol=1e-14, parallel_type=Pumas.Serial)
 for i in eachindex(sim.sims)
   @test NCA.auc(sim[i].observed.cp, sim[i].times) === sim[i].observed.auc
   @test NCA.thalf(sim[i].observed.cp, sim[i].times) === sim[i].observed.thalf

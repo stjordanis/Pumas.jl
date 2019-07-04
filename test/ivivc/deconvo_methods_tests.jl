@@ -1,4 +1,4 @@
-using PuMaS.IVIVC, Test
+using Pumas.IVIVC, Test
 # Tests for Wagner Nelson method
 vivo_pop = @test_nowarn read_vivo("../examples/ivivc_test_data/vivo_data.csv")
 vivo_fast = vivo_pop[1]["fast"]

@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Random, Distributions, LinearAlgebra, TransformVariables
+using Pumas, Test, CSV, Random, Distributions, LinearAlgebra, TransformVariables
 
 if haskey(ENV,"BAYES_N")
     nsamples = ENV["BAYES_N"]
@@ -47,12 +47,12 @@ theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:WT,:SEX])
   end
 
   @testset "Test logdensity" begin
-    vparam = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes.param), PuMaS.init_param(theopmodel_bayes))
-    ldp = PuMaS.BayesLogDensity(theopmodel_bayes, theopp)
+    vparam = Pumas.TransformVariables.inverse(Pumas.totransform(theopmodel_bayes.param), Pumas.init_param(theopmodel_bayes))
+    ldp = Pumas.BayesLogDensity(theopmodel_bayes, theopp)
     vparam_aug = [vparam; zeros(length(theopp)*ldp.dim_rfx)]
-    v = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp, vparam_aug)
+    v = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.Value, ldp, vparam_aug)
     @test v.value ≈ -612.6392449413322
-    vg = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp, vparam_aug)
+    vg = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.ValueGradient, ldp, vparam_aug)
     @test vg.value ≈ v.value
     @test vg.gradient ≈ [8.023571333788356
                        878.2155638921361
@@ -77,10 +77,10 @@ theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:WT,:SEX])
 
   Random.seed!(1)
   try
-    b = PuMaS.fit(theopmodel_bayes, theopp, PuMaS.BayesMCMC(),
+    b = Pumas.fit(theopmodel_bayes, theopp, Pumas.BayesMCMC(),
                   nsamples = nsamples)
 
-    m = PuMaS.param_mean(b)
+    m = Pumas.param_mean(b)
 
     if nsamples >= 10_000
       @test m.θ[1] ≈ 1.72E+00 rtol=0.1
@@ -92,7 +92,7 @@ theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:WT,:SEX])
       @test m.σ ≈ 1.24E+00 rtol=0.1
     end
 
-    s = PuMaS.param_std(b)
+    s = Pumas.param_std(b)
 
     if nsamples >= 10_000
       @test s.θ[1] ≈ 4.62E-01 rtol=0.2
@@ -150,13 +150,13 @@ end
   end
 
   @testset "Test logdensity" begin
-    vparam2 = PuMaS.TransformVariables.inverse(PuMaS.totransform(theopmodel_bayes2.param), PuMaS.init_param(theopmodel_bayes2))
-    ldp2 = PuMaS.BayesLogDensity(theopmodel_bayes2, theopp,
+    vparam2 = Pumas.TransformVariables.inverse(Pumas.totransform(theopmodel_bayes2.param), Pumas.init_param(theopmodel_bayes2))
+    ldp2 = Pumas.BayesLogDensity(theopmodel_bayes2, theopp,
                                  reltol = 1e-12, abstol = 1e-12)
     vparam2_aug = [vparam2; zeros(length(theopp)*ldp2.dim_rfx)]
-    v2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.Value, ldp2, vparam2_aug)
+    v2 = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.Value, ldp2, vparam2_aug)
     @test v2.value ≈ -612.6392449413325 rtol=1e-6
-    vg2 = PuMaS.LogDensityProblems.logdensity(PuMaS.LogDensityProblems.ValueGradient, ldp2, vparam2_aug)
+    vg2 = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.ValueGradient, ldp2, vparam2_aug)
     @test vg2.value ≈ v2.value
     @test vg2.gradient ≈ [8.023571333787114,
                           878.2155638921338,
@@ -182,10 +182,10 @@ end
   Random.seed!(1)
   try
 
-    b = PuMaS.fit(theopmodel_bayes2, theopp, PuMaS.BayesMCMC(),
+    b = Pumas.fit(theopmodel_bayes2, theopp, Pumas.BayesMCMC(),
                 nsamples = nsamples, reltol = 1e-6, abstol = 1e-6)
 
-    m = PuMaS.param_mean(b)
+    m = Pumas.param_mean(b)
 
     if nsamples >= 10_000
       @test m.θ[1] ≈ 1.72E+00 rtol=0.1
@@ -197,7 +197,7 @@ end
       @test m.σ ≈ 1.24E+00 rtol=0.1
     end
 
-    s = PuMaS.param_std(b)
+    s = Pumas.param_std(b)
 
     if nsamples >= 10_000
       @test s.θ[1] ≈ 4.62E-01 rtol=0.2

@@ -1,5 +1,5 @@
 """
-    PuMaSModel
+    PumasModel
 
 A model takes the following arguments
 - `param`: a `ParamSet` detailing the parameters and their domain
@@ -10,7 +10,7 @@ A model takes the following arguments
 - `derived`: the derived variables and error distributions (param, randeffs, data, ode vals) -> sampling dist
 - `observed`: simulated values from the error model and post processing: (param, randeffs, data, ode vals, samples) -> vals
 """
-mutable struct PuMaSModel{P,Q,R,S,T,V,W}
+mutable struct PumasModel{P,Q,R,S,T,V,W}
   param::P
   random::Q
   pre::R
@@ -19,18 +19,18 @@ mutable struct PuMaSModel{P,Q,R,S,T,V,W}
   derived::V
   observed::W
 end
-PuMaSModel(param,random,pre,init,prob,derived) =
-    PuMaSModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples,subject)->samples)
+PumasModel(param,random,pre,init,prob,derived) =
+    PumasModel(param,random,pre,init,prob,derived,(col,sol,obstimes,samples,subject)->samples)
 
-init_param(m::PuMaSModel) = init(m.param)
-init_randeffs(m::PuMaSModel, param) = init(m.random(param))
+init_param(m::PumasModel) = init(m.param)
+init_randeffs(m::PumasModel, param) = init(m.random(param))
 
 """
-    sample_randeffs(m::PuMaSModel, param)
+    sample_randeffs(m::PumasModel, param)
 
 Generate a random set of random effects for model `m`, using parameters `param`.
 """
-sample_randeffs(m::PuMaSModel, param) = rand(m.random(param))
+sample_randeffs(m::PumasModel, param) = rand(m.random(param))
 
 # How long to solve
 function timespan(sub::Subject,tspan,saveat)
@@ -57,7 +57,7 @@ observationtimes(sub::Subject) = isnothing(sub.observations) &&
 
 
 """
-    sol = pkpd_solve(m::PuMaSModel, subject::Subject, param,
+    sol = pkpd_solve(m::PumasModel, subject::Subject, param,
                      randeffs=sample_randeffs(m, param),
                      args...; kwargs...)
 
@@ -68,7 +68,7 @@ in the model.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
-function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
+function DiffEqBase.solve(m::PumasModel, subject::Subject,
                           param = init_param(m),
                           randeffs = sample_randeffs(m, param),
                           saveat = observationtimes(subject),
@@ -79,7 +79,7 @@ function DiffEqBase.solve(m::PuMaSModel, subject::Subject,
 end
 
 @enum ParallelType Serial=1 Threading=2 Distributed=3 SplitThreads=4
-function DiffEqBase.solve(m::PuMaSModel, pop::Population,
+function DiffEqBase.solve(m::PumasModel, pop::Population,
                           param = init_param(m),
                           args...; parallel_type = Threading,
                           kwargs...)
@@ -96,14 +96,14 @@ function DiffEqBase.solve(m::PuMaSModel, pop::Population,
   elseif parallel_type == SplitThreads
     error("SplitThreads is not yet implemented")
   end
-  MonteCarloSolution(sols,time,true)
+  EnsembleSolution(sols,time,true)
 end
 
 """
 This internal function is just so that the collation doesn't need to
 be repeated in the other API functions
 """
-function _solve(m::PuMaSModel, subject, col, args...;
+function _solve(m::PumasModel, subject, col, args...;
                 tspan=nothing, saveat=nothing, kwargs...)
   m.prob === nothing && return nothing
   if tspan === nothing
@@ -128,7 +128,7 @@ function _solve(m::PuMaSModel, subject, col, args...;
     return AnalyticalPKSolution(u,t,pksol,numsol)
   else
     u0  = m.init(col, tspan[1])
-    mtmp = PuMaSModel(m.param,
+    mtmp = PumasModel(m.param,
                      m.random,
                      m.pre,
                      m.init,
@@ -154,7 +154,7 @@ zval(d) = 0.0
 zval(d::Distributions.Normal{T}) where {T} = zero(T)
 
 """
-    simobs(m::PuMaSModel, subject::Subject, param[, randeffs, [args...]];
+    simobs(m::PumasModel, subject::Subject, param[, randeffs, [args...]];
                   obstimes=observationtimes(subject),kwargs...)
 
 Simulate random observations from model `m` for `subject` with parameters `param` at
@@ -162,7 +162,7 @@ Simulate random observations from model `m` for `subject` with parameters `param
 `randeffs` is provided, then random ones are generated according to the distribution
 in the model.
 """
-function simobs(m::PuMaSModel, subject::Subject,
+function simobs(m::PumasModel, subject::Subject,
                 param = init_param(m),
                 randeffs=sample_randeffs(m, param),
                 args...;
@@ -177,7 +177,7 @@ function simobs(m::PuMaSModel, subject::Subject,
   SimulatedObservations(subject,obstimes,obs)
 end
 
-function simobs(m::PuMaSModel, pop::Population, args...;
+function simobs(m::PumasModel, pop::Population, args...;
                 parallel_type = Threading, kwargs...)
   time = @elapsed if parallel_type == Serial
     sims = [simobs(m,subject,args...;kwargs...) for subject in pop]
@@ -196,12 +196,12 @@ function simobs(m::PuMaSModel, pop::Population, args...;
 end
 
 """
-    pre(m::PuMaSModel, subject::Subject, param, randeffs)
+    pre(m::PumasModel, subject::Subject, param, randeffs)
 
 Returns the parameters of the differential equation for a specific subject
 subject to parameter and random effects choices. Intended for internal use
 and debugging.
 """
-function pre(m::PuMaSModel, subject::Subject, param, randeffs)
+function pre(m::PumasModel, subject::Subject, param, randeffs)
   m.pre(param, randeffs, subject)
 end

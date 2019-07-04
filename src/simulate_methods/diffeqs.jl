@@ -1,15 +1,15 @@
-function _solve_diffeq(m::PuMaSModel, subject::Subject, args...; saveat=Float64[], save_discont=isempty(saveat), continuity=:right, alg=AutoTsit5(Rosenbrock23()), kwargs...)
+function _solve_diffeq(m::PumasModel, subject::Subject, args...; saveat=Float64[], save_discont=isempty(saveat), continuity=:right, alg=AutoTsit5(Rosenbrock23()), kwargs...)
   prob = typeof(m.prob) <: DiffEqBase.AbstractJumpProblem ? m.prob.prob : m.prob
   tspan = prob.tspan
   col = prob.p
   u0 = prob.u0
 
+  T = promote_type(numtype(col), numtype(u0), numtype(tspan))
   # we don't want to promote units
-  if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
+  if T <: Unitful.Quantity
     Tu0 = map(float, u0)
   else
     # Promotion to handle Dual numbers
-    T = promote_type(numtype(col), numtype(u0), numtype(tspan))
     Tu0 = convert.(T,u0)
   end
 
