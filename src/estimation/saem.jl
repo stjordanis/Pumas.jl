@@ -112,15 +112,13 @@ function Distributions.fit(model::PuMaSModel, data::Population, fixeffs::NamedTu
   end
 
   function E_step(m::PuMaSModel, population::Population, param::NamedTuple, approx)
-    t_param = totransform(m.param)
-    param = fit(m, population, param, approx).optim.minimizer
-    b = fit(m, population, param, SAEM(), nsamples = 1)
+    b = fit(m, population, param, SAEM(), 50)
     eta_vec = mean(map(get_position, b.chain))
   end
   
   function M_step(m, population, fixeffs, randeffs_vec, i, gamma, Qs, approx)
     if i == 1
-      sum(-conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) for (subject,randeff) in zip(population,randeffs_vec[1]))
+      Qs[i] = sum(-conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) for (subject,randeff) in zip(population,randeffs_vec[1]))
     elseif Qs[i] == -Inf
       Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) - (gamma/length(randeffs_vec))*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) - M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]))
     else
@@ -137,6 +135,7 @@ function Distributions.fit(model::PuMaSModel, data::Population, fixeffs::NamedTu
       t_param = totransform(m.param)
       cost = fixeffs -> M_step(m, population, TransformVariables.transform(t_param, fixeffs), eta_vec, length(eta_vec), 0.1, [-Inf for i in 1:length(eta_vec)], approx)
       param = TransformVariables.transform(t_param, Optim.minimizer(Optim.optimize(cost, TransformVariables.inverse(t_param,param), Optim.BFGS())))
+      println(param)
     end
     param
   end
