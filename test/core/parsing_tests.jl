@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV
+using Pumas, Test, CSV
 
 @testset "nmtran" begin
   data = read_pumas(example_nmtran_data("event_data/data1"))

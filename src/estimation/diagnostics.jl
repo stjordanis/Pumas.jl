@@ -3,7 +3,7 @@
 
 To calculate the Normalised Prediction Distribution Errors (NPDE).
 """
-function npde(m::PuMaSModel,
+function npde(m::PumasModel,
               subject::Subject,
               param::NamedTuple,
               randeffs::NamedTuple,
@@ -29,7 +29,7 @@ struct SubjectResidual{T1, T2, T3, T4}
   subject::T3
   approx::T4
 end
-function wresiduals(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing)
+function wresiduals(fpm::FittedPumasModel, approx=fpm.approx; nsim=nothing)
   subjects = fpm.data
   if approx == fpm.approx
     vvrandeffs = fpm.vvrandeffs
@@ -106,7 +106,7 @@ end
 
 To calculate the Weighted Residuals (WRES).
 """
-function wres(m::PuMaSModel,
+function wres(m::PumasModel,
               subject::Subject,
               param::NamedTuple,
               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
@@ -123,7 +123,7 @@ end
 
 To calculate the Conditional Weighted Residuals (CWRES).
 """
-function cwres(m::PuMaSModel,
+function cwres(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
@@ -142,7 +142,7 @@ end
 To calculate the Conditional Weighted Residuals with Interaction (CWRESI).
 """
 
-function cwresi(m::PuMaSModel,
+function cwresi(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
@@ -159,7 +159,7 @@ end
 
 To calculate the Population Predictions (PRED).
 """
-function pred(m::PuMaSModel,
+function pred(m::PumasModel,
               subject::Subject,
               param::NamedTuple,
               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
@@ -173,7 +173,7 @@ end
 
 To calculate the Conditional Population Predictions (CPRED).
 """
-function cpred(m::PuMaSModel,
+function cpred(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
@@ -187,7 +187,7 @@ end
 
 To calculate the Conditional Population Predictions with Interaction (CPREDI).
 """
-function cpredi(m::PuMaSModel,
+function cpredi(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
@@ -201,7 +201,7 @@ end
 
 To calculate the Expected Simulation based Population Predictions.
 """
-function epred(m::PuMaSModel,
+function epred(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                randeffs::NamedTuple,
@@ -215,7 +215,7 @@ end
 
 To calculate the Individual Weighted Residuals (IWRES).
 """
-function iwres(m::PuMaSModel,
+function iwres(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
@@ -229,7 +229,7 @@ end
 
 To calculate the Individual Conditional Weighted Residuals (ICWRES).
 """
-function icwres(m::PuMaSModel,
+function icwres(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
@@ -244,7 +244,7 @@ end
 
 To calculate the Individual Conditional Weighted Residuals with Interaction (ICWRESI).
 """
-function icwresi(m::PuMaSModel,
+function icwresi(m::PumasModel,
                  subject::Subject,
                  param::NamedTuple,
                  vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
@@ -258,7 +258,7 @@ end
 
 To calculate the Expected Simulation based Individual Weighted Residuals (EIWRES).
 """
-function eiwres(m::PuMaSModel,
+function eiwres(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 nsim::Integer)
@@ -272,7 +272,7 @@ function eiwres(m::PuMaSModel,
   return sims_sum ./ nsim
 end
 
-function ipred(m::PuMaSModel,
+function ipred(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
@@ -280,7 +280,7 @@ function ipred(m::PuMaSModel,
   return mean.(dist.dv)
 end
 
-function cipred(m::PuMaSModel,
+function cipred(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
@@ -288,7 +288,7 @@ function cipred(m::PuMaSModel,
   return mean.(dist.dv)
 end
 
-function cipredi(m::PuMaSModel,
+function cipredi(m::PumasModel,
                   subject::Subject,
                   param::NamedTuple,
                   vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
@@ -296,7 +296,7 @@ function cipredi(m::PuMaSModel,
   return mean.(dist.dv)
 end
 
-function ηshrinkage(m::PuMaSModel,
+function ηshrinkage(m::PumasModel,
                     data::Population,
                     param::NamedTuple,
                     approx::LikelihoodApproximation)
@@ -305,7 +305,7 @@ function ηshrinkage(m::PuMaSModel,
   return  1 .- sd_randeffs ./ sqrt.(diag(Ω))
 end
 
-function ϵshrinkage(m::PuMaSModel,
+function ϵshrinkage(m::PumasModel,
                     data::Population,
                     param::NamedTuple,
                     approx::FOCEI,
@@ -313,7 +313,7 @@ function ϵshrinkage(m::PuMaSModel,
   1 - std(vec(VectorOfArray([icwresi(m, subject, param, vrandeffs) for (subject, vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
-function ϵshrinkage(m::PuMaSModel,
+function ϵshrinkage(m::PumasModel,
                     data::Population,
                     param::NamedTuple,
                     approx::FOCE,
@@ -321,7 +321,7 @@ function ϵshrinkage(m::PuMaSModel,
   1 - std(vec(VectorOfArray([icwres(m, subject, param, vrandeffs) for (subject,vrandeffs) in zip(data, randeffs)])), corrected = false)
 end
 
-function StatsBase.aic(m::PuMaSModel,
+function StatsBase.aic(m::PumasModel,
                        data::Population,
                        param::NamedTuple,
                        approx::LikelihoodApproximation)
@@ -329,7 +329,7 @@ function StatsBase.aic(m::PuMaSModel,
   2*(marginal_nll(m, data, param, approx) + numparam)
 end
 
-function StatsBase.bic(m::PuMaSModel,
+function StatsBase.bic(m::PumasModel,
                        data::Population,
                        param::NamedTuple,
                        approx::LikelihoodApproximation)
@@ -345,13 +345,13 @@ struct SubjectPrediction{T1, T2, T3, T4}
   approx::T4
 end
 
-function StatsBase.predict(model::PuMaSModel, subject::Subject, param, approx, vrandeffs=empirical_bayes(model, subject, param, approx))
+function StatsBase.predict(model::PumasModel, subject::Subject, param, approx, vrandeffs=empirical_bayes(model, subject, param, approx))
   pred = _predict(model, subject, param, approx, vrandeffs)
   ipred = _ipredict(model, subject, param, approx, vrandeffs)
   SubjectPrediction(pred, ipred, subject, approx)
 end
 
-function StatsBase.predict(fpm::FittedPuMaSModel, approx=fpm.approx; nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
+function StatsBase.predict(fpm::FittedPumasModel, approx=fpm.approx; nsim=nothing, timegrid=false, newdata=false, useEBEs=true)
   if !useEBEs
     error("Sampling from the omega distribution is not yet implemented.")
   end

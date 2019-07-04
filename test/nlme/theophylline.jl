@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using Pumas, LinearAlgebra, Optim
 
 # FIXME! Find a nicer way to handle this
 _extract(A::PDMat) = A.mat
@@ -13,7 +13,7 @@ verbose = false
 
 theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:SEX,:WT])
 @testset "Check that Events is fully typed when parsed" begin
-  @test theopp[1].events isa Vector{PuMaS.Event{Float64,Float64,Float64,Float64,Float64,Float64,Int}}
+  @test theopp[1].events isa Vector{Pumas.Event{Float64,Float64,Float64,Float64,Float64,Float64,Int}}
 end
 
 @testset "run2.mod FO without interaction, diagonal omega and additive error" begin
@@ -68,7 +68,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_analytical_fo, theopp, param, PuMaS.FO()) ≈ 137.16573310096661
+  @test deviance(theopmodel_analytical_fo, theopp, param, Pumas.FO()) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -91,7 +91,7 @@ end
                          # Elapsed estimation time in seconds:     0.04
                          # Elapsed covariance time in seconds:     0.02
 
-  o = fit(theopmodel_analytical_fo, theopp, param, PuMaS.FO())
+  o = fit(theopmodel_analytical_fo, theopp, param, Pumas.FO())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -119,8 +119,8 @@ end
   end
 
   pred = predict(o)
-  pred_foce = predict(o, PuMaS.FOCE())
-  pred_focei = predict(o, PuMaS.FOCEI())
+  pred_foce = predict(o, Pumas.FOCE())
+  pred_focei = predict(o, Pumas.FOCEI())
   dfpred = DataFrame(pred)
   dfpred_no_covar = DataFrame(pred; include_covariates=false)
   dfpred_foce = DataFrame(pred_foce)
@@ -128,16 +128,16 @@ end
   dfpred_focei = DataFrame(pred_focei)
   dfpred_focei_no_covar = DataFrame(pred_focei; include_covariates=false)
   @testset "test predict" begin
-    @test pred[1].approx == PuMaS.FO()
-    @test pred_foce[1].approx == PuMaS.FOCE()
-    @test pred_focei[1].approx == PuMaS.FOCEI()
+    @test pred[1].approx == Pumas.FO()
+    @test pred_foce[1].approx == Pumas.FOCE()
+    @test pred_focei[1].approx == Pumas.FOCEI()
 
-    @test all(dfpred[:approx].== Ref(PuMaS.FO()))
-    @test all(dfpred_no_covar[:approx].== Ref(PuMaS.FO()))
-    @test all(dfpred_foce[:approx].== Ref(PuMaS.FOCE()))
-    @test all(dfpred_foce_no_covar[:approx].== Ref(PuMaS.FOCE()))
-    @test all(dfpred_focei[:approx].== Ref(PuMaS.FOCEI()))
-    @test all(dfpred_focei_no_covar[:approx].== Ref(PuMaS.FOCEI()))
+    @test all(dfpred[:approx].== Ref(Pumas.FO()))
+    @test all(dfpred_no_covar[:approx].== Ref(Pumas.FO()))
+    @test all(dfpred_foce[:approx].== Ref(Pumas.FOCE()))
+    @test all(dfpred_foce_no_covar[:approx].== Ref(Pumas.FOCE()))
+    @test all(dfpred_focei[:approx].== Ref(Pumas.FOCEI()))
+    @test all(dfpred_focei_no_covar[:approx].== Ref(Pumas.FOCEI()))
 
     @test haskey(dfpred, :pred)
     @test haskey(dfpred, :ipred)
@@ -168,8 +168,8 @@ end
   end
 
   wres = wresiduals(o)
-  wres_foce = wresiduals(o, PuMaS.FOCE())
-  wres_focei = wresiduals(o, PuMaS.FOCEI())
+  wres_foce = wresiduals(o, Pumas.FOCE())
+  wres_focei = wresiduals(o, Pumas.FOCEI())
   dfwres = DataFrame(wres)
   dfwres_no_covar = DataFrame(wres; include_covariates=false)
   dfwres_foce = DataFrame(wres_foce)
@@ -177,16 +177,16 @@ end
   dfwres_focei = DataFrame(wres_focei)
   dfwres_focei_no_covar = DataFrame(wres_focei; include_covariates=false)
   @testset "test wresiduals" begin
-    @test wres[1].approx == PuMaS.FO()
-    @test wres_foce[1].approx == PuMaS.FOCE()
-    @test wres_focei[1].approx == PuMaS.FOCEI()
+    @test wres[1].approx == Pumas.FO()
+    @test wres_foce[1].approx == Pumas.FOCE()
+    @test wres_focei[1].approx == Pumas.FOCEI()
 
-    @test all(dfwres[:approx].== Ref(PuMaS.FO()))
-    @test all(dfwres_no_covar[:approx].== Ref(PuMaS.FO()))
-    @test all(dfwres_foce[:approx].== Ref(PuMaS.FOCE()))
-    @test all(dfwres_foce_no_covar[:approx].== Ref(PuMaS.FOCE()))
-    @test all(dfwres_focei[:approx].== Ref(PuMaS.FOCEI()))
-    @test all(dfwres_focei_no_covar[:approx].== Ref(PuMaS.FOCEI()))
+    @test all(dfwres[:approx].== Ref(Pumas.FO()))
+    @test all(dfwres_no_covar[:approx].== Ref(Pumas.FO()))
+    @test all(dfwres_foce[:approx].== Ref(Pumas.FOCE()))
+    @test all(dfwres_foce_no_covar[:approx].== Ref(Pumas.FOCE()))
+    @test all(dfwres_focei[:approx].== Ref(Pumas.FOCEI()))
+    @test all(dfwres_focei_no_covar[:approx].== Ref(Pumas.FOCEI()))
 
     @test haskey(dfwres, :wres)
     @test haskey(dfwres, :iwres)
@@ -274,7 +274,7 @@ end
     # σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_solver_fo, theopp, param, PuMaS.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
+  @test deviance(theopmodel_solver_fo, theopp, param, Pumas.FO(),reltol=1e-6,abstol=1e-8) ≈ 137.16573310096661
 
   fo_estimated_params = (θ₁ = 4.20241E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
                          θ₂ = 7.25283E-02,  #K MEAN ELIMINATION RATE CONSTANT (1/HR)
@@ -297,7 +297,7 @@ end
                          # Elapsed estimation time in seconds:     0.45
                          # Elapsed covariance time in seconds:     0.18
 
-  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO())
+  o = fit(theopmodel_solver_fo, theopp, param, Pumas.FO())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -324,8 +324,8 @@ end
   end
 
   # Test that the types work on both stiff and non-stiff solver methods
-  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO(), alg=Tsit5())
-  o = fit(theopmodel_solver_fo, theopp, param, PuMaS.FO(), alg=Rosenbrock23())
+  o = fit(theopmodel_solver_fo, theopp, param, Pumas.FO(), alg=Tsit5())
+  o = fit(theopmodel_solver_fo, theopp, param, Pumas.FO(), alg=Rosenbrock23())
 end
 
 @testset "run3.mod FOCE without interaction, diagonal omega and additive error" begin
@@ -375,7 +375,7 @@ end
         #σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_foce, theopp, param, PuMaS.FOCE()) ≈ 138.90111320972699 rtol=1e-6
+  @test deviance(theopmodel_foce, theopp, param, Pumas.FOCE()) ≈ 138.90111320972699 rtol=1e-6
 
   foce_estimated_params = (
     θ₁ = 1.67977E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -424,7 +424,7 @@ end
   # Elapsed estimation time in seconds:     0.27
   # Elapsed covariance time in seconds:     0.19
 
-  o = fit(theopmodel_foce, theopp, param, PuMaS.FOCE())
+  o = fit(theopmodel_foce, theopp, param, Pumas.FOCE())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -443,7 +443,7 @@ end
     @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
   end
 
-  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  ebe_cov = Pumas.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=1e-3
   end
@@ -496,7 +496,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_focei, theopp, param, PuMaS.FOCEI()) ≈ 287.08854688950419 rtol=1e-6
+  @test deviance(theopmodel_focei, theopp, param, Pumas.FOCEI()) ≈ 287.08854688950419 rtol=1e-6
 
   focei_estimated_params = (
     θ₁ = 1.58896E+00, #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -548,7 +548,7 @@ end
   # Elapsed estimation time in seconds:     0.30
   # Elapsed covariance time in seconds:     0.32
 
-  o = fit(theopmodel_focei, theopp, param, PuMaS.FOCEI())
+  o = fit(theopmodel_focei, theopp, param, Pumas.FOCEI())
 
   o_estimates = o.param
   o_stderror  = stderror(o)
@@ -573,26 +573,26 @@ end
     @test o.vvrandeffs[i] ≈ focei_ebes[i,:] rtol=1e-3
   end
 
-  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  ebe_cov = Pumas.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=1e-3
   end
 
-  PuMaS.npde(   theopmodel_focei, theopp[1], param,
-      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
-  PuMaS.epred(  theopmodel_focei, theopp[1], param,
-      (η=empirical_bayes(theopmodel_focei, theopp[1], param, PuMaS.FOCEI()),), 1000)
-  PuMaS.cpred(  theopmodel_focei, theopp[1], param)
-  PuMaS.cpredi( theopmodel_focei, theopp[1], param)
-  PuMaS.pred(   theopmodel_focei, theopp[1], param)
-  PuMaS.wres(   theopmodel_focei, theopp[1], param)
-  PuMaS.cwres(  theopmodel_focei, theopp[1], param)
-  PuMaS.cwresi( theopmodel_focei, theopp[1], param)
-  PuMaS.iwres(  theopmodel_focei, theopp[1], param)
-  PuMaS.icwres( theopmodel_focei, theopp[1], param)
-  PuMaS.icwresi(theopmodel_focei, theopp[1], param)
-  PuMaS.eiwres( theopmodel_focei, theopp[1], param, 1000)
-  PuMaS.cwres(  theopmodel_focei, theopp[1], param)
+  Pumas.npde(   theopmodel_focei, theopp[1], param,
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, Pumas.FOCEI()),), 1000)
+  Pumas.epred(  theopmodel_focei, theopp[1], param,
+      (η=empirical_bayes(theopmodel_focei, theopp[1], param, Pumas.FOCEI()),), 1000)
+  Pumas.cpred(  theopmodel_focei, theopp[1], param)
+  Pumas.cpredi( theopmodel_focei, theopp[1], param)
+  Pumas.pred(   theopmodel_focei, theopp[1], param)
+  Pumas.wres(   theopmodel_focei, theopp[1], param)
+  Pumas.cwres(  theopmodel_focei, theopp[1], param)
+  Pumas.cwresi( theopmodel_focei, theopp[1], param)
+  Pumas.iwres(  theopmodel_focei, theopp[1], param)
+  Pumas.icwres( theopmodel_focei, theopp[1], param)
+  Pumas.icwresi(theopmodel_focei, theopp[1], param)
+  Pumas.eiwres( theopmodel_focei, theopp[1], param, 1000)
+  Pumas.cwres(  theopmodel_focei, theopp[1], param)
 end
 
 @testset "run4_foce.mod FOCE, diagonal omega and additive + proportional error" begin
@@ -682,7 +682,7 @@ end
   # Elapsed estimation time in seconds:     0.34
   # Elapsed covariance time in seconds:     0.31
 
-  o = fit(theopmodel_foce, theopp, param, PuMaS.FOCE())
+  o = fit(theopmodel_foce, theopp, param, Pumas.FOCE())
 
   o_estimates = o.param
 
@@ -696,7 +696,7 @@ end
     @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
   end
 
-  ebe_cov = PuMaS.empirical_bayes_dist(o)
+  ebe_cov = Pumas.empirical_bayes_dist(o)
   @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
     @test ebe_cov[i].η.Σ.mat[:] ≈ foce_ebes_cov[i,:] atol=1e-3
   end
@@ -765,10 +765,10 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test empirical_bayes(theopmodel_laplace, theopp[i], param, PuMaS.Laplace()) ≈ η rtol=1e-4
+      @test empirical_bayes(theopmodel_laplace, theopp[i], param, Pumas.Laplace()) ≈ η rtol=1e-4
     end
 
-    @test deviance(theopmodel_laplace, theopp, param, PuMaS.Laplace()) ≈ 141.296 atol=1e-3
+    @test deviance(theopmodel_laplace, theopp, param, Pumas.Laplace()) ≈ 141.296 atol=1e-3
   end
 
   laplace_estimated_params = (
@@ -822,7 +822,7 @@ end
   @test deviance(theopmodel_laplace, theopp, laplace_estimated_params, Laplace()) ≈ 123.76439574418291 atol=1e-3
 
   @testset "Test optimization" begin
-    o = fit(theopmodel_laplace, theopp, param, PuMaS.Laplace())
+    o = fit(theopmodel_laplace, theopp, param, Pumas.Laplace())
 
     o_estimates = o.param
     o_stderror  = stderror(o)
@@ -848,7 +848,7 @@ end
       @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=3e-3
     end
 
-    ebe_cov = PuMaS.empirical_bayes_dist(o)
+    ebe_cov = Pumas.empirical_bayes_dist(o)
     @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
         @test ebe_cov[i].η.Σ.mat[:] ≈ laplace_ebes_cov[i,:] atol=1e-3
     end
@@ -907,7 +907,7 @@ end
         σ_prop = 0.3
        )
 
-  @test deviance(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI()) ≈ 288.30901928585990 rtol=1e-6
+  @test deviance(theopmodel_laplacei, theopp, param, Pumas.LaplaceI()) ≈ 288.30901928585990 rtol=1e-6
 
   laplacei_estimated_params = (
     θ = [1.60941E+00,  #Ka MEAN ABSORPTION RATE CONSTANT for SEX = 1(1/HR)
@@ -960,7 +960,7 @@ end
   # Elapsed covariance time in seconds:     0.32
 
   @testset "Test optimization" begin
-    o = fit(theopmodel_laplacei, theopp, param, PuMaS.LaplaceI())
+    o = fit(theopmodel_laplacei, theopp, param, Pumas.LaplaceI())
 
     o_estimates = o.param
     o_stderror  = stderror(o)
@@ -979,13 +979,13 @@ end
       @test o.vvrandeffs[i] ≈ laplacei_ebes[i,:] rtol=1e-3
     end
 
-    ebe_cov = PuMaS.empirical_bayes_dist(o)
+    ebe_cov = Pumas.empirical_bayes_dist(o)
     @testset "test covariance of empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
       @test ebe_cov[i].η.Σ.mat[:] ≈ laplacei_ebes_cov[i,:] rtol=1e-3
     end
 
     @testset "Cubature based estimation deviance test" begin
-      @test deviance(theopmodel_laplacei, theopp, param, PuMaS.HCubeQuad()) ≈ 281.1606964897779 rtol=1e-6 #regression test
+      @test deviance(theopmodel_laplacei, theopp, param, Pumas.HCubeQuad()) ≈ 281.1606964897779 rtol=1e-6 #regression test
     end
   end
 end

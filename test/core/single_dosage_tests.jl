@@ -1,4 +1,4 @@
-using PuMaS, Test, CSV, Random
+using Pumas, Test, CSV, Random
 
 # Read the data
 data = read_pumas(example_nmtran_data("data1"),
@@ -117,7 +117,7 @@ sim_analytic = begin
 end
 @test sim_diffeq ≈ sim_analytic rtol=1e-4
 
-sol_diffeq = solve(m_diffeq,data,param, parallel_type = PuMaS.Serial)
-sol_diffeq = solve(m_diffeq,data,param, parallel_type = PuMaS.Threading)
-sol_diffeq = solve(m_diffeq,data,param, parallel_type = PuMaS.Distributed)
-@test_broken sol_diffeq = solve(m_diffeq,data,param, parallel_type = PuMaS.SplitThreads)
+sol_diffeq = solve(m_diffeq,data,param, parallel_type = Pumas.Serial)
+sol_diffeq = solve(m_diffeq,data,param, parallel_type = Pumas.Threading)
+sol_diffeq = solve(m_diffeq,data,param, parallel_type = Pumas.Distributed)
+@test_broken sol_diffeq = solve(m_diffeq,data,param, parallel_type = Pumas.SplitThreads)

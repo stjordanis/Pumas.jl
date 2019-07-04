@@ -1,4 +1,4 @@
-using PuMaS, Test, LinearAlgebra
+using Pumas, Test, LinearAlgebra
 
 
 ###############################
@@ -10,7 +10,7 @@ using PuMaS, Test, LinearAlgebra
 # - Inhibition of response input
 # - Two-compartment PK model
 # - Optional nonlinear clearance - not being used in this example (Vmax and Km)
-# use ev23.csv in PuMaS/examples/event_data/
+# use ev23.csv in Pumas/examples/event_data/
 # For the current example, a bolus dose is given into the gut compartment at time=0 and three additional doses
 # every 24 hours.
 
@@ -110,7 +110,7 @@ inds = vcat(1:240,242:480,482:720,722:length(subject.observations))
 # - Inhibition of response elimination
 # - Two-compartment PK model
 # - Optional nonlinear clearance - not being used in this example (Vmax and Km)
-# use ev24.csv in PuMaS/examples/event_data/
+# use ev24.csv in Pumas/examples/event_data/
 # For the current example, a bolus dose is given into the gut compartment at time=0 and three additional doses
 # every 24 hours.
 

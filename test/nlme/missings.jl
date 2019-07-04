@@ -1,4 +1,4 @@
-using PuMaS, Test, LinearAlgebra
+using Pumas, Test, LinearAlgebra
 
 @testset "Test with missing values" begin
   data = read_pumas(example_nmtran_data("sim_data_model1"))
@@ -94,13 +94,13 @@ using PuMaS, Test, LinearAlgebra
 
   @testset "testing model: $_model, with $_approx approximation" for
     _model in ("additive", "proportional", "exponential"),
-      _approx in (PuMaS.FO(), PuMaS.FOCE(), PuMaS.FOCEI(), PuMaS.Laplace(), PuMaS.LaplaceI())
+      _approx in (Pumas.FO(), Pumas.FOCE(), Pumas.FOCEI(), Pumas.Laplace(), Pumas.LaplaceI())
 
-    if _model == "proportional" && _approx == PuMaS.LaplaceI()
+    if _model == "proportional" && _approx == Pumas.LaplaceI()
       # NONMEM also can't handle this one
       @test_throws PosDefException fit(model[_model], data, param, _approx)
     else
-      @test fit(model[_model], data, param, _approx) isa PuMaS.FittedPuMaSModel
+      @test fit(model[_model], data, param, _approx) isa Pumas.FittedPumasModel
     end
   end
 end

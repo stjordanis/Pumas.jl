@@ -1,4 +1,4 @@
-using PuMaS, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays, DiffResults
+using Pumas, ForwardDiff, DiffEqDiffTools, Test, Random, LabelledArrays, DiffResults
 
 AD_gradient = ForwardDiff.gradient
 AD_hessian = ForwardDiff.hessian
@@ -83,7 +83,7 @@ end
         cmax = maximum(conc)
         (conc = conc, cmax = cmax, dv = @. Normal(conc, conc*col.σ))
     end
-    model_ip = PuMaSModel(p,rfx_f,col_f,init_f,prob,derived_f)
+    model_ip = PumasModel(p,rfx_f,col_f,init_f,prob,derived_f)
 
     # Initial data
     θ₀ = [2.268,74.17,468.6,0.5876]
@@ -131,7 +131,7 @@ end
     @test grad_FD ≈ grad_AD atol=2e-6
     @test hes_FD  ≈ hes_AD  atol=5e-3
 
-    PuMaS.marginal_nll(model_ip,subject,param,PuMaS.LaplaceI())
+    Pumas.marginal_nll(model_ip,subject,param,Pumas.LaplaceI())
 end
 
 @testset "Magic argument - lags" begin

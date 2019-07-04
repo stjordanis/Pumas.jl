@@ -1,5 +1,5 @@
 using Test, LinearAlgebra
-using PuMaS
+using Pumas
 
 # Gut dosing model
 m_diffeq = @model begin

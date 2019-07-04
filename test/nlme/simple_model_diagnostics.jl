@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using Pumas, LinearAlgebra, Optim
 
 data = read_pumas(example_nmtran_data("sim_data_model1"))
 
@@ -34,10 +34,10 @@ end
 
 param = init_param(mdsl1)
 
-[PuMaS.npde( mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
-[PuMaS.epred(mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, PuMaS.FOCE()),), 10000) for i in 1:10]
-[PuMaS.cpred(mdsl1, data[i], param) for i in 1:10]
-[PuMaS.cpredi(mdsl1, data[i], param) for i in 1:10]
+[Pumas.npde( mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, Pumas.FOCE()),), 10000) for i in 1:10]
+[Pumas.epred(mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, Pumas.FOCE()),), 10000) for i in 1:10]
+[Pumas.cpred(mdsl1, data[i], param) for i in 1:10]
+[Pumas.cpredi(mdsl1, data[i], param) for i in 1:10]
 
 @testset "pred" for
     (sub_pred, dt) in zip([[10.0000000, 6.06530660],
@@ -51,7 +51,7 @@ param = init_param(mdsl1)
                            [10.0000000, 6.06530660],
                            [10.0000000, 6.06530660]], data)
 
-    @test PuMaS.pred(mdsl1, dt, param) ≈ sub_pred rtol=1e-6
+    @test Pumas.pred(mdsl1, dt, param) ≈ sub_pred rtol=1e-6
 end
 
 @testset "wres" for
@@ -66,7 +66,7 @@ end
                            [-1.38172560 , 0.984121759],
                            [ 0.905043866, 0.302785305]], data)
 
-    @test PuMaS.wres(mdsl1, dt, param) ≈ sub_wres
+    @test Pumas.wres(mdsl1, dt, param) ≈ sub_wres
 end
 
 @testset "cwres" for
@@ -81,7 +81,7 @@ end
                             [-1.38172560 , 0.985428904],
                             [ 0.905043866, 0.302910385]], data)
 
-    @test PuMaS.cwres(mdsl1, dt, param) ≈ sub_cwres
+    @test Pumas.cwres(mdsl1, dt, param) ≈ sub_cwres
 end
 
 @testset "cwresi" for
@@ -96,7 +96,7 @@ end
                              [-1.3817256  , 0.962485383],
                              [ 0.905043866, 0.302554671]], data)
 
-   @test PuMaS.cwresi(mdsl1, dt, param) ≈ sub_cwresi rtol=1e-6
+   @test Pumas.cwresi(mdsl1, dt, param) ≈ sub_cwresi rtol=1e-6
 end
 
 @testset "iwres" for
@@ -111,7 +111,7 @@ end
                             [-1.38172560 , 1.03215561 ],
                             [ 0.905043866, 0.317563907]], data)
 
-    @test PuMaS.PuMaS.iwres(mdsl1, dt, param) ≈ sub_iwres
+    @test Pumas.Pumas.iwres(mdsl1, dt, param) ≈ sub_iwres
 end
 
 @testset "icwres" for
@@ -126,7 +126,7 @@ end
                              [-1.38172560 , 0.942045331],
                              [ 0.905043866, 0.289051786]], data)
 
-    @test PuMaS.icwres(mdsl1, dt, param) ≈ sub_icwres rtol=1e-6
+    @test Pumas.icwres(mdsl1, dt, param) ≈ sub_icwres rtol=1e-6
 end
 
 @testset "icwresi" for
@@ -141,13 +141,13 @@ end
                               [-1.38172560 , 0.925641802],
                               [ 0.905043866, 0.314343255]], data)
 
-    @test PuMaS.icwresi(mdsl1, dt, param) ≈ sub_icwresi rtol=1e-6
+    @test Pumas.icwresi(mdsl1, dt, param) ≈ sub_icwresi rtol=1e-6
 end
 
-[PuMaS.eiwres(mdsl1, data[i], param, 10000) for i in 1:10]
+[Pumas.eiwres(mdsl1, data[i], param, 10000) for i in 1:10]
 
 param = (θ = [0.340689], Ω = Diagonal([0.000004]), Σ = 0.0752507)
-@test ηshrinkage(mdsl1, data, param, PuMaS.FOCEI()) ≈ [0.997574] rtol=1e-6
-ϵshrinkage(mdsl1, data, param, PuMaS.FOCEI())
-@test aic(mdsl1, data, param, PuMaS.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
-@test bic(mdsl1, data, param, PuMaS.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test
+@test ηshrinkage(mdsl1, data, param, Pumas.FOCEI()) ≈ [0.997574] rtol=1e-6
+ϵshrinkage(mdsl1, data, param, Pumas.FOCEI())
+@test aic(mdsl1, data, param, Pumas.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
+@test bic(mdsl1, data, param, Pumas.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test

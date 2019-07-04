@@ -64,19 +64,19 @@ end
 end
 
 """
-    conditional_nll(m::PuMaSModel, subject::Subject, param, args...; kwargs...)
+    conditional_nll(m::PumasModel, subject::Subject, param, args...; kwargs...)
 
 Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
 random effects `param`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
-conditional_nll(m::PuMaSModel,
+conditional_nll(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 randeffs::NamedTuple,
                 args...; kwargs...) = first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
 
-@inline function conditional_nll_ext(m::PuMaSModel,
+@inline function conditional_nll_ext(m::PumasModel,
                                      subject::Subject,
                                      param::NamedTuple,
                                      randeffs::NamedTuple,
@@ -118,7 +118,7 @@ conditional_nll(m::PuMaSModel,
   return -ll, derived_dist
 end
 
-conditional_nll(m::PuMaSModel,
+conditional_nll(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 randeffs::NamedTuple,
@@ -126,7 +126,7 @@ conditional_nll(m::PuMaSModel,
                 args...; kwargs...) = conditional_nll(m, subject, param, randeffs, args...; kwargs...)
 
 
-function conditional_nll(m::PuMaSModel,
+function conditional_nll(m::PumasModel,
                          subject::Subject,
                          param::NamedTuple,
                          randeffs::NamedTuple,
@@ -144,7 +144,7 @@ function conditional_nll(m::PuMaSModel,
 end
 
 # FIXME! Having both a method for randeffs::NamedTuple and vrandeffs::AbstractVector shouldn't really be necessary. Clean it up!
-function conditional_nll(m::PuMaSModel,
+function conditional_nll(m::PumasModel,
                          subject::Subject,
                          param::NamedTuple,
                          vrandeffs::AbstractVector,
@@ -166,7 +166,7 @@ function _conditional_nll(dv::AbstractVector{<:Normal}, dv0::AbstractVector{<:No
 end
 
 """
-    penalized_conditional_nll(m::PuMaSModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, args...; kwargs...)
+    penalized_conditional_nll(m::PumasModel, subject::Subject, param::NamedTuple, randeffs::NamedTuple, args...; kwargs...)
 
 Compute the penalized conditional negative log-likelihood. This is the same as
 [`conditional_nll`](@ref), except that it incorporates the penalty from the prior
@@ -175,7 +175,7 @@ distribution of the random effects.
 Here `param` can be either a `NamedTuple` or a vector (representing a transformation of the
 random effects to Cartesian space).
 """
-function penalized_conditional_nll(m::PuMaSModel,
+function penalized_conditional_nll(m::PumasModel,
                                    subject::Subject,
                                    param::NamedTuple,
                                    randeffs::NamedTuple,
@@ -193,7 +193,7 @@ function penalized_conditional_nll(m::PuMaSModel,
   end
 end
 
-function penalized_conditional_nll(m::PuMaSModel,
+function penalized_conditional_nll(m::PumasModel,
                                    subject::Subject,
                                    param::NamedTuple,
                                    vrandeffs::AbstractVector,
@@ -204,7 +204,7 @@ function penalized_conditional_nll(m::PuMaSModel,
   return penalized_conditional_nll(m, subject, param, randeffs, args...; kwargs...)
 end
 
-function _initial_randeffs(m::PuMaSModel, param::NamedTuple)
+function _initial_randeffs(m::PumasModel, param::NamedTuple)
   rfxset = m.random(param)
   p = TransformVariables.dimension(totransform(rfxset))
 
@@ -220,7 +220,7 @@ The point-estimate the random effects (being the mode of the empirical Bayes est
 particular subject at a particular parameter values. The result is returned as a vector
 (transformed into Cartesian space).
 """
-function empirical_bayes(m::PuMaSModel,
+function empirical_bayes(m::PumasModel,
   subject::Subject,
   param::NamedTuple,
   approx::LikelihoodApproximation,
@@ -231,7 +231,7 @@ function empirical_bayes(m::PuMaSModel,
 end
 
 function empirical_bayes!(vrandeffs::AbstractVector,
-                          m::PuMaSModel,
+                          m::PumasModel,
                           subject::Subject,
                           param::NamedTuple,
                           ::Union{FO,FOI,HCubeQuad},
@@ -242,7 +242,7 @@ function empirical_bayes!(vrandeffs::AbstractVector,
 end
 
 function empirical_bayes!(vrandeffs::AbstractVector,
-                          m::PuMaSModel,
+                          m::PumasModel,
                           subject::Subject,
                           param::NamedTuple,
                           approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
@@ -288,7 +288,7 @@ result is returned as a `MvNormal`.
 """
 empirical_bayes_dist
 
-function empirical_bayes_dist(m::PuMaSModel,
+function empirical_bayes_dist(m::PumasModel,
                               subject::Subject,
                               param::NamedTuple,
                               vrandeffs::AbstractVector,
@@ -312,7 +312,7 @@ from the data.
 
 See also [`deviance`](@ref).
 """
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
                       randeffs::NamedTuple,
@@ -323,7 +323,7 @@ function marginal_nll(m::PuMaSModel,
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
                       approx::LikelihoodApproximation,
@@ -333,7 +333,7 @@ function marginal_nll(m::PuMaSModel,
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       # restrict to Vector to avoid distributed arrays taking
                       # this path
                       population::Vector{<:Subject},
@@ -364,7 +364,7 @@ function marginal_nll(m::PuMaSModel,
 end
 
 function _marginal_nll_threads(nll1::T,
-                               m::PuMaSModel,
+                               m::PumasModel,
                                population::Vector{<:Subject},
                                args...;
                                kwargs...)::T where T
@@ -382,7 +382,7 @@ function _marginal_nll_threads(nll1::T,
 end
 
 function _marginal_nll_pmap(nll1::T,
-                            m::PuMaSModel,
+                            m::PumasModel,
                             population::Vector{<:Subject},
                             args...;
                             kwargs...)::T where T
@@ -394,7 +394,7 @@ function _marginal_nll_pmap(nll1::T,
     return nll1 + sum(nlls)
 end
 
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
                       vrandeffs::AbstractVector,
@@ -422,7 +422,7 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
                       vrandeffs::AbstractVector,
@@ -445,7 +445,7 @@ function marginal_nll(m::PuMaSModel,
   end
 end
 
-function marginal_nll(m::PuMaSModel,
+function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
                       randeffs::AbstractVector,
@@ -465,12 +465,12 @@ end
 Compute the deviance of a subject or dataset:
 this is scaled and shifted slightly from [`marginal_nll`](@ref).
 """
-StatsBase.deviance(m::PuMaSModel,
+StatsBase.deviance(m::PumasModel,
                    subject::Subject,
                    args...; kwargs...) =
     2marginal_nll(m, subject, args...; kwargs...) - length(first(subject.observations))*log(2π)
 
-StatsBase.deviance(m::PuMaSModel,
+StatsBase.deviance(m::PumasModel,
                    data::Population,
                    args...; kwargs...) =
     2marginal_nll(m, data, args...; kwargs...) - sum(subject->length(first(subject.observations)), data)*log(2π)
@@ -491,7 +491,7 @@ StatsBase.deviance(m::PuMaSModel,
 #
 # ℓᵖ is the penalized conditional likelihood function.
 function marginal_nll_gradient!(g::AbstractVector,
-                                model::PuMaSModel,
+                                model::PumasModel,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
@@ -570,14 +570,14 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
-function _fdrelstep(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:forward})
+function _fdrelstep(model::PumasModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:forward})
   if model.prob isa ExplicitModel
     return sqrt(eps(numtype(param)))
   else
     return max(reltol, sqrt(eps(numtype(param))))
   end
 end
-function _fdrelstep(model::PuMaSModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:central})
+function _fdrelstep(model::PumasModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:central})
   if model.prob isa ExplicitModel
     return cbrt(eps(numtype(param)))
   else
@@ -589,7 +589,7 @@ end
 # but much simpler since the expansion point in η is fixed. Hence,
 # the gradient is simply the partial derivative in θ
 function marginal_nll_gradient!(g::AbstractVector,
-                                model::PuMaSModel,
+                                model::PumasModel,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
@@ -627,7 +627,7 @@ function marginal_nll_gradient!(g::AbstractVector,
 end
 
 function marginal_nll_gradient!(g::AbstractVector,
-                                model::PuMaSModel,
+                                model::PumasModel,
                                 population::Population,
                                 param::NamedTuple,
                                 vvrandeffs::AbstractVector,
@@ -650,7 +650,7 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
-function _conditional_nll_ext_η_gradient(m::PuMaSModel,
+function _conditional_nll_ext_η_gradient(m::PumasModel,
                                          subject::Subject,
                                          param::NamedTuple,
                                          vrandeffs::AbstractVector,
@@ -667,7 +667,7 @@ function _conditional_nll_ext_η_gradient(m::PuMaSModel,
   return _conditional_nll_ext(cfg.duals)
 end
 
-function ∂²l∂η²(m::PuMaSModel,
+function ∂²l∂η²(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector,
@@ -687,7 +687,7 @@ end
 
 function _∂²l∂η²(nl_d::ForwardDiff.Dual,
                  dv_d::AbstractVector{<:Union{Normal,LogNormal}},
-                 m::PuMaSModel,
+                 m::PumasModel,
                  subject::Subject,
                  param::NamedTuple,
                  vrandeffs::AbstractVector,
@@ -767,7 +767,7 @@ _is_homoscedastic(::Any) = throw(ArgumentError("Distribution not supported"))
 # FIXME! Don't hardcode for dv
 function _∂²l∂η²(nl_d::ForwardDiff.Dual,
                  dv_d::AbstractVector{<:Union{Normal,LogNormal}},
-                 m::PuMaSModel,
+                 m::PumasModel,
                  subject::Subject,
                  param::NamedTuple,
                  vrandeffs::AbstractVector,
@@ -834,7 +834,7 @@ end
 # but for FOCE we just pass dv_d on to the actual computational kernel.
 _∂²l∂η²(nl_d::ForwardDiff.Dual,
         dv_d::AbstractVector{<:Union{Normal,LogNormal}},
-        m::PuMaSModel,
+        m::PumasModel,
         subject::Subject,
         param::NamedTuple,
         vrandeffs::AbstractVector,
@@ -843,7 +843,7 @@ _∂²l∂η²(nl_d::ForwardDiff.Dual,
 
 
 # FIXME! Don't hardcode for dv
-function ∂²l∂η²(m::PuMaSModel,
+function ∂²l∂η²(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector,
@@ -867,7 +867,7 @@ end
 # Fallbacks for a usful error message when distribution isn't supported
 _∂²l∂η²(nl_d::ForwardDiff.Dual,
         dv_d::Any,
-        m::PuMaSModel,
+        m::PumasModel,
         subject::Subject,
         param::NamedTuple,
         vrandeffs::AbstractVector,
@@ -875,7 +875,7 @@ _∂²l∂η²(nl_d::ForwardDiff.Dual,
         args...; kwargs...) = throw(ArgumentError("Distribution is current not supported for the $approx approximation. Please consider a different likelihood approximation."))
 
 # Fitting methods
-struct FittedPuMaSModel{T1<:PuMaSModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
+struct FittedPumasModel{T1<:PumasModel,T2<:Population,T3,T4<:LikelihoodApproximation, T5}
   model::T1
   data::T2
   optim::T3
@@ -903,7 +903,7 @@ function DEFAULT_OPTIMIZE_FN(cost, p, callback)
   )
 end
 
-function Distributions.fit(m::PuMaSModel,
+function Distributions.fit(m::PumasModel,
                            population::Population,
                            param::NamedTuple,
                            approx::LikelihoodApproximation,
@@ -979,12 +979,12 @@ function Distributions.fit(m::PuMaSModel,
     end
   end
 
-  return FittedPuMaSModel(m, population, o, approx, vvrandeffs)
+  return FittedPumasModel(m, population, o, approx, vvrandeffs)
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
 
-function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
+function Base.getproperty(f::FittedPumasModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
   if s === :param
     trf = totransform(f.model.param)
     TransformVariables.transform(trf, opt_minimizer(f.optim))
@@ -993,10 +993,10 @@ function Base.getproperty(f::FittedPuMaSModel{<:Any,<:Any,<:Optim.MultivariateOp
   end
 end
 
-marginal_nll(      f::FittedPuMaSModel) = marginal_nll(f.model, f.data, f.param, f.approx)
-StatsBase.deviance(f::FittedPuMaSModel) = deviance(    f.model, f.data, f.param, f.approx)
+marginal_nll(      f::FittedPumasModel) = marginal_nll(f.model, f.data, f.param, f.approx)
+StatsBase.deviance(f::FittedPumasModel) = deviance(    f.model, f.data, f.param, f.approx)
 
-function _observed_information(f::FittedPuMaSModel,
+function _observed_information(f::FittedPumasModel,
                                 ::Val{Score},
                                args...;
                                # We explicitly use reltol to compute the right step size for finite difference based gradient
@@ -1058,7 +1058,7 @@ function _observed_information(f::FittedPuMaSModel,
   return H, S
 end
 
-function _expected_information(m::PuMaSModel,
+function _expected_information(m::PumasModel,
                                subject::Subject,
                                param::NamedTuple,
                                randeffs::NamedTuple,
@@ -1098,7 +1098,7 @@ function _expected_information(m::PuMaSModel,
   return dEdθ*V⁻¹*dEdθ' + dVpart
 end
 
-function StatsBase.informationmatrix(f::FittedPuMaSModel; expected::Bool=true)
+function StatsBase.informationmatrix(f::FittedPumasModel; expected::Bool=true)
   data      = f.data
   model     = f.model
   param     = f.param
@@ -1111,11 +1111,11 @@ function StatsBase.informationmatrix(f::FittedPuMaSModel; expected::Bool=true)
 end
 
 """
-    vcov(f::FittedPuMaSModel) -> Matrix
+    vcov(f::FittedPumasModel) -> Matrix
 
 Compute the covariance matrix of the population parameters
 """
-function StatsBase.vcov(f::FittedPuMaSModel, args...; kwargs...)
+function StatsBase.vcov(f::FittedPumasModel, args...; kwargs...)
 
   # Compute the observed information based on the Hessian (H) and the product of the outer scores (S)
   H, S = _observed_information(f, Val(true), args...; kwargs...)
@@ -1127,15 +1127,15 @@ function StatsBase.vcov(f::FittedPuMaSModel, args...; kwargs...)
 end
 
 """
-    stderror(f::FittedPuMaSModel) -> NamedTuple
+    stderror(f::FittedPumasModel) -> NamedTuple
 
 Compute the standard errors of the population parameters and return
 the result as a `NamedTuple` matching the `NamedTuple` of population
 parameters.
 """
-StatsBase.stderror(f::FittedPuMaSModel) = stderror(infer(f))
+StatsBase.stderror(f::FittedPumasModel) = stderror(infer(f))
 
-function _E_and_V(m::PuMaSModel,
+function _E_and_V(m::PumasModel,
                   subject::Subject,
                   param::NamedTuple,
                   vrandeffs::AbstractVector,
@@ -1151,7 +1151,7 @@ function _E_and_V(m::PuMaSModel,
   return mean.(dist.dv), V
 end
 
-function _E_and_V(m::PuMaSModel,
+function _E_and_V(m::PumasModel,
                   subject::Subject,
                   param::NamedTuple,
                   vrandeffs::AbstractVector,
@@ -1174,30 +1174,30 @@ end
 # Some type piracy for the time being
 Distributions.MvNormal(D::Diagonal) = MvNormal(PDiagMat(D.diag))
 
-struct FittedPuMaSModelInference{T1, T2, T3}
+struct FittedPumasModelInference{T1, T2, T3}
   fpm::T1
   vcov::T2
   level::T3
 end
 
 """
-    infer(fpm::FittedPuMaSModel) -> FittedPuMaSModelInference
+    infer(fpm::FittedPumasModel) -> FittedPumasModelInference
 
 Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
-function infer(fpm::FittedPuMaSModel, args...; level = 0.95, kwargs...)
+function infer(fpm::FittedPumasModel, args...; level = 0.95, kwargs...)
   _vcov = vcov(fpm, args...; kwargs...)
-  FittedPuMaSModelInference(fpm, _vcov, level)
+  FittedPumasModelInference(fpm, _vcov, level)
 end
-function StatsBase.stderror(pmi::FittedPuMaSModelInference)
+function StatsBase.stderror(pmi::FittedPumasModelInference)
   ss = sqrt.(diag(pmi.vcov))
   trf = tostderrortransform(pmi.fpm.model.param)
   return TransformVariables.transform(trf, ss)
 end
 
-# empirical_bayes_dist for FiitedPuMaS
-function empirical_bayes_dist(fpm::FittedPuMaSModel)
+# empirical_bayes_dist for FiitedPumas
+function empirical_bayes_dist(fpm::FittedPumasModel)
   StructArray(
     (η=map(zip(fpm.data, fpm.vvrandeffs)) do (subject, vrandeffs)
       empirical_bayes_dist(fpm.model, subject, fpm.param, vrandeffs, fpm.approx)

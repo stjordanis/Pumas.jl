@@ -135,19 +135,19 @@ function get_vpc(quantile_quantiles::AbstractVector, strat_quant::AbstractVector
 end
 
 """
-vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+vpc(m::PumasModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
 
 Computes the quantiles for VPC. The default quantiles are the 5th, 50th and 95th percentiles. 
-  args: PuMaSModel, Population, Parameters and Number of Repetitions  
+  args: PumasModel, Population, Parameters and Number of Repetitions  
         
-  Instead of the model, simulations from a previous vpc run (obtained from VPC.Simulations) or a FittedPuMaSModel can be used.
+  Instead of the model, simulations from a previous vpc run (obtained from VPC.Simulations) or a FittedPumasModel can be used.
 
   kwargs: quantiles - Takes an array of quantiles to be calculated. The first three indices are used for plotting. 
           idv - The idv to be used, defaults to time. 
           dv - Takes an array of symbols of the dvs for which the quantiles are computed.
           stratify_on - Takes an array of symbols of covariates which the VPC is stratified on.
 """
-function vpc(m::PuMaSModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+function vpc(m::PumasModel, data::Population, fixeffs::NamedTuple, reps::Integer;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   # rand_seed = rand()
   # Random.seed!(rand_seed)
   # println("Seed set as $rand_seed")
@@ -241,8 +241,8 @@ function vpc_obs(data::Population;quantiles = [0.05,0.5,0.95], idv = :time, dv =
   OBS_VPC(idv_, obs_vpc)
 end
 
-#Use FittedPuMaSModel object for vpc
-function vpc(fpm::FittedPuMaSModel, reps::Integer, data::Population=fpm.data;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
+#Use FittedPumasModel object for vpc
+function vpc(fpm::FittedPumasModel, reps::Integer, data::Population=fpm.data;quantiles = [0.05,0.5,0.95], idv = :time, dv = [:dv], stratify_on = nothing)
   vpc(fpm.model, fpm.data, fpm.param, reps, quantiles=quantiles, idv=idv, dv=dv, stratify_on=stratify_on)
 end
 

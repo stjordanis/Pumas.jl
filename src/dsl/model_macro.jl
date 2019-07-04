@@ -457,12 +457,12 @@ end
 to_ncasubj(name, t, events) = NCASubject(name, t, dose=map(ev->convert(NCADose, ev), events), clean=false, check=false)
 
 macro nca(name)
-  esc(:(PuMaS.to_ncasubj($name, t, events)))
+  esc(:(Pumas.to_ncasubj($name, t, events)))
 end
 
 macro nca(names...)
   ex = Expr(:tuple)
-  ex.args = [:(PuMaS.to_ncasubj($name, t, events)) for name in names]
+  ex.args = [:(Pumas.to_ncasubj($name, t, events)) for name in names]
   esc(ex)
 end
 
@@ -525,7 +525,7 @@ macro model(expr)
   prevars = union(prevars, keys(params), keys(randoms), covariates)
 
   ex = quote
-    x = PuMaSModel(
+    x = PumasModel(
     $(param_obj(params)),
     $(random_obj(randoms,params)),
     $(pre_obj(preexpr,prevars,params,randoms,covariates)),
@@ -534,7 +534,7 @@ macro model(expr)
     $(derived_obj(derivedexpr,derivedvars,prevars,odevars)),
     $(observed_obj(observedexpr,observedvars,prevars,odevars,derivedvars)))
     function Base.show(io::IO, ::typeof(x))
-      println(io,"PuMaSModel")
+      println(io,"PumasModel")
       println(io,"  Parameters: ",$(join(keys(params),", ")))
       println(io,"  Random effects: ",$(join(keys(randoms),", ")))
       println(io,"  Covariates: ",$(join(covariates,", ")))

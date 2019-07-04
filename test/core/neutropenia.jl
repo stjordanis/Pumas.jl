@@ -1,5 +1,5 @@
 using Test
-using PuMaS, DataFrames
+using Pumas, DataFrames
 
 # Example from
 # https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/05_margossian/models/neutropenia
@@ -98,13 +98,13 @@ data = DataFrame(time = append!([0.083, 0.167, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0,
 subject = Subject(obs = data,
                   evs = DosageRegimen(8e4, addl = 14, ii = 12))
 
-param = PuMaS.init_param(m_neut)
+param = Pumas.init_param(m_neut)
 
 sol_diffeq = solve(m_neut,subject,param)
 
 # Should be made into a population test
-sol_diffeq = solve(m_neut,subject,param, parallel_type = PuMaS.Threading)
+sol_diffeq = solve(m_neut,subject,param, parallel_type = Pumas.Threading)
 
-@test PuMaS.conditional_nll(m_neut, subject, param, NamedTuple()) ≈ 79.54079056760992 rtol=7e-5
+@test Pumas.conditional_nll(m_neut, subject, param, NamedTuple()) ≈ 79.54079056760992 rtol=7e-5
 
 obs = simobs(m_neut,subject,param)

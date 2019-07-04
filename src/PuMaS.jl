@@ -1,4 +1,4 @@
-module PuMaS
+module Pumas
 
 using DiffEqBase, DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
@@ -46,7 +46,7 @@ include("simulate_methods/analytical.jl")
 example_nmtran_data(filename) = joinpath(joinpath(@__DIR__, ".."),"examples/"*filename*".csv")
 
 export Subject, Population, DosageRegimen
-export PuMaSModel, init_param, init_randeffs, sample_randeffs
+export PumasModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll

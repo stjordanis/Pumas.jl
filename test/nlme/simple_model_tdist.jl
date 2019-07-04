@@ -1,5 +1,5 @@
 using Test
-using PuMaS, LinearAlgebra, Optim
+using Pumas, LinearAlgebra, Optim
 
 data = read_pumas(example_nmtran_data("sim_data_model1"))
 
@@ -39,11 +39,11 @@ for (d, v) in zip(data, [-0.110095703125000, 0.035454025268555, -0.0249826049804
                          -0.085317642211914, 0.071675025939941, 0.059612709045410,
                          -0.110117317199707, -0.024778854370117, -0.053085464477539,
                          -0.002428230285645])
-  @test empirical_bayes(tdist, d, param, PuMaS.LaplaceI())[1] ≈ v rtol=1e-4
+  @test empirical_bayes(tdist, d, param, Pumas.LaplaceI())[1] ≈ v rtol=1e-4
 end
 
 # Not yet supported
-@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FO())
-@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FOCE())
-@test_throws ArgumentError deviance(tdist, data, param, PuMaS.FOCEI())
-@test deviance(tdist, data, param, PuMaS.LaplaceI()) ≈ 57.112537604068990 rtol=1e-6
+@test_throws ArgumentError deviance(tdist, data, param, Pumas.FO())
+@test_throws ArgumentError deviance(tdist, data, param, Pumas.FOCE())
+@test_throws ArgumentError deviance(tdist, data, param, Pumas.FOCEI())
+@test deviance(tdist, data, param, Pumas.LaplaceI()) ≈ 57.112537604068990 rtol=1e-6

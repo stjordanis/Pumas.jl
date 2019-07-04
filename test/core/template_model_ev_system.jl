@@ -1,10 +1,10 @@
-using PuMaS, Test, LabelledArrays
+using Pumas, Test, LabelledArrays
 
 ###############################
 # Test 2
 ###############################
 
-# ev2 - infusion into the central compartment - use ev2.csv in PuMaS/examples/event_data/
+# ev2 - infusion into the central compartment - use ev2.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 
 # new
@@ -79,7 +79,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-14)
 ###############################
 
 # ev3 - infusion into the central compartment with lag time
-# - use ev3.csv in PuMaS/examples/event_data/
+# - use ev3.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -159,7 +159,7 @@ sim = simobs(mlag_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-14
 ###############################
 
 # ev4 - infusion into the central compartment with lag time and bioavailability
-# - use ev4.csv in PuMaS/examples/event_data/
+# - use ev4.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -247,7 +247,7 @@ sim = simobs(mlagbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=
 ###############################
 
 # ev5 - infusion into the central compartment at steady state (ss)
-# - use ev5.csv in PuMaS/examples/event_data/
+# - use ev5.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -358,7 +358,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 
 # ev6 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
-# - use ev6.csv in PuMaS/examples/event_data/
+# - use ev6.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -436,7 +436,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 
 # ev7 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is less
 # than the infusion duration (DUR)
-# - use ev7.csv in PuMaS/examples/event_data/
+# - use ev7.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -490,7 +490,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 
 # ev8 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is a
 # multiple of infusion duration (DUR)
-# - use ev8.csv in PuMaS/examples/event_data/
+# - use ev8.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
@@ -548,7 +548,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-14, reltol=1e-
 
 # ev9 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
-# - use ev9.csv in PuMaS/examples/event_data/
+# - use ev9.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
@@ -603,7 +603,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 
 # ev10 - infusion into the central compartment at steady state (ss), where frequency of events (ii) is
 # exactly equal to infusion duration (DUR)
-# - use ev10.csv in PuMaS/examples/event_data/
+# - use ev10.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 # rate=10: the dose is given at a rate of amt/time (mg/hr), i.e, 10mg/hr. In this example the 100mg amount
@@ -653,7 +653,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 ###############################
 
 # ev11 - gut dose at steady state with lower bioavailability
-# - use ev11.csv in PuMaS/examples/event_data/
+# - use ev11.csv in Pumas/examples/event_data/
 # amt=100: 100 mg bolus into depot compartment
 
 #new
@@ -705,7 +705,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 ###############################
 
 # ev12 - gut dose at with lower bioavailability and a 5 hour lag time
-# - use ev12.csv in PuMaS/examples/event_data/
+# - use ev12.csv in Pumas/examples/event_data/
 # amt=100: 100 mg bolus into gut compartment
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
 # BIOAV=0.412: required developing a new internal variable called F_<comp name> or F_<comp num>,
@@ -750,7 +750,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev13 - zero order infusion followed by first order absorption into gut
-# - use ev13.csv in PuMaS/examples/event_data/
+# - use ev13.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into gut compartment at time zero
 # amt=50; 50 mg bolus into gut compartment at time = 12 hours
 # cmt=1: in the system of diffeq's, gut compartment is the first compartment
@@ -792,7 +792,7 @@ sim = simobs(mbioav_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 ###############################
 
 # ev14 - zero order infusion into central compartment specified by duration parameter
-# - use ev14.csv in PuMaS/examples/event_data/
+# - use ev14.csv in Pumas/examples/event_data/
 # amt=100: 100 mg infusion into central compartment at time zero
 
 #new
@@ -886,7 +886,7 @@ sim = simobs(mbld_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12
 
 ## SS=2 and next dose overlapping into the SS interval
 # ev15 - first order bolus into central compartment at ss followed by an ss=2 (superposition ss) dose at 12 hours
-# - use ev15.csv in PuMaS/examples/event_data/
+# - use ev15.csv in Pumas/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by a 20 mg ss=2 dose at time 12
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
 
@@ -924,7 +924,7 @@ maximum(sim[:cp] - subject.observations.cp)
 ## SS=2 with a no-reset afterwards
 # ev16 - first order bolus into central compartment at ss followed by
 # an ss=2 (superposition ss) dose at 12 hours followed by reset ss=1 dose at 24 hours
-# - use ev16.csv in PuMaS/examples/event_data/
+# - use ev16.csv in Pumas/examples/event_data/
 # amt=10: 10 mg bolus into central compartment at time zero using ss=1, followed by 20 mg ss=2 dose at time 12 followed
 # 10 mg ss = 1 reset dose at time 24
 # cmt=2: in the system of diffeq's, central compartment is the second compartment
@@ -969,7 +969,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12, c
 ###############################
 
 # ev2_const_infusion.csv - zero order constant infusion at time=10 followed by infusion at time 15
-# - use ev17.csv in PuMaS/examples/event_data/
+# - use ev17.csv in Pumas/examples/event_data/
 # several observations predose (time<10) even though time=10 is a constant infusion as steady state (SS=1)
 # amt=0: constant infusion with rate=10 at time 10
 # amt=200; 200 dose units infusion with rate=20 starting at time 15
@@ -1003,7 +1003,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev2_const_infusion2.csv - zero order constant infusion at all observations
-# - use ev18.csv in PuMaS/examples/event_data/
+# - use ev18.csv in Pumas/examples/event_data/
 # several constant infusion dose rows (SS=1, amt=0, rate=10) are added previous to each observation
 # evid = 1: indicates a dosing event
 # mdv = 1: indicates that observations are not avaialable at this dosing record
@@ -1036,7 +1036,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12)
 ###############################
 
 # ev19 - Two parallel first order absorption models
-# use ev19.csv in PuMaS/examples/event_data/
+# use ev19.csv in Pumas/examples/event_data/
 # In some cases, after oral administration, the plasma concentrations exhibit a double
 # peak or shouldering-type absorption.
 # gut compartment is split into two compartments Depot1 and Depot2
@@ -1112,7 +1112,7 @@ sim = simobs(mparbl_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-
 ###############################
 
 # ev20 - Mixed zero and first order absorption
-# use ev20.csv in PuMaS/examples/event_data/
+# use ev20.csv in Pumas/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
 # and is followed, with a lag time (lag2), by a zero-order process in the central compartment.
 # a 10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 0.5 (bioav1)
@@ -1182,7 +1182,7 @@ sim = simobs(mbl2_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12
 ###############################
 
 # ev21 - Testing evid=4
-# use ev21.csv in PuMaS/examples/event_data/
+# use ev21.csv in Pumas/examples/event_data/
 # For the current example, the first-order process starts immediately after dosing into the Depot (gut)
 # at time=0 and evid=1 followed by a second dose into Depot at time=12 hours, but with evid=4
 # A  10 mg dose is given into the gut compartment (cmt=1) at time zero with a bioav of 1 (bioav1)
@@ -1212,7 +1212,7 @@ sim = simobs(m_analytic, subject, param, randeffs; abstol=1e-12, reltol=1e-12, c
 ###############################
 
 # ev22 - Testing evid=4
-# use ev22.csv in PuMaS/examples/event_data/
+# use ev22.csv in Pumas/examples/event_data/
 # For the current example, a bolus dose is given into the central compartment at time=0 followed by a
 # second dose into the gut compartment at time=12 with evid=4
 
