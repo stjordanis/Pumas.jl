@@ -260,17 +260,10 @@ function empirical_bayes!(vrandeffs::AbstractVector,
       cost,
       vrandeffs,
       BFGS(
-        linesearch=Optim.LineSearches.BackTracking(),
-        # Make sure that step isn't too large by scaling initial Hessian by the norm of the initial gradient
-        initial_invH=t -> Matrix(
-          I/max(1,
-            norm(DiffEqDiffTools.finite_difference_gradient(
-              cost,
-              vrandeffs,
-              relstep=fdrelstep,
-              absstep=fdrelstep^2))),
-          length(vrandeffs),
-          length(vrandeffs))),
+        # Restrict the step sizes allowed by the line search. Large step sizes can make
+        # the estimation fail.
+        linesearch=Optim.LineSearches.BackTracking(maxstep=1.0),
+        ),
       Optim.Options(
         show_trace=false,
         extended_trace=true,

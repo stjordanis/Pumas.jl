@@ -96,11 +96,6 @@ using Pumas, Test, LinearAlgebra
     _model in ("additive", "proportional", "exponential"),
       _approx in (Pumas.FO(), Pumas.FOCE(), Pumas.FOCEI(), Pumas.Laplace(), Pumas.LaplaceI())
 
-    if _model == "proportional" && _approx == Pumas.LaplaceI()
-      # NONMEM also can't handle this one
-      @test_throws PosDefException fit(model[_model], data, param, _approx)
-    else
-      @test fit(model[_model], data, param, _approx) isa Pumas.FittedPumasModel
-    end
+    @test fit(model[_model], data, param, _approx) isa Pumas.FittedPumasModel
   end
 end
