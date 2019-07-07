@@ -62,13 +62,15 @@ function _basic_subject_df(subjects)
 
 function add_covariates!(df, subjects)
   # We're assuming that all subjects have the same fields
-  for (covariate, value) in pairs(first(subjects).covariates)
-    df[covariate] = zero(eltype(value))
-  end
+  if !isa(first(subjects).covariates, Nothing)
+    for (covariate, value) in pairs(first(subjects).covariates)
+      df[covariate] = zero(eltype(value))
+    end
 
-  for subject in subjects
-    for (covariate, value) in pairs(subject.covariates)
-      df[df[:id].==subject.id, covariate] = value
+    for subject in subjects
+      for (covariate, value) in pairs(subject.covariates)
+        df[df[:id].==subject.id, covariate] = value
+      end
     end
   end
   df
