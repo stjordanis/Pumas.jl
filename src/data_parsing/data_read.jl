@@ -10,7 +10,7 @@ to_nt(obj::Any) = propertynames(obj) |>
     getproperty(obj, x) |>
     (x -> isone(length(unique(x))) ?
           first(x) :
-          any(ismissing, x) ? x : disallowmissing(x))
+          x)
     for x ∈ x))
 
 """

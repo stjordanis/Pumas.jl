@@ -219,7 +219,8 @@ struct Subject{T1,T2,T3,T4}
     # obs_cmts = :cmt ∈ Names ? data[:cmt][idx_obs] : nothing
 
     ## Covariates
-    covariates = isempty(cvs) ? nothing : to_nt(unique(data[vcat(time, cvs)]))
+    covariates = isempty(cvs) ? nothing : to_nt(data[cvs])
+
 
     ## Events
     idx_evt = setdiff(1:size(data, 1), idx_obs)
