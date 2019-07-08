@@ -64,7 +64,7 @@ function add_covariates!(df, subjects)
   # We're assuming that all subjects have the same fields
   if !isa(first(subjects).covariates, Nothing)
     for (covariate, value) in pairs(first(subjects).covariates)
-      df[covariate] = zero(eltype(value))
+      df[covariate] = value
     end
 
     for subject in subjects
