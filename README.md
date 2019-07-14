@@ -8,6 +8,8 @@ As Pumas is still unregistered, you will need to get the Git repository in order
 
 `]add https://github.com/PumasAI/Pumas.jl`. 
 
+
+
 Doing it this way, Pumas and its dependencies will install automatically. If one cannot authenticate using this command (since the repository is currently private!), then first clone the repository and use 
 
 `]add path/to/Pumas.jl`, then then do `]build Pumas`.
