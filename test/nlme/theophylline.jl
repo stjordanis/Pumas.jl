@@ -97,6 +97,8 @@ end
   o_stderror  = stderror(o)
 
   o_infer = infer(o)
+  o_inspect = inspect(o)
+
 
   # Verify that show runs
   io_buffer = IOBuffer()
@@ -132,12 +134,12 @@ end
     @test pred_foce[1].approx == Pumas.FOCE()
     @test pred_focei[1].approx == Pumas.FOCEI()
 
-    @test all(dfpred[:approx].== Ref(Pumas.FO()))
-    @test all(dfpred_no_covar[:approx].== Ref(Pumas.FO()))
-    @test all(dfpred_foce[:approx].== Ref(Pumas.FOCE()))
-    @test all(dfpred_foce_no_covar[:approx].== Ref(Pumas.FOCE()))
-    @test all(dfpred_focei[:approx].== Ref(Pumas.FOCEI()))
-    @test all(dfpred_focei_no_covar[:approx].== Ref(Pumas.FOCEI()))
+    @test all(dfpred[:pred_approx].== Ref(Pumas.FO()))
+    @test all(dfpred_no_covar[:pred_approx].== Ref(Pumas.FO()))
+    @test all(dfpred_foce[:pred_approx].== Ref(Pumas.FOCE()))
+    @test all(dfpred_foce_no_covar[:pred_approx].== Ref(Pumas.FOCE()))
+    @test all(dfpred_focei[:pred_approx].== Ref(Pumas.FOCEI()))
+    @test all(dfpred_focei_no_covar[:pred_approx].== Ref(Pumas.FOCEI()))
 
     @test haskey(dfpred, :pred)
     @test haskey(dfpred, :ipred)
@@ -181,12 +183,12 @@ end
     @test wres_foce[1].approx == Pumas.FOCE()
     @test wres_focei[1].approx == Pumas.FOCEI()
 
-    @test all(dfwres[:approx].== Ref(Pumas.FO()))
-    @test all(dfwres_no_covar[:approx].== Ref(Pumas.FO()))
-    @test all(dfwres_foce[:approx].== Ref(Pumas.FOCE()))
-    @test all(dfwres_foce_no_covar[:approx].== Ref(Pumas.FOCE()))
-    @test all(dfwres_focei[:approx].== Ref(Pumas.FOCEI()))
-    @test all(dfwres_focei_no_covar[:approx].== Ref(Pumas.FOCEI()))
+    @test all(dfwres[:wres_approx].== Ref(Pumas.FO()))
+    @test all(dfwres_no_covar[:wres_approx].== Ref(Pumas.FO()))
+    @test all(dfwres_foce[:wres_approx].== Ref(Pumas.FOCE()))
+    @test all(dfwres_foce_no_covar[:wres_approx].== Ref(Pumas.FOCE()))
+    @test all(dfwres_focei[:wres_approx].== Ref(Pumas.FOCEI()))
+    @test all(dfwres_focei_no_covar[:wres_approx].== Ref(Pumas.FOCEI()))
 
     @test haskey(dfwres, :wres)
     @test haskey(dfwres, :iwres)

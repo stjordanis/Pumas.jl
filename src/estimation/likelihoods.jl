@@ -1180,7 +1180,9 @@ Compute the `vcov` matrix and return a struct used for inference
 based on the fitted model `fpm`.
 """
 function infer(fpm::FittedPumasModel, args...; level = 0.95, kwargs...)
+  print("Calculating: variance-covariance matrix")
   _vcov = vcov(fpm, args...; kwargs...)
+  println(". Done.")
   FittedPumasModelInference(fpm, _vcov, level)
 end
 function StatsBase.stderror(pmi::FittedPumasModelInference)

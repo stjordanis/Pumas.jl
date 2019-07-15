@@ -54,30 +54,39 @@ function wresiduals(fpm, subject::Subject, randeffs, approx; nsim=nothing)
   SubjectResidual(wres, iwres, subject, approx)
 end
 
-function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
-  resid = vresid[1]
-  df = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
-  df[:approx] = resid.approx
-  if include_covariates
-     covariates = resid.subject.covariates
-     for (cov, value) in pairs(covariates)
-       df[cov] = value
-     end
+function _basic_subject_df(subjects)
+  _ids = vcat((fill(subject.id, length(subject.time)) for subject in subjects)...)
+  _times = vcat((subject.time for subject in subjects)...)
+  DataFrame(id=_ids, time=_times)
   end
-  if length(vresid)>1
-    for i = 2:length(vresid)
-      resid = vresid[i]
-      df_i = DataFrame(id = fill(resid.subject.id, length(resid.subject.time)), wres = resid.wres, iwres = resid.iwres)
-      df_i[:approx] = resid.approx
-      if include_covariates
-         covariates = resid.subject.covariates
-         for (cov, value) in pairs(covariates)
-           df_i[cov] = value
-         end
+
+function add_covariates!(df, subjects)
+  # We're assuming that all subjects have the same fields
+  if !isa(first(subjects).covariates, Nothing)
+    for (covariate, value) in pairs(first(subjects).covariates)
+      df[covariate] = value
+    end
+
+    for subject in subjects
+      for (covariate, value) in pairs(subject.covariates)
+        df[df[:id].==subject.id, covariate] = value
       end
-      df = vcat(df, df_i)
     end
   end
+  df
+end
+
+function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
+  subjects = [resid.subject for resid in vresid]
+  df = _basic_subject_df(subjects)
+  if include_covariates
+    add_covariates!(df, subjects)
+  end
+
+  df[:wres] = vcat((resid.wres for resid in vresid)...)
+  df[:iwres] = vcat((resid.iwres for resid in vresid)...)
+  df[:wres_approx] = vcat((fill(resid.approx, length(resid.subject.time)) for resid in vresid)...)
+
   df
 end
 
@@ -399,30 +408,76 @@ function epredict(fpm, subject, vrandeffs, nsim::Integer)
 end
 
 function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
-  # TODO add covariates
-  pred = vpred[1]
-  df = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
-  df[:approx] = pred.approx
+  subjects = [pred.subject for pred in vpred]
+  df = _basic_subject_df(subjects)
   if include_covariates
-     covariates = pred.subject.covariates
-     for (cov, value) in pairs(covariates)
-       df[cov] = value
-     end
+    add_covariates!(df, subjects)
   end
-  if length(vpred)>1
-    for i = 2:length(vpred)
-      pred = vpred[i]
-      df_i = DataFrame(id = fill(pred.subject.id, length(pred.subject.time)), pred = pred.pred, ipred = pred.ipred)
-      df_i[:approx] = pred.approx
 
-      if include_covariates
-         covariates = pred.subject.covariates
-         for (cov, value) in pairs(covariates)
-           df_i[cov] = value
-         end
-      end
-      df = vcat(df, df_i)
-    end
-  end
+  df[:pred] = vcat((pred.pred for pred in vpred)...)
+  df[:ipred] = vcat((pred.ipred for pred in vpred)...)
+  df[:pred_approx] = vcat((fill(pred.approx, length(pred.subject.time)) for pred in vpred)...)
+
   df
+end
+
+struct SubjectEBES{T1, T2, T3}
+  ebes::T1
+  subject::T2
+  approx::T3
+end
+function empirical_bayes(fpm::FittedPumasModel, approx=fpm.approx)
+  subjects = fpm.data
+
+  if approx == fpm.approx
+    ebes = fpm.vvrandeffs
+    return [SubjectEBES(e, s, approx) for (e, s) in zip(ebes, subjects)]
+  else
+    # re-estimate under approx
+    return [SubjectEBES(empirical_bayes(fpm.model, subject, fpm.param, approx), subject, approx) for subject in subjects]
+  end
+end
+
+function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=true)
+  subjects = [ebes.subject for ebes in vebes]
+  df = _basic_subject_df(subjects)
+  if include_covariates
+    add_covariates!(df, subjects)
+  end
+  for i = 1:length(first(vebes).ebes)
+    df[Symbol("ebe_$i")] = vcat((fill(ebes.ebes[i], length(ebes.subject.time)) for ebes in vebes)...)
+  end
+  df[:ebes_approx] = vcat((fill(ebes.approx, length(ebes.subject.time)) for ebes in vebes)...)
+
+  df
+end
+
+struct FittedPumasModelInspection{T1, T2, T3, T4}
+  o::T1
+  pred::T2
+  wres::T3
+  ebes::T4
+end
+StatsBase.predict(i::FittedPumasModelInspection) = i.pred
+wresiduals(i::FittedPumasModelInspection) = i.wres
+empirical_bayes(i::FittedPumasModelInspection) = i.ebes
+
+function inspect(fpm; pred_approx=fpm.approx, infer_approx=fpm.approx,
+                    wres_approx=fpm.approx, ebes_approx=fpm.approx)
+  print("Calculating: ")
+  print("predictions")
+  pred = predict(fpm, pred_approx)
+  print(", weighted residuals")
+  res = wresiduals(fpm, wres_approx)
+  print(", empirical bayes")
+  ebes = empirical_bayes(fpm, ebes_approx)
+  println(". Done.")
+  FittedPumasModelInspection(fpm, pred, res, ebes)
+end
+function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=true)
+  pred_df = DataFrame(i.pred; include_covariates=include_covariates)
+  res_df = deletecols!(DataFrame(i.wres; include_covariates=false), :time)
+  ebes_df = deletecols!(DataFrame(i.ebes; include_covariates=false), :time)
+
+  df = join(join(pred_df, res_df; on=:id), ebes_df; on=:id)
 end
