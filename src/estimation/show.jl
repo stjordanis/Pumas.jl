@@ -146,3 +146,13 @@ function TreeViews.treelabel(io::IO,x::FittedPumasModelInference,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io,mime,Base.Text(Base.summary(x)))
 end
+
+function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPumasModelInspection)
+  println(io, "FittedPumasModelInspection\n")
+  println(io, "Fitting was successful: $(Optim.converged(pmi.o.optim))")
+
+  println(io, "Likehood approximations used for")
+  println(io, " * Predictions:        $(first(predict(pmi)).approx)")
+  println(io, " * Weighted residuals: $(first(wresiduals(pmi)).approx)")
+  println(io, " * Empirical bayes:    $(first(empirical_bayes(pmi)).approx)\n")
+end
