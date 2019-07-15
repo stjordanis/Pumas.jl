@@ -1,8 +1,7 @@
 # Pumas.jl
 
-[![Build Status](https://travis-ci.com/PumasAI/Pumas.jl.svg?token=4us5x5zt4Ac4ACSoL6Uw&branch=master)](https://travis-ci.com/PumasAI/Pumas.jl)
+[![Build Status](https://gitlab.com/PumasAI/Pumas-jl/badges/master/build.svg)](https://gitlab.com/PumasAI/Pumas-jl/badges/master/build.svg)
 [![codecov](https://codecov.io/gh/PumasAI/Pumas.jl/branch/master/graph/badge.svg?token=O3F3YVonX8)](https://codecov.io/gh/PumasAI/Pumas.jl)
-
 
 As Pumas is still unregistered, you will need to get the Git repository in order to add the package. To do this, use the command:
 
