@@ -98,22 +98,30 @@ Read the data in to Pumas
 
 ```julia
 data = read_pumas(simdf, time=:time,cvs=[:isPM, :wt])
-res = fit(model,data,param,Pumas.FOCEI())
 ```
 
 Evaluating the results of a model fit goes through an `fit` --> `infer` --> `inspect` --> `validate` cycle
 
-just calling `res` will print out the parameter estimates
-
 ```julia
-res
+res = fit(model,data,param,Pumas.FOCEI())
 ```
 
-`infer` provides the model inference 
+`infer` provides the model inference
+
 ```julia
 infer(res)
 ```
 
+`infer` gives you the model predictions, residuals and Empirical Bayes estimates
+
 ```julia
 resout = DataFrame(inspect(res))
 ```
+
+Finally validate your model with a visual predictive check
+
+```julia
+vpc(res,200) |> plot
+```
+
+Plotting methods on model diagnostics are coming soon. 
