@@ -109,7 +109,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
   function affect!(integrator)
 
     if ProbType <: DiffEqBase.DDEProblem
-      f = integrator.integrator.f.f
+      f = integrator.integrator.f
     else
       f = integrator.f
     end
