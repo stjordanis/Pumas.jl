@@ -1,6 +1,6 @@
 name = "Pumas"
 uuid = "4f2c3c20-a4ac-11e9-067b-e5872d3484cf"
-version = "0.0.7"
+version = "0.1.0"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
