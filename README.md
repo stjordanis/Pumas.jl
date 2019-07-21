@@ -7,8 +7,8 @@ Pumas: A Pharmaceutical Modeling and Simulation toolkit
 
 ## Resources
   * [Downloads & Install Instructions](https://pumas.ai/download)
-  * [Documentation](https://pumas.ai/documentation)
-  * [Tutorials](https://pumas.ai/tutorials)
+  * [Documentation](https://docs.pumas.ai/dev/)
+  * [Tutorials](https://tutorials.pumas.ai/)
   * [Blog](https://pumas.ai/blog)
   * [Discourse Forum](https://discourse.pumas.ai/)
 
