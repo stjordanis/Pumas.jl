@@ -15,7 +15,7 @@ Pumas: A Pharmaceutical Modeling and Simulation toolkit
 ## A simple PK model
 
 ```julia
-using Pumas, Plots, Queryverse
+using Pumas, Plots
 ```
 
 A simple one compartment oral absorption model using an analytical solution
@@ -92,9 +92,8 @@ plot(obs)
 Let's roundtrip this simulation to test our estimation routines
 
 ```julia
-simdf = DataFrame(obs) |>
-  @mutate(cmt = 1) |>
-  DataFrame
+simdf = DataFrame(obs)
+simdf.cmt = 1
 first(simdf, 6)
 ```
 Read the data in to Pumas
