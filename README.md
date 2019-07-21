@@ -12,7 +12,7 @@ Pumas: A Pharmaceutical Modeling and Simulation toolkit
   * [Blog](https://pumas.ai/blog)
   * [Discourse Forum](https://discourse.pumas.ai/)
 
-## A simple PK model
+## Demo: A Simple PK model
 
 ```julia
 using Pumas, Plots
