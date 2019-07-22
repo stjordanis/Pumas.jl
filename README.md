@@ -34,11 +34,12 @@ model = @model begin
     η ~ MvNormal(Ω)
   end
 
+  @covariates wt isPM
+
   @pre begin
     CL = tvcl * (1 + pmoncl*isPM) * (wt/70)^0.75 * exp(η[1])
     V  = tvv * (wt/70) * exp(η[2])
   end
-  @covariates wt isPM
 
   @dynamics ImmediateAbsorptionModel
     #@dynamics begin
