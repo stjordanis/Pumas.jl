@@ -50,11 +50,11 @@ theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:WT,:SEX])
     vparam = Pumas.TransformVariables.inverse(Pumas.totransform(theopmodel_bayes.param), Pumas.init_param(theopmodel_bayes))
     ldp = Pumas.BayesLogDensity(theopmodel_bayes, theopp)
     vparam_aug = [vparam; zeros(length(theopp)*ldp.dim_rfx)]
-    v = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.Value, ldp, vparam_aug)
-    @test v.value ≈ -612.6392449413322
-    vg = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.ValueGradient, ldp, vparam_aug)
-    @test vg.value ≈ v.value
-    @test vg.gradient ≈ [8.023571333788356
+    v = Pumas.logdensity(ldp, vparam_aug)
+    @test v ≈ -612.6392449413322
+    vg = Pumas.logdensitygrad(ldp, vparam_aug)
+    @test vg[1] ≈ v
+    @test vg[2] ≈ [8.023571333788356
                        878.2155638921361
                       -763.9131862639041
                        114.23979126237558
@@ -154,11 +154,11 @@ end
     ldp2 = Pumas.BayesLogDensity(theopmodel_bayes2, theopp,
                                  reltol = 1e-12, abstol = 1e-12)
     vparam2_aug = [vparam2; zeros(length(theopp)*ldp2.dim_rfx)]
-    v2 = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.Value, ldp2, vparam2_aug)
-    @test v2.value ≈ -612.6392449413325 rtol=1e-6
-    vg2 = Pumas.LogDensityProblems.logdensity(Pumas.LogDensityProblems.ValueGradient, ldp2, vparam2_aug)
-    @test vg2.value ≈ v2.value
-    @test vg2.gradient ≈ [8.023571333787114,
+    v2 = Pumas.logdensity(ldp2, vparam2_aug)
+    @test v2 ≈ -612.6392449413325 rtol=1e-6
+    vg2 = Pumas.logdensitygrad(ldp2, vparam2_aug)
+    @test vg2[1] ≈ v2
+    @test vg2[2] ≈ [8.023571333787114,
                           878.2155638921338,
                           -763.9131862639034,
                           114.23979126237346,

@@ -1,21 +1,19 @@
-using LogDensityProblems, DynamicHMC
-import LogDensityProblems: AbstractLogDensityProblem, dimension, logdensity
-
+using  AdvancedHMC
 
 function dim_param(m::PumasModel)
   t_param = totransform(m.param)
-  dimension(t_param)
+  TransformVariables.dimension(t_param)
 end
 
 function dim_rfx(m::PumasModel)
   x = init_param(m)
   rfx = m.random(x)
   t_rfx = totransform(rfx)
-  dimension(t_rfx)
+  TransformVariables.dimension(t_rfx)
 end
 
 # This object wraps the model, data and some pre-allocated buffers to match the necessary interface for DynamicHMC.jl
-struct BayesLogDensity{M,D,B,C,R,A,K} <: LogDensityProblems.AbstractLogDensityProblem
+struct BayesLogDensity{M,D,B,C,R,A,K} 
   model::M
   data::D
   dim_param::Int
@@ -31,16 +29,16 @@ function BayesLogDensity(model, data, args...;kwargs...)
   m = dim_param(model)
   n = dim_rfx(model)
   buffer = zeros(m + n)
-  cfg = ForwardDiff.GradientConfig(LogDensityProblems.logdensity, buffer)
+  cfg = ForwardDiff.GradientConfig(logdensity, buffer)
   res = DiffResults.GradientResult(buffer)
   BayesLogDensity(model, data, m, n, buffer, cfg, res, args, kwargs)
 end
 
-function LogDensityProblems.dimension(b::BayesLogDensity)
+function dimension(b::BayesLogDensity)
   b.dim_param + b.dim_rfx * length(b.data)
 end
 
-function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::BayesLogDensity, v::AbstractVector)
+function logdensity(b::BayesLogDensity, v::AbstractVector)
   try
     m = b.dim_param
     param = b.model.param
@@ -58,17 +56,17 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.Value}, b::Baye
       j_y - Pumas.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
     end
     ℓ = ℓ_param + ℓ_rfx
-    return LogDensityProblems.Value(isnan(ℓ) ? -Inf : ℓ)
+    return isnan(ℓ) ? -Inf : ℓ
   catch e
     if e isa ArgumentError
-      return LogDensityProblems.Value(-Inf)
+      return -Inf
     else
       rethrow(e)
     end
   end
 end
 
-function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient}, b::BayesLogDensity, v::AbstractVector)
+function logdensitygrad(b::BayesLogDensity, v::AbstractVector)
   ∇ℓ = zeros(size(v))
   try
     param = b.model.param
@@ -108,10 +106,10 @@ function LogDensityProblems.logdensity(::Type{LogDensityProblems.ValueGradient},
       ∇ℓ[1:m] .+= @view DiffResults.gradient(b.res)[1:m]
       copyto!(∇ℓ, m+(i-1)*n+1, DiffResults.gradient(b.res), m+1, n)
     end
-    return LogDensityProblems.ValueGradient(isnan(ℓ) ? -Inf : ℓ, ∇ℓ)
+    return isnan(ℓ) ? -Inf : ℓ, ∇ℓ
   catch e
     if e isa ArgumentError
-      return LogDensityProblems.ValueGradient(-Inf, ∇ℓ)
+      return -Inf, ∇ℓ
     else
       rethrow(e)
     end
@@ -127,11 +125,24 @@ end
 
 struct BayesMCMC <: LikelihoodApproximation end
 
-function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC,
-                           args...; nsamples=5000, kwargs...)
+# function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC,
+#                            args...; nsamples=5000, kwargs...)
+#   bayes = BayesLogDensity(model, data, args...;kwargs...)
+#   chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)
+#   BayesMCMCResults(bayes, chain, tuned)
+# end
+
+function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init,
+  args...; n_adapts=2000,n_samples=10000, kwargs...)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
-  chain,tuned = NUTS_init_tune_mcmc(bayes, nsamples)
-  BayesMCMCResults(bayes, chain, tuned)
+  dldθ(θ) = logdensitygrad(bayes, θ)
+  l(θ) = logdensity(bayes, θ)
+  metric = DiagEuclideanMetric(length(θ_init))
+  h = Hamiltonian(metric, l, dldθ)
+  prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, θ_init)))
+  adaptor = StanHMCAdaptor(n_adapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
+  samples, stats = sample(h, prop, θ_init, n_samples, adaptor, n_adapts; progress=true)
+  BayesMCMCResults(bayes, samples, stats)
 end
 
 # remove unnecessary PDMat wrappers
@@ -143,7 +154,7 @@ _clean_param(x::NamedTuple) = map(_clean_param, x)
 function param_values(b::BayesMCMCResults)
   param = b.loglik.model.param
   t_param = totransform(param)
-  StructArray([_clean_param(TransformVariables.transform(t_param, get_position(c))) for c in b.chain])
+  StructArray([_clean_param(TransformVariables.transform(t_param, c)) for c in b.chain])
 end
 
 function param_mean(b::BayesMCMCResults)
