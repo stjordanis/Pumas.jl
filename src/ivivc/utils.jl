@@ -87,25 +87,25 @@ vivo_ind_filler() = Dict([(:bateman, _bateman), (:bat, _bateman)])
 
 function _emax(conc, time, time_lag, p0, ub, lb)
   if time_lag
-    lb = lb === nothing ? zeros(eltype(conc), 4) : lb
-    ub = ub === nothing ? [125.0, Inf, time[end], time[end]] : ub
-    p0 = p0 === nothing ? [conc[end], 1.0, time[2], time[2]] : p0
+    lb = lb === nothing ? [0.0, 1.0, time[2], time[2]] : lb
+    ub = ub === nothing ? [1.25, Inf, time[end], time[end]] : ub
+    p0 = p0 === nothing ? [conc[end], 1.2, time[2], time[2]] : p0
   else
-    lb = lb === nothing ? zeros(eltype(conc), 3) : lb
-    ub = ub === nothing ? [125.0, Inf, time[end]] : ub
-    p0 = p0 === nothing ? [conc[end], 1.0, time[2]] : p0
+    lb = lb === nothing ? [0.0, 1.0, time[2]] : lb
+    ub = ub === nothing ? [1.25, Inf, time[end]] : ub
+    p0 = p0 === nothing ? [conc[end], 1.2, time[2]] : p0
   end
   lb, ub, p0
 end
 
 function _emax_ng(conc, time, time_lag, p0, ub, lb)
   if time_lag
-    lb = lb === nothing ? zeros(eltype(conc), 3) : lb
-    ub = ub === nothing ? [125.0, Inf, time[end], time[end]] : ub
-    p0 = p0 === nothing ? [conc[end], 1.0, time[2], time[2]] : p0
+    lb = lb === nothing ? [0.0, time[2], time[2]] : lb
+    ub = ub === nothing ? [1.25, time[end], time[end]] : ub
+    p0 = p0 === nothing ? [conc[end], time[2], time[2]] : p0
   else
-    lb = lb === nothing ? zeros(eltype(conc), 2) : lb
-    ub = ub === nothing ? [125.0, time[end]] : ub
+    lb = lb === nothing ? [0.0, time[2]] : lb
+    ub = ub === nothing ? [1.25, time[end]] : ub
     p0 = p0 === nothing ? [conc[end], time[2]] : p0
   end
   lb, ub, p0
@@ -113,39 +113,39 @@ end
 
 function _weibull(conc, time, time_lag, p0, ub, lb)
   if time_lag
-    lb = lb === nothing ? zeros(eltype(conc), 4) : lb
-    ub = ub === nothing ? [Inf, time[end], Inf, time[end]] : ub
-    p0 = p0 === nothing ? [1.0, time[2], 3.0, time[2]] : p0
+    lb = lb === nothing ? [0.0, 0.0, 1.0, 0.0] : lb
+    ub = ub === nothing ? [1.25, time[end], Inf, time[end]] : ub
+    p0 = p0 === nothing ? [conc[end], time[2], 1.2, time[2]] : p0
   else
-    lb = lb === nothing ? zeros(eltype(conc), 3) : lb
-    ub = ub === nothing ? [Inf, time[end], Inf] : ub
-    p0 = p0 === nothing ? [1.0, 2.0, 3.0] : p0
+    lb = lb === nothing ? [0.0, 0.0, 1.0] : lb
+    ub = ub === nothing ? [1.25, time[end], Inf] : ub
+    p0 = p0 === nothing ? [conc[end], time[2], 1.2] : p0
   end
   lb, ub, p0
 end
 
 function _double_weibull(conc, time, time_lag, p0, ub, lb)
   if time_lag
-    lb = lb === nothing ? zeros(eltype(conc), 7) : lb
-    ub = ub === nothing ? [125.0, 125.0, time[end], 25.0, time[end], 25.0, time[end]] : ub
+    lb = lb === nothing ? [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0] : lb
+    ub = ub === nothing ? [1.25, 1.25, time[end], Inf, time[end], Inf, time[end]] : ub
     p0 = p0 === nothing ? [40.0, 80.0, time[2], 1.0, time[2], 1.0, time[2]] : p0
   else
-    lb = lb === nothing ? zeros(eltype(conc), 6) : lb
-    ub = ub === nothing ? [125.0, 125.0, time[end], 25.0, time[end], 25.0] : p0
-    p0 = p0 === nothing ? [40.0, 80.0, 5.0, 1.0, 7.0, 1.0] : p0
+    lb = lb === nothing ? [0.0, 0.0, 0.0, 1.0, 0.0, 1.0]: lb
+    ub = ub === nothing ? [1.25, 1.25, time[end], Inf, time[end], Inf] : ub
+    p0 = p0 === nothing ? [conc[end], conc[end], time[2], 1.2, time[2], 1.2] : p0
   end
   lb, ub, p0
 end
 
 function _makoid(conc, time, time_lag, p0, ub, lb)
   if time_lag
-    lb = lb === nothing ? zeros(eltype(conc), 4) : lb
-    ub = ub === nothing ? [Inf, Inf, Inf, time[end]] : ub
-    p0 = p0 === nothing ? [1.0, 2.0, 3.0, time[end]] : ub
+    lb = lb === nothing ? [0.0, 0.0, 1.0, 0.0] : lb
+    ub = ub === nothing ? [1.25, 1.25, Inf, time[end]] : ub
+    p0 = p0 === nothing ? [conc[end], conc[end], 1.2, time[end]] : p0
   else
-    lb = lb === nothing ? zeros(eltype(conc), 3) : lb
-    ub = ub === nothing ? [Inf, Inf, Inf] : ub
-    p0 = p0 === nothing ? [1.0, 2.0, 3.0] : p0
+    lb = lb === nothing ? [0.0, 0.0, 1.0] : lb
+    ub = ub === nothing ? [1.25, time[end], Inf] : ub
+    p0 = p0 === nothing ? [conc[end], time[2], 1.2] : p0
   end
   lb, ub, p0
 end
