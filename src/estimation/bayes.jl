@@ -1,4 +1,4 @@
-using  AdvancedHMC
+using  AdvancedHMC, MCMCChains
 
 function dim_param(m::PumasModel)
   t_param = totransform(m.param)
@@ -132,17 +132,21 @@ struct BayesMCMC <: LikelihoodApproximation end
 #   BayesMCMCResults(bayes, chain, tuned)
 # end
 
-function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init,
+function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init=init_param(model),
   args...; n_adapts=2000,n_samples=10000, kwargs...)
+  trf = totransform(model.param)
+  vparam = Pumas.TransformVariables.inverse(trf, θ_init)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
+  vparam_aug = [vparam; zeros(length(data)*bayes.dim_rfx)]
   dldθ(θ) = logdensitygrad(bayes, θ)
   l(θ) = logdensity(bayes, θ)
-  metric = DiagEuclideanMetric(length(θ_init))
+  metric = DiagEuclideanMetric(length(vparam_aug))
   h = Hamiltonian(metric, l, dldθ)
-  prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, θ_init)))
+  prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
   adaptor = StanHMCAdaptor(n_adapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
-  samples, stats = sample(h, prop, θ_init, n_samples, adaptor, n_adapts; progress=true)
-  BayesMCMCResults(bayes, samples, stats)
+  samples, stats = sample(h, prop, vparam_aug, n_samples, adaptor, n_adapts; progress=true)
+  samples_ = Chains(Array(hcat(samples...)')[:,:,:])
+  BayesMCMCResults(bayes, samples_, stats)
 end
 
 # remove unnecessary PDMat wrappers
