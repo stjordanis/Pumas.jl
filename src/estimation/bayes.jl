@@ -133,7 +133,7 @@ struct BayesMCMC <: LikelihoodApproximation end
 # end
 
 function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init=init_param(model),
-  args...; n_adapts=2000,n_samples=10000, kwargs...)
+  args...; nadapts=2000,nsamples=10000, kwargs...)
   trf = totransform(model.param)
   vparam = Pumas.TransformVariables.inverse(trf, θ_init)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
@@ -143,8 +143,8 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
   metric = DiagEuclideanMetric(length(vparam_aug))
   h = Hamiltonian(metric, l, dldθ)
   prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
-  adaptor = StanHMCAdaptor(n_adapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
-  samples, stats = sample(h, prop, vparam_aug, n_samples, adaptor, n_adapts; progress=true)
+  adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
+  samples, stats = sample(h, prop, vparam_aug, nsamples, adaptor, nadapts; progress=true)
   samples_ = Chains(samples)
   BayesMCMCResults(bayes, samples_, stats)
 end
