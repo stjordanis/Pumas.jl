@@ -145,7 +145,7 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
   prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
   adaptor = StanHMCAdaptor(n_adapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
   samples, stats = sample(h, prop, vparam_aug, n_samples, adaptor, n_adapts; progress=true)
-  samples_ = Chains(Array(hcat(samples...)')[:,:,:])
+  samples_ = Chains(samples)
   BayesMCMCResults(bayes, samples_, stats)
 end
 
@@ -158,7 +158,8 @@ _clean_param(x::NamedTuple) = map(_clean_param, x)
 function param_values(b::BayesMCMCResults)
   param = b.loglik.model.param
   t_param = totransform(param)
-  StructArray([_clean_param(TransformVariables.transform(t_param, c)) for c in b.chain])
+  chain = Array(b.chain)
+  StructArray([_clean_param(TransformVariables.transform(t_param, chain[c,:])) for c in 1:size(chain)[1]])
 end
 
 function param_mean(b::BayesMCMCResults)
