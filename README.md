@@ -23,22 +23,23 @@ A simple one compartment oral absorption model using an analytical solution
 ```julia
 model = @model begin
   @param   begin
-    tvcl ∈ RealDomain(lower=0, init = 4.0)
-    tvv ∈ RealDomain(lower=0, init = 70)
-    pmoncl ∈ RealDomain(lower = -0.99, init= -0.7)
-    Ω ∈ PDiagDomain(init=[0.09,0.09])
-    σ_prop ∈ RealDomain(lower=0,init=0.04)
+    tvcl ∈ RealDomain(lower=0)
+    tvv ∈ RealDomain(lower=0)
+    pmoncl ∈ RealDomain(lower = -0.99)
+    Ω ∈ PDiagDomain(2)
+    σ_prop ∈ RealDomain(lower=0)
   end
 
   @random begin
     η ~ MvNormal(Ω)
   end
 
+  @covariates wt isPM
+
   @pre begin
     CL = tvcl * (1 + pmoncl*isPM) * (wt/70)^0.75 * exp(η[1])
     V  = tvv * (wt/70) * exp(η[2])
   end
-  @covariates wt isPM
 
   @dynamics ImmediateAbsorptionModel
     #@dynamics begin
@@ -62,7 +63,13 @@ s1 = Subject(id=1,  evs=ev, cvs=(isPM=1, wt=70))
 Simulate a plasma concentration time profile
 
 ```julia
-param = init_param(model)
+param = (
+  tvcl = 4.0,
+  tvv  = 70,
+  pmoncl = -0.7,
+  Ω = [0.09,0.09],
+  σ_prop = 0.04
+  )
 obs = simobs(model, s1, param, obstimes=0:1:120)
 plot(obs)
 ```
