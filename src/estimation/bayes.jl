@@ -145,8 +145,21 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
   prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
   adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
   samples, stats = sample(h, prop, vparam_aug, nsamples, adaptor, nadapts; progress=true)
-  samples_ = Chains(samples)
-  BayesMCMCResults(bayes, samples_, stats)
+  names = String[]
+  for name in keys(θ_init)
+    if length(getproperty(θ_init, name)) == 1 || typeof(getproperty(θ_init, name)) <: Number
+      push!(names,String(name))
+    else
+      for param_len in 1:length(getproperty(θ_init, name))
+        push!(names, string(name,param_len))
+      end
+    end
+  end
+  for eta_num in 1:length(vparam_aug)-length(vparam)
+    push!(names, string(:η, eta_num))
+  end
+  samples_ = Chains(samples, names)
+  BayesMCMCResults(bayes, samples_, stats),samples
 end
 
 # remove unnecessary PDMat wrappers
