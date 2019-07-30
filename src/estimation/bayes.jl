@@ -135,6 +135,7 @@ struct BayesMCMC <: LikelihoodApproximation end
 function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init=init_param(model),
   args...; nadapts=2000,nsamples=10000, kwargs...)
   trf = totransform(model.param)
+  trf_ident = toidentitytransform(model.param)
   vparam = Pumas.TransformVariables.inverse(trf, θ_init)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
   vparam_aug = [vparam; zeros(length(data)*bayes.dim_rfx)]
@@ -145,6 +146,10 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
   prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
   adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
   samples, stats = sample(h, prop, vparam_aug, nsamples, adaptor, nadapts; progress=true)
+  trans = v -> TransformVariables.transform(trf, v)
+  samples = trans.(samples)
+  transident = v -> TransformVariables.inverse(trf_ident, v)
+  samples = transident.(samples)
   names = String[]
   for name in keys(θ_init)
     if length(getproperty(θ_init, name)) == 1 || typeof(getproperty(θ_init, name)) <: Number
@@ -155,11 +160,8 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
       end
     end
   end
-  for eta_num in 1:length(vparam_aug)-length(vparam)
-    push!(names, string(:η, eta_num))
-  end
   samples_ = Chains(samples, names)
-  BayesMCMCResults(bayes, samples_, stats),samples
+  BayesMCMCResults(bayes, samples_, stats)
 end
 
 # remove unnecessary PDMat wrappers
@@ -170,9 +172,9 @@ _clean_param(x::NamedTuple) = map(_clean_param, x)
 # "unzip" the results via a StructArray
 function param_values(b::BayesMCMCResults)
   param = b.loglik.model.param
-  t_param = totransform(param)
+  trf_ident = toidentitytransform(param)
   chain = Array(b.chain)
-  StructArray([_clean_param(TransformVariables.transform(t_param, chain[c,:])) for c in 1:size(chain)[1]])
+  StructArray([_clean_param(TransformVariables.transform(trf_ident, chain[c,:])) for c in 1:size(chain)[1]])
 end
 
 function param_mean(b::BayesMCMCResults)
