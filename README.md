@@ -1,6 +1,6 @@
 # Pumas.jl
 
-[![Build Status](https://gitlab.com/PumasAI/Pumas-jl/badges/master/build.svg)](https://gitlab.com/PumasAI/Pumas-jl/badges/master/build.svg)
+[![pipeline status](https://gitlab.com/PumasAI/Pumas-jl/badges/master/pipeline.svg)](https://gitlab.com/PumasAI/Pumas-jl/commits/master)
 [![codecov](https://codecov.io/gh/PumasAI/Pumas.jl/branch/master/graph/badge.svg?token=O3F3YVonX8)](https://codecov.io/gh/PumasAI/Pumas.jl)
 
 Pumas: A Pharmaceutical Modeling and Simulation toolkit
