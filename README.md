@@ -67,7 +67,7 @@ param = (
   tvcl = 4.0,
   tvv  = 70,
   pmoncl = -0.7,
-  Ω = [0.09,0.09],
+  Ω = Diagonal([0.09,0.09]),
   σ_prop = 0.04
   )
 obs = simobs(model, s1, param, obstimes=0:1:120)
