@@ -1,4 +1,4 @@
-using  AdvancedHMC
+using  AdvancedHMC, MCMCChains
 
 function dim_param(m::PumasModel)
   t_param = totransform(m.param)
@@ -132,17 +132,36 @@ struct BayesMCMC <: LikelihoodApproximation end
 #   BayesMCMCResults(bayes, chain, tuned)
 # end
 
-function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init,
-  args...; n_adapts=2000,n_samples=10000, kwargs...)
+function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_init=init_param(model),
+  args...; nadapts=2000,nsamples=10000, kwargs...)
+  trf = totransform(model.param)
+  trf_ident = toidentitytransform(model.param)
+  vparam = Pumas.TransformVariables.inverse(trf, θ_init)
   bayes = BayesLogDensity(model, data, args...;kwargs...)
+  vparam_aug = [vparam; zeros(length(data)*bayes.dim_rfx)]
   dldθ(θ) = logdensitygrad(bayes, θ)
   l(θ) = logdensity(bayes, θ)
-  metric = DiagEuclideanMetric(length(θ_init))
+  metric = DiagEuclideanMetric(length(vparam_aug))
   h = Hamiltonian(metric, l, dldθ)
-  prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, θ_init)))
-  adaptor = StanHMCAdaptor(n_adapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
-  samples, stats = sample(h, prop, θ_init, n_samples, adaptor, n_adapts; progress=true)
-  BayesMCMCResults(bayes, samples, stats)
+  prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vparam_aug)))
+  adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
+  samples, stats = sample(h, prop, vparam_aug, nsamples, adaptor, nadapts; progress=true)
+  trans = v -> TransformVariables.transform(trf, v)
+  samples = trans.(samples)
+  transident = v -> TransformVariables.inverse(trf_ident, v)
+  samples = transident.(samples)
+  names = String[]
+  for name in keys(θ_init)
+    if length(getproperty(θ_init, name)) == 1 || typeof(getproperty(θ_init, name)) <: Number
+      push!(names,String(name))
+    else
+      for param_len in 1:length(getproperty(θ_init, name))
+        push!(names, string(name,param_len))
+      end
+    end
+  end
+  samples_ = Chains(samples, names)
+  BayesMCMCResults(bayes, samples_, stats)
 end
 
 # remove unnecessary PDMat wrappers
@@ -153,8 +172,9 @@ _clean_param(x::NamedTuple) = map(_clean_param, x)
 # "unzip" the results via a StructArray
 function param_values(b::BayesMCMCResults)
   param = b.loglik.model.param
-  t_param = totransform(param)
-  StructArray([_clean_param(TransformVariables.transform(t_param, c)) for c in b.chain])
+  trf_ident = toidentitytransform(param)
+  chain = Array(b.chain)
+  StructArray([_clean_param(TransformVariables.transform(trf_ident, chain[c,:])) for c in 1:size(chain)[1]])
 end
 
 function param_mean(b::BayesMCMCResults)
