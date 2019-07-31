@@ -43,7 +43,7 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 DataFrames = "0.18"
-DiffEqDiffTools = "0.14"
+DiffEqDiffTools = "1"
 LabelledArrays = "0.7.1"
 ModelingToolkit = "0.6"
 TransformVariables = "0.3"
