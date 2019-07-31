@@ -18,6 +18,13 @@ Pumas: A Pharmaceutical Modeling and Simulation toolkit
 using Pumas, Plots
 ```
 
+For reproducibility, we will set a random seed:
+
+```julia
+using Random
+Random.seed!(1)
+```
+
 A simple one compartment oral absorption model using an analytical solution
 
 ```julia
