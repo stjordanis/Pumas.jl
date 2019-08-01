@@ -218,7 +218,7 @@ function applydose(f,t,t0,u0,dose,pnum,ptv,rate)
   if isempty(ptv)
     return f(t,t0,u0,dose,pnum,rate)
   else
-    if !all(x ->x isa ZeroSpline && x.dir = :left,ptv)
+    if !all(x ->x isa ZeroSpline && x.dir == :left,ptv)
       error("Analytical solutions only support Number and ZeroSpline (with dir = :left) parameters.")
     end
     tchange = findall(p->p.t=>t0 && p.t<=t,ptv)

@@ -114,6 +114,40 @@ tv_subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0,
                   time = 0:15:(15*7))
 
 m_tv = @model begin
+  @param begin
+      θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
+      Ω ∈ PSDDomain(2)
+      σ ∈ RealDomain(lower=0.0, init=1.0)
+  end
+
+  @random begin
+      η ~ MvNormal(Ω)
+  end
+
+  @covariates wt
+
+  @pre begin
+      _wt = @tvcov wt t
+      Ka = θ[1]
+      CL = t -> θ[2] * ((_wt(t)/70)^0.75) * θ[4] * exp(η[1])
+      V  = θ[3] * exp(η[2])
+  end
+
+  @vars begin
+      cp = Central/V
+  end
+
+  @dynamics OneCompartmentModel
+
+  @derived begin
+      conc = @. Central / V
+      dv ~ @. Normal(conc, conc*σ)
+  end
+end
+
+obs_analytical = simobs(m_tv,tv_subject,param,(η=[0.0,0.0]))
+
+m_tv = @model begin
     @param begin
         θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         Ω ∈ PSDDomain(2)
@@ -127,7 +161,7 @@ m_tv = @model begin
     @covariates wt
 
     @pre begin
-        _wt = @tvcov wt t DataInterpolations.LinearInterpolation
+        _wt = @tvcov wt t
         Ka = θ[1]
         CL = t -> θ[2] * ((_wt(t)/70)^0.75) * θ[4] * exp(η[1])
         V  = θ[3] * exp(η[2])
@@ -148,4 +182,4 @@ m_tv = @model begin
     end
 end
 
-obs_dsl = simobs(m_tv,tv_subject,param,(η=[0.0,0.0]))
+obs_numerical = simobs(m_tv,tv_subject,param,(η=[0.0,0.0]))

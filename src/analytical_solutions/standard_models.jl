@@ -27,7 +27,7 @@ function (::OneCompartmentModel)(t,t0,amounts,doses,p,rates)
   return LabelledArrays.SLVector(Depot=Depot, Central=Central)
 end
 Base.@pure varnames(::Type{OneCompartmentModel}) = (:Depot, :Central)
-Base.@pure paramnames(::Type{ImmediateAbsorptionModel}) = (:Ka,:CL,:V)
+Base.@pure paramnames(::Type{OneCompartmentModel}) = (:Ka,:CL,:V)
 pk_init(::OneCompartmentModel) = SLVector(Depot=0.0,Central=0.0)
 
 struct OneCompartmentParallelModel <: ExplicitModel end
@@ -52,5 +52,5 @@ function (::OneCompartmentParallelModel)(t,t0,amounts,doses,p,rates)
   LabelledArrays.SLVector(Depot1=Depot1, Depot2=Depot2, Central=Central)
 end
 Base.@pure varnames(::Type{OneCompartmentParallelModel}) = (:Depot1, :Depot2, :Central)
-Base.@pure paramnames(::Type{ImmediateAbsorptionModel}) = (:Ka1,:Ka2,:CL,:V)
+Base.@pure paramnames(::Type{OneCompartmentParallelModel}) = (:Ka1,:Ka2,:CL,:V)
 pk_init(::OneCompartmentParallelModel) = SLVector(Depot1=0.0,Depot2=0.0,Central=0.0)
