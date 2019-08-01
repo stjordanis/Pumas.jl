@@ -43,10 +43,10 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     # Append event columns
     ## For observations we have `evid=0` and `cmt=0`, the latter
     ## subject to changes in the future
-    df[:amt]  = zeros(typeof(events[1].amt),  nrows)
-    df[:evid] = zeros(typeof(events[1].evid), nrows)
-    df[:cmt]  = missings(typeof(events[1].cmt), nrows)
-    df[:rate] = zeros(typeof(events[1].rate), nrows)
+    df[!,:amt]  = zeros(typeof(events[1].amt),  nrows)
+    df[!,:evid] = zeros(typeof(events[1].evid), nrows)
+    df[!,:cmt]  = missings(typeof(events[1].cmt), nrows)
+    df[!,:rate] = zeros(typeof(events[1].rate), nrows)
     # Add rows corresponding to the events
     ## For events that have a matching observation at the event
     ## time, the values of the derived variables are copied.
@@ -74,7 +74,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     covariates = obs.subject.covariates
     if covariates != nothing
       for (cov, value) in pairs(covariates)
-        df[cov] = value
+        df[!,cov] = value
       end
     end
   end

@@ -7,7 +7,7 @@ data = CSV.read(file)
 timeu = u"hr"
 concu = u"mg/L"
 amtu  = u"mg"
-data.route = "iv"
+data.route .= "iv"
 ncapop = @test_nowarn read_nca(data, id=:ID, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
@@ -176,15 +176,15 @@ end
 @test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, 1, NCA.IVInfusion))) === missing
 
 df = DataFrame()
-df.time = [0:20...; 20; 21:25]
-df.conc = [0:20...; 0; 21:25]
-df.amt = zeros(Int, 27); df.amt[22] = 1
-df.route = "ev"
-df.id = 1
+df.time .= [0:20...; 20; 21:25]
+df.conc .= [0:20...; 0; 21:25]
+df.amt .= zeros(Int, 27); df.amt[22] = 1
+df.route .= "ev"
+df.id .= 1
 @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 
 df = DataFrame()
-df.id=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
+df.id.=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
 subj = read_nca(df, verbose=false)[1]
 @test subj.time == findall(iszero, df.blq)
 rename!(df, :blq => :_blq)
