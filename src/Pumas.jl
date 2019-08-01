@@ -4,6 +4,7 @@ using DiffEqBase, DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
+using DataInterpolations
 using  AdvancedHMC, MCMCChains
 
 import DataInterpolations

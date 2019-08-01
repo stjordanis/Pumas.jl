@@ -196,17 +196,12 @@ function create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
   end
 end
 
-@generated function get_param_subset(col,f)
-  parnames = paramnames(f)
-  Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in 1:length(parnames))...)
-end
-
 @generated function split_tvcov(col,f)
   parnames = paramnames(f)
   I = findall(i->col.parameters[2].parameters[i] <: Number,1:length(parnames))
-  J = I ∩ 1:length(parnames)
-  numberpars = Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in I)...)
-  tvpars = Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in J)...)
+  J = setdiff(I,1:length(parnames))
+  numberpars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in I)...)
+  tvpars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in J)...)
   quote
     numberpars = $numberpars
     tvpars = $tvpars

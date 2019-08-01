@@ -113,7 +113,7 @@ tv_subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, time = [0,
                   cvs = (wt=[70,75,80,85,90,92,70,80],),
                   time = 0:15:(15*7))
 
-m_tv = @model begin
+m_tv_analytical = @model begin
   @param begin
       θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
       Ω ∈ PSDDomain(2)
@@ -127,7 +127,7 @@ m_tv = @model begin
   @covariates wt
 
   @pre begin
-      _wt = @tvcov wt t
+      _wt = ZeroSpline(wt,t)
       Ka = θ[1]
       CL = t -> θ[2] * ((_wt(t)/70)^0.75) * θ[4] * exp(η[1])
       V  = θ[3] * exp(η[2])
@@ -145,9 +145,13 @@ m_tv = @model begin
   end
 end
 
-obs_analytical = simobs(m_tv,tv_subject,param,(η=[0.0,0.0]))
+param = (θ = [2.268,74.17,468.6,0.5876],
+         Ω = [0.05 0.0;
+              0.0  0.2],
+         σ = 0.1)
+obs_analytical = simobs(m_tv_analytical,tv_subject,param,(η=[0.0,0.0]))
 
-m_tv = @model begin
+m_tv_ode = @model begin
     @param begin
         θ ∈ VectorDomain(4, lower=zeros(4), init=ones(4))
         Ω ∈ PSDDomain(2)
@@ -182,4 +186,4 @@ m_tv = @model begin
     end
 end
 
-obs_numerical = simobs(m_tv,tv_subject,param,(η=[0.0,0.0]))
+obs_numerical = simobs(m_tv_ode,tv_subject,param,(η=[0.0,0.0]))
