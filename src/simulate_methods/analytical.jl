@@ -2,6 +2,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
                            args...; continuity = :right, kwargs...)
   f = m.prob isa ExplicitModel ? m.prob : m.prob.pkprob
   u0 = pk_init(f)
+  pnum,ptv = split_tvcov(col,f)
 
   # we don't want to promote units
   if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
@@ -47,7 +48,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
-      Tu0 = f(t,t0,Tu0,dose,col,rate)
+      Tu0 = applydose(f,t,t0,Tu0,dose,pnum,ptv,rate)
       u[i] = Tu0
       doses[i] = zero(Tu0)
       _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
@@ -61,8 +62,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,Tu0,rate,bioav)
-
-        (t0 != t) && cur_ev.evid < 3 && (Tu0 = f(t,t0,Tu0,last_dose,col,rate))
+        (t0 != t) && cur_ev.evid < 3 && (Tu0 = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
         rate = _rate
         u[i] = Tu0
         doses[i] = dose
@@ -84,14 +84,14 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
           _t2 = t0 + cur_ev.ii
           _t1 == t0 && (_t1 = _t2)
 
-          cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
+          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
 
           if ss == nothing
             Tu0prev = Tu0 .+ 1
             while norm(Tu0-Tu0prev) > 1e-12
               Tu0prev = Tu0
-              Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
-              _t2-_t1 > 0 && (Tu0 = f(_t2,_t1,Tu0,zero(Tu0),col,_rate-ss_rate))
+              Tu0 = applydose(f,_t1,t0,Tu0,dose,pnum,ptv,_rate)
+              _t2-_t1 > 0 && (Tu0 = applydose(f,_t2,_t1,Tu0,zero(Tu0),col,_rate-ss_rate))
             end
           end
 
@@ -119,13 +119,13 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
         else # Not a rate event, just a dose
 
           _t1 = t0 + cur_ev.ii
-          cur_ev.ss==2 && (Tu0_cache = f(t,t0,Tu0,last_dose,col,rate))
+          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
 
           if ss == nothing
             Tu0prev = Tu0 .+ 1
             while norm(Tu0-Tu0prev) > 1e-12
               Tu0prev = Tu0
-              Tu0 = f(_t1,t0,Tu0,dose,col,_rate)
+              Tu0 = applydose(f,_t1,t0,Tu0,dose,col,_rate)
             end
           end
 
@@ -193,5 +193,46 @@ function create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
     error("Too many off events, rate went negative!")
   else
     return increment_value(rate,-ss_rate[ss_cmt],ss_cmt)
+  end
+end
+
+@generated function get_param_subset(col,f)
+  parnames = paramnames(f)
+  Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in 1:length(parnames))...)
+end
+
+@generated function split_tvcov(col,f)
+  parnames = paramnames(f)
+  I = findall(i->col.parameters[2].parameters[i] <: Number,1:length(parnames))
+  J = I ∩ 1:length(parnames)
+  numberpars = Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in I)...)
+  tvpars = Expr(:tuple,(:($(parnames[i]) = col[$(parnames[i])]) for i in J)...)
+  quote
+    numberpars = $numberpars
+    tvpars = $tvpars
+    numberpars,tvpars
+  end
+end
+
+function applydose(f,t,t0,u0,dose,pnum,ptv,rate)
+  if isempty(ptv)
+    return f(t,t0,u0,dose,pnum,rate)
+  else
+    if !all(x ->x isa ZeroSpline && x.dir = :left,ptv)
+      error("Analytical solutions only support Number and ZeroSpline (with dir = :left) parameters.")
+    end
+    tchange = findall(p->p.t=>t0 && p.t<=t,ptv)
+    if tchange != nothing
+      _p = (pnum...,(p->p(t0) for p in ptv)...)
+      return f(t,t0,u0,dose,_p,rate)
+    else
+      _u = u0
+      last_t = t0
+      for _t in tchange
+        _p = (pnum...,(p->p(_t) for p in ptv)...)
+        _u = f(_t,last_t,_u,dose,_p,rate)
+        last_t = _t
+      end
+    end
   end
 end
