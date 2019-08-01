@@ -37,16 +37,16 @@ function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
   colnames = names(data)
 
   if id ∉ colnames
-    data[!,id] = "1"
+    data[!,id] .= "1"
   end
   if time ∉ colnames
-    data[!,time] = 0.0
+    data[!,time] .= 0.0
   end
   if evid ∉ colnames
-    data[!,evid] = Int8(0)
+    data[!,evid] .= Int8(0)
   end
   if mdv ∉ colnames
-    data[!,mdv] = Int8(0)
+    data[!,mdv] .= Int8(0)
   end
   if cvs isa AbstractVector{<:Integer}
     cvs = colnames[cvs]
