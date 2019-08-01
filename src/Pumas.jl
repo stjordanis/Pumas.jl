@@ -61,5 +61,5 @@ export @model, @nca, @tvcov
 # From StatsBase
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
-export vpc, vpc_obs
+export vpc, vpc_obs, SAEM_calc
 end # module
