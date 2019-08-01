@@ -276,6 +276,8 @@ toidentitytransform(::RealDomain) = as(Real,-∞,∞)
 toidentitytransform(d::VectorDomain) = as(Vector, length(d.lower))
 toidentitytransform(d::PSDDomain) = VechTransform(size(d.init, 1))
 toidentitytransform(d::PDiagDomain) = DiagonalTransform(size(d.init, 1))
+toidentitytransform(c::Constrained) = toidentitytransform(c.domain)
+toidentitytransform(d::Distribution) = toidentitytransform(Domain(d))
 
 # When using TransformVariables for transforming standard errors, we need to
 # ensure that ConstDomains return NaNs.
