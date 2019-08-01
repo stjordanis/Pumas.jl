@@ -9,7 +9,7 @@ using  AdvancedHMC
 import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames
+@reexport using Distributions, PDMats, DataFrames, StatsPlots
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
