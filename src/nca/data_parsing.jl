@@ -22,12 +22,12 @@ function read_nca(df; group=nothing, kwargs...)
     dfpops = map(dfs) do df
       if group isa AbstractArray && length(group) > 1
         grouplabel = map(string, group)
-        groupnames = map(string, first(df[group]))
+        groupnames = map(string, first(df[!,group]))
         currentgroup = map(=>, grouplabel, groupnames)
       else
         group isa Symbol || ( group = first(group) )
         grouplabel = string(group)
-        groupnames = first(df[group])
+        groupnames = first(df[!,group])
         currentgroup = grouplabel => groupnames
       end
       pop = ___read_nca(df; group=currentgroup, kwargs...)
@@ -77,7 +77,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   # BLQ
   @noinline blqerr() = throw(ArgumentError("blq can only be 0 or 1"))
   if blq !== nothing
-    blqs = df[blq]
+    blqs = df[!,blq]
     eltype(blqs) <: Union{Int, Bool} || blqerr()
     extrema(blqs) == (0, 1) || blqerr()
     df = deleterows!(deepcopy(df), findall(isequal(1), blqs))
@@ -88,21 +88,21 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
-  ids   = df[id]
+  ids   = df[!,id]
   if urine
-    start_time′ = df[start_time]
-    end_time′ = df[end_time]
+    start_time′ = df[!,start_time]
+    end_time′ = df[!,end_time]
     Δt = @. end_time′ - start_time′
     times = @. start_time′ + Δt
   else
     start_time′ = end_time′ = Δt = nothing
-    times = df[time]
+    times = df[!,time]
   end
-  concs = df[conc]
-  amts  = amt === nothing ? nothing : df[amt]
-  iis  = ii === nothing ? nothing : df[ii]
-  sss  = ss === nothing ? nothing : df[ss]
-  occasions = occasion === nothing ? nothing : df[occasion]
+  concs = df[!,conc]
+  amts  = amt === nothing ? nothing : df[!,amt]
+  iis  = ii === nothing ? nothing : df[!,ii]
+  sss  = ss === nothing ? nothing : df[!,ss]
+  occasions = occasion === nothing ? nothing : df[!,occasion]
   uids = unique(ids)
   idx  = -1
   # FIXME! This is better written as map(uids) do id it currently triggers a dispatch bug in Julia via CSV
@@ -128,7 +128,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
         end
       end
       route′ = map(dose_idx) do i
-        routei = lowercase(df[route][i])
+        routei = lowercase(df[!,route][i])
         routei == "iv" ? IVBolus :
           routei == "inf" ? IVInfusion :
           routei == "ev" ? EV :
@@ -141,7 +141,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
           sss[i] == 1 ? true :
           throw(ArgumentError("ss can only be 0 or 1"))
       end
-      duration′ = duration === nothing ? nothing : df[duration][dose_idx]*timeu
+      duration′ = duration === nothing ? nothing : df[!,duration][dose_idx]*timeu
       doses = NCADose.(dose_time*timeu, amts[dose_idx]*amtu, duration′, route′, ii*timeu, ss)
     #elseif occasion !== nothing
     #  subjoccasion = @view occasions[idx]
@@ -158,7 +158,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     try
       ncas[i] = NCASubject(concs[idx], times[idx]; id=id, group=group, dose=doses, concu=concu, timeu=timeu, volumeu=volumeu,
                            start_time=start_time′, end_time=end_time′,
-                           volume=urine ? df[volume][idx] : nothing,
+                           volume=urine ? df[!,volume][idx] : nothing,
                            concblq=blq===nothing ? nothing : :keep, kwargs...)
     catch
       @info "ID $id errored"

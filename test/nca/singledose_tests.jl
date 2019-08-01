@@ -23,8 +23,8 @@ popncareport = NCAReport(ncapop, ithdose=1)
 
 lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
 @test size(lambdazdf, 2) == 2
-@test lambdazdf[:lambdaz] isa Vector
-@test lambdazdf[:id] == collect(1:24)
+@test lambdazdf[!,:lambdaz] isa Vector
+@test lambdazdf[!,:id] == collect(1:24)
 @test_nowarn NCA.lambdazr2(ncapop)
 @test_nowarn NCA.lambdazadjr2(ncapop)
 @test_nowarn NCA.lambdazintercept(ncapop)

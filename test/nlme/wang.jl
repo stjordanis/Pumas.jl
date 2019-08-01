@@ -116,7 +116,7 @@ using Pumas, LinearAlgebra, Optim, CSV
 
     # First we load a new verison of data and log transform dv
     _df = CSV.read(example_nmtran_data("wang"))
-    _df[:dv] = log.(_df[:dv])
+    _df[!,:dv] = log.(_df[!,:dv])
     data_log = read_pumas(_df)
 
     # Add initial events following Wang's model
