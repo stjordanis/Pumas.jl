@@ -48,6 +48,7 @@ LabelledArrays = "0.7.1"
 ModelingToolkit = "0.6"
 TransformVariables = "0.3"
 julia = "1.1"
+DelayDiffEq = "5.11"
 
 [extras]
 DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"

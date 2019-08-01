@@ -1,5 +1,3 @@
-using  AdvancedHMC
-
 function dim_param(m::PumasModel)
   t_param = totransform(m.param)
   TransformVariables.dimension(t_param)
@@ -13,7 +11,7 @@ function dim_rfx(m::PumasModel)
 end
 
 # This object wraps the model, data and some pre-allocated buffers to match the necessary interface for DynamicHMC.jl
-struct BayesLogDensity{M,D,B,C,R,A,K} 
+struct BayesLogDensity{M,D,B,C,R,A,K}
   model::M
   data::D
   dim_param::Int
