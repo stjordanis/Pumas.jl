@@ -15,7 +15,7 @@ Pumas: A Pharmaceutical Modeling and Simulation toolkit
 ## Demo: A Simple PK model
 
 ```julia
-using Pumas, Plots
+using Pumas, Plots, LinearAlgebra
 ```
 
 For reproducibility, we will set a random seed:
