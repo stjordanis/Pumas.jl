@@ -3,7 +3,7 @@ using Pumas, Test
 df = DataFrame()
 # Ref: https://www.boomer.org/c/p4/c05/c05.pdf
 amtu=u"mg"; concu=u"mg/mL"; volumeu=u"mL"; timeu=u"hr"
-df[!,:start_time] .= [0, 2, 4, 4.5, 6, 8, 10, 12, 18]
+df[!,:start_time] = [0, 2, 4, 4.5, 6, 8, 10, 12, 18]
 df[!,:end_time]   .= [2, 4, 6, 6.7, 8, 10, 12, 18, 24]
 df[!,:volume] .= [50 , 46 , 48, missing , 49, 46 , 48 , 134, 144]
 df[!,:conc] .= [1.666, 1.069, 0.592, 1000, 0.335, 0.21 , 0.116, 0.047, 0.009]
