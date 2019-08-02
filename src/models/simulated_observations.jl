@@ -36,7 +36,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
         var[i1]
       end
     end
-    df[k] = deepcopy(var)
+    df[!,k] = deepcopy(var)
   end
   obs_columns = [keys(obs.observed)...]
   if include_events
