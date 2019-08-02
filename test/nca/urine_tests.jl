@@ -9,7 +9,7 @@ df[!,:volume] .= [50 , 46 , 48, missing , 49, 46 , 48 , 134, 144]
 df[!,:conc] .= [1.666, 1.069, 0.592, 1000, 0.335, 0.21 , 0.116, 0.047, 0.009]
 df[!,:id] .= 1
 df[!,:amt] .= 0.0
-df.amt[1] .= 300
+df.amt[1] = 300
 df[!,:route] .= "iv"
 pop = read_nca(df, amtu=amtu, concu=concu, volumeu=volumeu, timeu=timeu)
 @test collect(skipmissing(df.volume))*volumeu == pop[1].volume
