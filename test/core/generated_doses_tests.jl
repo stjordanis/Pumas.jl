@@ -49,7 +49,7 @@ subject = Subject(evs = DosageRegimen([10, 20], ii = 24, addl = 2, ss = 1:2, tim
 obs = simobs(m_diffeq, subject, param, randeffs)
 @test obs.times == 0.0:1.0:84.0
 @test DataFrame(obs; include_events=false).time == 0.0:1.0:84.0
-@test all(DataFrame(obs).isPM .== "no")
+@test all(DataFrame(obs)[!,:isPM] .== "no")
 
 #=
 using Plots

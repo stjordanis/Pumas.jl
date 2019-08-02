@@ -74,7 +74,7 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
     covariates = obs.subject.covariates
     if covariates != nothing
       for (cov, value) in pairs(covariates)
-        df[!,cov] = value
+        df[!,cov] .= value
       end
     end
   end
