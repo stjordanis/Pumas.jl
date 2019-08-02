@@ -65,50 +65,50 @@ df = @test_nowarn NCA.to_dataframe(popncareport)
 @test df.lambda_z[2] == round(ustrip(df.lambda_z[2]), sigdigits=2)*oneunit(df.lambda_z[2])
 
 data1 = CSV.read(IOBuffer("""
-id,time,tad,conc,amt,occasion,formulation
-1,0.0,0,0.755,0.705,1,oral
-1,1.0,1,0.55,0,1,oral
-1,2.0,2,0.65,0,1,oral
-1,12.0,0,0.473,0.29,2,oral
-1,13.0,1,0.235,0,2,oral
-1,14.0,2,0.109,0,2,oral
-2,0.0,0,0.341,0.932,1,oral
-2,1.0,1,0.557,0,1,oral
-2,2.0,2,0.159,0,1,oral
-2,3.0,0,0.307,0,2,oral
-2,3.5,0,0.226,0,3,oral
-3,0.0,0,0.763,0.321,1,oral
-3,1.0,1,0.96,0,1,oral
-3,2.0,2,0.772,0,1,oral
-3,12.0,0,0.941,0.656,2,oral
-3,13.0,1,0.204,0,2,oral
-3,14.0,2,0.0302,0,2,oral
-"""))
+  id,time,tad,conc,amt,occasion,formulation
+  1,0.0,0,0.755,0.705,1,oral
+  1,1.0,1,0.55,0,1,oral
+  1,2.0,2,0.65,0,1,oral
+  1,12.0,0,0.473,0.29,2,oral
+  1,13.0,1,0.235,0,2,oral
+  1,14.0,2,0.109,0,2,oral
+  2,0.0,0,0.341,0.932,1,oral
+  2,1.0,1,0.557,0,1,oral
+  2,2.0,2,0.159,0,1,oral
+  2,3.0,0,0.307,0,2,oral
+  2,3.5,0,0.226,0,3,oral
+  3,0.0,0,0.763,0.321,1,oral
+  3,1.0,1,0.96,0,1,oral
+  3,2.0,2,0.772,0,1,oral
+  3,12.0,0,0.941,0.656,2,oral
+  3,13.0,1,0.204,0,2,oral
+  3,14.0,2,0.0302,0,2,oral
+  """))
 data2 = CSV.read(IOBuffer("""
-id,time,tad,conc,amt,occasion,formulation
-1,0.0,0,0.755,0.705,1,oral
-1,1.0,1,0.55,0,1,oral
-1,2.0,2,0.65,0,1,oral
-1,12.0,0,0.473,0.29,2,oral
-1,13.0,1,0.235,0,2,oral
-1,14.0,2,0.109,0,2,oral
-2,0.0,0,0.341,0.932,1,oral
-2,1.0,1,0.557,0,1,oral
-2,2.0,2,0.159,0,1,oral
-3,0.0,0,0.763,0.321,1,oral
-3,1.0,1,0.96,0,1,oral
-3,2.0,2,0.772,0,1,oral
-3,12.0,0,0.941,0.656,2,oral
-3,13.0,1,0.204,0,2,oral
-3,14.0,2,0.0302,0,2,oral
-"""))
+  id,time,tad,conc,amt,occasion,formulation
+  1,0.0,0,0.755,0.705,1,oral
+  1,1.0,1,0.55,0,1,oral
+  1,2.0,2,0.65,0,1,oral
+  1,12.0,0,0.473,0.29,2,oral
+  1,13.0,1,0.235,0,2,oral
+  1,14.0,2,0.109,0,2,oral
+  2,0.0,0,0.341,0.932,1,oral
+  2,1.0,1,0.557,0,1,oral
+  2,2.0,2,0.159,0,1,oral
+  3,0.0,0,0.763,0.321,1,oral
+  3,1.0,1,0.96,0,1,oral
+  3,2.0,2,0.772,0,1,oral
+  3,12.0,0,0.941,0.656,2,oral
+  3,13.0,1,0.204,0,2,oral
+  3,14.0,2,0.0302,0,2,oral
+  """))
 for df in (data1, data2)
   df[!,:route] .= "ev"
   @test_throws AssertionError read_nca(df, timeu=timeu, concu=concu, amtu=amtu);
 end
 
 df = DataFrame()
-df[!,:time] .= collect(0:9)
+df[!,:time] = collect(0:9)
 df[!,:conc] .= [5, 4, 3, 2, 1, 5, 4, 3, 2, 1]
 df[!,:amt] .=  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
 df[!,:route] .= "ev"
