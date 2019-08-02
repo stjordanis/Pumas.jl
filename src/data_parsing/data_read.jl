@@ -66,7 +66,7 @@ end
 function build_observation_list(obs::AbstractDataFrame)
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
   vars = setdiff(names(obs), (:time, :cmt))
-  return NamedTuple{ntuple(i->vars[i],length(vars))}(ntuple(i -> convert(AbstractVector{Union{Missing,Float64}}, obs[vars[i]]), length(vars)))
+  return NamedTuple{ntuple(i->vars[i],length(vars))}(ntuple(i -> convert(AbstractVector{Union{Missing,Float64}}, obs[!,vars[i]]), length(vars)))
 end
 build_observation_list(obs::NamedTuple) = obs
 build_observation_list(obs::Nothing) = obs
