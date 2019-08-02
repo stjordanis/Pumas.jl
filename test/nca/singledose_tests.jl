@@ -161,8 +161,8 @@ for i in 1:24
   aumcs = NCA.aumc(nca, dose=dose, method=:linear, auctype=:last)
   @test aumcs == NCA.aumclast(nca, dose=dose, method=:linear)
   @test normalizedose(aucs, nca) == aucs/doses[i]
-  @test data[:AUClast][i]*timeu*concu ≈ aucs atol = 1e-6*timeu*concu
-  @test data[:AUMClast][i]*timeu^2*concu ≈ aumcs atol = 1e-6*timeu^2*concu
+  @test data[!,:AUClast][i]*timeu*concu ≈ aucs atol = 1e-6*timeu*concu
+  @test data[!,:AUMClast][i]*timeu^2*concu ≈ aumcs atol = 1e-6*timeu^2*concu
   @test NCA.aumc_extrap_percent(nca) === NCA.aumc_extrap_percent(conc[idx], t[idx])
   @test NCA.auc_extrap_percent(nca) === NCA.auc_extrap_percent(conc[idx], t[idx])
   ncareport = @test_nowarn NCAReport(nca)
@@ -176,15 +176,15 @@ end
 @test NCA.c0(NCASubject([0.3, 0.2], [0.1, 0.2], dose=NCADose(0, 0.1, 1, NCA.IVInfusion))) === missing
 
 df = DataFrame()
-df[!,:time] .= [0:20...; 20; 21:25]
-df[!,:conc] .= [0:20...; 0; 21:25]
+df[!,:time] = [0:20...; 20; 21:25]
+df[!,:conc] = [0:20...; 0; 21:25]
 df[!,:amt] .= zeros(Int, 27); df.amt[22] = 1
-df[!,route] .= "ev"
+df[!,:route] .= "ev"
 df[!,:id] .= 1
 @test_nowarn read_nca(df, llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 
 df = DataFrame()
-df[!,:id].=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
+df[!,:id]=fill(1, 7); df.time=1:7; df.conc=[0, 0, 1, 1, 0, 1, 0]; df.blq=[1, 0, 0, 0, 1, 0, 0]
 subj = read_nca(df, verbose=false)[1]
 @test subj.time == findall(iszero, df.blq)
 rename!(df, :blq => :_blq)
