@@ -103,7 +103,7 @@ id,time,tad,conc,amt,occasion,formulation
 3,14.0,2,0.0302,0,2,oral
 """))
 for df in (data1, data2)
-  df.route = "ev"
+  df[!,:route] .= "ev"
   @test_throws AssertionError read_nca(df, timeu=timeu, concu=concu, amtu=amtu);
 end
 
