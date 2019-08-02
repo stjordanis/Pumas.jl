@@ -37,16 +37,16 @@ function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
   colnames = names(data)
 
   if id ∉ colnames
-    data[id] = "1"
+    data[!,id] .= "1"
   end
   if time ∉ colnames
-    data[time] = 0.0
+    data[!,time] .= 0.0
   end
   if evid ∉ colnames
-    data[evid] = Int8(0)
+    data[!,evid] .= Int8(0)
   end
   if mdv ∉ colnames
-    data[mdv] = Int8(0)
+    data[!,mdv] .= Int8(0)
   end
   if cvs isa AbstractVector{<:Integer}
     cvs = colnames[cvs]
@@ -55,9 +55,9 @@ function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
     dvs = colnames[dvs]
   end
   allowmissing!(data, dvs)
-  mdv = isone.(data[mdv])
+  mdv = isone.(data[!,mdv])
   for dv in dvs
-    data[dv] .= ifelse.(mdv, missing, data[dv])
+    data[dv] .= ifelse.(mdv, missing, data[!,dv])
   end
   Subject.(groupby(data, id), Ref(colnames), id, time, evid, amt, addl, ii, cmt,
            rate, ss, Ref(cvs), Ref(dvs), event_data)
@@ -66,7 +66,7 @@ end
 function build_observation_list(obs::AbstractDataFrame)
   #cmt = :cmt ∈ names(obs) ? obs[:cmt] : 1
   vars = setdiff(names(obs), (:time, :cmt))
-  return NamedTuple{ntuple(i->vars[i],length(vars))}(ntuple(i -> convert(AbstractVector{Union{Missing,Float64}}, obs[vars[i]]), length(vars)))
+  return NamedTuple{ntuple(i->vars[i],length(vars))}(ntuple(i -> convert(AbstractVector{Union{Missing,Float64}}, obs[!,vars[i]]), length(vars)))
 end
 build_observation_list(obs::NamedTuple) = obs
 build_observation_list(obs::Nothing) = obs
@@ -106,14 +106,14 @@ function build_event_list(regimen::DosageRegimen, event_data::Bool)
   data = regimen.data
   events = Event[]
   for i in 1:size(data, 1)
-    t    = data[:time][i]
-    evid = data[:evid][i]
-    amt  = data[:amt][i]
-    addl = data[:addl][i]
-    ii   = data[:ii][i]
-    cmt  = data[:cmt][i]
-    rate = data[:rate][i]
-    ss   = data[:ss][i]
+    t    = data[!,:time][i]
+    evid = data[!,:evid][i]
+    amt  = data[!,:amt][i]
+    addl = data[!,:addl][i]
+    ii   = data[!,:ii][i]
+    cmt  = data[!,:cmt][i]
+    rate = data[!,:rate][i]
+    ss   = data[!,:ss][i]
     build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate, ss)
   end
   sort!(events)

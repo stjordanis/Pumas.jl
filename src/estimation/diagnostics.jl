@@ -64,12 +64,12 @@ function add_covariates!(df, subjects)
   # We're assuming that all subjects have the same fields
   if !isa(first(subjects).covariates, Nothing)
     for (covariate, value) in pairs(first(subjects).covariates)
-      df[covariate] = value
+      df[!,covariate] .= value
     end
 
     for subject in subjects
       for (covariate, value) in pairs(subject.covariates)
-        df[df[:id].==subject.id, covariate] = value
+        df[df[!,:id].==subject.id, covariate] .= value
       end
     end
   end
@@ -83,9 +83,9 @@ function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covaria
     add_covariates!(df, subjects)
   end
 
-  df[:wres] = vcat((resid.wres for resid in vresid)...)
-  df[:iwres] = vcat((resid.iwres for resid in vresid)...)
-  df[:wres_approx] = vcat((fill(resid.approx, length(resid.subject.time)) for resid in vresid)...)
+  df[!,:wres] .= vcat((resid.wres for resid in vresid)...)
+  df[!,:iwres] .= vcat((resid.iwres for resid in vresid)...)
+  df[!,:wres_approx] .= vcat((fill(resid.approx, length(resid.subject.time)) for resid in vresid)...)
 
   df
 end
@@ -414,9 +414,9 @@ function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covari
     add_covariates!(df, subjects)
   end
 
-  df[:pred] = vcat((pred.pred for pred in vpred)...)
-  df[:ipred] = vcat((pred.ipred for pred in vpred)...)
-  df[:pred_approx] = vcat((fill(pred.approx, length(pred.subject.time)) for pred in vpred)...)
+  df[!,:pred] .= vcat((pred.pred for pred in vpred)...)
+  df[!,:ipred] .= vcat((pred.ipred for pred in vpred)...)
+  df[!,:pred_approx] .= vcat((fill(pred.approx, length(pred.subject.time)) for pred in vpred)...)
 
   df
 end
@@ -445,9 +445,9 @@ function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=t
     add_covariates!(df, subjects)
   end
   for i = 1:length(first(vebes).ebes)
-    df[Symbol("ebe_$i")] = vcat((fill(ebes.ebes[i], length(ebes.subject.time)) for ebes in vebes)...)
+    df[!,Symbol("ebe_$i")] .= vcat((fill(ebes.ebes[i], length(ebes.subject.time)) for ebes in vebes)...)
   end
-  df[:ebes_approx] = vcat((fill(ebes.approx, length(ebes.subject.time)) for ebes in vebes)...)
+  df[!,:ebes_approx] .= vcat((fill(ebes.approx, length(ebes.subject.time)) for ebes in vebes)...)
 
   df
 end
