@@ -2,7 +2,7 @@ module Pumas
 
 using DiffEqBase, DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
-      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
+      TreeViews, CSV, ForwardDiff, DiffResults, Optim,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
 using  AdvancedHMC, MCMCChains
 
