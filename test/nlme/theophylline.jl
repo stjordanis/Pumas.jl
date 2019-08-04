@@ -2,8 +2,8 @@ using Test
 using Pumas, LinearAlgebra, Optim
 
 # FIXME! Find a nicer way to handle this
-_extract(A::PDMat) = A.mat
-_extract(A::PDiagMat) = Diagonal(A.diag)
+_extract(A::Pumas.PDMats.PDMat) = A.mat
+_extract(A::Pumas.PDMats.PDiagMat) = Diagonal(A.diag)
 _extract(A) = A
 
 @testset "Theophylline model" begin

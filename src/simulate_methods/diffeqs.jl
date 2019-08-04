@@ -433,7 +433,7 @@ function (f::DiffEqWrapper)(du,u,p,t)
   f.f(du,u,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-function (f::DiffEqWrapper)(u,h::DelayDiffEq.HistoryFunction,p,t)
+function (f::DiffEqWrapper)(u,h::DiffEqBase.AbstractHistoryFunction,p,t)
   f.f(du,u,h,p,t)
   if f.rates_on > 0
     return out + rates
@@ -441,7 +441,7 @@ function (f::DiffEqWrapper)(u,h::DelayDiffEq.HistoryFunction,p,t)
     return out
   end
 end
-function (f::DiffEqWrapper)(du,u,h::DelayDiffEq.HistoryFunction,p,t)
+function (f::DiffEqWrapper)(du,u,h::DiffEqBase.AbstractHistoryFunction,p,t)
   f.f(du,u,h,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
