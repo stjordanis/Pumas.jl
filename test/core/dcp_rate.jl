@@ -57,7 +57,7 @@ p = ( θ = [1.5,  #Ka
            0.5, # isPM CL
            9 # duration
            ],
-      Ω = PDMat(diagm(0 => [0.04,0.04])),
+      Ω = Diagonal([0.04,0.04]),
       σ_prop = 0.00
   )
 
@@ -107,7 +107,7 @@ p_error = (θ = [1.5,  #Ka
                 0.61, #Bioav
                 0.5, # isPM CL
                 ],
-           Ω = PDMat(diagm(0 => [0.04,0.04])),
+           Ω = Diagonal([0.04,0.04]),
            σ_prop = 0.00
   )
 
