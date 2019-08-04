@@ -2,7 +2,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
                            args...; continuity = :right, kwargs...)
   f = m.prob isa ExplicitModel ? m.prob : m.prob.pkprob
   u0 = pk_init(f)
-  pnum,ptv = split_tvcov(col,f)
+  pnum,ptv,pfunc = split_tvcov(col,f)
 
   # we don't want to promote units
   if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
@@ -48,7 +48,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
     if ss_dropoff_event
       # Do an off event from the ss
       post_ss_counter += 1
-      Tu0 = applydose(f,t,t0,Tu0,dose,pnum,ptv,rate)
+      Tu0 = applydose(f,t,t0,Tu0,dose,pnum,ptv,pfunc,rate)
       u[i] = Tu0
       doses[i] = zero(Tu0)
       _rate = create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
@@ -62,7 +62,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
       @assert cur_ev.time == t
       if cur_ev.ss == 0
         dose,_rate = create_dose_rate_vector(cur_ev,Tu0,rate,bioav)
-        (t0 != t) && cur_ev.evid < 3 && (Tu0 = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
+        (t0 != t) && cur_ev.evid < 3 && (Tu0 = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,pfunc,rate))
         rate = _rate
         u[i] = Tu0
         doses[i] = dose
@@ -84,13 +84,13 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
           _t2 = t0 + cur_ev.ii
           _t1 == t0 && (_t1 = _t2)
 
-          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
+          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,pfunc,rate))
 
           if ss == nothing
             Tu0prev = Tu0 .+ 1
             while norm(Tu0-Tu0prev) > 1e-12
               Tu0prev = Tu0
-              Tu0 = applydose(f,_t1,t0,Tu0,dose,pnum,ptv,_rate)
+              Tu0 = applydose(f,_t1,t0,Tu0,dose,pnum,ptv,pfunc,_rate)
               _t2-_t1 > 0 && (Tu0 = applydose(f,_t2,_t1,Tu0,zero(Tu0),col,_rate-ss_rate))
             end
           end
@@ -119,7 +119,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
         else # Not a rate event, just a dose
 
           _t1 = t0 + cur_ev.ii
-          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,rate))
+          cur_ev.ss==2 && (Tu0_cache = applydose(f,t,t0,Tu0,last_dose,pnum,ptv,pfunc,rate))
 
           if ss == nothing
             Tu0prev = Tu0 .+ 1
@@ -197,37 +197,56 @@ function create_ss_off_rate_vector(ss_rate,ss_cmt,rate)
 end
 
 @generated function split_tvcov(col,f)
-  parnames = paramnames(f)
-  I = findall(i->col.parameters[2].parameters[i] <: Number,1:length(parnames))
-  J = setdiff(I,1:length(parnames))
+  parnames = col.parameters[1]
+  coltypes = col.parameters[2].parameters
+
+  # Split all of the parameters that are numbers out from the tvcovs
+  I = findall(i->coltypes[i] <: Number,
+              1:length(coltypes))
+  J = findall(i->coltypes[i] <: DataInterpolations.AbstractInterpolation,
+              1:length(coltypes))
+  K = findall(i->!(coltypes[i] <: DataInterpolations.AbstractInterpolation) && (coltypes[i] <: Function),
+              1:length(coltypes))
   numberpars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in I)...)
-  tvpars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in J)...)
+  interppars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in J)...)
+  funcpars = Expr(:tuple,(:($(parnames[i]) = col.$(parnames[i])) for i in K)...)
   quote
     numberpars = $numberpars
-    tvpars = $tvpars
-    numberpars,tvpars
+    interppars = $interppars
+    funcpars = $funcpars
+    numberpars,interppars,funcpars
   end
 end
 
-function applydose(f,t,t0,u0,dose,pnum,ptv,rate)
-  if isempty(ptv)
+@generated function apply_t(pnum,ptv,pfunc,t)
+  pnumnames = pnum.parameters[1]
+  ptvnames = ptv.parameters[1]
+  pfuncnames = pfunc.parameters[1]
+  Expr(:tuple,(:($(n) = pnum.$(n)) for n in pnumnames)...,
+               (:($(n) = ptv.$(n)(t)) for n in ptvnames)...,
+               (:($(n) = pfunc.$(n)(t)) for n in pfuncnames)...)
+end
+
+function applydose(f,t,t0,u0,dose,pnum,ptv,pfunc,rate)
+  if isempty(ptv) && isempty(pfunc)
     return f(t,t0,u0,dose,pnum,rate)
   else
-    if !all(x ->x isa ZeroSpline && x.dir == :left,ptv)
+    if !all(x ->x isa DataInterpolations.ZeroSpline && x.dir == :left,ptv)
       error("Analytical solutions only support Number and ZeroSpline (with dir = :left) parameters.")
     end
-    tchange = findall(p->p.t=>t0 && p.t<=t,ptv)
-    if tchange != nothing
-      _p = (pnum...,(p->p(t0) for p in ptv)...)
+    tchange = union((p.t[findall(x->x>=t0 && x<=t,p.t)] for p in ptv)...)
+    if tchange == nothing || (length(tchange) == 1 && first(tchange) == t0)
+      _p = apply_t(pnum,ptv,pfunc,t)
       return f(t,t0,u0,dose,_p,rate)
     else
       _u = u0
       last_t = t0
       for _t in tchange
-        _p = (pnum...,(p->p(_t) for p in ptv)...)
+        _p = apply_t(pnum,ptv,pfunc,t)
         _u = f(_t,last_t,_u,dose,_p,rate)
         last_t = _t
       end
+      return _u
     end
   end
 end
