@@ -2,7 +2,17 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
                            args...; continuity = :right, kwargs...)
   f = m.prob isa ExplicitModel ? m.prob : m.prob.pkprob
   u0 = pk_init(f)
+
   pnum,ptv,pfunc = split_tvcov(col,f)
+  if !all(x ->x isa DataInterpolations.ZeroSpline && x.dir == :left,ptv)
+    error("Analytical solutions only support Number and ZeroSpline (with dir = :left) parameters.")
+  end
+  tvcov_times = sort!(unique!(union((p.t for p in ptv)...)))
+  if isempty(ptv)
+    _p = p
+  else
+    _p = [apply_t(pnum,ptv,pfunc,t) for t in tvcov_times]
+  end
 
   # we don't want to promote units
   if numtype(col) <: Unitful.Quantity || numtype(u0) <: Unitful.Quantity || numtype(tspan) <: Unitful.Quantity
@@ -19,7 +29,7 @@ function _solve_analytical(m::PumasModel, subject::Subject, tspan, col,
 
   lags,bioav,time_adjust_rate,duration = get_magic_args(col,Tu0,Ttspan[1])
   events = adjust_event(subject.events,u0,lags,bioav,time_adjust_rate,duration)
-  times = sorted_approx_unique(events)
+  isevent,times = union_tvcov_events(sorted_approx_unique(events),tvcov_times)
   u = Vector{typeof(Tu0)}(undef, length(times))
   doses = Vector{typeof(Tu0)}(undef, length(times))
   rates = Vector{typeof(Tu0)}(undef, length(times))
@@ -222,31 +232,41 @@ end
   pnumnames = pnum.parameters[1]
   ptvnames = ptv.parameters[1]
   pfuncnames = pfunc.parameters[1]
-  Expr(:tuple,(:($(n) = pnum.$(n)) for n in pnumnames)...,
+  Expr(:tuple,(t = t, :($(n) = pnum.$(n)) for n in pnumnames)...,
                (:($(n) = ptv.$(n)(t)) for n in ptvnames)...,
                (:($(n) = pfunc.$(n)(t)) for n in pfuncnames)...)
 end
 
-function applydose(f,t,t0,u0,dose,pnum,ptv,pfunc,rate)
-  if isempty(ptv) && isempty(pfunc)
-    return f(t,t0,u0,dose,pnum,rate)
-  else
-    if !all(x ->x isa DataInterpolations.ZeroSpline && x.dir == :left,ptv)
-      error("Analytical solutions only support Number and ZeroSpline (with dir = :left) parameters.")
-    end
-    tchange = union((p.t[findall(x->x>=t0 && x<=t,p.t)] for p in ptv)...)
-    if tchange == nothing || (length(tchange) == 1 && first(tchange) == t0)
-      _p = apply_t(pnum,ptv,pfunc,t)
-      return f(t,t0,u0,dose,_p,rate)
-    else
-      _u = u0
-      last_t = t0
-      for _t in tchange
-        _p = apply_t(pnum,ptv,pfunc,t)
-        _u = f(_t,last_t,_u,dose,_p,rate)
-        last_t = _t
+applydose(f,t,t0,u0,dose,p,rate) = f(t,t0,u0,dose,p,rate)
+function applydose(f,t,t0,u0,dose,p::Vector,rate)
+  _p = findfirst(x->x.t >= t0 && x.t <= t,p)
+  f(t,t0,u0,dose,_p,rate)
+end
+
+function union_tvcov_events(evtimes,tvtimes)
+  times = Vector{promote_type(eltype(evtimes),eltype(tvtimes))}(undef,
+                                                length(evtimes)+length(tvtimes))
+  evidx = 1; tvidx = 1
+  for i in 1:length(times)
+    if evidx <= length(evtimes) && tvidx <= length(tvtimes)
+      if evtimes[evidx] < tvtimes[tvidx]
+        times[i] = evtimes[evidx]
+        evtimes += 1
+      elseif tvtimes[tvidx] < evtimes[evidx]
+        times[i] = tvtimes[tvidx]
+        tvidx += 1
+      else
+        times[i] = tvtimes[tvidx]
+        tvidx += 1
+        evtimes += 1
       end
-      return _u
-    end
+    elseif evidx <= length(evtimes)
+      times[i] = evtimes[evidx]
+      evtimes += 1
+    elseif tvidx <= length(tvtimes)
+      times[i] = tvtimes[tvidx]
+      tvidx += 1
+    else
+      error("You must never go there Simba.")
   end
 end
