@@ -81,7 +81,7 @@ superposition(conc, time, args...; kwargs...) = superposition(NCASubject(conc, t
 function superposition(pop::NCAPopulation, args...; kwargs...) # NCAPopulation handling
   sol = map(pop) do subj
     res = superposition(subj, args...; kwargs...)
-    DataFrame(id=subj.id, conc=res[1], time=res[2])
+    DataFrame(id=subj.id, conc=res[!,1], time=res[!,2])
   end
   return vcat(sol...) # splat is faster than `reduce(vcat, sol)`
 end

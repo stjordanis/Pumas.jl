@@ -427,7 +427,7 @@ function NCAReport(pop::NCAPopulation; pred=nothing, normalize=nothing, auctype=
   vals  = [f(pop; label = i == 1, kwargs...) for (i, f) in enumerate(funcs)]
   if sigdigits !== nothing
     for val in vals
-      col = val[end]
+      col = val[!,end]
       map!(col, col) do x
         x isa Number ? round(ustrip(x), sigdigits=sigdigits)*oneunit(x) : x
       end

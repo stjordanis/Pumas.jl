@@ -2,13 +2,14 @@ module Pumas
 
 using DiffEqBase, DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, DiffEqJump, Distributed, LabelledArrays, GLM,
-      TreeViews, CSV, DelayDiffEq, ForwardDiff, DiffResults, Optim,
+      TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
+using  AdvancedHMC, MCMCChains
 
 import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
-@reexport using Distributions, PDMats, DataFrames
+@reexport using Distributions, DataFrames
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 

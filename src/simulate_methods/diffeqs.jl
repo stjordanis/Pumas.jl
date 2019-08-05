@@ -109,7 +109,7 @@ function ith_subject_cb(p,datai::Subject,u0,t0,ProbType,saveat,save_discont,cont
   function affect!(integrator)
 
     if ProbType <: DiffEqBase.DDEProblem
-      f = integrator.integrator.f
+      f = integrator.f
     else
       f = integrator.f
     end
@@ -321,7 +321,7 @@ end
 function dose!(integrator,u,cur_ev,bioav,last_restart)
 
   if typeof(integrator.sol.prob) <: DDEProblem
-    f = integrator.integrator.f
+    f = integrator.f
   else
     f = integrator.f
   end
@@ -341,13 +341,7 @@ function dose!(integrator,u,cur_ev,bioav,last_restart)
 end
 
 function dose!(integrator,u::Union{SArray,SLArray,FieldVector},cur_ev,bioav,last_restart)
-
-  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
-    f = integrator.integrator.f
-  else
-    f = integrator.f
-  end
-
+  f = integrator.f
   if cur_ev.rate == 0
     if typeof(bioav) <: Number
       integrator.u = StaticArrays.setindex(integrator.u,integrator.u[cur_ev.cmt] + bioav*cur_ev.amt,cur_ev.cmt)
@@ -363,13 +357,7 @@ function dose!(integrator,u::Union{SArray,SLArray,FieldVector},cur_ev,bioav,last
 end
 
 function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
-
-  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
-    f = integrator.integrator.f
-  else
-    f = integrator.f
-  end
-
+  f = integrator.f
   if cur_ev.rate > 0
     f.f.rates_on = true
     f.f.rates[cur_ev.cmt] = ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir
@@ -383,13 +371,7 @@ function ss_dose!(integrator,u,cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
 end
 
 function ss_dose!(integrator,u::Union{SArray,SLArray,FieldVector},cur_ev,bioav,ss_rate_multiplier,ss_rate_end)
-
-  if typeof(integrator.sol.prob) <: DiffEqBase.DDEProblem
-    f = integrator.integrator.f
-  else
-    f = integrator.f
-  end
-
+  f = integrator.f
   if cur_ev.rate > 0
     f.f.rates_on = true
     f.f.rates = StaticArrays.setindex(f.f.rates,ss_rate_multiplier[]*cur_ev.rate*cur_ev.rate_dir,cur_ev.cmt)
@@ -451,7 +433,7 @@ function (f::DiffEqWrapper)(du,u,p,t)
   f.f(du,u,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
-function (f::DiffEqWrapper)(u,h::DelayDiffEq.HistoryFunction,p,t)
+function (f::DiffEqWrapper)(u,h::DiffEqBase.AbstractHistoryFunction,p,t)
   f.f(du,u,h,p,t)
   if f.rates_on > 0
     return out + rates
@@ -459,7 +441,7 @@ function (f::DiffEqWrapper)(u,h::DelayDiffEq.HistoryFunction,p,t)
     return out
   end
 end
-function (f::DiffEqWrapper)(du,u,h::DelayDiffEq.HistoryFunction,p,t)
+function (f::DiffEqWrapper)(du,u,h::DiffEqBase.AbstractHistoryFunction,p,t)
   f.f(du,u,h,p,t)
   f.rates_on > 0 && (du .+= f.rates)
 end
