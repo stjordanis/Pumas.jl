@@ -5,7 +5,7 @@ using Pumas, LinearAlgebra, Test, CSV
   #Time = hrs, CL = L/hr, V=L
 
   pkdata = CSV.read(example_nmtran_data("event_data/CS1_IV1EST_PAR"))
-  pkdata[!,:dv] .= pkdata[:CONC]
+  pkdata[!,:dv] .= pkdata[!, :CONC]
   pkdata[!,:CMT] .= 1
   data = read_pumas(pkdata,cvs = [:AGE, :WT, :SCR, :CLCR], dvs = [:dv],
                         id=:ID, time=:TIME, amt=:AMT, evid=:MDV, cmt=:CMT)

@@ -11,7 +11,7 @@ data[!,:route] .= "iv"
 ncapop = @test_nowarn read_nca(data, id=:ID, time=:TIME, conc=:CObs, amt=:AMT_IV, route=:route,
                                     llq=0concu, timeu=timeu, concu=concu, amtu=amtu)
 @test_nowarn NCA.auc(ncapop, method=:linuplogdown)
-@test all(ismissing, NCA.bioav(ncapop, ithdose=1)[2])
+@test all(ismissing, NCA.bioav(ncapop, ithdose=1)[!, 2])
 @test_logs (:warn, "No dosage information has passed. If the dataset has dosage information, you can pass the column names by `amt=:AMT, route=:route`.") NCA.auc(read_nca(data, id=:ID, time=:TIME, conc=:CObs));
 @test ncapop[1] isa NCASubject
 @test ncapop[2:end-1] isa NCAPopulation
@@ -31,15 +31,15 @@ lambdazdf = @test_nowarn NCA.lambdaz(ncapop)
 @test_nowarn NCA.lambdaztimefirst(ncapop)
 @test_nowarn NCA.lambdaznpoints(ncapop)
 
-conc = Float64.(data[:CObs])*concu
-t = Float64.(data[:TIME])*timeu
-doses = Float64.(data[:AMT_IV])[1:16:end]*u"mg"
+conc = Float64.(data[!, :CObs])*concu
+t = Float64.(data[!, :TIME])*timeu
+doses = Float64.(data[!, :AMT_IV])[1:16:end]*u"mg"
 
 data = CSV.read(Pumas.example_nmtran_data("nca_test_data/dapa_IV_sol"))
 
-correct_auc = Float64.(data[:AUCINF_obs])*concu*timeu
-correct_auc_last = Float64.(data[:AUClast])*concu*timeu
-correct_aumc = Float64.(data[:AUMCINF_obs])./timeu
+correct_auc = Float64.(data[!, :AUCINF_obs])*concu*timeu
+correct_auc_last = Float64.(data[!, :AUClast])*concu*timeu
+correct_aumc = Float64.(data[!, :AUMCINF_obs])./timeu
 
 test_auc = rand(24,)
 test_aumc = rand(24,)
@@ -120,7 +120,7 @@ end
 @test log(2)/NCA.lambdaz(conc[idx], t[idx]) === NCA.thalf(nca)
 @test NCA.lambdaz(nca, slopetimes=t[10:13]) == NCA.lambdaz(conc[idx], t[idx], idxs=10:13)
 @test NCA.lambdaz(nca, slopetimes=t[10:13]) !== NCA.lambdaz(conc[idx], t[idx])
-@test NCA.lambdaz(nca, idxs=12:16) ≈ data[:Lambda_z][1]/timeu atol=1e-6/timeu
+@test NCA.lambdaz(nca, idxs=12:16) ≈ data[!, :Lambda_z][1]/timeu atol=1e-6/timeu
 
 fails = (6,)
 for i in 1:24
