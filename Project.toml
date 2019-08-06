@@ -11,7 +11,6 @@ DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
-DiffEqJump = "c894b116-72e5-5b58-be3c-e6d8d4ac2b12"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -52,7 +51,7 @@ DiffEqBase = "5.19"
 
 [extras]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
-DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
+DiffEqJump = "c894b116-72e5-5b58-be3c-e6d8d4ac2b12"
 Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
@@ -60,4 +59,4 @@ StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "DelayDiffEq", "Measurements", "SafeTestsets", "StatsFuns", "DiffEqDiffTools", "StochasticDiffEq"]
+test = ["Test", "DelayDiffEq", "DiffEqJump", "Measurements", "SafeTestsets", "StatsFuns", "StochasticDiffEq"]
