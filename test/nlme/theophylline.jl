@@ -124,7 +124,7 @@ end
   end
 
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    @test o.vvrandeffs[i] == zeros(3)
+    @test o.vvrandeffsorth[i] == zeros(3)
   end
 
   pred = predict(o)
@@ -341,7 +341,7 @@ end
   end
 
   @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    @test o.vvrandeffs[i] == zeros(3)
+    @test o.vvrandeffsorth[i] == zeros(3)
   end
 
   # Test that the types work on both stiff and non-stiff solver methods
@@ -460,8 +460,8 @@ end
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(foce_stderr, k))           rtol=1e-2
   end
 
-  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
+  @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
+    @test ebe.ebes.η ≈ foce_ebes[i,:] rtol=1e-3
   end
 
   ebe_cov = Pumas.empirical_bayes_dist(o)
@@ -590,8 +590,8 @@ end
     @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(focei_stderr, k))           rtol=1e-2
   end
 
-  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    @test o.vvrandeffs[i] ≈ focei_ebes[i,:] rtol=1e-3
+  @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
+    @test ebe.ebes.η ≈ focei_ebes[i,:]  rtol=1e-3
   end
 
   ebe_cov = Pumas.empirical_bayes_dist(o)
@@ -599,10 +599,39 @@ end
     @test ebe_cov[i].η.Σ.mat[:] ≈ focei_ebes_cov[i,:] atol=1e-3
   end
 
-  Pumas.npde(   theopmodel_focei, theopp[1], param,
-      (η=empirical_bayes(theopmodel_focei, theopp[1], param, Pumas.FOCEI()),), 1000)
-  Pumas.epred(  theopmodel_focei, theopp[1], param,
-      (η=empirical_bayes(theopmodel_focei, theopp[1], param, Pumas.FOCEI()),), 1000)
+  Pumas.npde(theopmodel_focei,
+    theopp[1],
+    param,
+    Pumas.TransformVariables.transform(
+      Pumas.totransform(
+        theopmodel_focei.random(param)
+      ),
+      Pumas._orth_empirical_bayes(
+        theopmodel_focei,
+        theopp[1],
+        param,
+        Pumas.FOCEI()
+      )
+    ),
+  1000
+  )
+  Pumas.epred(
+    theopmodel_focei,
+    theopp[1],
+    param,
+      Pumas.TransformVariables.transform(
+        Pumas.totransform(
+          theopmodel_focei.random(param)
+        ),
+        Pumas._orth_empirical_bayes(
+          theopmodel_focei,
+          theopp[1],
+          param,
+          Pumas.FOCEI()
+        )
+      ),
+    1000
+  )
   Pumas.cpred(  theopmodel_focei, theopp[1], param)
   Pumas.cpredi( theopmodel_focei, theopp[1], param)
   Pumas.pred(   theopmodel_focei, theopp[1], param)
@@ -713,8 +742,8 @@ end
     @test _extract(getfield(o_estimates, k)) ≈ _extract(getfield(foce_estimated_params, k)) rtol=1e-3
   end
 
-  @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-    @test o.vvrandeffs[i] ≈ foce_ebes[i,:] rtol=1e-3
+  @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
+    @test ebe.ebes.η ≈ foce_ebes[i,:] rtol=1e-3
   end
 
   ebe_cov = Pumas.empirical_bayes_dist(o)
@@ -786,7 +815,7 @@ end
 
   @testset "Empirical Bayes estimates" begin
     for (i,η) in enumerate(nonmem_ebes_initial)
-      @test empirical_bayes(theopmodel_laplace, theopp[i], param, Pumas.Laplace()) ≈ η rtol=1e-4
+      @test sqrt(param.Ω)*Pumas._orth_empirical_bayes(theopmodel_laplace, theopp[i], param, Pumas.Laplace()) ≈ η rtol=1e-4
     end
 
     @test deviance(theopmodel_laplace, theopp, param, Pumas.Laplace()) ≈ 141.296 atol=1e-3
@@ -865,8 +894,8 @@ end
       @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplace_stderr, k))           rtol=1e-2
     end
 
-    @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-      @test o.vvrandeffs[i] ≈ laplace_ebes[i,:] rtol=3e-3
+    @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
+      @test ebe.ebes.η ≈ laplace_ebes[i,:] rtol=3e-3
     end
 
     ebe_cov = Pumas.empirical_bayes_dist(o)
@@ -996,8 +1025,8 @@ end
       @test _extract(getfield(o_stderror, k))  ≈ _extract(getfield(laplacei_stderr, k))           rtol=4e-2
     end
 
-    @testset "test stored empirical Bayes estimates. Subject: $i" for i in 1:length(theopp)
-      @test o.vvrandeffs[i] ≈ laplacei_ebes[i,:] rtol=1e-3
+    @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
+      @test ebe.ebes.η ≈ laplacei_ebes[i,:] rtol=1e-3
     end
 
     ebe_cov = Pumas.empirical_bayes_dist(o)

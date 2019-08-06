@@ -261,8 +261,26 @@ totransform(d::PSDDomain) = PSDTransform(size(d.init,1))
 totransform(d::PDiagDomain) = PDiagTransform(length(d.init.diag))
 
 totransform(d::Distribution) = totransform(Domain(d))
-totransform(d::MvNormal) = as(Array, length(d))
 totransform(c::Constrained) = totransform(c.domain)
+
+struct MvNormalTransform{D<:MvNormal} <: TransformVariables.VectorTransform
+  d::D
+end
+totransform(d::MvNormal) = MvNormalTransform(d)
+TransformVariables.dimension(t::MvNormalTransform) = length(t.d)
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::MvNormalTransform,
+                                           x::TransformVariables.RealVector{T}) where T
+    ℓ = TransformVariables.logjac_zero(flag, T)
+    # FIXME! This promotion should happen in PDMats
+    TT = promote_type(T, eltype(t.d.Σ))
+    return unwhiten(t.d.Σ, convert(AbstractArray{TT}, x)) + mean(t.d), ℓ
+end
+TransformVariables.inverse_eltype(::MvNormalTransform, y::AbstractVector{T}) where T = T
+function TransformVariables.inverse!(x::AbstractVector, t::MvNormalTransform, y::AbstractVector)
+  x .= y .- t.d.μ
+  whiten!(t.d.Σ, x)
+  return x
+end
 
 totransform(p::ParamSet) = as(map(totransform, p.params))
 

@@ -100,6 +100,13 @@ init(p::ParamSet) = map(init, domains(p))
 
 Base.rand(p::ParamSet) = map(rand, p.params)
 
+_vecmean(p::ParamSet) = vcat(map(mean, p.params)...)
+# FIXME! To this in a better way
+function _veccov(p::ParamSet)
+  Ωis = map(cov, p.params)
+  return hvcat(length(Ωis), Diagonal([Ωis...])...)
+end
+
 
 struct Constrained{D<:Distribution,M<:Domain}
   dist::D
