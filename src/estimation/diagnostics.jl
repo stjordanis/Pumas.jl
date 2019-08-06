@@ -476,8 +476,8 @@ function inspect(fpm; pred_approx=fpm.approx, infer_approx=fpm.approx,
 end
 function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=true)
   pred_df = DataFrame(i.pred; include_covariates=include_covariates)
-  res_df = deletecols!(DataFrame(i.wres; include_covariates=false), :time)
-  ebes_df = deletecols!(DataFrame(i.ebes; include_covariates=false), :time)
+  res_df = select!(select!(DataFrame(i.wres; include_covariates=false), Not(:id)), Not(:time))
+  ebes_df = select!(select!(DataFrame(i.ebes; include_covariates=false), Not(:id)), Not(:time))
 
-  df = join(join(pred_df, res_df; on=:id), ebes_df; on=:id)
+  df = hcat(pred_df, res_df, ebes_df)
 end

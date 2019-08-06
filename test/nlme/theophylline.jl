@@ -98,6 +98,13 @@ end
 
   o_infer = infer(o)
   o_inspect = inspect(o)
+  o_inspect_df = DataFrame(o_inspect)
+  o_wresiduals = wresiduals(o)
+  o_wresiduals_df = DataFrame(o_wresiduals)
+  o_predict = predict(o)
+  o_predict_df = DataFrame(o_predict)
+  o_empirical_bayes = empirical_bayes(o)
+  o_empirical_bayes_df = DataFrame(o_empirical_bayes)
 
 
   # Verify that show runs
@@ -305,11 +312,23 @@ end
   o_stderror  = stderror(o)
 
   o_infer = infer(o)
+  o_inspect = inspect(o)
+  o_inspect_df = DataFrame(o_inspect)
+  o_wresiduals = wresiduals(o)
+  o_wresiduals_df = DataFrame(o_wresiduals)
+  o_predict = predict(o)
+  o_predict_df = DataFrame(o_predict)
+  o_empirical_bayes = empirical_bayes(o)
+  o_empirical_bayes_df = DataFrame(o_empirical_bayes)
 
   # Verify that show runs
   io_buffer = IOBuffer()
   show(io_buffer, o)
   show(io_buffer, o_infer)
+  show(io_buffer, o_inspect)
+  show(io_buffer, o_wresiduals)
+  show(io_buffer, o_predict)
+  show(io_buffer, o_empirical_bayes)
 
   @test deviance(o) ≈ 71.979975297638589 rtol=1e-6
 
