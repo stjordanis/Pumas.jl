@@ -57,7 +57,7 @@ function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
   allowmissing!(data, dvs)
   mdv = isone.(data[!,mdv])
   for dv in dvs
-    data[dv] .= ifelse.(mdv, missing, data[!,dv])
+    data[!, dv] .= ifelse.(mdv, missing, data[!, dv])
   end
   Subject.(groupby(data, id), Ref(colnames), id, time, evid, amt, addl, ii, cmt,
            rate, ss, Ref(cvs), Ref(dvs), event_data)
