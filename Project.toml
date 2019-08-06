@@ -48,6 +48,7 @@ ModelingToolkit = "0.6"
 TransformVariables = "0.3"
 julia = "1.1"
 DiffEqBase = "5.19"
+MCMCChains = "0.3.11"
 
 [extras]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
