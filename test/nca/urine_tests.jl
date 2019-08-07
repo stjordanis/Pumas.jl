@@ -20,7 +20,7 @@ pop = read_nca(df, amtu=amtu, concu=concu, volumeu=volumeu, timeu=timeu)
 @test_nowarn NCA.lambdaz(pop)
 @test_nowarn NCA.tmax_rate(pop)[!, 2][1], NCA.max_rate(pop)[!, 2][1], NCA.mid_time_last(pop)[!, 2][1], NCA.rate_last(pop)[!, 2][1], NCA.aurc(pop)[!, 2][1], NCA.aurc_extrap_percent(pop)[!, 2][1]
 @test NCA.urine_volume(pop)[!, end][1] == sum(pop[1].volume)
-@test NCA.rate_last(pop)[!, 2][1] != NCA.rate_last(pop, pred=true)[2][1]
+@test NCA.rate_last(pop)[!, 2][1] != NCA.rate_last(pop, pred=true)[!, 2][1]
 
 report = NCAReport(pop)
 reportdf = NCA.to_dataframe(report)
