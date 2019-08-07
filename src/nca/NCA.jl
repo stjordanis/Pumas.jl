@@ -4,7 +4,8 @@ using Reexport
 using GLM
 using DataFrames
 using RecipesBase
-using Pkg, Dates, Printf, LinearAlgebra
+using Pkg, Dates, Printf, LinearAlgebra, Markdown
+using Markdown: Paragraph, Header, HorizontalRule, Italic, Bold, Table
 
 include("type.jl")
 include("data_parsing.jl")

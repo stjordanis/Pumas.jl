@@ -1,5 +1,4 @@
 using Unitful
-using Markdown
 
 """
     Formulation
@@ -452,34 +451,36 @@ function Base.convert(::Type{DataFrame}, report::NCAReport)
   hcat(report.values...)
 end
 
-to_markdown(report::NCAReport) = convert(Markdown.MD, report)
-function Base.convert(::Type{Markdown.MD}, report::NCAReport)
-  _io = IOBuffer()
-  println(_io, "# Noncompartmental Analysis Report")
-  println(_io, "Pumas version " * string(Pkg.installed()["Pumas"]))
-  println(_io, "Julia version " * string(VERSION))
-  println(_io, "")
-  println(_io, "Date and Time: " * Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS"))
-  println(_io, "")
+function to_markdown(report::NCAReport; datacols = Symbol[])
 
-  println(_io, "## Calculation Setting")
-  # TODO
-  println(_io, "")
+    _contents = []
+    
+    push!(_contents, Header("Noncompartmental Analysis Report", 1))
+    push!(_contents, Paragraph(["Pumas version ", Bold(string(Pkg.installed()["Pumas"]))]))
+    push!(_contents, Paragraph(["Julia version ", Bold(string(VERSION))]))
+    push!(_contents, Paragraph(["Time          ", Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS")]))
 
-  println(_io, "## Calculated Values")
-  println(_io, "|         Name         |    Value   |")
-  println(_io, "|:---------------------|-----------:|")
-  for entry in report.values
-    _name = string(names(entry)[1])
-    name = replace(_name, "_"=>"\\_") # escape underscore
-    ismissing(entry[end]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
-    for v in entry[end]
-      val =  v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
-             v
-      @printf(_io, "| %s | %s |\n", name, val)
+    push!(_contents, Header("Calculation Setting", 2))
+
+    # TODO print this table transposed
+
+    _table = Array{String}[]
+
+    push!(_table, ["Name", "Value"])
+
+    for entry in report.values
+        name = string(names(entry)[1])
+        ismissing(entry[end]) && (push!(_table, [name, "missing"]); continue)
+        for v in entry[end]
+            val =  v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
+                 v
+            push!(_table, [name, string(val)])
+        end
     end
-  end
-  return Markdown.parse(String(take!(_io)))
+
+    push!(_contents, Table(_table, [:c, :c]))
+
+    return Markdown.MD(_contents)
 end
 
 @recipe function f(subj::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}; linear=true, loglinear=true) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
