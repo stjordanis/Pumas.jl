@@ -16,13 +16,13 @@ show(io, "text/plain", data)
 @test_nowarn display(data[1])
 aucs = @test_nowarn NCA.auc(data)
 @test names(aucs) == [:id, :occasion, :METABOLITE, :auc]
-@test aucs[:METABOLITE] == repeat(["Metabolite $i" for i in 1:4], inner=5*3)
+@test aucs[!, :METABOLITE] == repeat(["Metabolite $i" for i in 1:4], inner=5*3)
 @test_nowarn NCA.mrt(data)
 @test_nowarn NCA.tmin(data)
 data3 = @test_nowarn read_nca(df, id=:ID, time=:TIME, conc=:TCONC, group=[:PERIOD, :METABOLITE], verbose=false) # multi-group
 aucs = @test_nowarn NCA.auc(data3)
-@test aucs[:METABOLITE][1] == "Metabolite 1"
-@test aucs[:PERIOD] == repeat(["$i" for i in 1:3], inner=20)
+@test aucs[!, :METABOLITE][1] == "Metabolite 1"
+@test aucs[!, :PERIOD] == repeat(["$i" for i in 1:3], inner=20)
 
 # test ii
 df[!,:ii] .= [0.1 * i for i in df.ID]
