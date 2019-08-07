@@ -30,10 +30,10 @@ function Base.show(io::IO, mime::MIME"text/plain", fpm::FittedPumasModel)
   getdecimal = x -> findfirst(c -> c=='.', x)
   maxname = maximum(length, paramnames)
   maxval = max(maximum(length, paramvals), length("Estimate "))
-  labels = " "^(maxname+Int(round(maxval/2))-3)*"Estimate"
+  labels = " "^(maxname+Int(round(maxval/1.2))-3)*"Estimate"
   stringrows = []
   for (name, val) in zip(paramnames, paramvals)
-    push!(stringrows, string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, "\n"))
+    push!(stringrows, string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/1.2))), val, "\n"))
   end
   println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
   print(io, labels)
@@ -125,12 +125,12 @@ function Base.show(io::IO, mime::MIME"text/plain", pmi::FittedPumasModelInferenc
   maxaftdec = maximum(getafterdec, paramconfint)
   maxdecaftsem = maximum(getdecaftersemi, paramconfint)
   maxaftdecsem = maximum(getafterdecsemi, paramconfint)
-  labels = " "^(maxname+Int(round(maxval/2))-3)*rpad("Estimate", Int(round(maxrs/2))+maxval+3)*rpad("RSE", Int(round(maxconfint/2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
+  labels = " "^(maxname+Int(round(maxval/1.2))-3)*rpad("Estimate", Int(round(maxrs/1.2))+maxval+3)*rpad("RSE", Int(round(maxconfint/1.2))+maxrs-3)*string(round(pmi.level*100, sigdigits=6))*"% C.I."
 
   stringrows = []
   for (name, val, rse, confint) in zip(paramnames, paramvals, paramrse, paramconfint)
     confint = string("["," "^(maxdecconf - getdecimal(confint)), confint[2:getsemicolon(confint)-1]," "^(maxaftdec-getafterdec(confint)),"; "," "^(maxdecaftsem - getdecaftersemi(confint)), confint[getsemicolon(confint)+1:end-1], " "^(maxaftdecsem - getafterdecsemi(confint)), "]")
-    row = string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/2))), confint, "\n")
+    row = string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/1.2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(rse)+Int(round(maxrs/1.2))), rse, " "^(maxrs-(length(rse)-getdecimal(rse))-getsemicolon(confint)+Int(round(maxconfint/1.2))), confint, "\n")
     push!(stringrows, row)
   end
   println(io, "-"^max(length(labels)+1,length(stringrows[1])))

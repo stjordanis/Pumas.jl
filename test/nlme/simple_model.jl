@@ -68,13 +68,13 @@ Total number of observation records:      20
 Number of active observation records:     20
 Number of subjects:                       10
 
---------------
-     Estimate
---------------
-θ₁    0.36476
-Ω₁,₁  0.04
-Σ     0.1
---------------
+------------------
+         Estimate
+------------------
+θ₁        0.36476
+Ω₁,₁      0.04
+Σ         0.1
+------------------
 """
 
 # Supporting outer AD optimization makes it harder to store the

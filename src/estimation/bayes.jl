@@ -145,20 +145,15 @@ function Distributions.fit(model::PumasModel, data::Population, ::BayesMCMC, θ_
   adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
   samples, stats = sample(h, prop, vparam_aug, nsamples, adaptor, nadapts; progress=true)
   trans = v -> TransformVariables.transform(trf, v)
-  samples = trans.(samples)
+  samples_transf = trans.(samples)
   transident = v -> TransformVariables.inverse(trf_ident, v)
-  samples = transident.(samples)
+  samples_transid = transident.(samples_transf)
   names = String[]
-  for name in keys(θ_init)
-    if length(getproperty(θ_init, name)) == 1 || typeof(getproperty(θ_init, name)) <: Number
-      push!(names,String(name))
-    else
-      for param_len in 1:length(getproperty(θ_init, name))
-        push!(names, string(name,param_len))
-      end
-    end
+  vals = []
+  for (name,val) in pairs(samples_transf[1])
+    _push_varinfo!(names, vals, nothing, nothing, name, val, nothing, nothing)
   end
-  samples_ = Chains(samples, names)
+  samples_ = Chains(samples_transid, names)
   BayesMCMCResults(bayes, samples_, stats)
 end
 
