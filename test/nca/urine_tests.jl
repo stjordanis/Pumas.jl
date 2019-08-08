@@ -16,11 +16,11 @@ pop = read_nca(df, amtu=amtu, concu=concu, volumeu=volumeu, timeu=timeu)
 @test [df.start_time[1:3]; df.start_time[5:end]]*timeu == pop[1].start_time
 @test [df.end_time[1:3]; df.end_time[5:end]]*timeu == pop[1].end_time
 @test length(pop[1].conc) == length(pop[1].time) == length(pop[1].start_time) == length(pop[1].end_time) == length(pop[1].volume)
-@test ustrip(NCA.aurc(pop, auctype=:last)[2][1]) ≈ 180.38833333333333
+@test ustrip(NCA.aurc(pop, auctype=:last)[!,2][1]) ≈ 180.38833333333333
 @test_nowarn NCA.lambdaz(pop)
-@test_nowarn NCA.tmax_rate(pop)[2][1], NCA.max_rate(pop)[2][1], NCA.mid_time_last(pop)[2][1], NCA.rate_last(pop)[2][1], NCA.aurc(pop)[2][1], NCA.aurc_extrap_percent(pop)[2][1]
-@test NCA.urine_volume(pop)[end][1] == sum(pop[1].volume)
-@test NCA.rate_last(pop)[2][1] != NCA.rate_last(pop, pred=true)[2][1]
+@test_nowarn NCA.tmax_rate(pop)[!, 2][1], NCA.max_rate(pop)[!, 2][1], NCA.mid_time_last(pop)[!, 2][1], NCA.rate_last(pop)[!, 2][1], NCA.aurc(pop)[!, 2][1], NCA.aurc_extrap_percent(pop)[!, 2][1]
+@test NCA.urine_volume(pop)[!, end][1] == sum(pop[1].volume)
+@test NCA.rate_last(pop)[!, 2][1] != NCA.rate_last(pop, pred=true)[!, 2][1]
 
 report = NCAReport(pop)
 reportdf = NCA.to_dataframe(report)
