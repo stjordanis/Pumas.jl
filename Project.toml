@@ -1,6 +1,6 @@
 name = "Pumas"
 uuid = "4f2c3c20-a4ac-11e9-067b-e5872d3484cf"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 AdvancedHMC = "0bf59076-c3b1-5ca4-86bd-e02cd72cde3d"
