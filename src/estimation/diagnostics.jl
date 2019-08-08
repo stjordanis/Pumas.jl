@@ -481,3 +481,45 @@ function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=
 
   df = hcat(pred_df, res_df, ebes_df)
 end
+
+@recipe function f(f::FittedPumasModel)
+  # extract the parameter space vectors, and allow them to be plotted as timeseries.
+
+  trf  = totransform(f.model.param)         # get the transform which has been applied to the params
+  itrf = toidentitytransform(f.model.param) # invert the param transform
+
+  paramtrace = hcat(TransformVariables.inverse.(Ref(itrf), TransformVariables.transform.(Ref(trf), getindex.(getproperty.(f.optim.trace, :metadata), "x")))...)
+  paramnames = [] # empty array, will fill later
+
+  legend := :none # no legends - they clutter the plot up too much.
+
+  for (paramname, paramval) in pairs(f.param) # iterate through the parameters
+    # decompose all parameters (matrices, etc.) into scalars and name them appropriately
+    _push_varinfo!(paramnames, [], nothing, nothing, paramname, paramval, nothing, nothing)
+  end
+
+  # @show paramtrace paramnames
+  layout --> length(paramnames) + 1
+
+  @series begin
+   title := "Observed value"
+   subplot := length(paramnames) + 1
+   link := :x # link the x-axes, there should be no difference
+
+   (getproperty.(f.optim.trace, :value)) # the observed values
+  end
+
+  # Iterate through indices, names and timeseries of parameters, to plot their convergence.
+  for (i, name, trace) in zip(1:length(f.optim.trace), paramnames, eachslice(paramtrace; dims = 1))
+   @series begin
+     title := name
+     subplot := i
+     link := :x
+     # @show name i trace
+     trace
+   end
+  end
+
+  primary := false
+
+end
