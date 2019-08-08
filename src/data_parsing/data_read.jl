@@ -59,8 +59,9 @@ function read_pumas(data;cvs=Symbol[],dvs=Symbol[:dv],
   for dv in dvs
     data[!, dv] .= ifelse.(mdv, missing, data[!, dv])
   end
-  Subject.(groupby(data, id), Ref(colnames), id, time, evid, amt, addl, ii, cmt,
-           rate, ss, Ref(cvs), Ref(dvs), event_data)
+
+  return [Subject(_databyid, colnames, id, time, evid, amt, addl, ii, cmt,
+                  rate, ss, cvs, dvs, event_data) for _databyid in groupby(data, id)]
 end
 
 function build_observation_list(obs::AbstractDataFrame)
