@@ -379,9 +379,17 @@ function ηshrinkage(m::PumasModel,
                     data::Population,
                     param::NamedTuple,
                     approx::LikelihoodApproximation)
-  sd_randeffs_orth = std([_orth_empirical_bayes(m, subject, param, approx) for subject in data])
-  return  1 .- sd_randeffs_orth
+
+  vvrandeffsorth = [Pumas._orth_empirical_bayes(m, subject, param, approx) for subject in data]
+  vtrandeffs = [TransformVariables.transform(totransform(m.random(param)), _vrandefforth) for _vrandefforth in vvrandeffsorth]
+
+  randeffsstd = map(keys(first(vtrandeffs))) do k
+    return 1 .- std(getfield.(vtrandeffs, k)) ./ sqrt.(var(m.random(param).params[k]))
+  end
+
+  return NamedTuple{keys(first(vtrandeffs))}(randeffsstd)
 end
+
 
 function ϵshrinkage(m::PumasModel,
                     data::Population,

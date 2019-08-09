@@ -40,7 +40,7 @@ end
 param = init_param(mdsl2)
 @test @inferred(deviance(mdsl2, theopp_nlme, param, Pumas.LaplaceI())) ≈ 93.64166638742198 rtol = 1e-6 # NONMEM result
 @test fit(mdsl2, theopp_nlme, param, Pumas.FOCE()) isa Pumas.FittedPumasModel
-@test ηshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
+@test ηshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI()).η ≈ [0.0161871, 0.0502453, 0.0133019] rtol = 1e-5
 @test ϵshrinkage(mdsl2, theopp_nlme, param, Pumas.FOCEI()) ≈ 0.09091845 rtol = 1e-6
 ϵshrinkage(mdsl2,theopp_nlme, param, Pumas.FOCE(),
     [Pumas._orth_empirical_bayes(mdsl2, subject, param, Pumas.FOCEI()) for subject in theopp_nlme])

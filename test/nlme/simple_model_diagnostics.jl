@@ -179,7 +179,7 @@ end
 [Pumas.eiwres(mdsl1, data[i], param, 10000) for i in 1:10]
 
 param = (θ = [0.340689], Ω = Diagonal([0.000004]), Σ = 0.0752507)
-@test ηshrinkage(mdsl1, data, param, Pumas.FOCEI()) ≈ [0.997574] rtol=1e-6
+@test ηshrinkage(mdsl1, data, param, Pumas.FOCEI()).η ≈ [0.997574] rtol=1e-6
 ϵshrinkage(mdsl1, data, param, Pumas.FOCEI())
 @test aic(mdsl1, data, param, Pumas.FOCEI()) ≈ 94.30968177483996 rtol=1e-6 #regression test
 @test bic(mdsl1, data, param, Pumas.FOCEI()) ≈ 96.30114632194794 rtol=1e-6 #regression test
