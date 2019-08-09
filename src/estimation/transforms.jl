@@ -263,6 +263,23 @@ totransform(d::PDiagDomain) = PDiagTransform(length(d.init.diag))
 totransform(d::Distribution) = totransform(Domain(d))
 totransform(c::Constrained) = totransform(c.domain)
 
+struct NormalTransform{D<:Normal} <: TransformVariables.ScalarTransform
+  d::D
+end
+totransform(d::Normal) = NormalTransform(d)
+TransformVariables.dimension(t::NormalTransform) = 1
+function TransformVariables.transform(t::NormalTransform, x::Number)
+
+    return first(x)*t.d.σ + t.d.μ
+end
+TransformVariables.inverse_eltype(::NormalTransform, y::AbstractVector{T}) where T = T
+function TransformVariables.inverse!(x::AbstractVector, t::NormalTransform, y::Number)
+  x[1] = (y - t.d.μ)/t.d.σ
+
+  return x
+end
+
+
 struct MvNormalTransform{D<:MvNormal} <: TransformVariables.VectorTransform
   d::D
 end

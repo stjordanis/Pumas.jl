@@ -917,19 +917,21 @@ end
       θ ∈ VectorDomain(4, lower=[0.1 , 0.0008, 0.004 , 0.1],
                           init =[2.77, 0.0781, 0.0363, 1.5],
                           upper=[5.0 , 0.5   , 0.9   , 5.0])
-      Ω ∈ PDiagDomain(2)
+      ω²Ka ∈ RealDomain(lower=0.0)
+      ω²CL ∈ RealDomain(lower=0.0)
       σ_add ∈ RealDomain(lower=0.0001, init=0.388)
       σ_prop ∈ RealDomain(lower=0.0001, init=0.3)
     end
 
     @random begin
-      η ~ MvNormal(Ω)
+      ηKa ~ Normal(0.0, sqrt(ω²Ka))
+      ηCL ~ Normal(0.0, sqrt(ω²CL))
     end
 
     @pre begin
-      Ka = SEX == 0 ? θ[1] + η[1] : θ[4] + η[1]
+      Ka = (SEX == 0 ? θ[1] : θ[4]) + ηKa
       K  = θ[2]
-      CL = θ[3]*WT + η[2]
+      CL = θ[3]*WT + ηCL
       V  = CL/K
       SC = CL/K/WT
     end
@@ -952,7 +954,8 @@ end
                 0.0363, #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
                 1.5],   #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-        Ω = Diagonal([5.55,0.515]),
+        ω²Ka = 5.55,
+        ω²CL = 0.515,
         σ_add = 0.388,
         σ_prop = 0.3
        )
@@ -965,7 +968,8 @@ end
          3.97472E-02,  #SLP  SLOPE OF CLEARANCE VS WEIGHT RELATIONSHIP (LITERS/HR/KG)
          2.05830E+00], #Ka MEAN ABSORPTION RATE CONSTANT for SEX=0 (1/HR)
 
-    Ω = Diagonal([1.48117E+00, 2.67215E-01]),
+    ω²Ka = 1.48117E+00,
+    ω²CL = 2.67215E-01,
     σ_add = 1.88050E-01,
     σ_prop = 1.25319E-02
   )
@@ -976,7 +980,8 @@ end
          3.29E-03,
          9.05E-01],
 
-    Ω = Diagonal([1.35E+00, 8.95E-02]),
+    ω²Ka = 1.35E+00,
+    ω²CL = 8.95E-02,
     σ_add = 3.01E-01,
     σ_prop = 1.70E-02)
 
@@ -1026,7 +1031,7 @@ end
     end
 
     @testset "test stored empirical Bayes estimates. Subject: $i" for (i, ebe) in enumerate(empirical_bayes(o))
-      @test ebe.ebes.η ≈ laplacei_ebes[i,:] rtol=1e-3
+      @test [ebe.ebes...] ≈ laplacei_ebes[i,:] rtol=1e-3
     end
 
     ebe_cov = Pumas.empirical_bayes_dist(o)
