@@ -264,6 +264,28 @@ struct Subject{T1,T2,T3,T4}
   end
 end
 
+
+function DataFrames.DataFrame(subject::Subject; include_covariates=true)
+  _ids = fill(subject.id, length(subject.time))
+
+  # Generate the name for the dependent variable in a manner consistent with
+  # multiple dvs etc
+  df = DataFrame(id=_ids, time=subject.time, dv=DataFrame(subject.observations).dv)
+
+  if include_covariates
+    if !isa(subject.covariates, Nothing)
+      for (covariate, value) in pairs(subject.covariates)
+        df[!,covariate] .= value
+      end
+    end
+  end
+  df
+end
+
+function DataFrames.DataFrame(pop::Population)
+  vcat((DataFrame(subject) for subject in pop)...)
+end
+
 ### Display
 Base.summary(::Subject) = "Subject"
 function Base.show(io::IO, subject::Subject)
