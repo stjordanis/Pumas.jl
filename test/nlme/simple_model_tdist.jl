@@ -39,7 +39,7 @@ for (d, v) in zip(data, [-0.110095703125000, 0.035454025268555, -0.0249826049804
                          -0.085317642211914, 0.071675025939941, 0.059612709045410,
                          -0.110117317199707, -0.024778854370117, -0.053085464477539,
                          -0.002428230285645])
-  @test empirical_bayes(tdist, d, param, Pumas.LaplaceI())[1] ≈ v rtol=1e-4
+  @test (sqrt(param.Ω)*Pumas._orth_empirical_bayes(tdist, d, param, Pumas.LaplaceI()))[1] ≈ v rtol=1e-4
 end
 
 # Not yet supported
