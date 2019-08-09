@@ -54,34 +54,9 @@ function wresiduals(fpm, subject::Subject, randeffs, approx; nsim=nothing)
   SubjectResidual(wres, iwres, subject, approx)
 end
 
-function _basic_subject_df(subjects)
-  _ids = vcat((fill(subject.id, length(subject.time)) for subject in subjects)...)
-  _times = vcat((subject.time for subject in subjects)...)
-  DataFrame(id=_ids, time=_times)
-  end
-
-function add_covariates!(df, subjects)
-  # We're assuming that all subjects have the same fields
-  if !isa(first(subjects).covariates, Nothing)
-    for (covariate, value) in pairs(first(subjects).covariates)
-      df[!,covariate] .= value
-    end
-
-    for subject in subjects
-      for (covariate, value) in pairs(subject.covariates)
-        df[df[!,:id].==subject.id, covariate] .= value
-      end
-    end
-  end
-  df
-end
-
 function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
   subjects = [resid.subject for resid in vresid]
-  df = _basic_subject_df(subjects)
-  if include_covariates
-    add_covariates!(df, subjects)
-  end
+  df = DataFrame(subjects; include_covariates=include_covariates)
 
   df[!,:wres] .= vcat((resid.wres for resid in vresid)...)
   df[!,:iwres] .= vcat((resid.iwres for resid in vresid)...)
@@ -409,10 +384,7 @@ end
 
 function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
   subjects = [pred.subject for pred in vpred]
-  df = _basic_subject_df(subjects)
-  if include_covariates
-    add_covariates!(df, subjects)
-  end
+  df = DataFrame(subjects; include_covariates=include_covariates)
 
   df[!,:pred] .= vcat((pred.pred for pred in vpred)...)
   df[!,:ipred] .= vcat((pred.ipred for pred in vpred)...)
@@ -440,10 +412,8 @@ end
 
 function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=true)
   subjects = [ebes.subject for ebes in vebes]
-  df = _basic_subject_df(subjects)
-  if include_covariates
-    add_covariates!(df, subjects)
-  end
+  df = DataFrame(subjects; include_covariates=include_covariates)
+
   for i = 1:length(first(vebes).ebes)
     df[!,Symbol("ebe_$i")] .= vcat((fill(ebes.ebes[i], length(ebes.subject.time)) for ebes in vebes)...)
   end
