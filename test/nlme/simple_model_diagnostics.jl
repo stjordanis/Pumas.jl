@@ -34,8 +34,40 @@ end
 
 param = init_param(mdsl1)
 
-[Pumas.npde( mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, Pumas.FOCE()),), 10000) for i in 1:10]
-[Pumas.epred(mdsl1, data[i], param, (η=empirical_bayes(mdsl1, data[i], param, Pumas.FOCE()),), 10000) for i in 1:10]
+[Pumas.npde(
+  mdsl1,
+  data[i],
+  param,
+  Pumas.TransformVariables.transform(
+    Pumas.totransform(
+      mdsl1.random(param)
+    ),
+    Pumas._orth_empirical_bayes(
+      mdsl1,
+      data[i],
+      param,
+      Pumas.FOCE()
+    )
+  ),
+  10000
+) for i in 1:10]
+[Pumas.epred(
+  mdsl1,
+  data[i],
+  param,
+  Pumas.TransformVariables.transform(
+    Pumas.totransform(
+      mdsl1.random(param)
+    ),
+    Pumas._orth_empirical_bayes(
+      mdsl1,
+      data[i],
+      param,
+      Pumas.FOCE()
+    )
+  ),
+  10000
+) for i in 1:10]
 [Pumas.cpred(mdsl1, data[i], param) for i in 1:10]
 [Pumas.cpredi(mdsl1, data[i], param) for i in 1:10]
 
@@ -126,7 +158,7 @@ end
                              [-1.38172560 , 0.942045331],
                              [ 0.905043866, 0.289051786]], data)
 
-    @test Pumas.icwres(mdsl1, dt, param) ≈ sub_icwres rtol=1e-6
+    @test Pumas.icwres(mdsl1, dt, param) ≈ sub_icwres rtol=1e-5
 end
 
 @testset "icwresi" for
@@ -141,7 +173,7 @@ end
                               [-1.38172560 , 0.925641802],
                               [ 0.905043866, 0.314343255]], data)
 
-    @test Pumas.icwresi(mdsl1, dt, param) ≈ sub_icwresi rtol=1e-6
+    @test Pumas.icwresi(mdsl1, dt, param) ≈ sub_icwresi rtol=1e-5
 end
 
 [Pumas.eiwres(mdsl1, data[i], param, 10000) for i in 1:10]
