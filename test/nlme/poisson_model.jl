@@ -59,8 +59,8 @@ using Pumas, Test
                        -4.63717E-01]
 
 
-  for (i,est) in enumerate(initial_estimates)
-    @test empirical_bayes(poisson_model, df[i], param, Pumas.LaplaceI())[1] ≈ est rtol=1e-5
+  for (i, est) in enumerate(initial_estimates)
+    @test (sqrt(param.Ω)*Pumas._orth_empirical_bayes(poisson_model, df[i], param, Pumas.LaplaceI()))[1] ≈ est rtol=1e-5
   end
   @test 2*Pumas.marginal_nll(poisson_model, df, param, Pumas.LaplaceI()) ≈ 4015.70427796336 rtol=1e-3
 
