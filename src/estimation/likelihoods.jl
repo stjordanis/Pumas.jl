@@ -1263,7 +1263,7 @@ function StatsBase.informationmatrix(f::FittedPumasModel; expected::Bool=true)
   param         = f.param
   vrandeffsorth = f.vvrandeffsorth
   if expected
-    return sum(_expected_information(model, data[i], param, vrandeffsorth, f.approx) for i in 1:length(data))
+    return sum(_expected_information(model, data[i], param, vrandeffsorth[i], f.approx) for i in 1:length(data))
   else
     return first(_observed_information(f, Val(false)))
   end
@@ -1329,12 +1329,11 @@ function _E_and_V(m::PumasModel,
   randeffstransform = totransform(m.random(param))
   y = subject.observations.dv
   dist = derived_dist(m, subject, param, TransformVariables.transform(randeffstransform, vrandeffsorth))
-  F = ForwardDiff.jacobian(s -> mean.(derived_dist(
-    m,
-    subject,
-    param,
-    TransformVariables.transform(randeffstransform, s)).dv
-    ),
+  F = ForwardDiff.jacobian(
+    _vrandeffs -> begin
+      _randeffs = TransformVariables.transform(randeffstransform, _vrandeffs)
+      return mean.(derived_dist(m, subject, param, _randeffs).dv)
+    end,
     vrandeffsorth
   )
   V = Symmetric(F*F' + Diagonal(var.(dist.dv)))
@@ -1353,12 +1352,11 @@ function _E_and_V(m::PumasModel,
   dist0 = derived_dist(m, subject, param, TransformVariables.transform(randeffstransform, zero(vrandeffsorth)))
   dist  = derived_dist(m, subject, param, TransformVariables.transform(randeffstransform, vrandeffsorth))
 
-  F = ForwardDiff.jacobian(s -> mean.(derived_dist(
-    m,
-    subject,
-    param,
-    TransformVariable.transform(randeffstransform, s)).dv
-    ),
+  F = ForwardDiff.jacobian(
+    _vrandeffs -> begin
+      _randeffs = TransformVariable.transform(randeffstransform, _vrandeffs)
+      return mean.(derived_dist(m, subject, param, _randeffs).dv)
+    end,
     vrandeffsorth
   )
   V = Symmetric(F*F' + Diagonal(var.(dist0.dv)))

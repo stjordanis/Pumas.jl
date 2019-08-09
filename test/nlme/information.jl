@@ -44,12 +44,15 @@ using Pumas, LinearAlgebra
            Ω  = Diagonal([0.07, 0.02, 0.6]),
            σ  = 0.01)
 
-  @test logdet(sum(Pumas._expected_information(model,
-                                               d,
-                                               param,
-                                               (η=empirical_bayes(model, d, param, Pumas.FO()),),
-                                               Pumas.FO()
-                                               ) for d in data)) ≈ 53.8955 rtol=1e-6
+  @test logdet(
+    sum(
+      Pumas._expected_information(
+        model,
+        d,
+        param,
+        Pumas._orth_empirical_bayes(model, d, param, Pumas.FO()),
+        Pumas.FO()
+      ) for d in data)) ≈ 53.8955 rtol=1e-6
 
   ft = fit(model, data, param, Pumas.FO())
 
