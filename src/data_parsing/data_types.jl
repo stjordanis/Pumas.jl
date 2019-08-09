@@ -282,9 +282,6 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true)
   df
 end
 
-function DataFrames.DataFrame(pop::Population)
-  vcat((DataFrame(subject) for subject in pop)...)
-end
 
 ### Display
 Base.summary(::Subject) = "Subject"
@@ -333,6 +330,10 @@ A `Population` is an `AbstractVector` of `Subject`s.
 """
 Population{T} = AbstractVector{T} where T<:Subject
 Population(obj::Population...) = reduce(vcat, obj)::Population
+
+function DataFrames.DataFrame(pop::Population)
+  vcat((DataFrame(subject) for subject in pop)...)
+end
 
 ### Display
 Base.summary(::Population) = "Population"
