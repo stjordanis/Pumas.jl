@@ -486,11 +486,8 @@ function marginal_nll(m::PumasModel,
 
   nl, _, W = ∂²l∂η²(m, subject, param, vrandeffsorth, approx, args...; kwargs...)
 
-  # Extract the covariance matrix of the random effects and try computing the Cholesky factorization
-
   # If the factorization succeeded then compute the approximate marginal likelihood. Otherwise, return Inf.
   if isfinite(nl)
-    # log|Ω| + log|Ω⁻¹ + W| = log|I + U*W*U'| for Ω=U'U
     return nl + (vrandeffsorth'vrandeffsorth + logdet(cholesky(Symmetric(I + W))))/2
   else
     # # conditional likelihood return Inf
