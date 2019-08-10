@@ -265,12 +265,15 @@ struct Subject{T1,T2,T3,T4}
 end
 
 
-function DataFrames.DataFrame(subject::Subject; include_covariates=true)
+function DataFrames.DataFrame(subject::Subject; include_covariates=true, include_dvs=true)
   _ids = fill(subject.id, length(subject.time))
 
   # Generate the name for the dependent variable in a manner consistent with
   # multiple dvs etc
-  df = DataFrame(id=_ids, time=subject.time, dv=DataFrame(subject.observations).dv)
+  df = DataFrame(id=_ids, time=subject.time)
+  if include_dvs
+    df[!, :dv] = DataFrame(subject.observations).dv
+  end
 
   if include_covariates
     if !isa(subject.covariates, Nothing)
@@ -331,8 +334,8 @@ A `Population` is an `AbstractVector` of `Subject`s.
 Population{T} = AbstractVector{T} where T<:Subject
 Population(obj::Population...) = reduce(vcat, obj)::Population
 
-function DataFrames.DataFrame(pop::Population; include_covariates=true)
-  vcat((DataFrame(subject; include_covariates=include_covariates) for subject in pop)...)
+function DataFrames.DataFrame(pop::Population; include_covariates=true, include_dvs=true)
+  vcat((DataFrame(subject; include_covariates=include_covariates, include_dvs=include_dvs) for subject in pop)...)
 end
 
 ### Display
