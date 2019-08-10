@@ -94,7 +94,7 @@ struct SAEMLogDensity{M,D,B,C,R,A,K}
   
 function Distributions.fit(model::PumasModel, data::Population, fixeffs::NamedTuple, ::SAEM,
                              nsamples=5000, args...; kwargs...)
-    t_param = totransform(model.param)
+    trf_ident = toidentitytransform(m.param)
     fit(model, data, TransformVariables.inverse(t_param, fixeffs), SAEM(), nsamples, args...; kwargs...)
   end
 
@@ -111,38 +111,38 @@ function Distributions.fit(model::PumasModel, data::Population, fixeffs::NamedTu
     SAEMMCMCResults(bayes, samples, stats)
   end
 
-  function E_step(m::PumasModel, population::Population, param::AbstractVector, approx, vrandeffs)
-    trf = totransform(m.param)
-    b = fit(m, population, param, SAEM(), vrandeffs, 50)
+  function E_step(m::PumasModel, population::Population, param::AbstractVector, approx, vrandeffs, args...; kwargs...)
+    b = fit(m, population, param, SAEM(), vrandeffs, 50, args...; kwargs...)
     b.chain
   end
   
   function M_step(m, population, fixeffs, randeffs_vec, i, gamma, Qs, approx)
     if i == 1
       Qs[i] = sum(-conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) for (subject,randeff) in zip(population,randeffs_vec[1]))
+      Qs[i]
     elseif Qs[i] == -Inf
       Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) - (gamma/length(randeffs_vec))*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff, ), approx) - M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs, approx) for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]))
+      Qs[i]
     else
       Qs[i] 
     end
   end
   
-  function SAEM_calc(m::PumasModel, population::Population, param::NamedTuple, n, approx, vrandeffs)
+  function SAEM_calc(m::PumasModel, population::Population, param::NamedTuple, n, approx, vrandeffs, args...; kwargs...)
     eta_vec = []
     trf_ident = toidentitytransform(m.param)
     trf = totransform(m.param)
-    vparam = Pumas.TransformVariables.inverse(trf_ident, param)
+    vparam = TransformVariables.inverse(trf, param)
     for i in 1:n
-      eta = E_step(m, population, vparam, approx, vrandeffs)
+      eta = E_step(m, population, vparam, approx, vrandeffs, args...; kwargs...)
       dimrandeff = length(m.random(param).params.η)
       for k in 1:length(eta)
         push!(eta_vec,[eta[k][j:j+dimrandeff-1] for j in 1:dimrandeff:length(eta[k])])
       end
       t_param = totransform(m.param)
-      cost = fixeffs -> M_step(m, population, TransformVariables.transform(t_param, fixeffs), eta_vec, length(eta_vec), 0.1, [-Inf for i in 1:length(eta_vec)], approx)
-      vparam = Optim.minimizer(Optim.optimize(cost, TransformVariables.inverse(t_param,param), Optim.BFGS()))
+      cost = fixeffs -> -M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec[end-length(eta)+1:end], length(eta), 0.0001, [-Inf for i in 1:length(eta)], approx)
+      vparam = Optim.minimizer(Optim.optimize(cost, vparam, Optim.BFGS()))
       vrandeffs = mean(eta)
-      println(vparam)
     end
     TransformVariables.transform(trf, vparam)
   end
