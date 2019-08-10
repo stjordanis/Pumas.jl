@@ -32,7 +32,7 @@ lambdazdf = @test_nowarn NCA.lambdaz(mncapop)
 @test_nowarn NCA.lambdaznpoints(mncapop)
 
 @test_nowarn NCA.bioav(mncapop, ithdose=1)
-@test all(vcat(NCA.tlag(mncapop)[:tlag]...) .=== float.(map(x -> ismissing(x) ? x : x*timeu, msol[:Tlag])))
+@test all(vcat(NCA.tlag(mncapop)[!,:tlag]...) .=== float.(map(x -> ismissing(x) ? x : x*timeu, msol[!, :Tlag])))
 @test_nowarn NCA.mrt(mncapop; auctype=:inf)
 @test_nowarn NCA.mrt(mncapop; auctype=:last)
 @test_nowarn NCA.cl(mncapop, ithdose=1)

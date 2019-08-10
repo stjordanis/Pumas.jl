@@ -33,7 +33,7 @@ function read_nca(df; group=nothing, kwargs...)
       pop = ___read_nca(df; group=currentgroup, kwargs...)
       return pop
     end
-    pops = map(i->dfpops[i][end], 1:groupnum)
+    pops = map(i->dfpops[i][!, end], 1:groupnum)
     NCAPopulation(vcat(pops...))
   end
   return pop

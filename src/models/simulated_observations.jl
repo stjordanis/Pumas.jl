@@ -106,7 +106,7 @@ function good_layout(n)
   n == 2 && return (2,1)
   n == 3 && return (3,1)
   n == 4 && return (2,2)
-  n > 4 && return (n÷2,2)
+  n > 4  && return n
 end
 
 struct SimulatedPopulation{S}
