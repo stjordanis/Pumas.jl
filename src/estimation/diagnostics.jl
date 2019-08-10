@@ -447,7 +447,7 @@ end
 function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=true, include_dvs=true)
   pred_df = DataFrame(i.pred; include_covariates=include_covariates, include_dvs=include_dvs)
   res_df = select!(select!(DataFrame(i.wres; include_covariates=false, include_dvs=false), Not(:id)), Not(:time))
-  ebes_df = select!(select!(DataFrame(i.ebes; include_covariates=false), include_dvs=false), Not(:time), Not(:time))
+  ebes_df = select!(select!(DataFrame(i.ebes; include_covariates=false, include_dvs=false), Not(:id)), Not(:time))
 
   df = hcat(pred_df, res_df, ebes_df)
 end
