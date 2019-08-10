@@ -91,7 +91,7 @@ function _emax(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [1.25, Inf, time[end], time[end]] : ub
     p0 = p0 === nothing ? [conc[end], 1.2, time[2], time[2]] : p0
   else
-    lb = lb === nothing ? [0.0, 1.0, time[2]] : lb
+    lb = lb === nothing ? [0.0, 1.0, 0.0] : lb
     ub = ub === nothing ? [1.25, Inf, time[end]] : ub
     p0 = p0 === nothing ? [conc[end], 1.2, time[2]] : p0
   end

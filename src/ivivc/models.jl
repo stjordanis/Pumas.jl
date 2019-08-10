@@ -3,6 +3,7 @@
 # Emax model
 # p = [D_INF, γ, TD50, time_lag(optional)]
 function emax(t::Number, p)
+  if(t < 0) return zero(t) end
   if length(p) == 4
     t = t - p[4]
     t = t <= zero(t) ? zero(t) : t
@@ -23,6 +24,7 @@ end
 # Weibull Model
 # p = [D_INF, Mean_dissolution_time, γ, time_lag(optional)]
 function weibull(t::Number, p)
+  if(t < 0) return zero(t) end
   if length(p) == 4
     t = t - p[4]
     t = t <= zero(t) ? zero(t) : t
