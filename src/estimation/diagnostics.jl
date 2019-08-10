@@ -481,3 +481,116 @@ function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=
 
   df = hcat(pred_df, res_df, ebes_df)
 end
+
+
+################################################################################
+#                              Plotting functions                              #
+################################################################################
+
+########################################
+#   Convergence plot infrastructure    #
+########################################
+
+"""
+    _objectivefunctionvalues(obj)
+
+Returns the objective function values during optimization.
+Must return a `Vector{Number}`.
+"""
+_objectivefunctionvalues(f::FittedPumasModel) = getproperty.(f.optim.trace, :value)
+
+"""
+    _convergencedata(obj)
+
+Returns the "timeseries" of optimization as a matrix, with series as columns.
+!!! warn
+    This must return parameter data in the same order that [`_paramnames`](@ref)
+    returns names.
+"""
+function _convergencedata(f::FittedPumasModel)
+  trf  = totransform(f.model.param)         # get the transform which has been applied to the params
+  itrf = toidentitytransform(f.model.param) # invert the param transform
+
+  return transpose(                                     # return series as columns
+              hcat(TransformVariables.inverse.(         # apply the inverse of the given transform to the data.
+                  Ref(itrf),                            # wrap in a `Ref`, to avoid broadcasting issues
+                  TransformVariables.transform.(        # apply the initial transform to the process
+                      Ref(trf),                         # again - make sure no broadcasting across the `TransformTuple`
+                      getindex.(                        # get every `x` vector from the metadata of the trace
+                          getproperty.(                 # get the metadata of each trace element
+                              f.optim.trace, :metadata  # getproperty expects a `Symbol`
+                              ),
+                          "x"                           # property x is a key for a `Dict` - hence getindex
+                          )
+                      )
+                  )...                                  # splat to get a matrix out
+              )
+          )
+end
+
+"""
+    _paramnames(obj)
+
+Returns the names of the parameters which convergence is being checked for.
+!!! warn
+    This must return parameter names in the same order that [`_convergencedata`](@ref)
+    returns data.
+"""
+function _paramnames(f::FittedPumasModel)
+  paramnames = [] # empty array, will fill later
+  for (paramname, paramval) in pairs(f.param) # iterate through the parameters
+    # decompose all parameters (matrices, etc.) into scalars and name them appropriately
+    _push_varinfo!(paramnames, [], nothing, nothing, paramname, paramval, nothing, nothing)
+  end
+  return paramnames
+end
+
+########################################
+#             Type recipe              #
+########################################
+
+@recipe function f(arg::FittedPumasModel; params = Union{Symbol, String}[])
+
+    names = _paramnames(arg)      # a wrapper function around some logic to make use of multiple dispatch
+
+    str_params = string.(params)
+
+    data  = _convergencedata(arg) # again, a wrapper function.
+
+    inds = []
+
+    !isempty(params) && (inds = findall(x -> !(x in str_params), names))
+
+    finalnames = deleteat!(names, inds)
+
+    finaldata = @view(data[(x -> !(x in inds)).(axes(data)[1]), :])
+
+    layout --> good_layout(length(finalnames) + 1)  # good_layout simply overrides the Plots layouter for n <= 4
+
+    legend := :none # clutters up the plot too much
+
+    # also plot the observed function value from Optim
+    @series begin
+        title := "Objective function"
+        subplot := length(names) + 1
+        link := :x # link the x-axes, there should be no difference
+
+        (_objectivefunctionvalues(arg)) # the observed values
+    end
+
+    # Iterate through three variables simultaneously:
+    # - the index of the data (to assign to the subplot),
+    # - the name of the parameter (as determined by `_paramnames`)
+    # - the convergence data to plot as series vectors
+    for (i, name, trace) in zip(eachindex(names), names, eachslice(data; dims = 2))
+        @series begin
+            title := name
+            subplot := i
+            link := :x
+            # @show name i trace # debug here
+            trace # return series data to be plotted.  We let the user specify the seriestype.
+        end
+    end
+
+    primary := false # do not add a legend entry here, do other nice things that Plots does as well
+end
