@@ -331,8 +331,8 @@ A `Population` is an `AbstractVector` of `Subject`s.
 Population{T} = AbstractVector{T} where T<:Subject
 Population(obj::Population...) = reduce(vcat, obj)::Population
 
-function DataFrames.DataFrame(pop::Population)
-  vcat((DataFrame(subject) for subject in pop)...)
+function DataFrames.DataFrame(pop::Population; include_covariates=true)
+  vcat((DataFrame(subject; include_covariates=include_covariates) for subject in pop)...)
 end
 
 ### Display
