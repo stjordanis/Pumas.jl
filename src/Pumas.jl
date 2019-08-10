@@ -6,7 +6,7 @@ using DiffEqDiffTools, Reexport, StatsBase,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
 using  AdvancedHMC, MCMCChains
 
-import DataInterpolations
+import DataInterpolations, Loess
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, DataFrames
@@ -41,6 +41,8 @@ include("analytical_solutions/analytical_solution_type.jl")
 include("simulate_methods/utils.jl")
 include("simulate_methods/diffeqs.jl")
 include("simulate_methods/analytical.jl")
+
+include("plotting/plotting.jl")
 
 @reexport using .NCA
 
