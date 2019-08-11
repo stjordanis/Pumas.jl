@@ -122,11 +122,12 @@ struct SAEMLogDensity{M,D,B,C,R,A,K}
     end
   end
   
-  function Distributions.fit(m::PumasModel, population::Population, param::NamedTuple, ::SAEM, n::Integer, vrandeffs::AbstractVector, args...; kwargs...)
+  function Distributions.fit(m::PumasModel, population::Population, param::NamedTuple, ::SAEM, n::Integer, vrandeffs::AbstractVector,args...; kwargs...)
     eta_vec = []
     trf_ident = toidentitytransform(m.param)
     trf = totransform(m.param)
     vparam = TransformVariables.inverse(trf, param)
+    Qs = Float64[]
     for i in 1:n
       eta = E_step(m, population, vparam, vrandeffs, args...; kwargs...)
       dimrandeff = length(m.random(param).params.η)
@@ -134,9 +135,11 @@ struct SAEMLogDensity{M,D,B,C,R,A,K}
         push!(eta_vec,[eta[k][j:j+dimrandeff-1] for j in 1:dimrandeff:length(eta[k])])
       end
       t_param = totransform(m.param)
-      cost = fixeffs -> M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec[end-length(eta)+1:end], length(eta), 0.00001, [-Inf for i in 1:length(eta)])
+      Qs = vcat(Qs,[-Inf for i in 1:length(eta)])
+      cost = fixeffs -> M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec, length(eta_vec), 0.9, Qs)
+      # cost = fixeffs -> M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec[end-length(eta)+1:end], length(eta), 0.00001, [-Inf for i in 1:length(eta)])
       vparam = Optim.minimizer(Optim.optimize(cost, vparam, Optim.BFGS()))
-      vrandeffs = mean(eta)
+      vrandeffs = eta[end]
     end
     TransformVariables.transform(trf, vparam)
   end
