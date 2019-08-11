@@ -92,15 +92,13 @@ struct SAEMLogDensity{M,D,B,C,R,A,K}
   
   struct SAEM <: LikelihoodApproximation end
   
-function Distributions.fit(model::PumasModel, data::Population, fixeffs::NamedTuple, ::SAEM,
-                             nsamples=5000, args...; kwargs...)
+  function E_step(model::PumasModel, data::Population, param::NamedTuple, nsamples=50, args...; nadapts = 200, kwargs...)
     trf_ident = toidentitytransform(m.param)
-    fit(model, data, TransformVariables.inverse(t_param, fixeffs), SAEM(), nsamples, args...; kwargs...)
+    E_step(model, data, TransformVariables.inverse(t_param, fixeffs), nsamples, args...; nadapts = nadapts, kwargs...)
   end
 
-  function Distributions.fit(model::PumasModel, data::Population, θ_init::AbstractVector, ::SAEM,
-                             vrandeffs, nsamples=5000, args...; nadapts = 2000, kwargs...)
-    bayes = SAEMLogDensity(model, data, θ_init, args...;kwargs...)
+  function E_step(model::PumasModel, population::Population, param::AbstractVector, vrandeffs, nsamples=50, args...; nadapts = 200, kwargs...)
+    bayes = SAEMLogDensity(model, population, param, args...;kwargs...)
     dldθ(θ) = logdensitygrad(bayes, θ)
     l(θ) = logdensity(bayes, θ)
     metric = DiagEuclideanMetric(length(vrandeffs))
@@ -108,27 +106,23 @@ function Distributions.fit(model::PumasModel, data::Population, fixeffs::NamedTu
     prop = AdvancedHMC.NUTS(Leapfrog(find_good_eps(h, vrandeffs)))
     adaptor = StanHMCAdaptor(nadapts, Preconditioner(metric), NesterovDualAveraging(0.8, prop.integrator.ϵ))
     samples, stats = sample(h, prop, vrandeffs, nsamples, adaptor, nadapts; progress=true)
-    SAEMMCMCResults(bayes, samples, stats)
-  end
-
-  function E_step(m::PumasModel, population::Population, param::AbstractVector, vrandeffs, args...; kwargs...)
-    b = fit(m, population, param, SAEM(), vrandeffs, 50, args...; kwargs...)
+    b = SAEMMCMCResults(bayes, samples, stats)
     b.chain
   end
   
   function M_step(m, population, fixeffs, randeffs_vec, i, gamma, Qs)
     if i == 1
-      Qs[i] = sum(-conditional_nll(m, subject, fixeffs, (η = randeff, )) for (subject,randeff) in zip(population,randeffs_vec[1]))
+      Qs[i] = sum(conditional_nll(m, subject, fixeffs, (η = randeff, )) for (subject,randeff) in zip(population,randeffs_vec[1]))
       Qs[i]
     elseif Qs[i] == -Inf
-      Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs) - (gamma/length(randeffs_vec))*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff, )) - M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs) for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]))
+      Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs) + (gamma)*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff,)) - M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs) for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]))
       Qs[i]
     else
       Qs[i] 
     end
   end
   
-  function SAEM_calc(m::PumasModel, population::Population, param::NamedTuple, n, vrandeffs, args...; kwargs...)
+  function Distributions.fit(m::PumasModel, population::Population, param::NamedTuple, ::SAEM, n::Integer, vrandeffs::AbstractVector, args...; kwargs...)
     eta_vec = []
     trf_ident = toidentitytransform(m.param)
     trf = totransform(m.param)
@@ -140,7 +134,7 @@ function Distributions.fit(model::PumasModel, data::Population, fixeffs::NamedTu
         push!(eta_vec,[eta[k][j:j+dimrandeff-1] for j in 1:dimrandeff:length(eta[k])])
       end
       t_param = totransform(m.param)
-      cost = fixeffs -> -M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec[end-length(eta)+1:end], length(eta), 0.0001, [-Inf for i in 1:length(eta)])
+      cost = fixeffs -> M_step(m, population, TransformVariables.transform(trf, fixeffs), eta_vec[end-length(eta)+1:end], length(eta), 0.00001, [-Inf for i in 1:length(eta)])
       vparam = Optim.minimizer(Optim.optimize(cost, vparam, Optim.BFGS()))
       vrandeffs = mean(eta)
     end
