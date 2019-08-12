@@ -5,14 +5,14 @@ using DiffEqDiffTools, Reexport, StatsBase,
       TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature,
       Statistics
-using  AdvancedHMC, MCMCChains
-
-using StatsPlots
+using AdvancedHMC, MCMCChains
 
 import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, DataFrames
+
+using Requires
 
 const Numeric = Union{AbstractVector{<:Number}, Number}
 
@@ -65,4 +65,11 @@ export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
 export vpc, vpc_obs
 export mean, std, var
+
+function __init__()
+    @require StatsPlots="f3b207a7-027a-5e70-b257-86293d7955fd" begin
+        include("plotting/stat_plots.jl")
+    end
+end
+
 end # module
