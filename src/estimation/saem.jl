@@ -99,13 +99,10 @@ struct SAEMLogDensity{M,D,B,C,R,A,K}
   function M_step(m, population, fixeffs, randeffs_vec, i, gamma, Qs)
     if i == 1
       Qs[i] = sum(conditional_nll(m, subject, fixeffs, (η = randeff, )) for (subject,randeff) in zip(population,randeffs_vec[1]))
-      Qs[i]
     elseif Qs[i] == -Inf
       Qs[i] = M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs) + (gamma)*(sum(sum(conditional_nll(m, subject, fixeffs, (η = randeff,))  for (subject,randeff) in zip(population, randeffs)) for randeffs in randeffs_vec[1:i]) -  M_step(m, population, fixeffs, randeffs_vec, i-1, gamma, Qs))
-      Qs[i]
-    else
-      Qs[i] 
     end
+    return Qs[i]
   end
   
   function Distributions.fit(m::PumasModel, population::Population, param::NamedTuple, approx::SAEM, vrandeffs::AbstractVector,args...; kwargs...)
