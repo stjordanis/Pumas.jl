@@ -15,7 +15,8 @@ build:
     - julia --project -e 'using Pkg;
                           Pkg.update();
                           Pkg.instantiate();
-                          using Pumas;'
+                          @time using Pumas;'
+    - julia --project -e '@time using Pumas'
   only:
   - master
   - tags
@@ -116,4 +117,3 @@ test-features:
   - tags
   - external
   - pushes
-
