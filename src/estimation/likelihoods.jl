@@ -64,10 +64,10 @@ end
 end
 
 """
-    conditional_nll(m::PumasModel, subject::Subject, param, args...; kwargs...)
+    conditional_nll(m::PumasModel, subject::Subject, param, randeffs, args...; kwargs...)
 
 Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
-random effects `param`. `args` and `kwargs` are passed to ODE solver. Requires that
+random effects `randeffs`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
 conditional_nll(m::PumasModel,
