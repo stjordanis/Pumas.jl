@@ -7,7 +7,7 @@ using DiffEqDiffTools, Reexport, StatsBase,
       Statistics
 using  AdvancedHMC, MCMCChains
 
-import DataInterpolations, Loess
+import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
 @reexport using Distributions, DataFrames
