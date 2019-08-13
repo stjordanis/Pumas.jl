@@ -46,15 +46,39 @@
     layout --> good_layout(length(covindices))
 
     for (i, covname, etaname) in zip(eachindex(covnames), covnames, etanames)
+        covtype = covtypes[covname] ? :categorical : :continuous
+
+        # the reference zero line
+
         @series begin
             # can tweak this, or allow user to
-            seriestype := covtypes[covname] ? :boxplot : :scatter
+            seriestype := (covtype == :categorical) ? :boxplot : :scatter
             subplot := i
 
             title := string(covname)
             ylabel := "η" # do we need this?
 
             (df[:, covname], df[:, etaname])
+        end
+
+        @series begin
+            seriestype := :hline
+            subplot := i
+            color := :black
+            linestyle --> :dash
+
+            ([0.0])
+        end
+
+        if covtype == :continuous
+            @show covname
+            @series begin
+                seriestype := :loess # defined by DataInterpolations.jl
+                label := "LOESS fit" # not used anyway, but in case we decide to include it
+                subplot := i
+
+                (df[:, covname], df[:, etaname])
+            end
         end
     end
 
