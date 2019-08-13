@@ -3,6 +3,16 @@
 ################################################################################
 
 # heuristic to determine if a vector is categorical or not
+"""
+    iscategorical(arr)
+Returns whether that array can be considered categorical or not, according to
+the following heuristic:
+
+- A CategoricalArray is always categorical.
+- A `Vector` of `Strings` or `Symbols` is always categorical.
+- A `Vector` of integers, with no. of unique entries ≤ 6, is always categorical.
+- A `Vector` of `Numbers` is never categorical, it is always continuous.
+"""
 iscategorical(::CategoricalArray) = true
 iscategorical(::AbstractVector{<: AbstractString}) = true
 iscategorical(::AbstractVector{<: Symbol}) = true
@@ -39,6 +49,15 @@ end
 #                               Convergence plot                               #
 ################################################################################
 
+"""
+    convergence(res::FittedPumasModel; params = [])
+
+Plots the convergence of the FittedPumasModel `res`, by plotting the values taken
+by individual parameters against the iteration.
+
+The `params` keyword should be passed a `Vector` of symbols, which represent the
+parameters to be plotted.
+"""
 @userplot Convergence
 
 @recipe function f(c::Convergence; params = Union{Symbol, String}[])
