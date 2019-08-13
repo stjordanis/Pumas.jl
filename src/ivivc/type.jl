@@ -1,5 +1,5 @@
 # IVIVCSubject
-mutable struct VivoForm{ID, C, T, F, D} <: Ivivc
+mutable struct VivoForm{ID, C, T, F, D}
   id::ID
   conc::C
   time::T
@@ -63,7 +63,7 @@ struct VitroData{popType} <: Ivivc
 end
 
 # UirData
-struct UirData{C, T, F, D, pType} <: Ivivc
+struct UirData{C, T, F, D, pType}
   conc::C
   time::T
   form::F
