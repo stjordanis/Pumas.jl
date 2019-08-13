@@ -7,6 +7,8 @@ using DiffEqDiffTools, Reexport, StatsBase,
       Statistics
 using  AdvancedHMC, MCMCChains
 
+using StatsPlots
+
 import DataInterpolations
 
 @reexport using OrdinaryDiffEq, Unitful
