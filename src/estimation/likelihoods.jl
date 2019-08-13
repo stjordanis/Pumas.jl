@@ -975,6 +975,15 @@ function Distributions.fit(m::PumasModel,
   return FittedPumasModel(m, population, o, approx, vvrandeffs)
 end
 
+# error handling for fit(model, subject, param, args...; kwargs...)
+function Distributions.fit(model::PumasModel, subject::Subject,
+             param::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
+  throw(ArgumentError("Calling fit on a single subject is not allowed with a likelihood approximation method specified."))
+end
+function Distributions.fit(model::PumasModel, subject::Subject, param::NamedTuple, args...; kwargs...)
+  throw(ErrorException("Fitting individual subjects is not implemented yet."))
+end
+
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
 
 function Base.getproperty(f::FittedPumasModel{<:Any,<:Any,<:Optim.MultivariateOptimizationResults}, s::Symbol)
