@@ -87,22 +87,36 @@ for it to be treated as continuous.
             seriestype := :hline
             subplot := i
             color := :black
+            title := string(covname)
             linestyle --> :dash
 
             ([0.0])
         end
 
         if covtype == :continuous
-            @show covname
-            @series begin
-                seriestype := :loess # defined by DataInterpolations.jl
-                label := "LOESS fit" # not used anyway, but in case we decide to include it
-                subplot := i
+            try
+                # check that the covariate has no duplicate x-values!
+                # There should be a more efficient way using `foldl`, but that's
+                # a bit opaque.
+                @assert unique(df[:, covname]) == length(df[!, covname])
 
-                (df[:, covname], df[:, etaname])
-            end
-        end
-    end
+                @series begin
+                    seriestype := :loess # defined by DataInterpolations.jl
+                    label := "LOESS fit" # not used anyway, but in case we decide to include it
+                    subplot := i
+
+                    (df[:, covname], df[:, etaname])
+                end
+
+            catch err
+                if err isa AssertionError
+                    @warn("The covariate `$covname` cannot be fitted to a curve, as it has multiple occurrences of the same value.", exception=err)
+                else
+                    rethrow(err)
+                end
+            end # try-catch
+        end # if
+    end # loop
 
     primary := false
 
