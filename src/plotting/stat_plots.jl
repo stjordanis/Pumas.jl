@@ -68,13 +68,13 @@ for it to be treated as continuous.
     layout --> good_layout(length(covindices))
 
     for (i, covname, etaname) in zip(eachindex(covnames), covnames, etanames)
-        covtype = covtypes[covname] ? :categorical : :continuous
+        covtype = covtypes[covname]
 
         # the reference zero line
 
         @series begin
             # can tweak this, or allow user to
-            seriestype := (covtype == :categorical) ? :boxplot : :scatter
+            seriestype := covtype ? :boxplot : :scatter
             subplot := i
 
             title := string(covname)
@@ -90,10 +90,10 @@ for it to be treated as continuous.
             title := string(covname)
             linestyle --> :dash
 
-            ([0.0])
+            ([0.0]) # zero-line
         end
 
-        if covtype == :continuous
+        if !covtype # continuous
             try
                 # check that the covariate has no duplicate x-values!
                 # There should be a more efficient way using `foldl`, but that's
@@ -110,7 +110,7 @@ for it to be treated as continuous.
 
             catch err
                 if err isa AssertionError
-                    @warn("The covariate `$covname` cannot be fitted to a curve, as it has multiple occurrences of the same value.", exception=err)
+                    @warn("The covariate `$covname` cannot be fitted to a curve, as it has multiple occurrences of the same value.")
                 else
                     rethrow(err)
                 end
