@@ -121,7 +121,7 @@ function _double_weibull(conc, time, time_lag, p0, ub, lb)
     ub = ub === nothing ? [1.25, 1.25, time[end], Inf, time[end], Inf, time[end]] : ub
     p0 = p0 === nothing ? [conc[end], conc[end], time[2], 1.2, time[2], 1.2] : p0
   else
-    lb = lb === nothing ? [0.0, 0.0, 0.0, 1.0, 0.0, 1.0]: lb
+    lb = lb === nothing ? [0.0, 0.0, 0.0, 1.0, 0.0, 1.0] : lb
     ub = ub === nothing ? [1.25, 1.25, time[end], Inf, time[end], Inf] : ub
     p0 = p0 === nothing ? [conc[end], conc[end], time[2], 1.2, time[2], 1.2] : p0
   end

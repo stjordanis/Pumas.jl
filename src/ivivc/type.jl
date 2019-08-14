@@ -27,8 +27,8 @@ struct VivoData{popType} <: Ivivc
   end
 end
 
-# VitroData
-mutable struct VitroData{ID, C, T, F, pType} <: Ivivc
+# VitroForm
+mutable struct VitroForm{ID, C, T, F, pType} <: Ivivc
   id::ID
   conc::C
   time::T
@@ -40,15 +40,15 @@ mutable struct VitroData{ID, C, T, F, pType} <: Ivivc
   ub::pType                             # upper bound of params
   lb::pType                             # lower bound of params
   pmin::pType                           # optimized params
-  function VitroData(conc, time, form, id=1)
+  function VitroForm(conc, time, form, id=1)
     return new{typeof(id), typeof(conc), typeof(time),
                 typeof(form), typeof(conc)}(id, conc, time, form)
   end
 end
 
-Base.Broadcast.broadcastable(q::VitroData) = Ref(q)
+Base.Broadcast.broadcastable(q::VitroForm) = Ref(q)
 
-function Base.show(io::IO, n::VitroData)
+function Base.show(io::IO, n::VitroForm)
   df = DataFrame(id = n.id, time = n.time, conc = n.conc, formulation = n.form)
   show(io::IO, df)
 end
@@ -79,8 +79,9 @@ struct UirData{C, T, F, D, pType}
     return new{typeof(conc), typeof(time),
                 typeof(form), typeof(dose), typeof(conc)}(conc, time, form, dose)
   end
+end
 
-Base.Broadcast.broadcastable(q::VitroData) = Ref(q)
+Base.Broadcast.broadcastable(q::UirData) = Ref(q)
 
 function Base.show(io::IO, n::UirData)
   df = DataFrame(time = n.time, conc = n.conc, formulation = n.form, dose=n.dose)
