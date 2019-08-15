@@ -578,6 +578,7 @@ function _fdrelstep(model::PumasModel, param::NamedTuple, reltol::AbstractFloat,
   end
 end
 
+
 # Similar to the version for FOCE, FOCEI, Laplace, and LaplaceI
 # but much simpler since the expansion point in η is fixed. Hence,
 # the gradient is simply the partial derivative in θ
@@ -619,6 +620,46 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
+
+# Threaded evaluation of the gradient of the marginal likelihood. This method
+# is restricted to Vector{<:Subject} since it relies on scalar indexing into
+# the vector of subjects
+function marginal_nll_gradient!(g::AbstractVector,
+                                model::PumasModel,
+                                population::Vector{<:Subject},
+                                param::NamedTuple,
+                                vvrandeffs::AbstractVector,
+                                approx::LikelihoodApproximation,
+                                trf::TransformVariables.TransformTuple,
+                                args...; kwargs...
+                                )
+
+  Gs = similar(g, (length(g), length(population)))
+
+  Threads.@threads for i in eachindex(population)
+    subject   = population[i]
+    vrandeffs = vvrandeffs[i]
+    _g        = view(Gs, :, i)
+    marginal_nll_gradient!(
+      _g,
+      model,
+      subject,
+      param,
+      (η=vrandeffs,),
+      approx,
+      trf,
+      args...;
+      kwargs...
+    )
+  end
+
+  g .= vec(sum(Gs, dims=2))
+
+  return g
+end
+
+# Fallback method which doesn't explicitly rely on scalar indexing into the
+# vector of subjects.
 function marginal_nll_gradient!(g::AbstractVector,
                                 model::PumasModel,
                                 population::Population,
@@ -896,6 +937,124 @@ function DEFAULT_OPTIMIZE_FN(cost, p, callback)
   )
 end
 
+function _update_ebes_and_evaluate_marginal_nll!(
+  m::PumasModel,
+  subject::Subject,
+  param::NamedTuple,
+  vrandeffs::Vector,
+  vrandeffs_tmp::Vector,
+  approx::LikelihoodApproximation,
+  args...;
+  kwargs...
+)
+
+  # If not FO then compute EBE based on the estimates from last iteration stored in vvrandeffs
+  # and store the retult in vvrandeffs_tmp
+  if !(approx isa FO)
+    copyto!(vrandeffs, vrandeffs)
+    empirical_bayes!(
+      vrandeffs_tmp,
+      m,
+      subject,
+      param,
+      approx,
+      args...;
+      kwargs...
+    )
+  end
+
+  return marginal_nll(
+    m,
+    subject,
+    param,
+    vrandeffs_tmp,
+    approx,
+    args...;
+    kwargs...
+  )
+end
+
+# Threaded update of the EBEs and evaluation of the marginal likelihood.
+# We only do this when then Subjects are stored in a Vector since the
+# implemention relies on scalar indexing into the vector of subjects
+function _update_ebes_and_evaluate_marginal_nll!(
+  m::PumasModel,
+  population::Vector{<:Subject},
+  param::NamedTuple,
+  vvrandeffs::Vector,
+  vvrandeffs_tmp::Vector,
+  approx::LikelihoodApproximation,
+  args...;
+  kwargs...)
+
+  # Evaluate the first subject to determine the elementtype of the likelihood values
+  # and detect if likelihood value is infinite
+  nll1 = _update_ebes_and_evaluate_marginal_nll!(
+    m,
+    population[1],
+    param,
+    vvrandeffs[1],
+    vvrandeffs_tmp[1],
+    approx,
+    args...;
+    kwargs...
+  )
+
+  # Short circuit if evaluated at extreme parameter values
+  if !isfinite(nll1)
+    return nll1
+  end
+
+  # Allocate array to store all likelihood values
+  nlls = fill(nll1, length(population))
+
+  # Threaded evaluation of the marginal likelihood (as well as updates of the EBEs)
+  Threads.@threads for i in 2:length(population)
+    subject       = population[i]
+    vrandeffs_tmp = vvrandeffs_tmp[i]
+    vrandeffs     = vvrandeffs[i]
+
+    nlls[i] = _update_ebes_and_evaluate_marginal_nll!(
+    m,
+    subject,
+    param,
+    vrandeffs,
+    vrandeffs_tmp,
+    approx,
+    args...;
+    kwargs...
+  )
+  end
+
+  return sum(nlls)
+end
+
+# Fallback method that doesn't explictly use scalar indexing of the vector of Subjects so,
+# in theory, this should work with e.g. DArrays.
+function _update_ebes_and_evaluate_marginal_nll!(
+  m::PumasModel,
+  population::Population,
+  param::NamedTuple,
+  vvrandeffs::Vector,
+  vvrandeffs_tmp::Vector,
+  approx::LikelihoodApproximation,
+  args...;
+  kwargs...)
+
+  return sum(zip(population, vvrandeffs, vvrandeffs_tmp)) do (subject, vrandeffs, vrandeffs_tmp)
+    _update_ebes_and_evaluate_marginal_nll!(
+      m,
+      subject,
+      param,
+      vrandeffs,
+      vrandeffs_tmp,
+      approx,
+      args...;
+      kwargs...
+    )
+  end
+end
+
 function Distributions.fit(m::PumasModel,
                            population::Population,
                            param::NamedTuple,
@@ -932,27 +1091,27 @@ function Distributions.fit(m::PumasModel,
 
   # Define cost function for the optimization
   cost = Optim.NLSolversBase.OnceDifferentiable(
-    Optim.NLSolversBase.only_fg!() do f, g, vx
+    Optim.NLSolversBase.only_fg!() do f, g, _vparam
       # The negative loglikelihood function
       # Update the Empirical Bayes Estimates explicitly after each iteration
 
       # Convert vector to NamedTuple
-      x = TransformVariables.transform(trf, vx)
+      _param = TransformVariables.transform(trf, _vparam)
 
       # Sum up loglikelihood contributions
-      nll = sum(zip(population, vvrandeffs, vvrandeffs_tmp)) do (subject, vrandeffs, vrandeffs_tmp)
-        # If not FO then compute EBE based on the estimates from last iteration stored in vvrandeffs
-        # and store the retult in vvrandeffs_tmp
-        if !(approx isa FO)
-          copyto!(vrandeffs_tmp, vrandeffs)
-          empirical_bayes!(vrandeffs_tmp, m, subject, x, approx, args...; kwargs...)
-        end
-        marginal_nll(m, subject, x, vrandeffs_tmp, approx, args...; kwargs...)
-      end
+      nll = _update_ebes_and_evaluate_marginal_nll!(
+        m,
+        population,
+        _param,
+        vvrandeffs,
+        vvrandeffs_tmp,
+        approx,
+        args...;
+        kwargs...)
 
       # Update score
       if g !== nothing
-        marginal_nll_gradient!(g, m, population, x, vvrandeffs_tmp, approx, trf, args...; kwargs...)
+        marginal_nll_gradient!(g, m, population, _param, vvrandeffs_tmp, approx, trf, args...; kwargs...)
       end
 
       return nll
