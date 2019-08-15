@@ -64,10 +64,10 @@ end
 end
 
 """
-    conditional_nll(m::PumasModel, subject::Subject, param, args...; kwargs...)
+    conditional_nll(m::PumasModel, subject::Subject, param, randeffs, args...; kwargs...)
 
 Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
-random effects `param`. `args` and `kwargs` are passed to ODE solver. Requires that
+random effects `randeffs`. `args` and `kwargs` are passed to ODE solver. Requires that
 the derived produces distributions.
 """
 conditional_nll(m::PumasModel,
@@ -973,6 +973,15 @@ function Distributions.fit(m::PumasModel,
   end
 
   return FittedPumasModel(m, population, o, approx, vvrandeffs)
+end
+
+# error handling for fit(model, subject, param, args...; kwargs...)
+function Distributions.fit(model::PumasModel, subject::Subject,
+             param::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
+  throw(ArgumentError("Calling fit on a single subject is not allowed with a likelihood approximation method specified."))
+end
+function Distributions.fit(model::PumasModel, subject::Subject, param::NamedTuple, args...; kwargs...)
+  throw(ErrorException("Fitting individual subjects is not implemented yet."))
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
