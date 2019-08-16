@@ -17,7 +17,8 @@ iscategorical(::CategoricalArray) = true
 iscategorical(::AbstractVector{<: AbstractString}) = true
 iscategorical(::AbstractVector{<: Symbol}) = true
 iscategorical(::AbstractVector{<: Number}) = false
-iscategorical(v::AbstractVector{<: Int}) = length(unique(v)) <= 6
+iscategorical(::AbstractVector{Union{Missing, T}}) where T = false
+# iscategorical(v::AbstractVector{<: Int}) = length(unique(v)) <= 6 # TODO is this heuristic OK?
 
 ################################################################################
 #                                Basic recipes                                 #
@@ -37,13 +38,24 @@ iscategorical(v::AbstractVector{<: Int}) = length(unique(v)) <= 6
     y := tmp
 end
 
-@recipe function f(::Type{Val{:title}}, str)
+@recipe function f(::Type{Val{:title}}, str, y, z)
 
     showaxis := false
     grid := false
 
     seriestype = :annotations
+
+    ()
 end
+
+################################################################################
+#                  Advanced type recipes and specializations                   #
+################################################################################
+
+# You can check the `plotattributes` dict, which is accessible in any recipe,
+# for any plot attribute.
+
+# @recipe function f()
 
 ################################################################################
 #                               Convergence plot                               #

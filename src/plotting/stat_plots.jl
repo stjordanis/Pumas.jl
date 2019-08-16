@@ -108,7 +108,7 @@ for it to be treated as continuous.
                     seriestype := :loess # defined by DataInterpolations.jl
                     label := "LOESS fit" # not used anyway, but in case we decide to include it
                     ylabel := string(etaname) # do we need this?
-                    
+
                     subplot := i
 
                     (df[:, covname], df[:, etaname])
@@ -138,10 +138,12 @@ end
 
 @recipe function f(
             rp::ResPlot;
-            cvs = [],
+            vs = [], # could be any name in the df
             continuoustype = :scatter,
             discretetype = :boxplot,
-            catmap = NamedTuple()
+            panel = [],
+            catmap = NamedTuple(),
+            _resname = :wres,
         )
 
     @assert length(rp.args) == 1
@@ -150,35 +152,48 @@ end
 
     legend --> :none
 
-    res = ec.args[1]
+    res = rp.args[1]
 
     df = DataFrame(inspect(res))
 
-    ws = wresiduals(res)
+    # hack to get dvs, will remove when this is implemented in the dataframe
+    df[!, :dv] = vcat((res.data .|> x -> x.observations.dv)...)
 
     allcovnames = res.data[1].covariates |> keys
 
-    covnames = isempty(cvs) ? allcovnames : cvs # here, it's assumed covariates are the same for all Subjects.
+    varnames = isempty(vs) ? allcovnames : vs # here, it's assumed covariates are the same for all Subjects.
 
-    covindices = findfirst.((==).(covnames), Ref(allcovnames)) # get the index number, to find the relevant `η` (eta)
+    varindices = findfirst.((==).(varnames), Ref(names(df))) # get the index number, to find the relevant `η` (eta)
 
-    etanames = [Symbol("ebe_" * string(i)) for i in covindices] # is this always true?
+    calculated_iterable = (;zip(varnames,iscategorical.(getindex.(Ref(df), !, varnames)))...)
 
-    calculated_iterable = (;zip(covnames,iscategorical.(getindex.(Ref(df), !, covnames)))...)
+    vartypes = merge(calculated_iterable, catmap)
 
-    covtypes = merge(calculated_iterable, catmap)
+    layout --> good_layout(length(varindices))
 
-    layout --> good_layout(length(covindices))
-
-    for (i, covname, etaname) in zip(eachindex(covnames), covnames, etanames)
+    for (i, varname) in zip(eachindex(varnames), varnames)
         @series begin
-            seriestype := covtypes[covname] ? :boxplot : :scatter
+            seriestype := vartypes[varname] ? :boxplot : :scatter
             subplot := i
 
-            title := string(covname)
-            ylabel := "η"
+            # title := string(varname)
+            ylabel --> "CWRES"
+            xlabel --> string(varname)
 
-            (df[:, covname], df[:, etaname])
+            (df[:, varname], df[:, _resname])
+        end
+        @series begin
+
+            seriestype := :hline
+            subplot := i
+            color := :black
+            # title := string(varname)
+            ylabel --> "CWRES"
+            xlabel --> string(varname)
+
+            linestyle --> :dash
+
+            ([0.0]) # zero-line
         end
     end
 
