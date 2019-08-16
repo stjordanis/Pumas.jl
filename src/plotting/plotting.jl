@@ -72,7 +72,7 @@ parameters to be plotted.
 """
 @userplot Convergence
 
-@recipe function f(c::Convergence; params = Union{Symbol, String}[])
+@recipe function f(c::Convergence; params = Union{Symbol, String}[], metakey = "x")
 
     @assert length(c.args) == 1
     @assert eltype(c.args) <: FittedPumasModel
@@ -83,7 +83,7 @@ parameters to be plotted.
 
     str_params = string.(params)
 
-    data  = _convergencedata(arg) # again, a wrapper function.
+    data  = _convergencedata(arg; metakey=metakey) # again, a wrapper function.
 
     inds = []
 

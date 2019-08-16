@@ -490,14 +490,17 @@ Must return a `Vector{Number}`.
 _objectivefunctionvalues(f::FittedPumasModel) = getproperty.(f.optim.trace, :value)
 
 """
-    _convergencedata(obj)
+    _convergencedata(obj; metakey="x")
 
 Returns the "timeseries" of optimization as a matrix, with series as columns.
 !!! warn
     This must return parameter data in the same order that [`_paramnames`](@ref)
     returns names.
 """
-function _convergencedata(f::FittedPumasModel)
+function _convergencedata(f::FittedPumasModel; metakey="x")
+
+  metakey != "x" && return transpose(hcat(getindex.(getproperty.(f.optim.trace, :metadata), metakey))...)
+
   trf  = totransform(f.model.param)         # get the transform which has been applied to the params
   itrf = toidentitytransform(f.model.param) # invert the param transform
 
@@ -510,7 +513,7 @@ function _convergencedata(f::FittedPumasModel)
                           getproperty.(                 # get the metadata of each trace element
                               f.optim.trace, :metadata  # getproperty expects a `Symbol`
                               ),
-                          "x"                           # property x is a key for a `Dict` - hence getindex
+                          metakey                           # property x is a key for a `Dict` - hence getindex
                           )
                       )
                   )...                                  # splat to get a matrix out
