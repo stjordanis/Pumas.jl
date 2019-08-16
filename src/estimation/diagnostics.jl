@@ -499,7 +499,7 @@ Returns the "timeseries" of optimization as a matrix, with series as columns.
 """
 function _convergencedata(f::FittedPumasModel; metakey="x")
 
-  metakey != "x" && return transpose(hcat(getindex.(getproperty.(f.optim.trace, :metadata), metakey))...)
+  metakey != "x" && return transpose(hcat(getindex.(getproperty.(f.optim.trace, :metadata), metakey)...))
 
   trf  = totransform(f.model.param)         # get the transform which has been applied to the params
   itrf = toidentitytransform(f.model.param) # invert the param transform
