@@ -16,19 +16,20 @@ struct BayesLogDensity{M,D,B,C,R,A,K}
   data::D
   dim_param::Int
   dim_rfx::Int
-  buffer::B
-  cfg::C
-  res::R
+  buffer::Vector{B}
+  cfg::Vector{C}
+  res::Vector{R}
   args::A
   kwargs::K
 end
 
 function BayesLogDensity(model, data, args...;kwargs...)
-  m = dim_param(model)
-  n = dim_rfx(model)
-  buffer = zeros(m + n)
-  cfg = ForwardDiff.GradientConfig(logdensity, buffer)
-  res = DiffResults.GradientResult(buffer)
+  m  = dim_param(model)
+  n  = dim_rfx(model)
+  nt = Threads.nthreads()
+  buffer = [zeros(m + n) for i in 1:nt]
+  cfg = [ForwardDiff.GradientConfig(logdensity, buffer[i]) for i in 1:nt]
+  res = [DiffResults.GradientResult(buffer[i]) for i in 1:nt]
   BayesLogDensity(model, data, m, n, buffer, cfg, res, args, kwargs)
 end
 
@@ -56,46 +57,93 @@ function logdensity(b::BayesLogDensity, v::AbstractVector)
   return isnan(ℓ) ? -Inf : ℓ
 end
 
+function _threading_body(
+  model::PumasModel,
+  population::Population,
+  v::Vector,
+  t_param,
+  buffer,
+  res,
+  cfg,
+  m::Int,
+  n::Int,
+  ℓs_rfx,
+  ∇ℓs,
+  i::Int,
+  args...;
+  kwargs...)
+
+  subject = population[i]
+  tid = Threads.threadid()
+
+  _buffer = buffer[tid]
+  _res    = res[tid]
+  _cfg    = cfg[tid]
+  ∇ℓ      = ∇ℓs[tid]
+
+  # to avoid dimensionality problems with ForwardDiff.jl, we split the computation to
+  # compute the gradient for each subject individually, then accumulate this to the
+  # gradient vector.
+
+  function L_rfx(u)
+    x = TransformVariables.transform(t_param, @view u[1:m])
+    rfx = model.random(x)
+    t_rfx = totransform(rfx)
+    y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view u[m .+ (1:n)])
+    j_y - Pumas.penalized_conditional_nll(model, subject, x, y, args...; kwargs...)
+  end
+  copyto!(_buffer, m + 1, v, m + (i - 1)*n + 1, n)
+
+  ForwardDiff.gradient!(_res, L_rfx, _buffer, _cfg, Val{false}())
+
+  ℓs_rfx[i] = DiffResults.value(_res)
+  ∇ℓ[1:m] .+= @view DiffResults.gradient(_res)[1:m]
+  copyto!(∇ℓ, m + (i - 1)*n + 1, DiffResults.gradient(_res), m + 1, n)
+end
+
 function logdensitygrad(b::BayesLogDensity, v::AbstractVector)
-  ∇ℓ = zeros(size(v))
   param = b.model.param
   t_param = totransform(param)
   m = b.dim_param
   n = b.dim_rfx
+  nt = Threads.nthreads()
+  ∇ℓs = [zeros(size(v)) for i in 1:nt]
 
   function L_param(u)
     x, j_x = TransformVariables.transform_and_logjac(t_param, u)
     _lpdf(param.params, x) + j_x
   end
-  fill!(b.buffer, 0.0)
-  copyto!(b.buffer, 1, v, 1, m)
 
-  ForwardDiff.gradient!(b.res, L_param, b.buffer, b.cfg, Val{false}())
+  fill!(b.buffer[1], 0.0)
+  copyto!(b.buffer[1], 1, v, 1, m)
+  ForwardDiff.gradient!(b.res[1], L_param, b.buffer[1], b.cfg[1], Val{false}())
 
-  ℓ = DiffResults.value(b.res)
-  ∇ℓ[1:m] .= @view DiffResults.gradient(b.res)[1:m]
+  ℓ = DiffResults.value(b.res[1])
+  ∇ℓs[1][1:m] .= @view DiffResults.gradient(b.res[1])[1:m]
 
-  for (i, subject) in enumerate(b.data)
-    # to avoid dimensionality problems with ForwardDiff.jl, we split the computation to
-    # compute the gradient for each subject individually, then accumulate this to the
-    # gradient vector.
+  ℓs_rfx = fill(zero(ℓ), length(b.data))
 
-    function L_rfx(u)
-      x = TransformVariables.transform(t_param, @view u[1:m])
-      rfx = b.model.random(x)
-      t_rfx = totransform(rfx)
-      y, j_y = TransformVariables.transform_and_logjac(t_rfx, @view u[m .+ (1:n)])
-      j_y - Pumas.penalized_conditional_nll(b.model, subject, x, y, b.args...; b.kwargs...)
-    end
-    copyto!(b.buffer, m+1, v, m+(i-1)*n+1, n)
-
-    ForwardDiff.gradient!(b.res, L_rfx, b.buffer, b.cfg, Val{false}())
-
-    ℓ += DiffResults.value(b.res)
-    ∇ℓ[1:m] .+= @view DiffResults.gradient(b.res)[1:m]
-    copyto!(∇ℓ, m+(i-1)*n+1, DiffResults.gradient(b.res), m+1, n)
+  Threads.@threads for i in eachindex(b.data)
+    _threading_body(
+      b.model,
+      b.data,
+      v,
+      t_param,
+      b.buffer,
+      b.res,
+      b.cfg,
+      m,
+      n,
+      ℓs_rfx,
+      ∇ℓs,
+      i,
+      b.args...;
+      b.kwargs...)
   end
-  return isnan(ℓ) ? -Inf : ℓ, ∇ℓ
+
+  ℓ += sum(ℓs_rfx)
+
+  return isnan(ℓ) ? -Inf : ℓ, sum(∇ℓs)
 end
 
 # results wrapper object

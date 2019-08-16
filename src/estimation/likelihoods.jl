@@ -927,7 +927,7 @@ function DEFAULT_OPTIMIZE_FN(cost, p, callback)
       initial_invH=t -> Matrix(I/norm(Optim.NLSolversBase.gradient(cost)), length(p), length(p))
     ),
     Optim.Options(
-      show_trace=false, # Print progress
+      show_trace=true, # Print progress
       store_trace=true,
       extended_trace=true,
       g_tol=1e-3,
