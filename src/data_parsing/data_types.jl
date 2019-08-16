@@ -266,12 +266,15 @@ end
 
 
 function DataFrames.DataFrame(subject::Subject; include_covariates=true, include_dvs=true)
-  _ids = fill(subject.id, length(subject.time))
+  df_events = DataFrame(subject.events)
+  time_length = isnothing(subject.time) ? length(df_events.time) : length(subject.time)
+  _ids = fill(subject.id, time_length)
 
   # Generate the name for the dependent variable in a manner consistent with
   # multiple dvs etc
   df = DataFrame(id=_ids, time=subject.time)
-  if include_dvs
+  # Only include the dv column if include_dvs is specified and there are observations
+  if include_dvs && !isnothing(subject.observations)
     df[!, :dv] = DataFrame(subject.observations).dv
   end
 
