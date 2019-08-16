@@ -29,12 +29,11 @@ for it to be treated as continuous.
 @recipe function f(
             ec::EtaCov;
             cvs = [],
+            etas = [],
             continuoustype = :scatter,
             discretetype = :boxplot,
-            catmap = NamedTuple()
+            catmap = NamedTuple(),
         )
-
-    @show typeof(ec)
 
     @assert length(ec.args) == 1
     @assert eltype(ec.args) <: Union{PumasModel, FittedPumasModel}
@@ -52,22 +51,24 @@ for it to be treated as continuous.
     allcovnames = res.data[1].covariates |> keys
 
     covnames = isempty(cvs) ? allcovnames : cvs
+    etanames = isempty(etas) ? [:ebe_1] : etas
 
     # get the index number, to find the relevant `η` (eta)
     covindices = findfirst.((==).(covnames), Ref(allcovnames))
 
-    etanames = [Symbol("ebe_" * string(i)) for i in covindices] # is this always true?
-
     # create a named tuple
-    calculated_iterable = (;zip(covnames,iscategorical.(getindex.(Ref(df), !, covnames)))...)
+    calculated_iterable = (; zip(covnames,iscategorical.(getindex.(Ref(df), !, covnames)))...)
 
     # merge the category map, such that it takes priority over the automatically calculated values.
     covtypes = merge(calculated_iterable, catmap)
 
     # use our good layout function
-    layout --> good_layout(length(covindices))
+    layout --> good_layout(length(covnames) * length(etanames))
 
-    for (i, covname, etaname) in zip(eachindex(covnames), covnames, etanames)
+    i = 1
+
+    for covname in covnames, etaname in etanames
+
         covtype = covtypes[covname]
 
         # the reference zero line
@@ -78,16 +79,19 @@ for it to be treated as continuous.
             subplot := i
 
             title := string(covname)
-            ylabel := "η" # do we need this?
+            ylabel := string(etaname) # do we need this?
 
             (df[:, covname], df[:, etaname])
         end
 
         @series begin
+
             seriestype := :hline
             subplot := i
             color := :black
             title := string(covname)
+            ylabel := string(etaname) # do we need this?
+
             linestyle --> :dash
 
             ([0.0]) # zero-line
@@ -103,6 +107,8 @@ for it to be treated as continuous.
                 @series begin
                     seriestype := :loess # defined by DataInterpolations.jl
                     label := "LOESS fit" # not used anyway, but in case we decide to include it
+                    ylabel := string(etaname) # do we need this?
+                    
                     subplot := i
 
                     (df[:, covname], df[:, etaname])
@@ -116,6 +122,8 @@ for it to be treated as continuous.
                 end
             end # try-catch
         end # if
+
+        i += 1
     end # loop
 
     primary := false
@@ -135,8 +143,6 @@ end
             discretetype = :boxplot,
             catmap = NamedTuple()
         )
-
-    @show typeof(ec)
 
     @assert length(rp.args) == 1
     @assert eltype(rp.args) <: Union{PumasModel, FittedPumasModel}
