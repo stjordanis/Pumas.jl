@@ -454,7 +454,7 @@ end
 function swing(nca::NCASubject; usetau=false, kwargs...)
   _cmin = usetau ? ctau(nca) : cminss(nca)
   sw = (cmaxss(nca) - _cmin) ./ _cmin
-  (ismissing(sw) || isinf(sw)) ? missing : sw
+  (sw === missing || isinf(sw)) ? missing : sw
 end
 
 """

@@ -113,7 +113,7 @@ function ___read_nca(df; id=:id, time=:time, conc=:conc, occasion=:occasion,
     # the time array for the i-th subject
     subjtime = @view(times[idx])
     if hasdose
-      dose_idx = findall(x->!ismissing(x) && x > zero(x), @view amts[idx])
+      dose_idx = findall(x->x !== missing && x > zero(x), @view amts[idx])
       length(dose_idx) > 1 && occasion === nothing && error("`occasion` must be provided for multiple dosing data")
       # We want to use time instead of an integer index here, because later we
       # need to remove BLQ and missing data, so that an index number will no
