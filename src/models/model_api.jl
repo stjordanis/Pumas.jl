@@ -57,14 +57,17 @@ observationtimes(sub::Subject) = isnothing(sub.observations) &&
 
 
 """
-    sol = pkpd_solve(m::PumasModel, subject::Subject, param,
-                     randeffs=sample_randeffs(m, param),
-                     args...; kwargs...)
+    sol = solve(m::PumasModel, subject::Subject, param,
+                randeffs=sample_randeffs(m, param),
+                saveat = observationtimes(subject),
+                args...; kwargs...)
 
-Compute the ODE for model `m`, with parameters `param` and random effects
-`randeffs`. `alg` and `kwargs` are passed to the ODE solver. If no `randeffs` are
+Compute the ODE for model `m`, with parameters `param`, random effects
+`randeffs` and a collection of times to save the solution at `saveat`.
+`args` and `kwargs` are passed to the ODE solver. If no `randeffs` are
 given, then they are generated according to the distribution determined
-in the model.
+in the model. If no `saveat` times are given, the times are chosen to be
+the vector of observed times for `subject`.
 
 Returns a tuple containing the ODE solution `sol` and collation `col`.
 """
