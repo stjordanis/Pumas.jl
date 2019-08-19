@@ -59,6 +59,9 @@ function (subj::UirData)(t::Union{AbstractVector{<:Number}, Number})
   subj.m(t, subj.pmin)
 end
 
+# simpe MSE
+mse(x, y) = sum(abs2.(x .- y))/length(x)
+
 # simple linear regression function
 linreg(x, y) = hcat(fill!(similar(x), 1), x) \ y # ans[1] => intercept, ans[2] => slope
 

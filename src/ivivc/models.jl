@@ -73,3 +73,11 @@ function bateman(t::Number, p)
 end
 
 bateman(t::AbstractVector, p) = bateman.(t, Ref(p))
+
+# Derivatives of Vitro models
+
+#Emax model
+e_der(t, p_n) = (t < 0.0) ? 0.0 : @. p_n[1] * p_n[2] * (p_n[3]^p_n[2]) * (t^(p_n[2]-1)) / ((p_n[3]^p_n[2] + t^p_n[2])^2)
+
+# Weibull model
+w_der(t, p_n) = (t < 0.0) ? 0.0 : @. p_n[1] * (p_n[3]/(p_n[2]^p_n[3])) * (t^(p_n[3]-1)) * exp(-((t/p_n[2])^p_n[3]))

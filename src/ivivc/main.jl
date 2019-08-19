@@ -1,4 +1,4 @@
-# main function for whole IVIVC pipeline
+# main function for IVIVC pipeline
 
 # do_ivivc(; vitro_data::AbstractString, ref_vivo_data::AbstractString,
 #   vivo_data::AbstractString, kwargs...) = do_ivivc(read_vitro(vitro_data, kwargs...),
@@ -6,87 +6,102 @@
 #                       kwargs...)
 
 struct do_ivivc{pType}
-  vitro_pop::VitroPopulation
-  ref_vivo_pop::VivoPopulation
-  vivo_pop::VivoPopulation
+  vitro_data::VitroData
+  uir_data::UirData
+  vivo_data::VivoData
   ka::pType
   kel::pType
   V::pType
-  vect::Vector{Dict{Any, Vector}}
-  AbsScale::pType
-  Tscale::pType
-  ### TODO: add other members
+  vitro_model::Symbol
+  deconvo_method::Symbol
+  fabs::fabsType
+  auc_inf::aucType
+  # params which are needed for modeling
+  ivivc_model::Function                 # model type
+  opt_alg::Optim.FirstOrderOptimizer    # alg to optimize cost function
+  p0::pType                             # intial values of params
+  ub::Union{Nothing, pType}             # upper bound of params
+  lb::Union{Nothing, pType}             # lower bound of params
+  pmin::paramsType                      # optimized params
 end
 
-function do_ivivc(vitro_batch, ref_vivo_pop, vivo_pop;
-                    vitro_m=nothing,
+function do_ivivc(vitro_data, uir_data, vivo_data;
+                    vitro_model=nothing,
                     vitro_model_metric=:aic,
-                    ref_vivo_model=nothing,
+                    uir_frac = 1.0
                     deconvo_method=:wn,
-                    corr_m=:two)
+                    ivivc_model=:two)
   # model the vitro data
-  # TODO: if vitro model is not specified by user then try all available models
-  # and select the best one on the basis of aic, aicc and bic
-  if vitro_m == nothing
-    for (form, prof) in vitro_batch[1]
-      try_all_vitro_model(prof, metric=vitro_model_metric)
-    end
+  if vitro_model === nothing
+    error("Not implemented!!")
   else
-    for (form, prof) in vitro_batch[1]
-      vitro_model(prof, vitro_m)
+    for data in vitro_data
+      for (form, vitro_form) in data
+        estimate_fdiss(vitro_form, vitro_model)
+      end
     end
   end
 
   # model the reference vivo data and get required params ka, kel and V
-  # if the formulation is "solution" then default model is bateman
-  # TODO: if the formulation is "IV" then use exponential decaying model (not available currently)
-  ka, kel, V = 0.0, 0.0, 0.0
-  if ref_vivo_model == nothing
-    ref_vivo_model = lowercase(first(keys(ref_vivo_pop[1]))) == "solution" ? (:bateman) : (:iv)
-  end
-  
-  for (form, prof) in ref_vivo_pop[1]
-    vivo_model(prof, ref_vivo_model)
-    ka, kel, V = prof.pmin
-  end
+  uir_model = lowercase(uir_data.form) == "solution" ? (:bateman) : (:iv)
+  estimate_uir(uir_data, uir_model, frac = uir_frac)
+  ka, kel, V = uir_data.pmin
 
   # get the absorption profile from vivo data
-  # TODO: add if-else for all kind of methods (model dependent, model independent and numerical deconvolution)
-  # if none of the available methods are provided then we can run all methods and select the one which works
-  # best with dissolution data (in vitro data) based on validation
-
-  abs_vect = Vector{Dict{Any, Vector}}(undef, length(vivo_pop))
-  for i = 1:length(vivo_pop)
+  all_fabs = Vector{Dict{Any, Vector}}(undef, length(vivo_data))
+  all_auc_inf = Vector{Dict{Any, Any}}(undef, length(vivo_data))
+  for i = 1:length(vivo_data)
     dict = Dict()
-    for (form, prof) in vivo_pop[i]
-      dict[form] = get_fabs(prof.conc, prof.time, kel, deconvo_method)
+    _dict = Dict()
+    for (form, prof) in vivo_data[i]
+      dict[form], _dict[form] = get_fabs(prof.conc, prof.time, kel, deconvo_method)
     end
-    abs_vect[i] = dict
+    all_fabs[i] = dict
+    all_auc_inf[i] = _dict
   end
 
-  # now, correlate every individual to vitro data and establish a ivivc model
   # IVIVC models:
   #       1. Fabs(t) = AbsScale*Fdiss(t*Tscale)
   #       2. Fabs(t) = AbsScale*Fdiss(t*Tscale - Tshift)
   #       3. Fabs(t) = AbsScale*Fdiss(t*Tscale - Tshift) - AbsBase
 
-  # take avg of fabs (all formulations) over all ids or correlate dissolution with each vivo ids
-  # then take avg of ivivc model params??
-
-  abs_scale, t_scale, c = 0.0, 0.0, 0
-  avg_fabs = get_avg_fabs(abs_vect)
-  for (form, fabs) in avg_fabs
-    if corr_m == :two
-      corr_model(x, p) = @. p[1] * vitro_batch[1][form](x * p[2])
-      p1, p2 = Curvefit(fabs, vivo_pop[1][form].time, corr_model, 
-                              [0.8, 0.6], LBFGS()).pmin
-      abs_scale += p1; t_scale += p2
-      c += 1
-    end
+  avg_fabs = avg_fabs(all_fabs)
+  # optimization
+  if ivivc_model == :two
+    m(form, time, x) = x[1] * vitro_data[1][form](time * x[2])
+  elseif ivivc_model == :three
+    m(form, time, x) = x[1] * vitro_data[1][form](time * x[2] - x[3])
+  elseif ivivc_model == :four
+    m(form, time, x) = (x[1] * vitro_data[1][form](time * x[2] - x[3])) - x[4];
+  else
+    error("Incorrect keyword for IVIVC model!!")
   end
-  # take avg of abs_scale and t_scale
-  abs_scale /= c; t_scale /= c
-  do_ivivc{typeof(ka)}(vitro_batch, ref_vivo_pop, vivo_pop, ka, kel, V, abs_vect, abs_scale, t_scale)
+  function errfun(x)
+    err = 0.0
+    for (form, prof) in vivo_data[1]
+      err = err + mse(m(form, prof.time, x), avg_fabs[form])
+    end
+    return err
+  end
+  # intial estimates of params and bounds
+  p = [0.8, 0.5, 0.6, 0.6]
+  ub = [1.25, 1.25, 1.25, 1.25]
+  lb = [0.0, 0.0, 0.0, 0.0]
+  opt_alg = LBFGS()
+  od = OnceDifferentiable(p->errfun(p), p, autodiff=:finite)
+  mfit = Optim.optimize(od, lb, ub, p, Fminbox(opt_alg))
+  pmin = Optim.minimizer(mfit)
+  do_ivivc{typeof(ka)}(vitro_data, uir_data, vivo_data, ka, kel, V, deconvo_method, all_fabs, all_auc_inf,
+                          m, opt_alg, p, ub, lb, pmin)
+end
+
+# main function for prediction by estimated IVIVC model
+function prediction(A::do_ivivc)
+  @unpack 
+  if(A.deconvo_method != :wn) error("Not implemented yet!!") end
+  # ODE Formulation
+  f(c, p, t) = kel * auc_inf(vivo_pop[1][form]) * pmin[1] * pmin[2] * r_diss(t * pmin[2], vitro_data[1][form].pmin) - kel * c
+
 end
 
 # helper function to call deconvo methods
@@ -99,7 +114,7 @@ function get_fabs(c, t, kel, method)
 end
 
 # helper function to get avg of fabs profile over all ids for every formulation
-function get_avg_fabs(vect)
+function avg_fabs(vect)
   dict = Dict{Any, Vector}()
   for key in keys(vect[1])
     dict[key] = zero(vect[1][key])

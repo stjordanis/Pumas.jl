@@ -28,7 +28,7 @@ struct VivoData{popType} <: Ivivc
 end
 
 # VitroForm
-mutable struct VitroForm{ID, C, T, F, pType} <: Ivivc
+mutable struct VitroForm{ID, C, T, F, pType}
   id::ID
   conc::C
   time::T
