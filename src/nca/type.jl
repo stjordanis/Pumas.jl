@@ -97,17 +97,17 @@ function NCASubject(conc, time;
   time isa AbstractRange && (time = collect(time))
   conc isa AbstractRange && (conc = collect(conc))
   if concu !== true
-    conc = map(x -> ismissing(x) ? x : x*concu, conc)
+    conc = map(x -> x === missing ? x : x*concu, conc)
   end
   if timeu !== true
     if time !== nothing
-      time = map(x -> ismissing(x) ? x : x*timeu, time)
+      time = map(x -> x === missing ? x : x*timeu, time)
     end
     if start_time !== nothing
-      start_time = map(x -> ismissing(x) ? x : x*timeu, start_time)
+      start_time = map(x -> x === missing ? x : x*timeu, start_time)
     end
     if end_time !== nothing
-      end_time = map(x -> ismissing(x) ? x : x*timeu, end_time)
+      end_time = map(x -> x === missing ? x : x*timeu, end_time)
     end
   end
   multidose = T <: AbstractArray && length(dose) > 1
@@ -271,9 +271,9 @@ function Base.show(io::IO, ::MIME"text/plain", pop::NCAPopulation)
   showunits(io, first(pop), 4)
 end
 
-ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
-ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
-function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
+Base.@pure ismultidose(nca::NCASubject) = ismultidose(typeof(nca))
+Base.@pure ismultidose(nca::NCAPopulation) = ismultidose(eltype(nca.subjects))
+Base.@pure function ismultidose(::Type{NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}}) where {C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}
   return D <: AbstractArray
 end
 
@@ -472,7 +472,7 @@ function Base.convert(::Type{Markdown.MD}, report::NCAReport)
   for entry in report.values
     _name = string(names(entry)[1])
     name = replace(_name, "_"=>"\\_") # escape underscore
-    ismissing(entry[end]) && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
+    entry[end] === missing && (@printf(_io, "| %s | %s |\n", name, "missing"); continue)
     for v in entry[end]
       val =  v isa Number ? round(ustrip(v), digits=2)*oneunit(v) :
              v
