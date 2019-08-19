@@ -5,7 +5,7 @@
 #                       read_vivo(ref_vivo_data, kwargs...), read_vivo(vivo_data, kwargs...),
 #                       kwargs...)
 
-struct do_ivivc{pType}
+struct do_ivivc{pType, paramsType, fabsType, aucType}
   vitro_data::VitroData
   uir_data::UirData
   vivo_data::VivoData
@@ -15,27 +15,28 @@ struct do_ivivc{pType}
   vitro_model::Symbol
   deconvo_method::Symbol
   fabs::fabsType
-  auc_inf::aucType
+  all_auc_inf::aucType
   # params which are needed for modeling
-  ivivc_model::Function                 # model type
-  opt_alg::Optim.FirstOrderOptimizer    # alg to optimize cost function
-  p0::pType                             # intial values of params
-  ub::Union{Nothing, pType}             # upper bound of params
-  lb::Union{Nothing, pType}             # lower bound of params
-  pmin::paramsType                      # optimized params
+  ivivc_model::Function                      # model type
+  opt_alg::Optim.FirstOrderOptimizer         # alg to optimize cost function
+  p0::paramsType                             # intial values of params
+  ub::Union{Nothing, paramsType}             # upper bound of params
+  lb::Union{Nothing, paramsType}             # lower bound of params
+  pmin::paramsType                           # optimized params
 end
 
 function do_ivivc(vitro_data, uir_data, vivo_data;
                     vitro_model=nothing,
                     vitro_model_metric=:aic,
-                    uir_frac = 1.0
+                    uir_frac = 1.0,
                     deconvo_method=:wn,
                     ivivc_model=:two)
   # model the vitro data
   if vitro_model === nothing
     error("Not implemented!!")
   else
-    for data in vitro_data
+    for idx in 1:length(vitro_data)
+      data = vitro_data[idx]
       for (form, vitro_form) in data
         estimate_fdiss(vitro_form, vitro_model)
       end
@@ -65,14 +66,14 @@ function do_ivivc(vitro_data, uir_data, vivo_data;
   #       2. Fabs(t) = AbsScale*Fdiss(t*Tscale - Tshift)
   #       3. Fabs(t) = AbsScale*Fdiss(t*Tscale - Tshift) - AbsBase
 
-  avg_fabs = avg_fabs(all_fabs)
+  avg_fabs = _avg_fabs(all_fabs)
   # optimization
   if ivivc_model == :two
-    m(form, time, x) = x[1] * vitro_data[1][form](time * x[2])
+    m = (form, time, x) -> x[1] * vitro_data[1][form](time * x[2])
   elseif ivivc_model == :three
-    m(form, time, x) = x[1] * vitro_data[1][form](time * x[2] - x[3])
+    m = (form, time, x) -> x[1] * vitro_data[1][form](time * x[2] - x[3])
   elseif ivivc_model == :four
-    m(form, time, x) = (x[1] * vitro_data[1][form](time * x[2] - x[3])) - x[4];
+    m = (form, time, x) -> (x[1] * vitro_data[1][form](time * x[2] - x[3])) - x[4];
   else
     error("Incorrect keyword for IVIVC model!!")
   end
@@ -91,17 +92,28 @@ function do_ivivc(vitro_data, uir_data, vivo_data;
   od = OnceDifferentiable(p->errfun(p), p, autodiff=:finite)
   mfit = Optim.optimize(od, lb, ub, p, Fminbox(opt_alg))
   pmin = Optim.minimizer(mfit)
-  do_ivivc{typeof(ka)}(vitro_data, uir_data, vivo_data, ka, kel, V, deconvo_method, all_fabs, all_auc_inf,
+  do_ivivc{typeof(ka), typeof(pmin), typeof(all_fabs), typeof(all_auc_inf)}(vitro_data, uir_data, vivo_data, ka, kel, V, vitro_model, deconvo_method, all_fabs, all_auc_inf,
                           m, opt_alg, p, ub, lb, pmin)
 end
 
 # main function for prediction by estimated IVIVC model
-function prediction(A::do_ivivc)
-  @unpack 
+function prediction(A::do_ivivc, form)
   if(A.deconvo_method != :wn) error("Not implemented yet!!") end
+  all_auc_inf, kel, pmin, vitro_data, vivo_data = A.all_auc_inf, A.kel, A.pmin, A.vitro_data, A.vivo_data
+  if A.vitro_model == :emax 
+    rate_fun = e_der
+  elseif A.vitro_model == :we
+    rate_fun = w_der
+  else
+    error("not implemented yet!!")
+  end
   # ODE Formulation
-  f(c, p, t) = kel * auc_inf(vivo_pop[1][form]) * pmin[1] * pmin[2] * r_diss(t * pmin[2], vitro_data[1][form].pmin) - kel * c
-
+  f(c, p, t) = kel * all_auc_inf[1][form] * pmin[1] * pmin[2] * rate_fun(t * pmin[2], vitro_data[1][form].pmin) - kel * c
+  u0 = 0.0
+  tspan = (vivo_data[1][form].time[1], vivo_data[1][form].time[end])
+  prob = ODEProblem(f, u0, tspan)
+  sol = OrdinaryDiffEq.solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+  sol
 end
 
 # helper function to call deconvo methods
@@ -114,7 +126,7 @@ function get_fabs(c, t, kel, method)
 end
 
 # helper function to get avg of fabs profile over all ids for every formulation
-function avg_fabs(vect)
+function _avg_fabs(vect)
   dict = Dict{Any, Vector}()
   for key in keys(vect[1])
     dict[key] = zero(vect[1][key])
