@@ -5,7 +5,7 @@ vitro_data = read_vitro("../examples/ivivc_test_data/vitro_data.csv")
 vitro_subs = vitro_data.subjects
 
 @test typeof(vitro_subs) <: AbstractVector
-@test eltype(vitro_subs) <: AbstractDict{String, Pumas.IVIVC.VitroSubject}
+@test eltype(vitro_subs) <: AbstractDict{String, Pumas.IVIVC.VitroForm}
 
 @test length(vitro_data) == length(vitro_subs)
 @test size(vitro_data) == size(vitro_subs)
@@ -27,7 +27,7 @@ vivo_data = read_vivo("../examples/ivivc_test_data/vivo_data.csv")
 vivo_subs = vivo_data.subjects
 
 @test typeof(vivo_subs) <: AbstractVector
-@test eltype(vivo_subs) <: AbstractDict{String, Pumas.IVIVC.VivoSubject}
+@test eltype(vivo_subs) <: AbstractDict{String, Pumas.IVIVC.VivoForm}
 
 @test length(vivo_data) == length(vivo_subs)
 @test size(vivo_data) == size(vivo_subs)
