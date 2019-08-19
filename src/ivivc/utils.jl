@@ -70,14 +70,14 @@ get_avail_models() = Dict([(:emax, emax), (:emax_ng, emax_ng), (:weibull, weibul
                           (:eng, emax_ng), (:w, weibull), (:dw, double_weibull),
                           (:m, makoid)])
 
-get_avail_uir_models() = Dict([(:bateman, bateman), (:bat, bateman), (:iv, iv)])
+get_avail_uir_models() = Dict([(:bateman, bateman), (:bat, bateman)])
 
 ind_filler() = Dict([(:emax, _emax), (:emax_ng, _emax_ng), (:weibull, _weibull),
                           (:d_weibll, _double_weibull), (:makoid, _makoid), (:e, _emax),
                           (:eng, _emax_ng), (:w, _weibull), (:dw, _double_weibull),
                           (:m, _makoid)])
 
-vivo_ind_filler() = Dict([(:bateman, _bateman), (:bat, _bateman), (:iv, _iv)])
+vivo_ind_filler() = Dict([(:bateman, _bateman), (:bat, _bateman)])
 
 function _emax(conc, time, time_lag, p0, ub, lb)
   if time_lag

@@ -22,15 +22,15 @@ include("stats.jl")
 include("plot_rec.jl")
 include("utils.jl")
 include("model_validation.jl")
-# include("main.jl")
+include("main.jl")
 
 export VitroForm, VitroData
 export VivoForm, VivoData
-export read_vitro, read_vivo
+export read_vitro, read_vivo, read_uir
 export emax, emax_ng, weibull, double_weibull, makoid
 export estimate_fdiss, get_avail_models
 export estimate_uir, get_avail_vivo_models
-export calc_input_rate, wagner_nelson, do_ivivc, percentage_prediction_error
+export calc_input_rate, wagner_nelson, do_ivivc, prediction, percentage_prediction_error
 export loglikelihood, nullloglikelihood, dof, nobs, deviance, mss,
        rss, aic, aicc, bic, r2
 end # module

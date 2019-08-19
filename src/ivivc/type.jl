@@ -63,7 +63,7 @@ struct VitroData{popType} <: Ivivc
 end
 
 # UirData
-struct UirData{C, T, F, D, pType}
+mutable struct UirData{C, T, F, D, pType}
   conc::C
   time::T
   form::F
