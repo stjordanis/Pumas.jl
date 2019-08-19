@@ -19,7 +19,7 @@ end
 
 function ___read_vivo(df; id=:id, time=:time, conc=:conc, formulation=:form, dose=:dose, kwargs...)
   local ids, times, concs, forms, doses
-  key_check = hasproperty(df, id) && hasproperty(df, time) && hasproperty(df, conc) && hasproperty(df, form) && hasproperty(df, dose)
+  key_check = hasproperty(df, id) && hasproperty(df, time) && hasproperty(df, conc) && hasproperty(df, formulation) && hasproperty(df, dose)
   if !key_check
     @info "The CSV file has keys: $(names(df))"
     throw(ArgumentError("The CSV file must have: id, time, conc, form, dose"))
@@ -28,11 +28,11 @@ function ___read_vivo(df; id=:id, time=:time, conc=:conc, formulation=:form, dos
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
-  ids   = df[id]
-  times = df[time]
-  concs = df[conc]
-  forms = df[form]
-  doses = df[dose]
+  ids   = df[!, id]
+  times = df[!, time]
+  concs = df[!, conc]
+  forms = df[!, formulation]
+  doses = df[!, dose]
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
@@ -60,6 +60,33 @@ function ___read_vivo(df; id=:id, time=:time, conc=:conc, formulation=:form, dos
 end
 
 
+
+# Uir Data
+read_uir(file::AbstractString; kwargs...) = read_uir(CSV.read(file); kwargs...)
+
+function read_uir(df, kwargs...)
+  ___read_uir(df, kwargs...)
+end
+
+function ___read_uir(df; time=:time, conc=:conc, formulation=:form, dose=:dose, kwargs...)
+  key_check = hasproperty(df, time) && hasproperty(df, conc) && hasproperty(df, formulation) && hasproperty(df, dose)
+  if !key_check
+    @info "The CSV file has keys: $(names(df))"
+    throw(ArgumentError("The CSV file must have: time, conc, form, dose"))
+  end
+  sortvars = (time)
+  iss = issorted(df, sortvars)
+  # we need to use a stable sort because we want to preserve the order of `time`
+  sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
+  times = df[!, time]
+  concs = df[!, conc]
+  form = df[!, formulation]
+  doses = df[!, dose]
+  idx_n = findfirst(x -> x !== nothing, times):findlast(x -> x !== nothing, times)
+  UirData(concs[idx_n], times[idx_n], form[idx_n[1]], doses[idx_n[1]])
+end
+
+
 # Vitro Data
 """
     read_vitro(df::Union{DataFrame,AbstractString}; id=:id, time=:time,
@@ -79,9 +106,9 @@ function read_vitro(df; group=nothing, kwargs...)
   return pop
 end
 
-function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...)
+function ___read_vitro(df; id=:id, time=:time, conc=:conc, formulation=:form, kwargs...)
   local ids, times, concs, forms
-  key_check = hasproperty(df, id) && hasproperty(df, time) && hasproperty(df, conc) && hasproperty(df, form)
+  key_check = hasproperty(df, id) && hasproperty(df, time) && hasproperty(df, conc) && hasproperty(df, formulation)
   if !key_check
     @info "The CSV file has keys: $(names(df))"
     throw(ArgumentError("The CSV file must have: id, time, conc, form"))
@@ -90,10 +117,10 @@ function ___read_vitro(df; id=:id, time=:time, conc=:conc, form=:form, kwargs...
   iss = issorted(df, sortvars)
   # we need to use a stable sort because we want to preserve the order of `time`
   sortedf = iss ? df : sort(df, sortvars, alg=Base.Sort.DEFAULT_STABLE)
-  ids   = df[id]
-  times = df[time]
-  concs = df[conc]
-  forms = df[form]
+  ids   = df[!, id]
+  times = df[!, time]
+  concs = df[!, conc]
+  forms = df[!, formulation]
   uids = unique(ids)
   uforms = unique(forms)
   idx  = -1
