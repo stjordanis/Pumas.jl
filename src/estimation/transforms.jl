@@ -9,7 +9,7 @@ TransformVariables.dimension(t::ElementArrayTransform) = length(t.a)
 
 TransformVariables.as(x::Array{<:TransformVariables.AbstractTransform}) = ElementArrayTransform(x)
 
-function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::ElementArrayTransform, x::TransformVariables.RealVector)
+function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::ElementArrayTransform, x::AbstractVector)
   # currently support only scalars
   dims = size(t.a)
   I = reshape(range(firstindex(x); length = prod(dims), step = 1), dims)
@@ -32,11 +32,11 @@ struct ConstantTransform{T} <: TransformVariables.AbstractTransform
 end
 TransformVariables.dimension(t::ConstantTransform) = 0
 
-function TransformVariables.transform_with(flag::TransformVariables.NoLogJac, t::ConstantTransform, x::TransformVariables.RealVector)
+function TransformVariables.transform_with(flag::TransformVariables.NoLogJac, t::ConstantTransform, x::AbstractVector)
   t.val, flag
 end
 
-function TransformVariables.transform_with(flag::TransformVariables.LogJac, t::ConstantTransform, x::TransformVariables.RealVector)
+function TransformVariables.transform_with(flag::TransformVariables.LogJac, t::ConstantTransform, x::AbstractVector)
   t.val, zero(eltype(x))
 end
 
@@ -62,7 +62,7 @@ end
 TransformVariables.dimension(t::PSDTransform) = (t.n*(t.n+1))>>1
 
 function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::PSDTransform,
-                                           x::TransformVariables.RealVector{T}) where T
+                                           x::AbstractVector{T}) where T
     n = t.n
     ℓ = TransformVariables.logjac_zero(flag, T)
     U = zeros(typeof(√one(T)), n, n)
@@ -112,7 +112,7 @@ end
 TransformVariables.dimension(t::VechTransform) = (t.n*(t.n+1))>>1
 
 function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::VechTransform,
-                                           x::TransformVariables.RealVector{T}) where T
+                                           x::AbstractVector{T}) where T
   n = t.n
   ℓ = TransformVariables.logjac_zero(flag, T)
   M = zeros(typeof(√one(T)), n, n)
@@ -154,7 +154,7 @@ end
 TransformVariables.dimension(t::PDiagTransform) = t.n
 
 function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::PDiagTransform,
-                                           x::TransformVariables.RealVector{T}) where T
+                                           x::AbstractVector{T}) where T
     n = t.n
     ℓ = TransformVariables.logjac_zero(flag, T)
     d = zeros(typeof(√one(T)), n)
@@ -195,7 +195,7 @@ end
 TransformVariables.dimension(t::DiagonalTransform) = t.n
 
 function TransformVariables.transform_with(flag::TransformVariables.LogJacFlag, t::DiagonalTransform,
-                                           x::TransformVariables.RealVector{T}) where T
+                                           x::AbstractVector{T}) where T
     n = t.n
     ℓ = TransformVariables.logjac_zero(flag, T)
     d = zeros(typeof(√one(T)), n)
