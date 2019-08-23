@@ -114,6 +114,7 @@ for it to be treated as continuous.
             color := :black
             title := string(covname)
             ylabel := string(etaname) # do we need this?
+            primary := false
 
             linestyle --> :dash
 
@@ -243,6 +244,7 @@ for it to be treated as continuous.
             xlabel --> string(varname)
 
             linestyle --> :dash
+            primary := false
 
             ([0.0]) # zero-line
         end
