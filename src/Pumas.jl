@@ -53,7 +53,7 @@ export PumasModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll
-export predict, wresiduals, empirical_bayes
+export predict, residuals, wresiduals, empirical_bayes
 export ηshrinkage, ϵshrinkage
 export read_pumas, example_nmtran_data
 export @model, @nca, @tvcov
