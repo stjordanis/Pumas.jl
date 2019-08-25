@@ -33,6 +33,8 @@ include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 include("estimation/vpc.jl")
 include("estimation/show.jl")
+include("estimation/saem.jl")
+include("estimation/gsa.jl")
 
 include("analytical_solutions/standard_models.jl")
 include("analytical_solutions/analytical_problem.jl")
@@ -61,4 +63,5 @@ export @model, @nca, @tvcov
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
 export vpc, vpc_obs
+export gsa
 end # module
