@@ -266,18 +266,34 @@ end
 
 
 function DataFrames.DataFrame(subject::Subject; include_covariates=true, include_dvs=true)
-  df_events = DataFrame(subject.events)
-  time_length = isnothing(subject.time) ? length(df_events.time) : length(subject.time)
-  _ids = fill(subject.id, time_length)
-
+  df_events = DataFrame(build_event_list(subject.events, true))
   # Generate the name for the dependent variable in a manner consistent with
   # multiple dvs etc
-  df = DataFrame(id=_ids, time=subject.time)
-  # Only include the dv column if include_dvs is specified and there are observations
-  if include_dvs && !isnothing(subject.observations)
-    df[!, :dv] = DataFrame(subject.observations).dv
+  if !isnothing(subject.time)
+    df = DataFrame(id = fill(subject.id, length(subject.time)), time=subject.time)
+    # Only include the dv column if include_dvs is specified and there are observations
+    if include_dvs && !isnothing(subject.observations)
+      df[!, :dv] .= DataFrame(subject.observations).dv
+    end
+    for df_name in names(df)
+      if df_name == :id
+        df_events[!, df_name] .= subject.id
+      elseif !(df_name == :time)
+        df_events[!, df_name] .= missing
+      end
+    end
+    for df_name in names(df_events)
+      if df_name ∉ names(df)
+        df[!, df_name] .= missing
+      end
+    end
   end
 
+  if isnothing(subject.time)
+    df = df_events
+  else
+    df = vcat(df, df_events)
+  end
   if include_covariates
     if !isa(subject.covariates, Nothing)
       for (covariate, value) in pairs(subject.covariates)
@@ -285,7 +301,7 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
       end
     end
   end
-  df
+  sort!(df, (:time, :base_time))
 end
 
 
