@@ -1,4 +1,4 @@
-# IVIVCSubject
+# VivoForm
 mutable struct VivoForm{ID, C, T, F, D}
   id::ID
   conc::C

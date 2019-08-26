@@ -12,7 +12,9 @@ struct do_ivivc{pType, paramsType, fabsType, aucType}
   ka::pType
   kel::pType
   V::pType
+  uir_frac::pType
   vitro_model::Symbol
+  uir_model::Symbol
   deconvo_method::Symbol
   fabs::fabsType
   all_auc_inf::aucType
@@ -70,10 +72,19 @@ function do_ivivc(vitro_data, uir_data, vivo_data;
   # optimization
   if ivivc_model == :two
     m = (form, time, x) -> x[1] * vitro_data[1][form](time * x[2])
+    p = [0.8, 0.5]
+    ub = [1.25, 1.25]
+    lb = [0.0, 0.0]
   elseif ivivc_model == :three
     m = (form, time, x) -> x[1] * vitro_data[1][form](time * x[2] - x[3])
+    p = [0.8, 0.5, 0.6]
+    ub = [1.25, 1.25, 1.25]
+    lb = [0.0, 0.0, 0.0]
   elseif ivivc_model == :four
-    m = (form, time, x) -> (x[1] * vitro_data[1][form](time * x[2] - x[3])) - x[4];
+    m = (form, time, x) -> (x[1] * vitro_data[1][form](time * x[2] - x[3])) - x[4]
+    p = [0.8, 0.5, 0.6]
+    ub = [1.25, 1.25, 1.25]
+    lb = [0.0, 0.0, 0.0]
   else
     error("Incorrect keyword for IVIVC model!!")
   end
@@ -84,15 +95,12 @@ function do_ivivc(vitro_data, uir_data, vivo_data;
     end
     return err
   end
-  # intial estimates of params and bounds
-  p = [0.8, 0.5, 0.6, 0.6]
-  ub = [1.25, 1.25, 1.25, 1.25]
-  lb = [0.0, 0.0, 0.0, 0.0]
   opt_alg = LBFGS()
   od = OnceDifferentiable(p->errfun(p), p, autodiff=:finite)
   mfit = Optim.optimize(od, lb, ub, p, Fminbox(opt_alg))
   pmin = Optim.minimizer(mfit)
-  do_ivivc{typeof(ka), typeof(pmin), typeof(all_fabs), typeof(all_auc_inf)}(vitro_data, uir_data, vivo_data, ka, kel, V, vitro_model, deconvo_method, all_fabs, all_auc_inf,
+
+  do_ivivc{typeof(ka), typeof(pmin), typeof(all_fabs), typeof(all_auc_inf)}(vitro_data, uir_data, vivo_data, ka, kel, V, uir_frac, vitro_model, uir_model, deconvo_method, all_fabs, all_auc_inf,
                           m, opt_alg, p, ub, lb, pmin)
 end
 
@@ -156,3 +164,47 @@ function try_all_vitro_model(sub; metric=:aic)
 end
 
 get_metric_func() = Dict([(:aic, aic), (:aicc, aicc), (:bic, bic)])
+
+function to_csv(obj::do_ivivc, path=homedir())
+  @unpack vitro_data, vivo_data, uir_model, uir_frac, fabs, ka, kel, V, pmin, vitro_model = obj
+  # save estimated params of vitro modeling to csv file
+  tmp = collect(values(vitro_data[1]))
+  num_p = length(tmp[1].pmin)
+  mat = zeros(length(vitro_data)*length(tmp), num_p)
+  ids = []; forms = []; i = 1
+  for idx in 1:length(vitro_data)
+    data = vitro_data[idx]
+    for (form, prof) in data
+      mat[i, :] = prof.pmin; i = i + 1;
+      push!(ids, prof.id); push!(forms, form);
+    end
+  end
+  df = DataFrame()
+  df[!,:id] = ids
+  df[!,:formulation] = forms
+  df[!,:model] .= String(vitro_model)
+  df = hcat(df, DataFrame(mat, Symbol.(:p, 1:num_p)))
+  CSV.write(joinpath(path, "vitro_model_estimated_params.csv"), df)
+  ####
+
+  # save to ka, kel and V to csv file
+  df = DataFrame(model = uir_model, dose_fraction = uir_frac, ka = ka, kel = kel, V = V)
+  CSV.write(joinpath(path, "uir_estimates.csv"), df)
+  #####
+
+  # Fabs
+  df = DataFrame()
+  for i = 1:length(vivo_data)
+    dict = vivo_data[i]
+    for (form, prof) in dict
+      df = vcat(df, DataFrame(id=prof.id, time=prof.time, Fabs=fabs[i][form], formulation=prof.form))
+    end
+  end
+  CSV.write(joinpath(path, "vivo_Fabs.csv"), df)
+  ####
+
+  # save estimated params of ivivc model to csv file
+  df = DataFrame(pmin', Symbol.(:p, 1:length(pmin)))
+  CSV.write(joinpath(path, "ivivc_params_estimates.csv"), df)
+  ######
+end
