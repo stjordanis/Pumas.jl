@@ -1,10 +1,3 @@
-using DiffEqSensitivity
-
-abstract type GSAMethod end
-struct Sobol <: GSAMethod end
-struct Morris <: GSAMethod end
-
-
 function gsa(m::PumasModel,data::Population,params::NamedTuple,method::Sobol,p_range=[[0.0,1.0] for i in 1:length(TransformVariables.inverse(toidentitytransform(m.param),params))],N=1000,order=[0],args...; kwargs...)
     trf_ident = toidentitytransform(m.param)
     function f(p)

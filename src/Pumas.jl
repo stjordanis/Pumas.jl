@@ -5,6 +5,7 @@ using DiffEqDiffTools, Reexport, StatsBase,
       TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
       Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
 using  AdvancedHMC, MCMCChains
+using DiffEqSensitivity
 
 import DataInterpolations, Loess
 
@@ -33,7 +34,6 @@ include("estimation/bayes.jl")
 include("estimation/diagnostics.jl")
 include("estimation/vpc.jl")
 include("estimation/show.jl")
-include("estimation/saem.jl")
 include("estimation/gsa.jl")
 
 include("analytical_solutions/standard_models.jl")
