@@ -48,6 +48,43 @@ function TreeViews.treelabel(io::IO,x::FittedPumasModel,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io, mime, Base.Text(Base.summary(x)))
 end
+function Base.show(io::IO, mime::MIME"text/plain", vfpm::Vector{<:FittedPumasModel})
+  println(io, "Vector{<:FittedPumasModel} with $(length(vfpm)) entries\n")
+  # _print_fit_header(io, fpm)
+  # Get all names
+  paramnames = []
+  paramvals = []
+  paramstds = []
+
+  for (paramname, paramval) in pairs(first(vfpm).param)
+    _paramval = [fpm.param[paramname] for fpm in vfpm]
+    parammean = mean(_paramval)
+    paramstd = parammean*std(_paramval)/100
+    _push_varinfo!(paramnames, paramvals, paramstds, nothing, paramname, parammean, paramstd, nothing)
+  end
+  getdecimal = x -> findfirst(c -> c=='.', x)
+  maxname = maximum(length, paramnames)
+  maxval = max(maximum(length, paramvals), length("Mean"))
+  maxstd = max(maximum(length, paramstds), length("Std"))
+  labels = " "^(maxname+Int(round(maxval/1.2))-3)*rpad("Mean", Int(round(maxstd/1.2))+maxval+3)*"Std"
+  stringrows = []
+  for (name, val, std) in zip(paramnames, paramvals, paramstds)
+    push!(stringrows, string(name, " "^(maxname-length(name)-getdecimal(val)+Int(round(maxval/1.2))), val, " "^(maxval-(length(val)-getdecimal(val))-getdecimal(std)+Int(round(maxstd/1.2))), std, "\n"))
+  end
+  println(io, "Parameter statistics")
+  println(io, "-"^max(length(labels)+1,maximum(length.(stringrows))))
+  print(io, labels)
+  println(io,"\n" ,"-"^max(length(labels)+1,maximum(length.(stringrows))))
+  for stringrow in stringrows
+    print(io, stringrow)
+  end
+  println(io,"-"^max(length(labels)+1,maximum(length.(stringrows))))
+end
+TreeViews.hastreeview(x::Vector{<:FittedPumasModel}) = true
+function TreeViews.treelabel(io::IO,x::Vector{<:FittedPumasModel},
+                             mime::MIME"text/plain" = MIME"text/plain"())
+  show(io, mime, Base.Text(Base.summary(x)))
+end
 
 function _push_varinfo!(_names, _vals, _rse, _confint, paramname, paramval::PDMat, std, quant)
   mat = paramval.mat

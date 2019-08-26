@@ -3,7 +3,8 @@ module Pumas
 using DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
-      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature,
+      Statistics
 using  AdvancedHMC, MCMCChains
 
 import DataInterpolations, Loess
@@ -61,4 +62,5 @@ export @model, @nca, @tvcov
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
 export vpc, vpc_obs
+export mean, std, var
 end # module

@@ -4,6 +4,8 @@ const DEFAULT_RELTOL=1e-6
 const DEFAULT_ABSTOL=1e-12
 
 abstract type LikelihoodApproximation end
+struct NaivePooled <: LikelihoodApproximation end
+struct TwoStage <: LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
 struct FOI <: LikelihoodApproximation end
 struct FOCE <: LikelihoodApproximation end
@@ -100,7 +102,6 @@ end
   # create solution object. By passing saveat=obstimes, we compute the solution only
   # at obstimes such that we can simply pass solution.u to m.derived
   solution = _solve(m, subject, collated, args...; saveat=obstimes, reltol=reltol, abstol=abstol, kwargs...)
-
   if solution === nothing
     dist = m.derived(collated, solution, obstimes, subject)
   else
@@ -345,8 +346,12 @@ function marginal_nll(m::PumasModel,
                       randeffs::NamedTuple,
                       approx::LikelihoodApproximation,
                       args...; kwargs...)
-  rfxset = m.random(param)
-  vrandeffs = TransformVariables.inverse(totransform(rfxset), randeffs)
+  if approx isa NaivePooled
+    vrandeffs = []
+  else
+    rfxset = m.random(param)
+    vrandeffs = TransformVariables.inverse(totransform(rfxset), randeffs)
+  end
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
@@ -421,6 +426,17 @@ function _marginal_nll_pmap(nll1::T,
     return nll1 + sum(nlls)
 end
 
+function marginal_nll(m::PumasModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      ::NaivePooled,
+                      args...; kwargs...)::promote_type(numtype(param), numtype(vrandeffs))
+
+  # The negative loglikelihood function. There are no random effects.
+  conditional_nll(m, subject, param, NamedTuple(), args...;kwargs...)
+
+end
 function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
@@ -620,7 +636,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
-                                approx::Union{FO,FOI,HCubeQuad},
+                                approx::Union{NaivePooled, FO,FOI,HCubeQuad},
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
@@ -960,15 +976,20 @@ function Distributions.fit(m::PumasModel,
   # random effect estimate during an iteration since it might be modified several times during a line search
   # before the new value has been found. We then define a callback which will store values of vvrandeffs_tmp
   # in vvrandeffs once the iteration is done.
-  vvrandeffs     = [zero(mean(m.random(param).params.η)) for subject in population]
-  vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
-  cb = state -> begin
-    for i in eachindex(vvrandeffs)
-      copyto!(vvrandeffs[i], vvrandeffs_tmp[i])
+  if approx isa NaivePooled
+    vvrandeffs     = [[] for subject in population]
+    vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
+    cb(state) = false
+  else
+    vvrandeffs     = [zero(mean(m.random(param).params.η)) for subject in population]
+    vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
+    cb = state -> begin
+      for i in eachindex(vvrandeffs)
+        copyto!(vvrandeffs[i], vvrandeffs_tmp[i])
+      end
+      return false
     end
-    return false
   end
-
   # Define cost function for the optimization
   cost = Optim.NLSolversBase.OnceDifferentiable(
     Optim.NLSolversBase.only_fg!() do f, g, vx
@@ -982,7 +1003,7 @@ function Distributions.fit(m::PumasModel,
       nll = sum(zip(population, vvrandeffs, vvrandeffs_tmp)) do (subject, vrandeffs, vrandeffs_tmp)
         # If not FO then compute EBE based on the estimates from last iteration stored in vvrandeffs
         # and store the retult in vvrandeffs_tmp
-        if !(approx isa FO)
+        if !(approx isa FO || approx isa NaivePooled)
           copyto!(vrandeffs_tmp, vrandeffs)
           empirical_bayes!(vrandeffs_tmp, m, subject, x, approx, args...; kwargs...)
         end
@@ -1005,7 +1026,7 @@ function Distributions.fit(m::PumasModel,
   o = optimize_fn(cost, vparam, cb)
 
   # Update the random effects after optimization
-  if !(approx isa FO)
+  if !(approx isa FO || approx isa NaivePooled)
     for (vrandeffs, subject) in zip(vvrandeffs, population)
       empirical_bayes!(vrandeffs, m, subject, TransformVariables.transform(trf, opt_minimizer(o)), approx, args...; kwargs...)
     end
@@ -1014,13 +1035,26 @@ function Distributions.fit(m::PumasModel,
   return FittedPumasModel(m, population, o, approx, vvrandeffs)
 end
 
+function Distributions.fit(m::PumasModel,
+                           subject::Subject,
+                           param::NamedTuple,
+                           args...;
+                           kwargs...)
+  return fit(m, [subject,], param, NaivePooled(), args...; kwargs...)
+end
+function Distributions.fit(m::PumasModel,
+                           population::Population,
+                           param::NamedTuple,
+                           ::TwoStage,
+                           args...;
+                           kwargs...)
+  return map(x->fit(m, [x,], param, NaivePooled(), args...; kwargs...), population)
+end
+
 # error handling for fit(model, subject, param, args...; kwargs...)
 function Distributions.fit(model::PumasModel, subject::Subject,
              param::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
   throw(ArgumentError("Calling fit on a single subject is not allowed with a likelihood approximation method specified."))
-end
-function Distributions.fit(model::PumasModel, subject::Subject, param::NamedTuple, args...; kwargs...)
-  throw(ErrorException("Fitting individual subjects is not implemented yet."))
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
@@ -1175,6 +1209,31 @@ the result as a `NamedTuple` matching the `NamedTuple` of population
 parameters.
 """
 StatsBase.stderror(f::FittedPumasModel) = stderror(infer(f))
+
+function Statistics.mean(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  means = []
+  for name in names
+    push!(means, mean([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(means)
+end
+function Statistics.std(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  stds = []
+  for name in names
+    push!(stds, std([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(stds)
+end
+function Statistics.var(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  vars = []
+  for name in names
+    push!(vars, var([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(vars)
+end
 
 function _E_and_V(m::PumasModel,
                   subject::Subject,
