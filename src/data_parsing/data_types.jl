@@ -267,19 +267,31 @@ end
 
 function DataFrames.DataFrame(subject::Subject; include_covariates=true, include_dvs=true)
   df_events = DataFrame(build_event_list(subject.events, true))
-  # Generate the name for the dependent variable in a manner consistent with
+  df_events = df_events[df_events[!, :evid].!=-1,:]
+
+  if all(x->iszero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
+    select!(df_events, Not(:rate))
+    select!(df_events, Not(:duration))
+  end
+
+# Generate the name for the dependent variable in a manner consistent with
   # multiple dvs etc
   if !isnothing(subject.time)
     df = DataFrame(id = fill(subject.id, length(subject.time)), time=subject.time)
+    df[!, :evid] .= 0
     # Only include the dv column if include_dvs is specified and there are observations
     if include_dvs && !isnothing(subject.observations)
-      df[!, :dv] .= DataFrame(subject.observations).dv
+      for (dv_name, dv_vals) in pairs(subject.observations)
+        df[!, dv_name] .= dv_vals
+      end
     end
     for df_name in names(df)
       if df_name == :id
         df_events[!, df_name] .= subject.id
       elseif !(df_name == :time)
-        df_events[!, df_name] .= missing
+        if df_name ∉ names(df_events)
+          df_events[!, df_name] .= missing
+        end
       end
     end
     for df_name in names(df_events)
@@ -301,7 +313,21 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
       end
     end
   end
+
   sort!(df, (:time, :base_time))
+  amt_pos = findfirst(isequal(:amt), names(df))
+  insertcols!(df, amt_pos+1, :dose => 0.0)
+  insertcols!(df, amt_pos+2, :tad => 0.0)
+  idxs = findall(isequal(false), ismissing.(df[!, :amt]))
+  if !(idxs[end] == nrow(df))
+    push!(idxs, nrow(df))
+  end
+  for i in 1:length(idxs)-1
+    df[idxs[i]:idxs[i+1], :dose] .= df[idxs[i], :amt]
+    df[idxs[i]:idxs[i+1], :cmt] .= df[idxs[i], :cmt]
+    df[idxs[i]:idxs[i+1], :tad] .= df[idxs[i]:idxs[i+1], :time].-df[idxs[i], :time]
+  end
+  df
 end
 
 
