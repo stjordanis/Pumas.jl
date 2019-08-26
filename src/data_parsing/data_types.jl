@@ -272,6 +272,10 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
   if all(x->iszero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
     select!(df_events, Not(:rate))
     select!(df_events, Not(:duration))
+  elseif all(x->x>zero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
+    select!(df_events, Not(:duration))
+  else
+    select!(df_events, Not(:rate))
   end
 
 # Generate the name for the dependent variable in a manner consistent with
