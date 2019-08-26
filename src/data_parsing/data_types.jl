@@ -266,29 +266,40 @@ end
 
 
 function DataFrames.DataFrame(subject::Subject; include_covariates=true, include_dvs=true)
+  # Build a DataFrame that holds the events
   df_events = DataFrame(build_event_list(subject.events, true))
+  # Remove events with evid==-1
   df_events = df_events[df_events[!, :evid].!=-1,:]
 
+  # We delete rate/duration if no infusions. Else, we delete duration or rate
+  # as appropriate.
   if all(x->iszero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
+    # There are no infusions
     select!(df_events, Not(:rate))
     select!(df_events, Not(:duration))
   elseif all(x->x>zero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
+    # There are infusions, and they're specified by rate
     select!(df_events, Not(:duration))
   else
+    # There are infusions, and they're specified by duration
     select!(df_events, Not(:rate))
   end
 
-# Generate the name for the dependent variable in a manner consistent with
+  # Generate the name for the dependent variable in a manner consistent with
   # multiple dvs etc
   if !isnothing(subject.time)
     df = DataFrame(id = fill(subject.id, length(subject.time)), time=subject.time)
     df[!, :evid] .= 0
-    # Only include the dv column if include_dvs is specified and there are observations
+    # Only include the dv columns if include_dvs is specified and there are
+    # observations.
     if include_dvs && !isnothing(subject.observations)
+      # Loop over all dv's
       for (dv_name, dv_vals) in pairs(subject.observations)
         df[!, dv_name] .= dv_vals
       end
     end
+    # Now, create columns in df_events with missings for the column names in
+    # df but not in df_events
     for df_name in names(df)
       if df_name == :id
         df_events[!, df_name] .= subject.id
@@ -298,6 +309,7 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
         end
       end
     end
+    # ... and do the same for df
     for df_name in names(df_events)
       if df_name ∉ names(df)
         df[!, df_name] .= missing
@@ -305,6 +317,7 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
     end
   end
 
+  # If there are no observations, just go with df_events
   if isnothing(subject.time)
     df = df_events
   else
@@ -318,11 +331,19 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
     end
   end
 
+  # Sort the df according to time first, and use :base_time to ensure that events
+  # come before observations (they are missing for observations, so they will come
+  # last).
   sort!(df, (:time, :base_time))
+
+  # Find the amount (amt) column, and insert dose and tad columns after it
   amt_pos = findfirst(isequal(:amt), names(df))
   insertcols!(df, amt_pos+1, :dose => 0.0)
   insertcols!(df, amt_pos+2, :tad => 0.0)
+
+  # Calculate the indeces for the dose events
   idxs = findall(isequal(false), ismissing.(df[!, :amt]))
+  # Append the number of rows to allow the +1 indexing used below
   if !(idxs[end] == nrow(df))
     push!(idxs, nrow(df))
   end
@@ -331,6 +352,8 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
     df[idxs[i]:idxs[i+1], :cmt] .= df[idxs[i], :cmt]
     df[idxs[i]:idxs[i+1], :tad] .= df[idxs[i]:idxs[i+1], :time].-df[idxs[i], :time]
   end
+
+  # Return df
   df
 end
 
