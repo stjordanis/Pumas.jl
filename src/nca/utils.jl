@@ -44,7 +44,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, ver
   # check conc
   conc == nothing && return
   E = eltype(conc)
-  isallmissing = all(ismissing, conc)
+  isallmissing = all(x -> x === missing, conc)
   local _neg_idx, _missing_idx
   if isempty(conc)
     verbose && @warn "No concentration data given"
@@ -60,7 +60,7 @@ function checkconctime(conc, time=nothing; monotonictime=true, dose=nothing, ver
   T = eltype(time)
   if isempty(time)
     verbose && @warn "No time data given"
-  elseif any(x->(_missing_idx=x[1]; ismissing(x[2])), enumerate(time))
+  elseif any(x->(_missing_idx=x[1]; x[2] === missing), enumerate(time))
     throw(ArgumentError("Time may not be missing (missing occured at index $_missing_idx)"))
   elseif !(T <: Maybe{Number} && time isa AbstractArray)
     throw(ArgumentError("Time data must be numeric and an array"))
@@ -94,8 +94,8 @@ function cleanmissingconc(conc, time; end_time=nothing, volume=nothing, missingc
   else
     Ev = Tv = Nothing
   end
-  n_conc_missing = count(ismissing, conc)
-  n_vol_missing = volume === nothing ? 0 : count(ismissing, volume)
+  n_conc_missing = count(x->x === missing, conc)
+  n_vol_missing = volume === nothing ? 0 : count(x->x === missing, volume)
   # fast path
   Tc === Ec && Tt === Et && Ev === Tv && n_conc_missing+n_vol_missing == 0 && return conc, time, end_time, volume
   len = length(conc)
@@ -105,8 +105,8 @@ function cleanmissingconc(conc, time; end_time=nothing, volume=nothing, missingc
     newend_time = end_time === nothing ? nothing : similar(end_time, Tt, 0)
     newvolume = volume === nothing ? nothing : similar(volume, Tv, 0)
     @inbounds for i in eachindex(conc)
-      ismissing(conc[i]) && continue
-      (volume !== nothing && ismissing(volume[i])) && continue
+      conc[i] === missing && continue
+      (volume !== nothing && volume[i]) === missing && continue
       push!(newconc, conc[i])
       push!(newtime, time[i])
       if end_time !== nothing && volume !== nothing
@@ -121,9 +121,9 @@ function cleanmissingconc(conc, time; end_time=nothing, volume=nothing, missingc
     newend_time = Tt === Et ? end_time : similar(end_time, Tt)
     newvolume = Tv === Ev ? volume : similar(volume, Tv)
     @inbounds for i in eachindex(newconc)
-      newconc[i] = ismissing(conc[i]) ? missingconc : conc[i]
+      newconc[i] = conc[i] === missing ? missingconc : conc[i]
       if volume !== nothing
-        newvolume[i] = ismissing(volume[i]) ? missingvolume : volume[i]
+        newvolume[i] = volume[i] === missing ? missingvolume : volume[i]
       end
     end
     return newconc, time, newend_time, newvolume

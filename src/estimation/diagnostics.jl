@@ -1,3 +1,19 @@
+function StatsBase.residuals(fpm::FittedPumasModel)
+  # Return the residuals
+  return [residuals(fpm.model, subject, fpm.param, vrandeffs) for (subject, vrandeffs) in zip(fpm.data, fpm.vvrandeffs)]
+end
+function StatsBase.residuals(model::PumasModel, subject::Subject, param::NamedTuple, vrandeffs::AbstractArray)
+  rtrf = totransform(model.random(param))
+  randeffs = TransformVariables.transform(rtrf, vrandeffs)
+  # Calculated the dependent variable distribution objects
+  dist = derived_dist(model, subject, param, randeffs)
+  # Return the residuals
+  return residuals(subject, dist)
+end
+function StatsBase.residuals(subject::Subject, dist)
+  # Return the residuals
+  return subject.observations.dv .- mean.(dist.dv)
+end
 """
   npde(model, subject, param, randeffs, simulations_count)
 
@@ -94,12 +110,12 @@ function wres(m::PumasModel,
               subject::Subject,
               param::NamedTuple,
               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
-  y = subject.observations.dv
-  nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
+
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   Ω = Matrix(param.Ω)
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
-  return cholesky(V).U'\(y .- mean.(dist.dv))
+  return cholesky(V).U'\residuals(subject, dist)
 end
 
 """
@@ -111,13 +127,12 @@ function cwres(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
-  y = subject.observations.dv
-  nl0, dist0 = conditional_nll_ext(m,subject,param, (η=zero(vrandeffs),))
-  nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
+  dist0 = derived_dist(m, subject, param, (η=zero(vrandeffs),))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   Ω = Matrix(param.Ω)
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
-  return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
+  return cholesky(V).U'\(residuals(subject, dist) .+ F*vrandeffs)
 end
 
 """
@@ -130,12 +145,11 @@ function cwresi(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
-  y = subject.observations.dv
-  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   Ω = Matrix(param.Ω)
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
-  return cholesky(V).U'\(y .- mean.(dist.dv) .+ F*vrandeffs)
+  return cholesky(V).U'\(residuals(subject, dist) .+ F*vrandeffs)
 end
 
 """
@@ -147,7 +161,7 @@ function pred(m::PumasModel,
               subject::Subject,
               param::NamedTuple,
               vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
-  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
 
@@ -161,8 +175,8 @@ function cpred(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
-  nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
 end
 
@@ -175,8 +189,8 @@ function cpredi(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
-  nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   return mean.(dist.dv) .- F*vrandeffs
 end
 
@@ -203,9 +217,8 @@ function iwres(m::PumasModel,
                subject::Subject,
                param::NamedTuple,
                vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
-  y = subject.observations.dv
-  nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
-  return (y .- mean.(dist.dv)) ./ std.(dist.dv)
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
+  return residuals(subject, dist) ./ std.(dist.dv)
 end
 
 """
@@ -217,10 +230,9 @@ function icwres(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
-  y = subject.observations.dv
-  nl0, dist0 = conditional_nll_ext(m,subject,param, (η=zero(vrandeffs),))
-  nl , dist  = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
-  return (y .- mean.(dist.dv)) ./ std.(dist0.dv)
+  dist0 = derived_dist(m, subject, param, (η=zero(vrandeffs),))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
+  return residuals(subject, dist) ./ std.(dist0.dv)
 end
 
 """
@@ -232,9 +244,8 @@ function icwresi(m::PumasModel,
                  subject::Subject,
                  param::NamedTuple,
                  vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
-  y = subject.observations.dv
-  l, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
-  return (y .- mean.(dist.dv)) ./ std.(dist.dv)
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
+  return residuals(subject, dist) ./ std.(dist.dv)
 end
 
 """
@@ -247,10 +258,10 @@ function eiwres(m::PumasModel,
                 param::NamedTuple,
                 nsim::Integer)
   yi = subject.observations.dv
-  l, dist = conditional_nll_ext(m, subject, param, sample_randeffs(m, param))
+  dist = derived_dist(m, subject, param, sample_randeffs(m, param))
   sims_sum = (yi .- mean.(dist.dv))./std.(dist.dv)
   for i in 2:nsim
-    l, dist = conditional_nll_ext(m, subject, param, sample_randeffs(m, param))
+    dist = derived_dist(m, subject, param, sample_randeffs(m, param))
     sims_sum .+= (yi .- mean.(dist.dv))./std.(dist.dv)
   end
   return sims_sum ./ nsim
@@ -260,7 +271,7 @@ function ipred(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FO()))
-  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
 
@@ -268,7 +279,7 @@ function cipred(m::PumasModel,
                 subject::Subject,
                 param::NamedTuple,
                 vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCE()))
-  nl, dist = conditional_nll_ext(m, subject,param, (η=vrandeffs,))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
 
@@ -276,7 +287,7 @@ function cipredi(m::PumasModel,
                   subject::Subject,
                   param::NamedTuple,
                   vrandeffs::AbstractVector=empirical_bayes(m, subject, param, FOCEI()))
-  nl, dist = conditional_nll_ext(m,subject,param, (η=vrandeffs,))
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   return mean.(dist.dv)
 end
 

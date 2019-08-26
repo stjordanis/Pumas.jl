@@ -1,12 +1,12 @@
 function interpextrapconc(nca::NCASubject, timeout; concorigin=nothing, method=nothing, kwargs...)
-  ismissing(timeout) && return missing
+  timeout === missing && return missing
   nca.dose isa Union{NCADose, Nothing} || throw(ArgumentError("interpextrapconc doesn't support multidose data"))
   conc, time = nca.conc, nca.time
   _tlast = tlast(nca)
   isempty(timeout) && throw(ArgumentError("timeout must be a vector with at least one element"))
   out = timeout isa AbstractArray ? fill!(similar(conc, length(timeout)), zero(eltype(conc))) : zero(eltype(conc))
   for i in eachindex(out)
-    if ismissing(out[i])
+    if out[i] === missing
       _out = missing
     elseif timeout[i] <= _tlast
       _out = interpolateconc(nca, timeout[i]; method=method, concorigin=concorigin, kwargs...)

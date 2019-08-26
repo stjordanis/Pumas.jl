@@ -126,7 +126,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}, int
   _tlast = tlast(nca)
   # type assert `auc`
   auc::ret_typ = zero(ret_typ)
-  if ismissing(_clast)
+  if _clast === missing
     if all(x->x<=nca.llq, conc)
       auc = zero(auc)
       cacheauc(nca, auc, interval, method, isauc)
@@ -180,7 +180,7 @@ function _auc(nca::NCASubject{C,TT,T,tEltype,AUC,AUMC,D,Z,F,N,I,P,ID,G,V,R}, int
     time0 = zero(time[idx1])
     if time[idx1] > time0
       c0′ = c0(nca, true)
-      ismissing(c0′) && throw(ArgumentError("AUC calculation cannot proceed, because `c0` gives missing"))
+      c0′ === missing && throw(ArgumentError("AUC calculation cannot proceed, because `c0` gives missing"))
       auc_0 = intervalauc(c0′, conc[idx1], time0, time[idx1], idx1-1, maxidx(nca), method, linear, log, ret_typ)
       if nca.auc_0 isa AbstractArray
         nca.auc_0[1] = auc_0
@@ -293,7 +293,7 @@ Alias for `auctau(subj; auctype=:last, interval=(zero(τ), τ))`.
 """
 function auctau(nca::NCASubject; kwargs...)
   τ = tau(nca; kwargs...)
-  ismissing(τ) && return missing
+  τ === missing && return missing
   return auc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
 end
 
@@ -304,7 +304,7 @@ Alias for `aumctau(subj; auctype=:last, interval=(zero(τ), τ))`.
 """
 function aumctau(nca::NCASubject; kwargs...)
   τ = tau(nca; kwargs...)
-  ismissing(τ) && return missing
+  τ === missing && return missing
   return aumc(nca; auctype=:last, interval=(zero(τ), τ), kwargs...)
 end
 
