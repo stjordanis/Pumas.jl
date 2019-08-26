@@ -20,7 +20,7 @@ Fields:
    - `0`: instantaneous bolus dose
    - `>0`: infusion dose (mass/time units, e.g. mg/hr)
    - `-1`: infusion rate specifed by model
-   - `-2`: infustion duration specified by model
+   - `-2`: infusion duration specified by model
  * `duration`: duration of dose, if `dose > 0`.
  * `ss`: steady state status
    - `0`: dose is not a steady state dose.
