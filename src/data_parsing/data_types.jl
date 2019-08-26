@@ -272,7 +272,9 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
   df_events = df_events[df_events[!, :evid].!=-1,:]
 
   # We delete rate/duration if no infusions. Else, we delete duration or rate
-  # as appropriate.
+  # as appropriate. TODO This will actually fail if used in the context of a
+  # Population where some Subjects have duration specified and others have
+  # rate specified.
   if all(x->iszero(x), df_events[Not(ismissing.(df_events[!, :rate])),:rate])
     # There are no infusions
     select!(df_events, Not(:rate))
