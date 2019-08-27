@@ -3,7 +3,8 @@ module Pumas
 using DiffEqDiffTools, Reexport, StatsBase,
       StaticArrays, Distributed, LabelledArrays, GLM,
       TreeViews, CSV, ForwardDiff, DiffResults, Optim, PDMats,
-      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature
+      Missings, RecipesBase, StructArrays, RecursiveArrayTools, HCubature,
+      Statistics
 using  AdvancedHMC, MCMCChains
 
 import DataInterpolations, Loess
@@ -53,7 +54,7 @@ export PumasModel, init_param, init_randeffs, sample_randeffs
 export simobs, pre
 export tad, eventnum
 export conditional_nll
-export predict, wresiduals, empirical_bayes
+export predict, residuals, wresiduals, empirical_bayes
 export ηshrinkage, ϵshrinkage
 export read_pumas, example_nmtran_data
 export @model, @nca, @tvcov
@@ -61,4 +62,5 @@ export @model, @nca, @tvcov
 export fit, stderror, vcov, aic, bic, deviance, informationmatrix
 export infer, inspect
 export vpc, vpc_obs
+export mean, std, var
 end # module

@@ -4,6 +4,8 @@ const DEFAULT_RELTOL=1e-6
 const DEFAULT_ABSTOL=1e-12
 
 abstract type LikelihoodApproximation end
+struct NaivePooled <: LikelihoodApproximation end
+struct TwoStage <: LikelihoodApproximation end
 struct FO <: LikelihoodApproximation end
 struct FOI <: LikelihoodApproximation end
 struct FOCE <: LikelihoodApproximation end
@@ -63,31 +65,33 @@ end
   end
 end
 
-"""
-    conditional_nll(m::PumasModel, subject::Subject, param, randeffs, args...; kwargs...)
-
-Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
-random effects `randeffs`. `args` and `kwargs` are passed to ODE solver. Requires that
-the derived produces distributions.
-"""
-conditional_nll(m::PumasModel,
-                subject::Subject,
-                param::NamedTuple,
-                randeffs::NamedTuple,
-                args...; kwargs...) = first(conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...))
-
-@inline function conditional_nll_ext(m::PumasModel,
-                                     subject::Subject,
-                                     param::NamedTuple,
-                                     randeffs::NamedTuple,
-                                     args...;
-                                     # This is the only entry point to the ODE solver for the estimation code
-                                     # so we need to make sure to set default tolerances here if they haven't
-                                     # been set elsewhere.
-                                     reltol=DEFAULT_RELTOL,
-                                     abstol=DEFAULT_ABSTOL,
-                                     kwargs...)
-
+function derived_dist(model::PumasModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractArray,
+                      args...;
+                      # This is the only entry point to the ODE solver for the estimation code
+                      # so we need to make sure to set default tolerances here if they haven't
+                      # been set elsewhere.
+                      reltol=DEFAULT_RELTOL,
+                      abstol=DEFAULT_ABSTOL,
+                      kwargs...)
+  rtrf = totransform(model.random(param))
+  randeffs = TransformVariables.transform(rtrf, vrandeffs)
+  dist = derived_dist(model, subject, param, randeffs, args...; kwargs...)
+end
+# inlined beacuse it was taken from conditional_nll_ext below that is inlined
+@inline function derived_dist(m::PumasModel,
+                              subject::Subject,
+                              param::NamedTuple,
+                              randeffs::NamedTuple,
+                              args...;
+                              # This is the only entry point to the ODE solver for the estimation code
+                              # so we need to make sure to set default tolerances here if they haven't
+                              # been set elsewhere.
+                              reltol=DEFAULT_RELTOL,
+                              abstol=DEFAULT_ABSTOL,
+                              kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
   isnothing(obstimes) && throw(ArgumentError("no observations for subject"))
@@ -98,24 +102,54 @@ conditional_nll(m::PumasModel,
   # create solution object. By passing saveat=obstimes, we compute the solution only
   # at obstimes such that we can simply pass solution.u to m.derived
   solution = _solve(m, subject, collated, args...; saveat=obstimes, reltol=reltol, abstol=abstol, kwargs...)
-
   if solution === nothing
-    derived_dist = m.derived(collated, solution, obstimes, subject)
+    dist = m.derived(collated, solution, obstimes, subject)
   else
     # if solution contains NaN return Inf
     if (solution.retcode != :Success && solution.retcode != :Terminated) ||
-        # FIXME! Make this uniform across the two solution types
-        any(x->any(isnan,x), solution isa PKPDAnalyticalSolution ? solution(obstimes[end]) : solution.u[end])
+      # FIXME! Make this uniform across the two solution types
+      any(x->any(isnan,x), solution isa PKPDAnalyticalSolution ? solution(obstimes[end]) : solution.u[end])
       # FIXME! Do we need to make this type stable?
-      return numtype(collated)(Inf), nothing
+      return nothing
     end
 
     # extract distributions
-    derived_dist = m.derived(collated, solution, obstimes, subject)
+    dist = m.derived(collated, solution, obstimes, subject)
+  end
+  dist
+end
+
+"""
+    conditional_nll(m::PumasModel, subject::Subject, param, randeffs, args...; kwargs...)
+
+Compute the conditional negative log-likelihood of model `m` for `subject` with parameters `param` and
+random effects `randeffs`. `args` and `kwargs` are passed to ODE solver. Requires that
+the derived produces distributions.
+"""
+@inline function conditional_nll(m::PumasModel,
+                                 subject::Subject,
+                                 param::NamedTuple,
+                                 randeffs::NamedTuple,
+                                 args...;
+                                 kwargs...)
+    dist = derived_dist(m, subject, param, randeffs, args...; kwargs...)
+    conditional_nll(m, subject, param, randeffs, dist)
+end
+
+@inline function conditional_nll(m::PumasModel,
+                                 subject::Subject,
+                                 param::NamedTuple,
+                                 randeffs::NamedTuple,
+                                 dist::Union{NamedTuple, Nothing})
+
+  collated_numtype = numtype(m.pre(param, randeffs, subject))
+
+  if dist isa Nothing
+    return collated_numtype(Inf)
   end
 
-  ll = _lpdf(derived_dist, subject.observations)::numtype(collated)
-  return -ll, derived_dist
+  ll = _lpdf(dist, subject.observations)::collated_numtype
+  return -ll
 end
 
 conditional_nll(m::PumasModel,
@@ -132,13 +166,14 @@ function conditional_nll(m::PumasModel,
                          randeffs::NamedTuple,
                          approx::Union{FO,FOCE,Laplace},
                          args...; kwargs...)
-  l, dist    = conditional_nll_ext(m, subject, param, randeffs, args...; kwargs...)
+  dist = derived_dist(m, subject, param, randeffs, args...;kwargs...)
+  l = conditional_nll(m, subject, param, randeffs, dist)
 
   # If (negative) likehood is infinity or the model is Homoscedastic, we just return l
   if isinf(l) || _is_homoscedastic(dist.dv)
     return l
   else # compute the adjusted (negative) likelihood where the variance is evaluated at η=0
-    l0, dist0 = conditional_nll_ext(m, subject, param, map(zero, randeffs), args...; kwargs...)
+    dist0 = derived_dist(m, subject, param, map(zero, randeffs), args...; kwargs...)
     return _conditional_nll(dist.dv, dist0.dv, subject)
   end
 end
@@ -311,8 +346,12 @@ function marginal_nll(m::PumasModel,
                       randeffs::NamedTuple,
                       approx::LikelihoodApproximation,
                       args...; kwargs...)
-  rfxset = m.random(param)
-  vrandeffs = TransformVariables.inverse(totransform(rfxset), randeffs)
+  if approx isa NaivePooled
+    vrandeffs = []
+  else
+    rfxset = m.random(param)
+    vrandeffs = TransformVariables.inverse(totransform(rfxset), randeffs)
+  end
   marginal_nll(m, subject, param, vrandeffs, approx, args...; kwargs...)
 end
 
@@ -387,6 +426,17 @@ function _marginal_nll_pmap(nll1::T,
     return nll1 + sum(nlls)
 end
 
+function marginal_nll(m::PumasModel,
+                      subject::Subject,
+                      param::NamedTuple,
+                      vrandeffs::AbstractVector,
+                      ::NaivePooled,
+                      args...; kwargs...)::promote_type(numtype(param), numtype(vrandeffs))
+
+  # The negative loglikelihood function. There are no random effects.
+  conditional_nll(m, subject, param, NamedTuple(), args...;kwargs...)
+
+end
 function marginal_nll(m::PumasModel,
                       subject::Subject,
                       param::NamedTuple,
@@ -586,7 +636,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 subject::Subject,
                                 param::NamedTuple,
                                 randeffs::NamedTuple,
-                                approx::Union{FO,FOI,HCubeQuad},
+                                approx::Union{NaivePooled, FO,FOI,HCubeQuad},
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
@@ -651,13 +701,18 @@ function _conditional_nll_ext_η_gradient(m::PumasModel,
   # Costruct closure for calling conditional_nll_ext as a function
   # of a random effects vector. This makes it possible for ForwardDiff's
   # tagging system to work properly
-  _conditional_nll_ext =  _η -> conditional_nll_ext(m, subject, param, (η=_η,), args...; kwargs...)
-
+  _conditional_nll_ext =  _η -> begin
+      dist = derived_dist(m, subject, param, (η=_η,), args...; kwargs...)
+      cnll = conditional_nll(m, subject, param, (η=_η,), dist)
+      return cnll, dist
+    end
   # Construct vector of dual numbers for the random effects to track the partial derivatives
   cfg = ForwardDiff.JacobianConfig(_conditional_nll_ext, vrandeffs)
-  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
 
-  return _conditional_nll_ext(cfg.duals)
+  ForwardDiff.seed!(cfg.duals, vrandeffs, cfg.seeds)
+  cnll, dist = _conditional_nll_ext(cfg.duals)
+
+  return cnll, dist
 end
 
 function ∂²l∂η²(m::PumasModel,
@@ -774,7 +829,7 @@ function _∂²l∂η²(nl_d::ForwardDiff.Dual,
 
     W = _∂²l∂η²(dv_d, first(dv_d), FOCE())
   else # in the Heteroscedastic case, compute the variances at η=0
-    nl_0, dist_0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),), args...; kwargs...)
+    dist_0 = derived_dist(m, subject, param, (η=zero(vrandeffs),), args...; kwargs...)
 
     # Extract the value of the conditional likelihood
     nl = ForwardDiff.value(_conditional_nll(dv_d, dist_0.dv, subject))
@@ -921,15 +976,20 @@ function Distributions.fit(m::PumasModel,
   # random effect estimate during an iteration since it might be modified several times during a line search
   # before the new value has been found. We then define a callback which will store values of vvrandeffs_tmp
   # in vvrandeffs once the iteration is done.
-  vvrandeffs     = [zero(mean(m.random(param).params.η)) for subject in population]
-  vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
-  cb = state -> begin
-    for i in eachindex(vvrandeffs)
-      copyto!(vvrandeffs[i], vvrandeffs_tmp[i])
+  if approx isa NaivePooled
+    vvrandeffs     = [[] for subject in population]
+    vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
+    cb(state) = false
+  else
+    vvrandeffs     = [zero(mean(m.random(param).params.η)) for subject in population]
+    vvrandeffs_tmp = [copy(vrandeffs) for vrandeffs in vvrandeffs]
+    cb = state -> begin
+      for i in eachindex(vvrandeffs)
+        copyto!(vvrandeffs[i], vvrandeffs_tmp[i])
+      end
+      return false
     end
-    return false
   end
-
   # Define cost function for the optimization
   cost = Optim.NLSolversBase.OnceDifferentiable(
     Optim.NLSolversBase.only_fg!() do f, g, vx
@@ -943,7 +1003,7 @@ function Distributions.fit(m::PumasModel,
       nll = sum(zip(population, vvrandeffs, vvrandeffs_tmp)) do (subject, vrandeffs, vrandeffs_tmp)
         # If not FO then compute EBE based on the estimates from last iteration stored in vvrandeffs
         # and store the retult in vvrandeffs_tmp
-        if !(approx isa FO)
+        if !(approx isa FO || approx isa NaivePooled)
           copyto!(vrandeffs_tmp, vrandeffs)
           empirical_bayes!(vrandeffs_tmp, m, subject, x, approx, args...; kwargs...)
         end
@@ -966,7 +1026,7 @@ function Distributions.fit(m::PumasModel,
   o = optimize_fn(cost, vparam, cb)
 
   # Update the random effects after optimization
-  if !(approx isa FO)
+  if !(approx isa FO || approx isa NaivePooled)
     for (vrandeffs, subject) in zip(vvrandeffs, population)
       empirical_bayes!(vrandeffs, m, subject, TransformVariables.transform(trf, opt_minimizer(o)), approx, args...; kwargs...)
     end
@@ -975,13 +1035,26 @@ function Distributions.fit(m::PumasModel,
   return FittedPumasModel(m, population, o, approx, vvrandeffs)
 end
 
+function Distributions.fit(m::PumasModel,
+                           subject::Subject,
+                           param::NamedTuple,
+                           args...;
+                           kwargs...)
+  return fit(m, [subject,], param, NaivePooled(), args...; kwargs...)
+end
+function Distributions.fit(m::PumasModel,
+                           population::Population,
+                           param::NamedTuple,
+                           ::TwoStage,
+                           args...;
+                           kwargs...)
+  return map(x->fit(m, [x,], param, NaivePooled(), args...; kwargs...), population)
+end
+
 # error handling for fit(model, subject, param, args...; kwargs...)
 function Distributions.fit(model::PumasModel, subject::Subject,
              param::NamedTuple, approx::LikelihoodApproximation, args...; kwargs...)
   throw(ArgumentError("Calling fit on a single subject is not allowed with a likelihood approximation method specified."))
-end
-function Distributions.fit(model::PumasModel, subject::Subject, param::NamedTuple, args...; kwargs...)
-  throw(ErrorException("Fitting individual subjects is not implemented yet."))
 end
 
 opt_minimizer(o::Optim.OptimizationResults) = Optim.minimizer(o)
@@ -1137,6 +1210,31 @@ parameters.
 """
 StatsBase.stderror(f::FittedPumasModel) = stderror(infer(f))
 
+function Statistics.mean(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  means = []
+  for name in names
+    push!(means, mean([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(means)
+end
+function Statistics.std(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  stds = []
+  for name in names
+    push!(stds, std([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(stds)
+end
+function Statistics.var(vfpm::Vector{<:FittedPumasModel})
+  names = keys(first(vfpm).param)
+  vars = []
+  for name in names
+    push!(vars, var([fpm.param[name] for fpm in vfpm]))
+  end
+  NamedTuple{names}(vars)
+end
+
 function _E_and_V(m::PumasModel,
                   subject::Subject,
                   param::NamedTuple,
@@ -1145,10 +1243,11 @@ function _E_and_V(m::PumasModel,
                   args...; kwargs...)
 
   y = subject.observations.dv
-  nl, dist = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+
+  dist = derived_dist(m, subject, param, (η=vrandeffs,))
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
   Ω = cov(m.random(param).params.η)
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist.dv)))
   return mean.(dist.dv), V
 end
@@ -1161,12 +1260,12 @@ function _E_and_V(m::PumasModel,
                   args...; kwargs...)
 
   y = subject.observations.dv
-  nl0, dist0 = conditional_nll_ext(m, subject, param, (η=zero(vrandeffs),))
-  nl , dist  = conditional_nll_ext(m, subject, param, (η=vrandeffs,))
+  dist0 = derived_dist(m, subject, param, (η=zero(vrandeffs),))
+  dist  = derived_dist(m, subject, param, (η=vrandeffs,))
 
   # We extract the covariance of random effect like this because Ω might not be a parameters of param if it is fixed.
   Ω = cov(m.random(param).params.η)
-  F = ForwardDiff.jacobian(s -> mean.(conditional_nll_ext(m, subject, param, (η=s,))[2].dv), vrandeffs)
+  F = ForwardDiff.jacobian(s -> mean.(derived_dist(m, subject, param, (η=s,)).dv), vrandeffs)
   V = Symmetric(F*Ω*F' + Diagonal(var.(dist0.dv)))
 
   return mean.(dist.dv) .- F*vrandeffs, V
