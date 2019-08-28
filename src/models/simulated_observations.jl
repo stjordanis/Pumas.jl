@@ -68,6 +68,8 @@ function DataFrames.DataFrame(obs::SimulatedObservations;
         end
       end
     end
+
+    df = df[df[!, :evid].!=-1,:]
     sort!(df, (:time, order(:evid, rev=event_order_reverse)))
   end
   if include_covariates
