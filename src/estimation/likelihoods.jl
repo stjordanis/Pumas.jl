@@ -1,7 +1,7 @@
 import DiffResults: DiffResult
 
-const DEFAULT_RELTOL=1e-6
-const DEFAULT_ABSTOL=1e-12
+const DEFAULT_ESTIMATION_RELTOL=1e-8
+const DEFAULT_ESTIMATION_ABSTOL=1e-12
 
 abstract type LikelihoodApproximation end
 struct NaivePooled <: LikelihoodApproximation end
@@ -73,8 +73,8 @@ function derived_dist(model::PumasModel,
                       # This is the only entry point to the ODE solver for the estimation code
                       # so we need to make sure to set default tolerances here if they haven't
                       # been set elsewhere.
-                      reltol=DEFAULT_RELTOL,
-                      abstol=DEFAULT_ABSTOL,
+                      reltol=DEFAULT_ESTIMATION_RELTOL,
+                      abstol=DEFAULT_ESTIMATION_ABSTOL,
                       kwargs...)
   rtrf = totransform(model.random(param))
   randeffs = TransformVariables.transform(rtrf, vrandeffs)
@@ -89,8 +89,9 @@ end
                               # This is the only entry point to the ODE solver for the estimation code
                               # so we need to make sure to set default tolerances here if they haven't
                               # been set elsewhere.
-                              reltol=DEFAULT_RELTOL,
-                              abstol=DEFAULT_ABSTOL,
+                              reltol=DEFAULT_ESTIMATION_RELTOL,
+                              abstol=DEFAULT_ESTIMATION_ABSTOL,
+                              alg = AutoVern7(Rodas5()),
                               kwargs...)
   # Extract a vector of the time stamps for the observations
   obstimes = subject.time
