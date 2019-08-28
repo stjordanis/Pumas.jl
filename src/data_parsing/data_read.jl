@@ -84,6 +84,7 @@ function build_event_list!(events, event_data, t, evid, amt, addl, ii, cmt, rate
       @assert !drdi "Some dose-related data items must be non-zero when evid = $evid"
     end
   end
+  duration = amt / rate
   for j = 0:addl  # addl==0 means just once
     _ss = iszero(j) ? ss : zero(Int8)
     if iszero(amt) && evid ≠ 2
