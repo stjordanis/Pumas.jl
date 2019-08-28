@@ -284,7 +284,7 @@ function empirical_bayes!(vrandeffs::AbstractVector,
                           approx::Union{FOCE,FOCEI,Laplace,LaplaceI},
                           args...;
                           # We explicitly use reltol to compute the right step size for finite difference based gradient
-                          reltol=DEFAULT_RELTOL,
+                          reltol=DEFAULT_ESTIMATION_RELTOL,
                           fdtype=Val{:central}(),
                           fdrelstep=_fdrelstep(m, param, reltol, fdtype),
                           kwargs...)
@@ -543,7 +543,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
-                                reltol=DEFAULT_RELTOL,
+                                reltol=DEFAULT_ESTIMATION_RELTOL,
                                 fdtype=Val{:central}(),
                                 fdrelstep=_fdrelstep(model, param, reltol, fdtype),
                                 fdabsstep=fdrelstep^2,
@@ -641,7 +641,7 @@ function marginal_nll_gradient!(g::AbstractVector,
                                 trf::TransformVariables.TransformTuple,
                                 args...;
                                 # We explicitly use reltol to compute the right step size for finite difference based gradient
-                                reltol=DEFAULT_RELTOL,
+                                reltol=DEFAULT_ESTIMATION_RELTOL,
                                 fdtype=Val{:central}(),
                                 fdrelstep=_fdrelstep(model, param, reltol, fdtype),
                                 fdabsstep=fdrelstep^2,
@@ -1077,7 +1077,7 @@ function _observed_information(f::FittedPumasModel,
                                args...;
                                # We explicitly use reltol to compute the right step size for finite difference based gradient
                                # The tolerance has to be stricter when computing the covariance than during estimation
-                               reltol=abs2(DEFAULT_RELTOL),
+                               reltol=abs2(DEFAULT_ESTIMATION_RELTOL),
                                kwargs...) where Score
   # Transformation the NamedTuple of parameters to a Vector
   # without applying any bounds (identity transform)
