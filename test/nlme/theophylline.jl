@@ -16,6 +16,11 @@ theopp = read_pumas(example_nmtran_data("event_data/THEOPP"),cvs = [:SEX,:WT])
   @test theopp[1].events isa Vector{Pumas.Event{Float64,Float64,Float64,Float64,Float64,Float64,Int}}
 end
 
+@testset "Test DataFrame constructors for Subject and Population" begin
+  DataFrame(theopp)
+  DataFrame(theopp[1])
+end
+
 @testset "run2.mod FO without interaction, diagonal omega and additive error" begin
   #Note: run2 requires a block diagonal for the omega
   #$OMEGA  BLOCK(3)
