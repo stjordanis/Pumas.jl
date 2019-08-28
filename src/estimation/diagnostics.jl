@@ -70,9 +70,9 @@ function wresiduals(fpm, subject::Subject, randeffs, approx; nsim=nothing)
   SubjectResidual(wres, iwres, subject, approx)
 end
 
-function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true, include_dvs=true)
+function DataFrames.DataFrame(vresid::Vector{<:SubjectResidual}; include_covariates=true)
   subjects = [resid.subject for resid in vresid]
-  df = DataFrame(subjects; include_covariates=include_covariates, include_dvs=include_dvs)
+  df = select!(DataFrame(subjects; include_covariates=include_covariates, include_dvs=false), Not(:evid))
 
   df[!,:wres] .= vcat((resid.wres for resid in vresid)...)
   df[!,:iwres] .= vcat((resid.iwres for resid in vresid)...)
@@ -393,9 +393,9 @@ function epredict(fpm, subject, vrandeffs, nsim::Integer)
   epred(fpm.model, subjects, fpm.param, (η=vrandeffs,), nsim)
 end
 
-function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true, include_dvs=true)
+function DataFrames.DataFrame(vpred::Vector{<:SubjectPrediction}; include_covariates=true)
   subjects = [pred.subject for pred in vpred]
-  df = DataFrame(subjects; include_covariates=include_covariates, include_dvs=include_dvs)
+  df = select!(DataFrame(subjects; include_covariates=include_covariates, include_dvs=false), Not(:evid))
 
   df[!,:pred] .= vcat((pred.pred for pred in vpred)...)
   df[!,:ipred] .= vcat((pred.ipred for pred in vpred)...)
@@ -421,10 +421,9 @@ function empirical_bayes(fpm::FittedPumasModel, approx=fpm.approx)
   end
 end
 
-function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=true, include_dvs=true)
+function DataFrames.DataFrame(vebes::Vector{<:SubjectEBES}; include_covariates=true)
   subjects = [ebes.subject for ebes in vebes]
-  df = DataFrame(subjects; include_covariates=include_covariates, include_dvs=include_dvs)
-
+  df = select!(DataFrame(subjects; include_covariates=include_covariates, include_dvs=false), Not(:evid))
   for i = 1:length(first(vebes).ebes)
     df[!,Symbol("ebe_$i")] .= vcat((fill(ebes.ebes[i], length(ebes.subject.time)) for ebes in vebes)...)
   end
@@ -455,10 +454,10 @@ function inspect(fpm; pred_approx=fpm.approx, infer_approx=fpm.approx,
   println(". Done.")
   FittedPumasModelInspection(fpm, pred, res, ebes)
 end
-function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=true, include_dvs=true)
-  pred_df = DataFrame(i.pred; include_covariates=include_covariates, include_dvs=include_dvs)
-  res_df = select!(select!(DataFrame(i.wres; include_covariates=false, include_dvs=false), Not(:id)), Not(:time))
-  ebes_df = select!(select!(DataFrame(i.ebes; include_covariates=false, include_dvs=false), Not(:id)), Not(:time))
+function DataFrames.DataFrame(i::FittedPumasModelInspection; include_covariates=true)
+  pred_df = DataFrame(i.pred; include_covariates=include_covariates)
+  res_df = select!(select!(DataFrame(i.wres; include_covariates=false), Not(:id)), Not(:time))
+  ebes_df = select!(select!(DataFrame(i.ebes; include_covariates=false), Not(:id)), Not(:time))
 
   df = hcat(pred_df, res_df, ebes_df)
 end

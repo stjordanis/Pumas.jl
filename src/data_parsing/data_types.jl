@@ -310,19 +310,21 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
     end
     # Now, create columns in df_events with missings for the column names in
     # df but not in df_events
-    for df_name in names(df)
-      if df_name == :id
-        df_events[!, df_name] .= subject.id
-      elseif !(df_name == :time)
-        if df_name ∉ names(df_events)
-          df_events[!, df_name] .= missing
+    if include_dvs
+      for df_name in names(df)
+        if df_name == :id
+          df_events[!, df_name] .= subject.id
+        elseif !(df_name == :time)
+          if df_name ∉ names(df_events)
+            df_events[!, df_name] .= missing
+          end
         end
       end
-    end
-    # ... and do the same for df
-    for df_name in names(df_events)
-      if df_name ∉ names(df)
-        df[!, df_name] .= missing
+      # ... and do the same for df
+      for df_name in names(df_events)
+        if df_name ∉ names(df)
+          df[!, df_name] .= missing
+        end
       end
     end
   end
@@ -330,8 +332,10 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
   # If there are no observations, just go with df_events
   if isnothing(subject.time)
     df = df_events
-  else
+  elseif include_dvs
     df = vcat(df, df_events)
+  else
+    df
   end
   if include_covariates
     if !isa(subject.covariates, Nothing)
@@ -344,23 +348,25 @@ function DataFrames.DataFrame(subject::Subject; include_covariates=true, include
   # Sort the df according to time first, and use :base_time to ensure that events
   # come before observations (they are missing for observations, so they will come
   # last).
-  sort!(df, (:time, :base_time))
+  sort_bys = include_dvs ? (:time, :base_time) : (:time,)
+  sort!(df, sort_bys)
 
   # Find the amount (amt) column, and insert dose and tad columns after it
-  amt_pos = findfirst(isequal(:amt), names(df))
-  insertcols!(df, amt_pos+1, :dose => 0.0)
-  insertcols!(df, amt_pos+2, :tad => 0.0)
-
-  # Calculate the indeces for the dose events
-  idxs = findall(isequal(false), ismissing.(df[!, :amt]))
-  # Append the number of rows to allow the +1 indexing used below
-  if !(idxs[end] == nrow(df))
-    push!(idxs, nrow(df))
-  end
-  for i in 1:length(idxs)-1
-    df[idxs[i]:idxs[i+1], :dose] .= df[idxs[i], :amt]
-    df[idxs[i]:idxs[i+1], :cmt] .= df[idxs[i], :cmt]
-    df[idxs[i]:idxs[i+1], :tad] .= df[idxs[i]:idxs[i+1], :time].-df[idxs[i], :time]
+  if include_dvs
+    amt_pos = findfirst(isequal(:amt), names(df))
+    insertcols!(df, amt_pos+1, :dose => 0.0)
+    insertcols!(df, amt_pos+2, :tad => 0.0)
+    # Calculate the indeces for the dose events
+    idxs = findall(isequal(false), ismissing.(df[!, :amt]))
+    # Append the number of rows to allow the +1 indexing used below
+    if !(idxs[end] == nrow(df))
+      push!(idxs, nrow(df))
+    end
+    for i in 1:length(idxs)-1
+      df[idxs[i]:idxs[i+1], :dose] .= df[idxs[i], :amt]
+      df[idxs[i]:idxs[i+1], :cmt] .= df[idxs[i], :cmt]
+      df[idxs[i]:idxs[i+1], :tad] .= df[idxs[i]:idxs[i+1], :time].-df[idxs[i], :time]
+    end
   end
 
   # Return df
