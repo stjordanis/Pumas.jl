@@ -90,7 +90,6 @@ end
 
 """
     DosageRegimen
-
 Lazy representation of a series of Events.
 """
 mutable struct DosageRegimen
@@ -158,9 +157,9 @@ mutable struct DosageRegimen
       output = sort!(vcat(data1, data2), :time)
     else
       data2 = deepcopy(data2)
-      data2[:time] = cumsum(prepend!(data1[:ii][end] * (data1[:addl][end] + 1) +
-                                     data1[:time][end] +
-                                     offset))
+      data2[!,:time] = cumsum(prepend!(data1[!,:ii][end] * (data1[!,:addl][end] + 1) +
+                                       data1[!,:time][end] +
+                                       offset))
       output = sort!(vcat(data1, data2), :time)
     end
     new(output)
