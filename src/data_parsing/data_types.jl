@@ -127,11 +127,11 @@ mutable struct DosageRegimen
     addl > 0 && ii == zero(ii) && throw(ArgumentError("ii must be positive for addl > 0"))
     rate ≥ zero(rate) || rate == -2 || throw(ArgumentError("rate is invalid"))
     ss ∈ 0:2 || throw(ArgumentError("ss is invalid"))
-    if iszero(duration) && amt > 0 && rate > 0
+    if iszero(duration) && amt > zero(amt) && rate > zero(rate)
       duration = amt / rate
-    elseif iszero(rate) && amt > 0 && duration > 0
+    elseif iszero(rate) && amt > zero(amt) && duration > zero(rate)
       rate = amt / duration
-    elseif duration > 0 && rate > 0
+    elseif duration > zero(duration) && rate > zero(rate)
       @assert amt ≈ rate * duration
     end
     new(DataFrame(time = time, cmt = cmt, amt = amt, evid = evid, ii = ii, addl = addl,
