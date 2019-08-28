@@ -87,8 +87,16 @@ end
   data = DataFrame(evs, true)
   @test size(data, 1) == 24
 end
+
 @testset "MDV" begin
   data = DataFrame(amt = 10, dv = 0, evid = 0, mdv = 1)
   output = read_pumas(data)
   @test ismissing(output[1].observations.dv[1])
+end
+
+@testset "amt = rate * duration" begin
+  e1 = DosageRegimen(100, rate = 25)
+  e2 = DosageRegimen(100, duration = 4)
+  @test e1.data == e2.data
+  @test_throws AssertionError DosageRegimen(100, duration = 4, rate = 20)
 end
