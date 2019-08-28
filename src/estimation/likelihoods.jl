@@ -614,18 +614,18 @@ function marginal_nll_gradient!(g::AbstractVector,
   return g
 end
 
-function _fdrelstep(model::PumasModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:forward})
+function _fdrelstep(model::PumasModel, param::NamedTuple, reltol, ::Val{:forward})
   if model.prob isa ExplicitModel
     return sqrt(eps(numtype(param)))
   else
-    return max(reltol, sqrt(eps(numtype(param))))
+    return max(norm(reltol), sqrt(eps(numtype(param))))
   end
 end
-function _fdrelstep(model::PumasModel, param::NamedTuple, reltol::AbstractFloat, ::Val{:central})
+function _fdrelstep(model::PumasModel, param::NamedTuple, reltol, ::Val{:central})
   if model.prob isa ExplicitModel
     return cbrt(eps(numtype(param)))
   else
-    return max(reltol, cbrt(eps(numtype(param))))
+    return max(norm(reltol), cbrt(eps(numtype(param))))
   end
 end
 
